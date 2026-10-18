@@ -1,0 +1,74 @@
+name: Pipa EXP07 - Real Config Comparator Tests (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp07-config-compare.yml"
+      - "tools/exp07-compare-running-config.ps1"
+      - "tests/exp07_mock_live_config.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: pipa-exp06-clang21-1
+          run-id: 39136149722
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: source-exp06
+
+      - name: Zip downloaded artifact in expected GitHub artifact format
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = 'source-exp06'
+          $expected = @('exp06-clang-version.txt','exp06-work/out/.config','exp06-work/out/arch/arm64/boot/Image')
+          foreach($entry in $expected){if(!(Test-Path (Join-Path $source $entry) -PathType Leaf)){throw "Missing artifact entry $entry"}}
+          # Preserve GitHub's immutable ZIP for the SHA gate in the next test; download actual archive via GitHub API.
+          $head=@{Authorization="Bearer $env:GH_TOKEN"; Accept="application/vnd.github+json"}
+          Invoke-WebRequest -Uri 'https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/artifacts/12140930183/zip' -Headers $head -OutFile 'exp06-artifact.zip'
+          $hash = (Get-FileHash exp06-artifact.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($hash -ne 'e32af6b61163fba4724211986823fc4ffab759956d213ef15b7fcda042241402'){throw "Wrong pinned artifact ZIP hash: $hash"}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Generate synthetic identical and changed live Kconfig
+        shell: pwsh
+        run: |
+          python tests/exp07_mock_live_config.py exp06-artifact.zip fixtures
+          if($LASTEXITCODE -ne 0){throw 'Fixture generation failed'}
+
+      - name: Exercise exact match under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $r = & ./tools/exp07-compare-running-config.ps1 -LiveConfigGz fixtures/synthetic-identical-config.gz -Exp06Zip exp06-artifact.zip | Out-String
+          Write-Output $r
+          if(!$r.Contains('changed_or_missing=0')){throw 'Expected identical configs'}
+          if(!$r.Contains('PASS: read-only')){throw 'Missing success signal'}
+
+      - name: Detect KSU and schedutil differences under PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $r = & ./tools/exp07-compare-running-config.ps1 -LiveConfigGz fixtures/synthetic-different-config.gz -Exp06Zip exp06-artifact.zip | Out-String
+          Write-Output $r
+          if(!$r.Contains('changed_or_missing=2')){throw 'Expected precisely two differences'}
+          if(!$r.Contains('DIFF CONFIG_KSU ')){throw 'KernelSU difference not detected'}
+          if(!$r.Contains('DIFF CONFIG_PIPA_EXP_SUGOV ')){throw 'Schedutil experiment difference not detected'}
+
+      - name: Assert read-only
+        shell: pwsh
+        run: |
+          if (Test-Path boot.img){throw 'Forbidden boot.img output'}
+          Write-Output 'EXP07 tests successful: no real device images or flash operations.'
