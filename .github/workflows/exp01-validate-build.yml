@@ -1,0 +1,104 @@
+name: Pipa EXP01 - Validate and Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp01-validate-build.yml"
+      - "PipaExperimental-EXP01-source.zip"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "validate = checks only; build = compile non-flashable ARM64 Image"
+        required: true
+        default: validate
+        type: choice
+        options: [validate, build]
+
+permissions:
+  contents: read
+
+jobs:
+  exp01:
+    name: EXP01 / ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'validate' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      WORKDIR: ${{ github.workspace }}/exp01-work
+      MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'validate' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify and extract EXP01 source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "548ebb47ad0febe3c4541b9e93f2233bb9188c78d8f9ec298dd397a11216b852  PipaExperimental-EXP01-source.zip" | sha256sum -c -
+          mkdir -p exp01-src
+          unzip -q PipaExperimental-EXP01-source.zip -d exp01-src
+          test -s exp01-src/prepare-build.sh
+          test -s exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch
+          test -s exp01-src/SOURCE.lock
+
+      - name: Install Linux cross-compile dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make clang lld llvm gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+            bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            ccache pahole device-tree-compiler rsync
+
+      - name: Validate original source archive and shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd exp01-src
+          python3 validate.py
+          bash -n prepare-build.sh
+
+      - name: Checkout pinned E404 and apply EXP01 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash exp01-src/prepare-build.sh "$WORKDIR" prepare 2>&1 | tee prepare.log
+
+      - name: Verify patch and pipa kernel configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORKDIR/kernel"
+          test "$(git rev-parse HEAD)" = "fed88a6024cd4d46c52eda607a95d97d7371ba81"
+          git apply --reverse --check "$GITHUB_WORKSPACE/exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch"
+          mkdir -p "$WORKDIR/out"
+          make O="$WORKDIR/out" ARCH=arm64 LLVM=1 LLVM_IAS=1 vendor/pipa_defconfig 2>&1 | tee "$GITHUB_WORKSPACE/config.log"
+          grep -qx "CONFIG_PIPA_EXP_SUGOV=y" "$WORKDIR/out/.config"
+          grep -qx "CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500" "$WORKDIR/out/.config"
+
+      - name: Compile ARM64 Image (manual build mode only)
+        if: ${{ env.MODE == 'build' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash exp01-src/prepare-build.sh "$WORKDIR" build
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) > compiled-Image.sha256
+          echo "NOT flashable: no boot.img/DTB/module/ROM compatibility checks performed."
+
+      - name: Upload validation logs and intermediate output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp01-${{ github.run_number }}-${{ env.MODE }}
+          path: |
+            prepare.log
+            config.log
+            compiled-Image.sha256
+            exp01-work/build.log
+            exp01-work/out/.config
+            exp01-work/out/arch/arm64/boot/Image
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
