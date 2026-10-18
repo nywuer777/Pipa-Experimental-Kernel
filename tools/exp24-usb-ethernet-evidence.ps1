@@ -19,7 +19,7 @@ if ($Serial -ne '') { $adbArgs += @('-s', $Serial) }
 if ($LASTEXITCODE -ne 0) { throw 'ADB target unavailable; connect to the tablet before capture.' }
 
 $commands = @(
-    @{Title='kernel'; Cmd='uname -a; cat /proc/version; cat /proc/sys/kernel/osrelease'},
+    @{Title='kernel'; Cmd='uname -a; cat /proc/version; (cat /proc/sys/kernel/osrelease 2>/dev/null || echo "osrelease unavailable (permission denied or absent)")'},
     @{Title='USB VID PID and driver binding'; Cmd='for d in /sys/bus/usb/devices/*; do [ -r "$d/idVendor" ] || continue; echo "USB_DEVICE=$d"; printf "VID="; cat "$d/idVendor"; printf "PID="; cat "$d/idProduct"; echo "DRIVER_SYMLINK:"; ls -l "$d/driver" 2>/dev/null || true; done'},
     @{Title='USB interface-level driver binding'; Cmd='for d in /sys/bus/usb/devices/*:*; do [ -e "$d" ] || continue; echo "USB_INTERFACE=$d"; echo "INTERFACE_DRIVER:"; ls -l "$d/driver" 2>/dev/null || true; done'},
     @{Title='all network interfaces'; Cmd='ip -o link show; ip -4 address show'},
@@ -35,9 +35,26 @@ $lines.Add("# Captured=$(Get-Date -Format o)")
 foreach ($entry in $commands) {
     $lines.Add("")
     $lines.Add("======== $($entry.Title) ========")
-    $output = (& $Adb @adbArgs shell $entry.Cmd 2>&1 | Out-String)
-    $lines.Add($output.TrimEnd())
-    $lines.Add("exit_code=$LASTEXITCODE")
+    # PowerShell 5.1 may convert native ADB stderr into a terminating NativeCommandError
+    # when ErrorActionPreference=Stop. Keep the strict policy for setup, but capture
+    # per-section output under Continue, including optional Android permission failures.
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $captured = @(& $Adb @adbArgs shell $entry.Cmd 2>&1 | ForEach-Object { $_.ToString() })
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($captured.Count -eq 0) {
+        $lines.Add('(empty or not accessible)')
+    } else {
+        foreach ($line in $captured) { $lines.Add([string]$line) }
+    }
+    $lines.Add("exit_code=$exitCode")
+    if ($exitCode -ne 0) {
+        $lines.Add('NOTE: Optional section failed or permission denied. Capture continues.')
+    }
 }
 $out = Join-Path $OutDir ("exp24-usb-{0}-{1}.txt" -f $Stage, (Get-Date -Format 'yyyyMMdd-HHmmss'))
 [IO.File]::WriteAllLines((Join-Path (Resolve-Path $OutDir) (Split-Path $out -Leaf)), $lines, [Text.UTF8Encoding]::new($false))
