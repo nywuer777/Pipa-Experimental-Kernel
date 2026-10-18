@@ -64,6 +64,31 @@ jobs:
           } finally {$archive.Dispose()}
           Write-Output 'EXP06 ZIP integrity and original three-entry layout PASS'
 
+      - name: Regression check - actual ZIP entry verification in PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = & ./tools/exp12-windows-preflight.ps1 -ZipOnlySelfTest -Exp06Zip ./exp06.zip | Out-String
+          Write-Output $r
+          if (!$r.Contains('EXP12 ZIP ONLY: PASS')) {throw 'Windows PowerShell 5.1 ZipFile regression'}
+          if (!$r.Contains('FLASH_READY=false')) {throw 'ZIP only test must never approve flashing'}
+
+      - name: Regression check - actual ZIP entry verification in PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = & ./tools/exp12-windows-preflight.ps1 -ZipOnlySelfTest -Exp06Zip ./exp06.zip | Out-String
+          Write-Output $r
+          if (!$r.Contains('EXP12 ZIP ONLY: PASS')) {throw 'PowerShell 7 ZipFile regression'}
+
+      - name: Upload fixed verified script as a private artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp12-windows-fixed-${{ github.run_number }}
+          path: tools/exp12-windows-preflight.ps1
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Audit scripts have no destructive operations
         shell: pwsh
         run: |
