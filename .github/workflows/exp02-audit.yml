@@ -1,0 +1,56 @@
+name: Pipa EXP02 - Preboot Audit (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp02-audit.yml"
+      - "tools/exp02_audit.py"
+      - "tools/exp02-auditar-backups.ps1"
+      - "docs/EXP02.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    name: Read-only EXP01 ARM64 and compatibility gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout audit code
+        uses: actions/checkout@v4
+
+      - name: Download pinned EXP01 successful build
+        uses: actions/download-artifact@v4
+        with:
+          name: pipa-exp01-5-build
+          repository: ${{ github.repository }}
+          run-id: 39112000643
+          github-token: ${{ github.token }}
+          path: exp01-artifact
+
+      - name: Audit binary hash, ARM64 header, config and build log
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp02_audit.py
+          python3 tools/exp02_audit.py \
+            --artifact-root exp01-artifact \
+            --report exp02-compatibility-report.json
+          sha256sum exp02-compatibility-report.json > exp02-report.sha256
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+
+      - name: Publish audit report only (no flashable images)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp02-audit-${{ github.run_number }}
+          path: |
+            exp02-compatibility-report.json
+            exp02-report.sha256
+          if-no-files-found: warn
+          retention-days: 14
