@@ -1,0 +1,75 @@
+name: Pipa EXP12 - Windows Offline Backup Preflight Tests (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp12-windows-preflight.yml"
+      - "tools/exp12-windows-preflight.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  windows-readonly:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test boot v3 parsing and corruption rejection with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = & ./tools/exp12-windows-preflight.ps1 -SelfTest | Out-String
+          Write-Output $r
+          if (-not $r.Contains('PASS SYNTHETIC: boot v3 layout and corruption rejection')) { throw 'Self-test did not pass' }
+          if (-not $r.Contains('FLASH_READY=false')) { throw 'Unsafe status in test' }
+
+      - name: Test same synthetic scenario on PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = & ./tools/exp12-windows-preflight.ps1 -SelfTest | Out-String
+          Write-Output $r
+          if (-not $r.Contains('PASS SYNTHETIC:')) { throw 'PowerShell 7 self-test failed' }
+
+      - name: Confirm missing backup and missing candidate fail closed
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $failed=$false
+          try { & ./tools/exp12-windows-preflight.ps1 -BackupDir not-existing -Exp06Zip not-existing.zip | Out-Null } catch { $failed=$true; Write-Output $_.Exception.Message }
+          if (-not $failed) {throw 'Accepted missing backup data'}
+
+      - name: Verify original EXP06 downloadable artifact integrity
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version'='2022-11-28' }
+          Invoke-WebRequest -Uri 'https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/artifacts/12140930183/zip' -Headers $headers -OutFile 'exp06.zip'
+          $sha=(Get-FileHash exp06.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sha -ne 'e32af6b61163fba4724211986823fc4ffab759956d213ef15b7fcda042241402'){throw "Original EXP06 ZIP corrupted: $sha"}
+          Add-Type -AssemblyName System.IO.Compression
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive=[IO.Compression.ZipFile]::OpenRead((Resolve-Path exp06.zip))
+          try {
+            foreach($path in @('exp06-work/out/arch/arm64/boot/Image','exp06-work/out/arch/arm64/boot/dtb','exp06-work/out/arch/arm64/boot/dtbo.img')){
+              if($null -eq $archive.GetEntry($path)){throw "Missing $path"}
+            }
+          } finally {$archive.Dispose()}
+          Write-Output 'EXP06 ZIP integrity and original three-entry layout PASS'
+
+      - name: Audit scripts have no destructive operations
+        shell: pwsh
+        run: |
+          $source = Get-Content tools/exp12-windows-preflight.ps1 -Raw
+          foreach ($forbidden in @('fastboot flash','adb reboot','Invoke-RestMethod','Invoke-WebRequest','Set-Content','WriteAllBytes','Format-Volume','dd if=')) {
+            if ($source.Contains($forbidden)) { throw "Destructive or network operation in audit script: $forbidden" }
+          }
+          if (Test-Path boot.img) {throw 'No image may be generated'}
+          Write-Output 'PASS: EXP12 only reads original private files and verifies hashes. No image output.'
