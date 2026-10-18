@@ -65,3 +65,12 @@ GitHub Actions disparou automaticamente: [run #39171851569](https://github.com/n
 ## Estado
 
 `EXP24_SOURCE_INTEGRATION=COMMITTED`; `EXP24_LOCAL_SYNTHETIC_TEST=PASS`; `EXP24_REAL_CI_BUILD=NOT_COMPLETED`; `EXP24_DEVICE_BOOT=NOT_TESTED`; `EXP24_USB_ADAPTER_BOUND=NOT_TESTED`; **`FLASH_READY=false`**. Nenhum flash, boot experimental EXP24 ou alteração no tablet foi realizado.
+
+## Atualização: revisão do workflow e captura A/B (18/10/2026)
+
+- EXP24 run inicial [#39171851569](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39171851569) falhou antes de executar steps (runner_id=0, steps=[]), e a tentativa 2 também. Outra execução EXP18 na mesma data falhou com o mesmo padrão. Sem evidência de falha do compilador ou dos drivers nessa execução.
+- Workflow corrigido no commit `e2831a7b1b3cd6e539a7700032bfb1b3256af84b`: versão do Clang 21 era procurada incorretamente em `out/.config`; validação agora usa `exp06-clang-version.txt` produzido no próprio job.
+- Nova execução [#39172615397](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39172615397) recebeu runner e confirmou: checkout PASS, testes sintéticos Ethernet PASS, verificação EXP01 PASS e instalação das dependências PASS. Última observação: aquisição Clang21 em execução; **não** atribuir aprovação de build ainda.
+- Criado `tools/exp24-usb-ethernet-evidence.ps1` (PowerShell Windows; procedimento read-only; hardware não testado nesta sessão). Captura `VID:PID`, vinculação dos drivers em interfaces USB, interfaces de rede, endereço e rota IPv4, `/proc/version` e opções de configuração expostas.
+- Protocolo de teste: executar primeiro no **E404 persistente**, com o adaptador conectado; em teste autorizado posterior, repetir no **EXP24 inicializado temporariamente** sob as mesmas condições; comparar VID:PID, driver vinculado e conectividade estável. Apenas conectividade, sozinha, não comprova driver novo nem kernel novo.
+- Estado continua **`FLASH_READY=false`** até build real, .config resolvido, auditoria boot Android v3 e autorização específica.
