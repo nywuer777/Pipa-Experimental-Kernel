@@ -1,3 +1,35 @@
+## Homologação EXP13 local + propriedades de boot (18/10/2026)
+
+O usuário executou o auditor `exp13-avb-offline.ps1` sobre seu **backup original** `C:\platform-tools\pipa_backup\vbmeta_b.img`. Resultado confirmado:
+
+```text
+EXP13 REAL SLOT-B VBMETA STRUCTURAL AUDIT: PASS
+SOURCE=vbmeta_b.img sha256=86d703c2ea2f73a55aa86374329bd89ffd975c0e95e33645a156cfdc343889ff partition_bytes=131072
+AVB required_version=1.0 algorithm_type=2 release=avbtool 1.3.0
+BLOCKS total_bytes=5184 auth_bytes=576 aux_bytes=4352
+CRYPTO_FIELDS hash_bytes=32 signature_bytes=512 key_bytes=1032 signature_verified=False
+POLICY flags=3 hashtree_disabled=True verification_disabled=True
+ROLLBACK index=0 location=0 hardware_storage_checked=False
+DESCRIPTORS count=15 bytes=3312
+NO FILE MODIFIED. NO BOOT IMAGE CREATED. FLASH_READY=false
+```
+
+Descritores: 1 cadeia de partição, 9 propriedades, 3 hashes e 2 hashtrees. A auditoria estrutural **passou**, mas o conteúdo interno das entradas e as identidades das partições ainda não foram extraídos, nem foi feita validação criptográfica do AVB.
+
+Na primeira consulta das propriedades Android o ADB estava desconectado (`no devices/emulators found`). A tentativa seguinte reconectou e retornou:
+
+```text
+ro.boot.verifiedbootstate=green
+ro.boot.flash.locked=1
+ro.boot.vbmeta.device_state=locked
+ro.boot.veritymode=enforcing
+ro.boot.slot_suffix=_b
+```
+
+**Não considerar essas propriedades atestação criptográfica independente do bootloader.** Além disso, as flags AVB 3 do backup e as propriedades `green/locked/enforcing` indicam informações de camadas distintas e não podem ser reconciliadas com segurança sem identificar quais metadados realmente foram verificados. Conforme a documentação AOSP de `AvbVBMetaImageHeader`, flags de desativação aplicam-se ao *top-level vbmeta*; sem garantir que o backup corresponde ao vbmeta top-level usado pelo bootloader, não concluir que sua aplicação real está desativada.
+
+**Decisão:** proibir flash, fastboot boot e alterações de vbmeta. `FLASH_READY=false`. Próximo passo: leitura **offline e sem segredos** dos nomes de partições nos descritores AVB, mantendo o conteúdo das chaves públicas/salts/digests privado.
+
 # EXP13 — Auditoria AVB estrutural e dos índices de rollback (somente leitura)
 
 ## Estado — 18/10/2026
