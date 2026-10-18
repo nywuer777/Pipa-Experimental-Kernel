@@ -1,3 +1,34 @@
+## EXP22 — HOMOLOGAÇÃO REAL DOS ARQUIVOS E FASTBOOT (18/10/2026)
+
+O usuário executou no Windows a auditoria de tamanho/SHA-256 dos dois arquivos relevantes com resultado:
+
+```text
+PASS: boot_b.img tamanho=201326592 SHA256=31F57CDED5FA4B37426B4387B58C1C7330703A1C1A8A5AA584B348FCBB78C2F4
+PASS: EXP19-EXP06-NOT-FOR-FLASH.candidate.bin tamanho=32206848 SHA256=30065A39BE707D836594DA574BE11B08C0228018CA91A681E1B122E6F0E6F60C
+EXP22 LOCAL FILES: PASS
+```
+
+Posteriormente, o usuário executou `adb reboot bootloader`, comprovou comunicação com `fastboot devices -l` e obteve todos os `getvar` com `EXIT_CODE=0`:
+
+```text
+product: pipa
+current-slot: b
+is-userspace: no
+unlocked: yes
+partition-size:boot_b: 0xC000000
+partition-type:boot_b: raw
+max-download-size: 805306368
+fastboot reboot: Rebooting OKAY
+```
+
+**Decodificação verificada:** `0xC000000=201326592` bytes (192 MiB), **exatamente** o tamanho do `boot_b.img` de backup. `max-download-size=805306368` bytes (768 MiB); backup B de 192 MiB e candidato EXP06 compacto de 32.206.848 bytes estão abaixo desse limite nominal. Essa correspondência **não** demonstra que gravar 192 MiB na partição seja seguro nem que boot temporário seja suportado. `partition-type:boot_b=raw` refere-se à apresentação da partição pelo bootloader.
+
+**Resultado real:** `EXP22_ORIGINAL_AND_CANDIDATE_FILES=PASS_REAL`, `EXP22_FASTBOOT_IDENTITY_AND_TARGET=PASS_REAL`, `EXP22_FASTBOOT_REBOOT_COMMAND=OKAY`. **Ainda não existe saída `adb devices -l` posterior ao `fastboot reboot` desta rodada**, então registrar retorno total ao Android como `NOT_CONFIRMED_THIS_RUN` (embora EXP18.3 e EXP21.3 já o tenham provado previamente).
+
+**Limites:** suporte real de `fastboot boot <imagem>` continua `UNKNOWN`; sinais AVB Android `green/locked` divergem do Fastboot `unlocked=yes`, cinco descritores HASH do VBMeta A/B divergem das imagens atuais e o rollback por escrita após boot falho não foi testado. **Nenhum flash, boot de imagem, troca de slot ou alteração de partição foi realizado.** Estratégia recomendada: preferir teste temporário com controle original **somente após confirmar riscos e suporte da implementação específica**, sob aprovação explícita; não converter PASS read-only em autorização de flash.
+
+**Portão seguinte estritamente sem flash:** confirmar retorno ao Android `_b` e documentar as condições materiais de emergência (acesso por teclas ao bootloader se Android não inicia, cabos/portas, disponibilidade dos arquivos de backup e Windows), bem como consultar compatibilidade do modelo com boot temporário a partir de fontes confiáveis. Se não houver suporte comprovado, escolher em conjunto se risco de primeira escrita experimental pode ser aceito; `FLASH_READY=false` até essa decisão.
+
 # EXP22 — Portão de recuperação e decisão do primeiro boot EXP06
 
 **Data:** 18/10/2026. **Escopo:** preparação estritamente *pré-experimento*. **NENHUM FLASH, BOOT DE IMAGEM, ALTERAÇÃO DE SLOT OU DESBLOQUEIO AUTORIZADO NESTA ETAPA.** `FLASH_READY=false`.
@@ -75,4 +106,4 @@ Se uma futura tentativa autorizada de EXP06 impedir Android iniciar, será neces
 
 `EXP22_RECOVERY_PREPARATION=PASS` requer evidência de arquivos fixados e Fastboot read-only, mais procedimento humano de contingência revisado. **Mesmo `PASS` não equivale a `BROKEN_BOOT_RECOVERY=TESTED` nem torna `FLASH_READY=true` automaticamente.** Uma primeira execução com imagem só poderá ocorrer depois de escolher rota, validar suas limitações e receber autorização explícita.
 
-**Estado antes de novas provas:** `EXP21.8G=PASS_REAL`; `EXP22_RECOVERY_PLAN=PREPARED`; `FLASH_READY=false`.
+**Estado antes de novas provas:** `EXP21.8G=PASS_REAL`; `EXP22_RECOVERY_PLAN=PREPARED_READ_ONLY_GATES_PASS`; `FLASH_READY=false`.
