@@ -120,7 +120,8 @@ jobs:
           grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
           grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
           python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
-          grep -F 'Android (14054515' "$WORKDIR/out/.config"
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
           (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
           ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
           df -h .
