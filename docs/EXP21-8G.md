@@ -1,3 +1,36 @@
+## EXP21.8G — HOMOLOGAÇÃO REAL CRIPTOGRÁFICA OFFLINE (18/10/2026)
+
+Usuário executou `--self-test` em Windows com resultado `EXP21.8G SYNTHETIC SIGNED VBMeta SHA256_RSA4096 SELFTEST: PASS`, seguido da auditoria real das oito imagens A/B. Todas as entradas tiveram `SHA256=PASS`; o script analisou os dois VBMETA originais e emitiu:
+
+```text
+VBMETA_A ALGORITHM=SHA256_RSA4096 FLAGS=3 ROLLBACK=0 RELEASE=avbtool 1.3.0
+VBMETA_A HEADER_AUX_HASH=MATCH
+DECLARED=e243b8d1458201f4a7458c5d6b0397ede8d92921113272a496a368153621d7ca
+CALCULATED=e243b8d1458201f4a7458c5d6b0397ede8d92921113272a496a368153621d7ca
+VBMETA_A SELF_RSA4096_SIGNATURE=VALID
+VBMETA_A PUBLIC_KEY_BLOB_SHA256=7728e30f50bfa5cea165f473175a08803f6a8346642b5aa10913e9d9e6defef6
+VBMETA_A MODULUS_SHA256=36949b827927c883836897ab67eb01360795186cb81faca37ef7de583a1b65b1
+VBMETA_A SIGNED_BLOB_SHA256=810a8dfa0dbb80074b60730a72108b5bcdb2eadaa434f6c43e209c9b92977a42
+VBMETA_B ALGORITHM=SHA256_RSA4096 FLAGS=3 ROLLBACK=0 RELEASE=avbtool 1.3.0
+VBMETA_B HEADER_AUX_HASH=MATCH
+DECLARED=175c430d64403d61eeb90995c4d4fccfd72e071a365723ff820602ae9132cd64
+CALCULATED=175c430d64403d61eeb90995c4d4fccfd72e071a365723ff820602ae9132cd64
+VBMETA_B SELF_RSA4096_SIGNATURE=VALID
+VBMETA_B PUBLIC_KEY_BLOB_SHA256=7728e30f50bfa5cea165f473175a08803f6a8346642b5aa10913e9d9e6defef6
+VBMETA_B MODULUS_SHA256=36949b827927c883836897ab67eb01360795186cb81faca37ef7de583a1b65b1
+VBMETA_B SIGNED_BLOB_SHA256=f6a9a87fa3187d6c2d544d724c1c0e4a36a2c365dec1b2ab86f91f16178e3c9c
+KEY_A_EQUALS_B=true
+VBMETA_B_BLOB_SHA256_MATCHES_PRIOR_ANDROID_PROPERTY=true
+EXP21.8G AVB SELF-SIGNATURE AUDIT: COMPLETE valid=2 invalid=0
+NO DEVICE ACCESS. NO FILE WRITTEN. FLASH_READY=false
+```
+
+**Veredicto:** `EXP21.8G_REAL_RSA4096_SELF_SIGNATURE=PASS_REAL`, duas assinaturas internas válidas relativamente à mesma chave RSA4096 **embutida** nos blobs VBMeta; `HEADER_AUX_HASH=MATCH` em ambas. O digest do VBMeta B dos 5184 bytes coincide com a propriedade Android da EXP13.3. **Isso não prova** chave de confiança OEM, validade dos 5 descritores de partição `MISMATCH` na EXP21.8F, aceite de nova imagem modificada, rollback efetivo, mecanismo de recuperação ou possibilidade de boot temporário.
+
+**Marco técnico de encerramento das auditorias offline preliminares:** EXP12–21.8G geraram cópias A/B com hashes fixados, o candidato EXP06 AOSP com identidade de kernel e bytes não-kernel preservados, e auditorias estruturais/criptográficas reprodutíveis. Não há justificativa para exigir sucessivas leituras de pequenos campos como pré-requisito universal de boot; focalizar **EXP22 — plano de restauração e portão Fastboot somente leitura**, sem ações de flash até uma autorização explícita e avaliação do risco. AOSP referência A/B https://source.android.com/docs/core/ota/ab/ab_implement e Verified Boot https://source.android.com/docs/security/features/verifiedboot/boot-flow .
+
+**Estado:** `SLOT_A_RECOVERY=UNPROVEN`, `BROKEN_BOOT_RECOVERY=UNTESTED`, `AVB_BOOTLOADER_TRUST=UNKNOWN`, `FLASH_READY=false`.
+
 # EXP21.8G — Auditoria criptográfica offline da própria assinatura VBMeta A/B
 
 **Data:** 18/10/2026 | **Entrada homologada:** EXP21.8F `PASS_REAL`, oito backups SHA256 de A/B aprovados. Descritores AVB: seis comparados, **um MATCH** (`dtbo_b`) e **cinco MISMATCH**. **`FLASH_READY=false`.**
@@ -55,4 +88,4 @@ python "$env:USERPROFILE\Downloads\EXP21-8G\EXP21-8G-vbmeta-signature.py" `
 4. `ro.boot.verifiedbootstate=green` e `ro.boot.vbmeta.device_state=locked` no Android continuam divergentes de `fastboot getvar unlocked=yes`; não supor qual política prevalecerá sobre imagem nova.
 5. Não executar `fastboot flash`, `fastboot boot`, `fastboot --set-active`, bypass de AVB ou alteração de KernelSU como consequência desta análise.
 
-**`EXP21.8G_SELFTEST=PASS_LOCAL`; `EXP21.8G_REAL_SIGNATURE_AUDIT=PENDING`; `SLOT_A_RECOVERY=UNPROVEN`; `FLASH_READY=false`.**
+**`EXP21.8G_SELFTEST=PASS_LOCAL`; `EXP21.8G_REAL_SIGNATURE_AUDIT=PASS_REAL`; `SLOT_A_RECOVERY=UNPROVEN`; `FLASH_READY=false`.**
