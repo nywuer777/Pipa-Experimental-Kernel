@@ -130,3 +130,13 @@ Nova saída ADB Wi-Fi fornecida pelo usuário após relatório V3: lista `/sys/b
 `uname -r` => `5.10.404R` e `/system/bin/toybox uname -r` => `5.10.404R`; `/proc/version` => `Linux version 4.19.404R` usando Android Clang 21. Os dois comandos uname consultam essencialmente a mesma interface `uname(2)` e **não** constituem prova independente da versão 5.10. A divergência persiste e bloqueia qualquer inferência de compatibilidade do artefato EXP24 4.19 com o kernel/partições atualmente executados.
 
 Próxima captura é imediata enquanto 2-1 existe: `adb shell cat /sys/bus/usb/devices/2-1/idVendor`, `/idProduct`, `/manufacturer`, `/product`; verificar links `/sys/bus/usb/devices/2-1:2.0/driver` e `2-1:2.1/driver`. Em paralelo, obter `zcat /proc/config.gz` e CONFIG_LOCALVERSION se legível. Continuar sem flash: `FLASH_READY=false`.
+
+## E404: 2-1 enumerado, sysfs VID:PID protegido e interfaces sem driver
+
+Nova coleta manual no PowerShell pelo usuário com `/sys/bus/usb/devices/2-1` presente: `cat` em `idVendor`, `idProduct`, `manufacturer` e `product` retorna **Permission denied** (EACCES), não `No such file or directory`. Logo, não é legítimo concluir ausência do adaptador nem driver específico com base nesta leitura bloqueada.
+
+`ls -l /sys/bus/usb/devices/2-1:2.0/driver` e `.../2-1:2.1/driver` retornam **No such file or directory**: symlinks de driver não apresentados nas duas interfaces no momento da coleta. Isto é evidência de interface enumerada sem driver vinculado identificado, não confirmação de causa ou de compatibilidade do EXP24.
+
+Próximo teste somente leitura e sem alterar SELinux/permissões: tentar `adb shell dumpsys usb` para identificar VID:PID via USB host manager; se insuficiente e root Magisk já autorizado, confirmar `adb shell su -c id` = uid=0 e então ler explicitamente `idVendor/idProduct` com `adb shell "su -c 'cat /sys/bus/usb/devices/2-1/idVendor'"` e análogo idProduct. O caminho 2-1 é efêmero: recapturar após reenumeração. Evitar `chmod`, `setenforce 0`, rebinding de drivers, flash ou alterações no tablet.
+
+Comparar VID:PID com tabelas USB dos drivers habilitados (`rtl8152`, `ax88179_178a`, `cdc_ether`, `cdc_ncm` etc.) antes de atribuir a falha à configuração. Divergência uname=5.10.404R vs /proc/version=4.19.404R permanece bloqueio de compatibilidade; FLASH_READY=false.
