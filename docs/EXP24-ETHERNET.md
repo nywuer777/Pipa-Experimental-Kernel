@@ -293,3 +293,20 @@ O filtro read-only do `dmesg` por `r8152|rtl8152|usbcore|registered new interfac
 **Estado técnico:** identificação `0BDA:8153` confirmada pelo histórico Android; o driver `r8152` não consta em `/sys/bus/usb/drivers`, mesmo que `/proc/config.gz` declare `CONFIG_USB_RTL8152=y`. Os drivers `cdc_ether`, `cdc_ncm`, `cdc_subset` estão registrados, mas não houve associação à interface `2-1:2.0`/`2-1:2.1` nas coletas. Kernel: `/proc/version` e `/proc/sys/kernel/osrelease` informam `4.19.404R`; `uname -r` informa `5.10.404R`; identidade/compatibilidade de boot NÃO RESOLVIDA.
 
 **Gate seguinte sem escrita no tablet:** obter um snapshot atômico enquanto `2-1` reaparecer, incluindo leitura root de `idVendor/idProduct`, bInterfaceClass/subclass/protocol e symlinks dos drivers; se viável, registrar `dumpsys usb` host history num relatório e contexto de versão. Separar falha de enumeração, falha de bind e ausência de registro. Reavaliar apenas após evidência material se construir uma variante de diagnóstico; CI EXP24 bem-sucedido não prova correção em hardware. **FLASH_READY=false**.
+
+## Identificação em tempo real de 0BDA:8153 sem binding de interface
+
+Em coleta PowerShell via ADB com KernelSU root, o usuário executou 30 sondagens com intervalo de 800 ms e obteve:
+```text
+Dispositivo USB detectado: 0bda:8153
+ls: /sys/bus/usb/devices/2-1:2.0/driver: No such file or directory
+ls: /sys/bus/usb/devices/2-1:2.1/driver: No such file or directory
+```
+
+**Evidência agora direta (não apenas histórico de dumpsys):** o endereço temporário USB `2-1` era de fato o adaptador Realtek `0bda:8153` no instante da captura, e a sondagem subsequente não encontrou links `driver` em nenhuma de suas duas interfaces. Isso é uma falha de binding observada em hardware; como as leituras ocorreram em chamadas ADB sucessivas, preservar a possibilidade de o dispositivo desconectar entre as duas chamadas. O driver `r8152` estava ausente da enumeração independente de `/sys/bus/usb/drivers`, fortalecendo a interpretação, mas não estabelecendo sua causa.
+
+**Verificação precisa no código E404 fixado:** `drivers/net/usb/r8152.c` contém a macro `REALTEK_USB_DEVICE(vend, prod)` com matching de VID:PID+classe `USB_CLASS_VENDOR_SPEC` ou VID:PID+classe `USB_CLASS_COMM`, subclasse `USB_CDC_SUBCLASS_ETHERNET`, protocolo `USB_CDC_PROTO_NONE`; tabela inclui `REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)`. A enumeração apresentou interfaces `2-1:2.0`/`2-1:2.1`, mas ainda não coletamos `bInterfaceClass`, `bInterfaceSubClass`, `bInterfaceProtocol`, `bConfigurationValue` para separar modos e comportamentos USB.
+
+**Próxima coleta de leitura e nenhuma escrita no dispositivo:** enquanto 2-1 estiver presente ler `bConfigurationValue`, `bNumConfigurations`, `speed`, `bInterfaceClass`, `bInterfaceSubClass`, `bInterfaceProtocol` para `2-1:2.0` e `2-1:2.1`. Revalidar os links de `driver` na mesma janela; se possível capturar sysfs em uma única chamada ADB para diminuir race. Interpretar valores hexadecimais: `ff` = vendor-specific; `02:06:00` = CDC Ethernet control; `0a` = CDC data interface (somente exemplo, não afirmar valor não observado).
+
+**Prioridade de engenharia:** não diagnosticar 'driver ausente do código' apenas pelo sysfs porque `/proc/config.gz` informou `CONFIG_USB_RTL8152=y` e o código-fonte do EXP24 possui o driver. Investigar razão do driver não aparecer registrado na base E404 atual e a identidade discrepante `uname 5.10.404R` versus `/proc/sys/kernel/osrelease` e `/proc/version` 4.19.404R. Resultados de EXP24 CI continuam restritos a compilação e config gates; sem boot físico/flash. **FLASH_READY=false**.
