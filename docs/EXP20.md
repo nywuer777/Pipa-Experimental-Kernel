@@ -1,3 +1,28 @@
+## EXP20 — HOMOLOGAÇÃO REAL INDEPENDENTE: PASS (18/10/2026)
+
+O usuário executou **duas vezes** o autoteste sintético e a auditoria independente no Windows; os dois conjuntos produziram resultados idênticos:
+
+```text
+EXP20 INDEPENDENT SYNTHETIC CANDIDATE AUDIT: PASS
+CHECKS non-kernel identity, bad padding rejection, modified kernel digest rejection
+NO PRIVATE FILES READ. NO DEVICE COMMANDS. FLASH_READY=false
+
+EXP20 REAL INDEPENDENT EXP19 CANDIDATE AUDIT: PASS
+INPUT original_boot_sha256=verified candidate_sha256=verified report=verified
+LAYOUT header_bytes=4096 kernel_bytes=30349336 compact_bytes=32206848
+REGIONS original_header_padding_ramdisk=BYTE_IDENTICAL candidate_kernel_sha256=EXP06_MATCH
+CANDIDATE compact_sha256=30065a39be707d836594da574be11b08c0228018ca91a681e1b122e6f0e6f60c
+VIRTUAL_FULL_SHA256=c50a7b4d8447426331adbfae9296439a957069c0860a1d36d476b63aae083f00 exp15_match=True
+LIMITS: read-only structural verification. No AVB/KernelSU/bootability/rollback proof.
+NO FILE WRITTEN. NO DEVICE COMMANDS. FLASH_READY=false
+```
+
+**Resultado:** `EXP20_INDEPENDENT_OFFLINE_AUDIT=PASS_REAL`, confirmado duas vezes pelo mesmo auditor. O arquivo compacto gerado na EXP19 tem SHA-256 esperado, seu kernel coincide com a EXP06, e a área não-kernel (cabeçalho, padding e ramdisk) está byte a byte idêntica ao backup original. O SHA-256 virtual da partição completa coincide com o calculado na EXP15. A execução repetida fornece consistência operacional do auditor, não validação por ferramenta diferente da EXP20.
+
+**Limites e decisão:** nenhuma verificação de inicialização, AVB ativo, KernelSU ou recuperação de uma falha de boot foi executada; não instalar candidato. `FLASH_READY=false`.
+
+**Próximo portão:** `EXP21` — inventário somente leitura das dependências e capacidades do ambiente de boot/rollback, sem reiniciar, gravar, executar fastboot em modo bootloader, ou tentar boot temporário.
+
 # EXP20 — Auditoria independente do candidato EXP06 (leitura apenas)
 
 **Data:** 18/10/2026 | **Dispositivo:** Xiaomi Pad 6 (`pipa`) | **FLASH_READY=false**.
