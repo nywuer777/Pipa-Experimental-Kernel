@@ -104,7 +104,13 @@ def main():
     config = args.kernel / 'arch/arm64/configs/vendor/pipa_defconfig' if args.mode == 'apply' else args.out / '.config'
     if args.mode == 'apply':
         modified = update_config(config, desired)
-        print('EXP24 apply builtin config: symbols_changed=' + str(len(modified)))
+        print('EXP24 apply builtin defconfig: symbols_changed=' + str(len(modified)))
+        # EXP01's builder may reuse out/.config rather than running pipa_defconfig again.
+        # Align both possible inputs, then require final resolved .config after build.
+        out_config = args.out / '.config'
+        if out_config.is_file():
+            changed_out = update_config(out_config, desired)
+            print('EXP24 apply already-existing out/.config: symbols_changed=' + str(len(changed_out)))
     else:
         verify_config(config, desired)
         print('EXP24 final resolved kernel .config: ALL 21 SUPPORTED CONFIG SYMBOLS = y; EXP06 SUGOV 1500 PRESERVED; MODULES DISABLED')
