@@ -70,14 +70,14 @@ try {
   CheckSection $F $ROff $RSize 'vendor ramdisk'; CheckSection $F $DTBOff $DTBSize 'DTB'
   $RKind=PrefixKind (ReadAt $F $ROff 8)
   $DTBHeader=ReadAt $F $DTBOff 8
-  if((BE32 $DTBHeader 0) -eq 0xd00dfeed){$DTBKind='FDT size='+(BE32 $DTBHeader 4)}else{$DTBKind='INVALID_MAGIC'}
+  if((BE32 $DTBHeader 0) -eq 3490578157){$DTBKind='FDT size='+(BE32 $DTBHeader 4)}else{$DTBKind='INVALID_MAGIC'}
   Write-Output "VENDOR_BOOT version=$Ver header_size=$HdrSize page_size=$Page ramdisk_size=$RSize ramdisk_offset=$ROff ramdisk_kind=$RKind dtb_size=$DTBSize dtb_offset=$DTBOff dtb_magic=$DTBKind"
 } finally { $F.Dispose() }
 
 $F=[IO.File]::OpenRead((Join-Path $BackupDir 'dtbo_b.img'))
 try {
   $H=ReadAt $F 0 32
-  if((BE32 $H 0) -ne 0xd7b7ab1e){throw 'DTBO magic mismatch'}
+  if((BE32 $H 0) -ne 3619138334){throw 'DTBO magic mismatch'}
   $Total=[long](BE32 $H 4); $HdrSize=[long](BE32 $H 8)
   $EntrySize=[long](BE32 $H 12); $Count=[long](BE32 $H 16)
   $EntriesOffset=[long](BE32 $H 20); $Page=BE32 $H 24; $Ver=BE32 $H 28
@@ -88,7 +88,7 @@ try {
     $Size=[long](BE32 $E 0); $Offset=[long](BE32 $E 4)
     if($Size -le 0 -or $Offset -gt $Total -or $Size -gt ($Total-$Offset)){throw "DTBO entry $I outside image"}
     $D=ReadAt $F $Offset 4
-    if((BE32 $D 0) -ne 0xd00dfeed){$Bad++}
+    if((BE32 $D 0) -ne 3490578157){$Bad++}
   }
   Write-Output "DTBO version=$Ver table_size=$Total header_size=$HdrSize entry_size=$EntrySize entries=$Count page_size=$Page non_fdt_entries=$Bad"
 } finally {$F.Dispose()}
