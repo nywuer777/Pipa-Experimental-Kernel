@@ -1,0 +1,59 @@
+name: Pipa EXP03 - Boot Structure Read-Only Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp03-boot-structure.yml"
+      - "tools/exp03-boot-structure.ps1"
+      - "tests/exp03_synthetic_fixtures.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-readonly:
+    name: Parse synthetic boot v3, vendor_boot, DTBO and AVB
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare tiny synthetic images (NOT device images)
+        shell: pwsh
+        run: |
+          python tests/exp03_synthetic_fixtures.py test-fixtures
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture creation failed' }
+
+      - name: Run PowerShell parser and assert recognized layouts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = & ./tools/exp03-boot-structure.ps1 -BackupDir ./test-fixtures | Out-String
+          Write-Output $out
+          foreach ($expected in @('BOOT version=3', 'kernel_size=8192', 'arm64_magic=True',
+                                  'VENDOR_BOOT version=3', 'dtb_magic=FDT size=64',
+                                  'DTBO version=0', 'entries=1', 'non_fdt_entries=0',
+                                  'VBMETA version=1.0', 'PASS: header')) {
+             if (-not $out.Contains($expected)) { throw "EXP03 parser missing expected result: $expected" }
+          }
+
+      - name: Negative test rejects corrupt DTBO magic
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path bad-fixtures -Force | Out-Null
+          Copy-Item test-fixtures/* bad-fixtures/
+          $path = Join-Path (Get-Location) 'bad-fixtures/dtbo_b.img'
+          $f = [System.IO.File]::Open($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write)
+          try { $f.WriteByte(0x00) } finally { $f.Dispose() }
+          $p = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"$PWD/tools/exp03-boot-structure.ps1",'-BackupDir',"$PWD/bad-fixtures") -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -eq 0) { throw 'Corrupt DTBO was not rejected' }
+
+      - name: Confirm no boot image generated
+        shell: pwsh
+        run: |
+          if (Test-Path -LiteralPath boot.img) { throw 'Forbidden output boot.img was created' }
+          Write-Output 'EXP03 parser tests passed. No flashing or device access.'
