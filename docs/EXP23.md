@@ -1,3 +1,36 @@
+## EXP23.A — BASELINE CPU/MAX E SERVIÇO TÉRMICO COLETADO NO E404 REAL (18/10/2026)
+
+Após EXP22.3 e retorno ao kernel original, usuário executou em PowerShell:
+
+```text
+adb shell cat /sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq
+1804800
+2419200
+2841600
+
+adb shell dumpsys thermalservice
+IsStatusOverride: false
+ThermalEventListeners:
+  callbacks: 6
+  killed: false
+  broadcasts count: -1
+ThermalStatusListeners:
+  callbacks: 2
+  killed: false
+  broadcasts count: -1
+Thermal Status: 0
+Cached temperatures:
+HAL Ready: false
+Temperature headroom thresholds:
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+```
+
+**Resultado:** `EXP23_E404_MAX_FREQS=PASS_REAL`, três limites de cpufreq `1804800`, `2419200`, `2841600` kHz (aprox. 1.8048, 2.4192, 2.8416 GHz), na ordem em que o glob retornou as políticas. São máximos configurados e **não** frequências efetivamente medidas durante carga. O serviço do Android apresenta `Thermal Status: 0` (enum `THERMAL_STATUS_NONE`) e `IsStatusOverride: false`, mas também `HAL Ready: false` e cache de temperaturas vazio. Portanto **não há leitura de temperatura disponível na saída**, e o estado 0 isoladamente **não é prova** de ausência de throttling ou de camada de mitigação térmica ativa/inativa. Segundo a documentação de Android ADPF, alguns aparelhos retornam `THERMAL_STATUS_NONE` mesmo quando outros sinais de calor indicam restrição, sendo necessário usar sensores/headroom disponíveis e confirmar suporte. Fontes: https://developer.android.com/games/optimize/adpf/thermal ; https://source.android.com/docs/core/power/thermal-mitigation . 
+
+**Próximo gate diagnóstico somente leitura (sem root):** consultar nomes e valores crus dos thermal zones de sysfs, e, separadamente, sensor de bateria se acessível. Não converter escalas de temp automaticamente: algumas interfaces publicam miligraus Celsius, outras décimos e valores não confiáveis. Se leitura/sysfs não disponível ou todos sensores inválidos, marcar `THERMAL_MEASUREMENT=UNAVAILABLE` e concentrar teste A/B em carga, cpufreq e métricas confiáveis de frametime, em vez de presumir temperatura.
+
+**Estado:** `EXP23_THERMALSERVICE_TEMPERATURE=UNAVAILABLE`, `EXP23_SYSFS_SENSOR_DISCOVERY=PENDING`, `EXP23_EXP06_REPEAT_AUTH=PENDING`, `FLASH_READY=false`. Não houve nova inicialização EXP06 nem flash durante esta coleta.
+
 # EXP23 — Teste controlado de desempenho e estabilidade E404 vs EXP06
 
 **Data:** 18/10/2026. **Ponto de partida:** EXP22.3 homologada em dispositivo real: o kernel E404 original `4.19.404R (build-user@build-host) #14 Aug 23 2026` exibe três políticas `schedutil/rate_limit_us=2000`. Um boot temporário experimental exibiu `4.19.404R (runner@runnervm8k3b6) #1 Oct 18 2026` e três políticas `rate_limit_us=1500`, com `pipa`, slot `_b`, ADB operacional. Após reboot normal, voltou ao kernel antigo #14 e `2000/2000/2000`. **Não houve flash. `FLASH_READY=false`.**
