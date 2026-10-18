@@ -1,3 +1,23 @@
+## EXP18.1 — HOMOLOGAÇÃO REAL DO INVENTÁRIO (18/10/2026)
+
+O usuário executou `EXP18-1-recovery-preflight.ps1` em Windows PowerShell, com o tablet pipa conectado via ADB. Ambas as fases concluíram com aprovação:
+
+```text
+EXP18.1 SYNTHETIC RECOVERY PREFLIGHT: PASS
+NO PRIVATE FILES READ. NO DEVICE COMMANDS. FLASH_READY=false
+EXP18.1 REAL WINDOWS RECOVERY INVENTORY: PASS
+DEVICE connected_adb=True product=pipa slot=_b authorized_count=1
+TOOLS adb_present=True fastboot_version_available=True
+BACKUPS sha256_verified=4 count=4 source_slot=_b
+EXP06 original_zip_sha256_verified=True
+RECOVERY_INFO fastboot_mode_transport=NOT_TESTED rollback_restore=NOT_TESTED
+NO REBOOT. NO IMAGE CREATED. NO PARTITION MODIFIED. FLASH_READY=false
+```
+
+**Interpretação exata:** há backups e ZIP EXP06 verificados, ADB autorizado no Android, Fastboot instalado e slot `_b`; **a conexão USB Fastboot real não foi testada**, e não existe prova de restauração/rollback. Essa aprovação é limitada ao inventário no modo Android e não autoriza gravar imagens. O usuário informou que o bootloader está desbloqueado; ainda existem propriedades do Android `green/locked` conflitantes e será importante consultar `getvar unlocked` no modo bootloader, sem tomar um sinal isolado como prova absoluta.
+
+**Próximo gate EXP18.2:** coletar `fastboot devices -l`, `getvar product`, `getvar current-slot`, `getvar is-userspace`, `getvar unlocked` (apenas leitura), sem automatizar reboot ou operações de escrita. `FLASH_READY=false`.
+
 ## EXP18.1 — Inventário inicial real de conexão e ferramentas (18/10/2026)
 
 O usuário confirmou no PowerShell local:
