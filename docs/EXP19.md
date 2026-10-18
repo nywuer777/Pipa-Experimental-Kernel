@@ -1,3 +1,23 @@
+## EXP19 — HOMOLOGAÇÃO REAL NO WINDOWS: PASS (18/10/2026)
+
+O usuário executou novamente o procedimento offline usando o ZIP EXP06 original, já localizado. Evidência reproduzida no PowerShell:
+
+```text
+EXP19 PYTHON_RUNTIME=VALIDATED selector=py
+EXP19 SYNTHETIC VIRTUAL SPLICE SELFTEST: PASS
+EXP19 REAL OFFLINE OFFICIAL AOSP EXP06 CANDIDATE: PASS
+SOURCE original_boot_sha256=verified exp06_zip_sha256=verified aosp_source_blobs=verified
+CONTROL official_original_repack=MATCH
+CANDIDATE compact_bytes=32206848 sha256=30065a39be707d836594da574be11b08c0228018ca91a681e1b122e6f0e6f60c
+VIRTUAL_FULL_SHA256=c50a7b4d8447426331adbfae9296439a957069c0860a1d36d476b63aae083f00 exp15_match=True
+OUTPUTS candidate_file=EXP19-EXP06-NOT-FOR-FLASH.candidate.bin audit_file=EXP19-EXP06-offline-audit.json
+NO ADB. NO FASTBOOT. NO BACKUP MODIFIED. FLASH_READY=false
+```
+
+**Resultado:** candidato compacto EXP06 offline gerado por AOSP `mkbootimg`, com controle de reempacotamento stock exato, hashes de origem aprovados e SHA256 da partição virtual batendo com EXP15. O erro anterior `ZIP EXP06 nao encontrado` foi resolvido pelo usuário; o arquivo estava disponível para a execução bem-sucedida. A imagem candidata foi gerada **somente no computador Windows do usuário**, não no tablet. Não é imagem aprovada para instalação. A homologação EXP19 é de construção e integridade offline; não prova bootabilidade, KernelSU, AVB, DTB ou possibilidade de restauração.
+
+**Próximo gate EXP20:** auditoria independente, em modo somente leitura, dos bytes do candidato contra o backup original e os hashes EXP06, com conferência integral das regiões não-kernel e do relatório JSON; `FLASH_READY=false`.
+
 ## EXP19 — execução real inicial bloqueada por caminho de ZIP ausente (18/10/2026)
 
 O usuário executou a ferramenta do pacote EXP19 no Windows com `-SelfTest`, **PASS**:
@@ -20,7 +40,7 @@ Conferência feita em GitHub no mesmo dia:
 
 O usuário deve localizar o ZIP em Downloads/Desktop ou baixá-lo novamente via Actions autenticado e verificar o hash antes de executar `EXP19-run-windows.ps1 -Exp06Zip <caminho encontrado>`. É proibido aceitar outro arquivo por semelhança de nome: rejeitar hash divergente.
 
-**Estado:** `EXP19_SELFTEST=PASS_REAL`, `EXP19_CANDIDATE_REAL=NOT_EXECUTED` (ZIP ausente); nenhum arquivo experimental criado, nenhum backup ou partição modificado, `FLASH_READY=false`.
+**Estado histórico após a primeira tentativa:** `EXP19_SELFTEST=PASS_REAL`, `EXP19_CANDIDATE_REAL=NOT_EXECUTED` (ZIP ausente). **Situação posterior:** corrigida e homologada, conforme seção principal acima. `FLASH_READY=false`.
 
 # EXP19 — Candidato EXP06 AOSP somente offline (NAO INSTALAR)
 
