@@ -1,0 +1,157 @@
+name: Pipa EXP24 - EXP06 + USB Ethernet builtin (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp24-ethernet-clang21-build.yml"
+      - "configs/ethernet.config"
+      - "tools/exp24-apply-ethernet.py"
+      - "tests/test_exp24_ethernet.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipa-exp24-ethernet-clang21-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Pipa EXP24 / E404-Clang21 USB Ethernet (21 builtin)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      WORKDIR: ${{ github.workspace }}/exp06-work
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unit tests for EXP24 Ethernet config (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_exp24_ethernet.py
+          sha256sum configs/ethernet.config | tee exp24-ethernet-input.sha256
+
+      - name: Verify original EXP01 ZIP and corrected patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '548ebb47ad0febe3c4541b9e93f2233bb9188c78d8f9ec298dd397a11216b852  PipaExperimental-EXP01-source.zip' | sha256sum -c -
+          mkdir -p exp01-src
+          unzip -q PipaExperimental-EXP01-source.zip -d exp01-src
+          test -s patches/0001-pipa-exp01-schedutil-rate-limit.patch
+          cp patches/0001-pipa-exp01-schedutil-rate-limit.patch exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch
+          python3 exp01-src/validate.py
+          bash -n exp01-src/prepare-build.sh
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi device-tree-compiler \
+            liblz4-tool zstd rsync ccache
+          df -h .
+
+      - name: Obtain exactly pinned AOSP Android Clang 21.0.0 / build 14054515
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init android-clang-prebuilt
+          cd android-clang-prebuilt
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          clang-r563880c/bin/clang --version | tee "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          grep -F 'clang version 21.0.0' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          printf 'AOSP toolchain repository commit: %s\n' "$ANDROID_LLVM_COMMIT" >> "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          # The revision above is already captured; git metadata not required for compilation.
+          rm -rf .git
+          df -h .
+
+      - name: Checkout exact E404 source, apply EXP01 and recover pinned KernelSU
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash exp01-src/prepare-build.sh "$WORKDIR" prepare 2>&1 | tee exp06-prepare.log
+          cd "$WORKDIR/kernel"
+          test "$(git rev-parse HEAD)" = fed88a6024cd4d46c52eda607a95d97d7371ba81
+          git submodule update --init --depth 1 KernelSU
+          test -f drivers/kernelsu/Kconfig
+          git apply --reverse --check "$GITHUB_WORKSPACE/exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch"
+          df -h .
+
+      - name: Enable 21 available Ethernet drivers in pinned E404 pipa config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          grep -F 'Android (14054515' "$WORKDIR/out/.config"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP24 (EXP06 + Ethernet) kernel Image. Device boot and module compatibility not tested.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp24-ethernet-clang21-${{ github.run_number }}
+          path: |
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
