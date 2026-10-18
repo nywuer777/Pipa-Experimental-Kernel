@@ -1,0 +1,58 @@
+name: Pipa EXP14 - Boot V3 Original Byte-Roundtrip (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp14-boot-v3-roundtrip.yml"
+      - "tools/exp14-boot-v3-segmented-roundtrip.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-original-roundtrip:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Synthetic boot v3 exact 5-region digest Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $result = & ./tools/exp14-boot-v3-segmented-roundtrip.ps1 -SelfTest | Out-String
+          Write-Output $result
+          if(!$result.Contains('EXP14 SYNTHETIC SEGMENTED ROUNDTRIP: PASS')){throw 'PS5.1 roundtrip failed'}
+          if(!$result.Contains('FLASH_READY=false')){throw 'Missing no flash guard'}
+      - name: Synthetic boot v3 exact 5-region digest PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $result = & ./tools/exp14-boot-v3-segmented-roundtrip.ps1 -SelfTest | Out-String
+          Write-Output $result
+          if(!$result.Contains('EXP14 SYNTHETIC SEGMENTED ROUNDTRIP: PASS')){throw 'PS7 roundtrip failed'}
+      - name: Missing backup fails closed
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $rejected=$false
+          try { & ./tools/exp14-boot-v3-segmented-roundtrip.ps1 -BootPath "C:\not-present-boot-b.img" | Out-Null } catch { $rejected=$true }
+          if(!$rejected){throw 'Expected to reject missing original boot backup'}
+      - name: Reference SHA256 and forbidden operations audit
+        shell: pwsh
+        run: |
+          $src=Get-Content tools/exp14-boot-v3-segmented-roundtrip.ps1 -Raw
+          if(!$src.Contains('31f57cded5fa4b37426b4387b58c1c7330703a1c1a8a5aa584b348fcbb78c2f4')){throw 'Missing approved EXP12 SHA256'}
+          foreach($phrase in @('fastboot flash','fastboot boot','adb reboot','WriteAllBytes','Set-Content','Invoke-WebRequest','Invoke-RestMethod','Start-Process','Format-Volume','dd if=')){
+            if($src.Contains($phrase)){throw "Forbidden operation: $phrase"}
+          }
+          if(Test-Path boot.img){throw 'No reconstructed boot.img should exist'}
+          Write-Output 'EXP14: original only, read-only, no img emission PASS'
+      - name: Distribute tested read-only EXP14 PowerShell auditor
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp14-boot-roundtrip-${{ github.run_number }}
+          path: tools/exp14-boot-v3-segmented-roundtrip.ps1
+          retention-days: 30
+          if-no-files-found: error
