@@ -78,7 +78,7 @@ jobs:
           [IO.File]::WriteAllText((Join-Path (Get-Location) 'exp13-2-invalid-hash.ps1'),$corrupt,[Text.Encoding]::UTF8)
           $output=& powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./exp13-2-invalid-hash.ps1 -SelfTest 2>&1 | Out-String
           if($LASTEXITCODE -eq 0){throw 'A 65-character hash was incorrectly accepted'}
-          if(!$output.Contains('invalid SHA-256 reference length/format: boot_b.img')){throw "Expected specific fail-closed message; actual: $output"}
+          if(!$output.Contains('invalid SHA-256 format or length: boot_b.img')){throw "Expected specific fail-closed message; actual: $output"}
           Write-Output 'Bad hash length rejected before any backup read: PASS'
 
       - name: Upload validated EXP13.2 Windows auditor
