@@ -110,3 +110,15 @@ Protocolo A/B para comparação válida (somente após boot EXP24 temporário au
 7. Antes de qualquer teste EXP24, cumprir auditoria de boot v3, confirmar reversibilidade e obter autorização de inicialização temporária. FLASH_READY=false.
 
 Registro original: o relatório E404 de 19:45 mostrou interfaces USB 2-1:2.0/2-1:2.1 sem driver, mas VID:PID ausente e nenhum Ethernet na rede; a intermitência impede afirmar que o resultado represente todas as tentativas.
+
+## Evidência E404 V3 — 20:01:41 e bloqueio de identidade de kernel
+
+Arquivo recebido: `exp24-usb-E404-20261018-200142.txt`, SHA256 `295c3c3fc8a26deb9ced03cb07ba9706a4dbe0d1ec37fd0616976aa2d519b2ed` (128 linhas; ADB Wi-Fi; device=pipa).
+
+**USB:** `/sys/bus/usb/devices` listou apenas `usb1`, `usb2`, `1-0:1.0` e `2-0:1.0` (hubs-raiz). Nenhum dispositivo USB externo presente no instante da coleta. O caminho `2-1` que havia aparecido às 19:45 desapareceu; consultas posteriores de `/sys/bus/usb/devices/2-1/idVendor` e `idProduct` retornaram ENOENT. Sem VID:PID não se pode afirmar ainda que `2-1` era o adaptador Ethernet, mas há evidência objetiva de enumeração variável.
+
+**Rede:** `/sys/class/net` não tinha `eth*`/`usb*`. `wlan0` tinha IPv4 `192.168.1.105/24` e a rota local registrada foi `192.168.1.0/24 dev wlan0`. `ip link show` falhou com `request send failed: Permission denied` (limitação de permissão, não diagnóstico de hardware). `dumpsys ethernet`: `Ethernet State: enabled`; filtro `(usb|eth)\d+`; `Tracking interfaces` vazio. O serviço Android está ativo, mas sem interface Ethernet registrada.
+
+**Inconsistência de identidade CRÍTICA, não resolver por inferência:** `uname -r` devolveu **5.10.404R**, enquanto `/proc/version` reportou `Linux version 4.19.404R` e Clang 21, build #14 Sun Aug 23 2026. O kernel EXP24 foi construído com fonte E404 que se apresenta como 4.19.404R. Não confundir sucesso de CI com compatibilidade de boot. A divergência deve ser investigada antes de qualquer imagem de boot ou teste temporário. Não declarar qual das versões é verdadeira sem prova adicional independente; investigar alteração/mascaramento de versão, userspace e informações do kernel e sua configuração.
+
+**Próximo teste:** repetir coleta v3 no instante em que o adaptador voltar a ser enumerado, capturando VID:PID e drivers. Coletar separadamente `/system/bin/toybox uname -r`, `uname -r`, `cat /proc/version`, `getprop ro.product.device` e, se possível em modo read-only, configuração `CONFIG_LOCALVERSION`/identidade do kernel. Manter relatórios A/B e 10 ciclos de conexão iguais em ambos. `FLASH_READY=false` até resolver compatibilidade, empacotamento v3 e autorização.
