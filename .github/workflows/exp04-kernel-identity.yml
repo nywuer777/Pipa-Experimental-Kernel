@@ -1,0 +1,34 @@
+name: Pipa EXP04 - Read-Only Hash Audit Tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp04-kernel-identity.yml"
+      - "tools/exp04-kernel-identity.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare synthetic fixtures
+        shell: pwsh
+        run: python tests/exp03_synthetic_fixtures.py fixtures
+      - name: PowerShell read-only audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $results = & ./tools/exp04-kernel-identity.ps1 -BackupDir ./fixtures | Out-String
+          Write-Output $results
+          if (!$results.Contains('PASS: read-only')) { throw 'Audit did not pass' }
+      - name: Test standard Windows PowerShell
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $results = & ./tools/exp04-kernel-identity.ps1 -BackupDir ./fixtures | Out-String
+          Write-Output $results
+          if (!$results.Contains('PASS: read-only')) { throw 'Audit did not pass' }
