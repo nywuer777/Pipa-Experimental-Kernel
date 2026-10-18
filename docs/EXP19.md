@@ -1,3 +1,27 @@
+## EXP19 — execução real inicial bloqueada por caminho de ZIP ausente (18/10/2026)
+
+O usuário executou a ferramenta do pacote EXP19 no Windows com `-SelfTest`, **PASS**:
+
+```text
+EXP19 PYTHON_RUNTIME=VALIDATED selector=py
+EXP19 SYNTHETIC VIRTUAL SPLICE SELFTEST: PASS
+AOSP_STOCK_CONTROL_EXECUTED=False PRIVATE_BACKUPS_READ=False
+NO BOOT IMAGE CREATED. NO DEVICE COMMANDS. FLASH_READY=false
+```
+
+A execução seguinte falhou **antes de abrir o backup** com `EXP19: ZIP EXP06 nao encontrado.` O caminho de entrada fornecido era `C:\Users\User\Downloads\pipa-exp06-clang21-1.zip`, não existente na ocasião. Isso não refuta a homologação EXP06 ou as fases EXP12–18; falta localizar o arquivo EXATO.
+
+### Arquivo EXP06 recuperável do GitHub Actions
+
+Conferência feita em GitHub no mesmo dia:
+- Workflow [#39136149722](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39136149722) aprovado.
+- Artifact ID `12140930183` nome `pipa-exp06-clang21-1` (Actions ZIP), tamanho informado 12.261.845 bytes, não expirado no momento da consulta; expiração programada para **2026-11-01**.
+- SHA-256 aprovado do ZIP EXP06 é `e32af6b61163fba4724211986823fc4ffab759956d213ef15b7fcda042241402`.
+
+O usuário deve localizar o ZIP em Downloads/Desktop ou baixá-lo novamente via Actions autenticado e verificar o hash antes de executar `EXP19-run-windows.ps1 -Exp06Zip <caminho encontrado>`. É proibido aceitar outro arquivo por semelhança de nome: rejeitar hash divergente.
+
+**Estado:** `EXP19_SELFTEST=PASS_REAL`, `EXP19_CANDIDATE_REAL=NOT_EXECUTED` (ZIP ausente); nenhum arquivo experimental criado, nenhum backup ou partição modificado, `FLASH_READY=false`.
+
 # EXP19 — Candidato EXP06 AOSP somente offline (NAO INSTALAR)
 
 Data: 18/10/2026 | Xiaomi Pad 6 `pipa` | referência ao slot `_b`.
