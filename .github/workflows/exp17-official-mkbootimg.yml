@@ -1,0 +1,70 @@
+name: EXP17 Official AOSP mkbootimg v3 - Synthetic Verification (NO FLASH)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp17-official-mkbootimg.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  official-aosp-synthetic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test official AOSP pinned source with original-only synthetic v3 boot fixture
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, pathlib, struct, subprocess, sys, tempfile
+          from urllib.request import urlopen
+          COMMIT='d2bb0af5ba6d3198a3e99529c97eda1be0b5a093'
+          BLOBS={
+            'mkbootimg.py':'ec2958179691a434df917cd1b6f196edaa80e31d',
+            'gki/generate_gki_certificate.py':'739c61b04a9dbd95cafa5196533e3a472c31f2d9'
+          }
+          PAGE=4096
+          def align(v): return (v+PAGE-1)//PAGE*PAGE
+          def gitsha(b): return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          with tempfile.TemporaryDirectory(prefix='exp17-ci-') as td:
+            root=pathlib.Path(td)
+            for rel,sha in BLOBS.items():
+              url=f'https://android.googlesource.com/platform/system/tools/mkbootimg/+/{COMMIT}/{rel}?format=TEXT'
+              with urlopen(url,timeout=30) as response:
+                content=base64.b64decode(response.read(),validate=True)
+              assert gitsha(content)==sha, f'Unpinned AOSP code: {rel}'
+              output=root/rel
+              output.parent.mkdir(parents=True,exist_ok=True)
+              output.write_bytes(content)
+            kernel=bytearray(range(128))
+            kernel[56:60]=b'ARMd'
+            ramdisk=b'\x1f\x8b'+bytes(14)
+            (root/'kernel').write_bytes(kernel)
+            (root/'ramdisk').write_bytes(ramdisk)
+            p=subprocess.run([
+              sys.executable,str(root/'mkbootimg.py'),'--header_version','3',
+              '--kernel',str(root/'kernel'),'--ramdisk',str(root/'ramdisk'),
+              '--cmdline','fixture test','--output',str(root/'compact.img')
+            ],capture_output=True,text=True)
+            assert p.returncode==0,p.stderr
+            header=bytearray(PAGE)
+            header[:8]=b'ANDROID!'
+            struct.pack_into('<4I',header,8,len(kernel),len(ramdisk),0,1580)
+            struct.pack_into('<I',header,40,3)
+            header[44:44+len(b'fixture test')]=b'fixture test'
+            canonical=bytes(header)+kernel+bytes(align(len(kernel))-len(kernel))+ramdisk+bytes(align(len(ramdisk))-len(ramdisk))
+            actual=(root/'compact.img').read_bytes()
+            assert actual==canonical,'Official mkbootimg produced divergent v3 canonical image'
+            damaged=bytearray(canonical)
+            damaged[24]=1
+            assert actual!=damaged,'Reserved-header corruption not detected'
+            print('EXP17 OFFICIAL AOSP MKBOOTIMG v3 SYNTHETIC: PASS')
+            print('SOURCE_AOSP_COMMIT='+COMMIT)
+            print('SYNTHETIC_COMPACT_BYTES='+str(len(actual)))
+            print('ONLY_SYNTHETIC_DATA=True; PRIVATE_BACKUPS_NOT_READ=True')
+            print('NO IMAGE FLASHED. FLASH_READY=false')
+          PY
