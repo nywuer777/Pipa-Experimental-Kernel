@@ -1,3 +1,29 @@
+## EXP21.8D — HOMOLOGAÇÃO REAL DO BACKUP SLOT A NO WINDOWS (18/10/2026)
+
+O usuário executou o script Python de transferência binária depois de `--self-test` aprovado no Windows com Android no slot `_b`. Evidência final:
+
+```text
+EXP21.8D SYNTHETIC BINARY/HASH SELFTEST: PASS
+EXP21.8D REAL SLOT-A BINARY-SAFE BACKUP; FLASH_READY=false
+SLOT=_b DEVICE=pipa ROOT=AUTHORIZED BYTES_TO_BACKUP=335675392
+boot_a: HEADER_PROBE=MATCH starting read-only transfer
+boot_a: BACKUP_VERIFIED bytes=201326592 sha256=5c4f51f70132ca01b183da2a3fb27446bfacdfcc035385d83d8b3c4339b2ad97
+vendor_boot_a: HEADER_PROBE=MATCH starting read-only transfer
+vendor_boot_a: BACKUP_VERIFIED bytes=100663296 sha256=267e0445174c9c53d7154677644fe82947053daaac2f855aa3fa54968e803346
+dtbo_a: HEADER_PROBE=MATCH starting read-only transfer
+dtbo_a: BACKUP_VERIFIED bytes=33554432 sha256=0ec73d9af213f02675f9b11201b890874baa51f7ec2bb554dd57d2be037ada27
+vbmeta_a: HEADER_PROBE=MATCH starting read-only transfer
+vbmeta_a: BACKUP_VERIFIED bytes=131072 sha256=b2a60ea8249203b392db63a88ac1b39b5156d796ed3a6b5757dd5e787fb6948a
+EXP21.8D SLOT-A RAW BACKUPS: PASS (four images, pinned hashes)
+DEVICE READ-ONLY. WINDOWS FILES CREATED. NO SLOT CHANGE. NO FASTBOOT. FLASH_READY=false
+```
+
+**Resultado:** `EXP21.8D_SLOT_A_BACKUPS=PASS_REAL`; quatro arquivos criados sob `C:\platform-tools\pipa_backup_a` com conteúdo binário verificado frente aos hashes `EXP21.8B` medidos diretamente no dispositivo. Total **335.675.392 bytes** (320,125 MiB). A execução não substituiu arquivos do slot B em `C:\platform-tools\pipa_backup`, nem modificou qualquer partição do tablet. Esses são backups de **quatro partições de inicialização do A**, não um backup integral do sistema A (faltam super/system/vendor etc.).
+
+O procedimento prova cópia bit-a-bit consistente na ocasião, porém não valida integridade criptográfica AVB, versão/compatibilidade de kernel, nem uma recuperação após falha de boot. O estado `slot-successful:a=yes` no bootloader não substitui teste de inicialização nem compatibilidade dos sistemas A/B.
+
+**Próximo portão:** `EXP21.8E`, inspeção **offline, somente leitura**, das cópias A e B para validar informações estruturais dos cabeçalhos de boot, vendor_boot, DTBO e VBMeta (flags e descritores AVB), sem tentar verificação de chave/assinatura como se houvesse cadeia de confiança. `SLOT_A_RECOVERY=UNPROVEN`; `FLASH_READY=false`.
+
 # EXP21.8D — Preservação binária do slot A no Windows, sem gravar no tablet
 
 **Data:** 2026-10-18 | **Fase anterior:** `EXP21.8C_HEADER_MAGIC=PASS_REAL`; quatro cabeçalhos reconhecidos, hashes reais A medidos por KernelSU em EXP21.8B, Android no slot `_b`. **`FLASH_READY=false`.**
@@ -48,4 +74,4 @@ Reservar pelo menos **400 MiB livres** no Windows. Confirmar permissão KernelSU
 
 **Pós-preservação (gate futuro):** examinar offline as imagens A efetivamente copiadas, validar formato AVB (incluindo `flags`, descritores, assinatura e chave reconhecida), comparar DTB/DTBO e componentes de boot, pesquisar compatibilidade com firmware/partições lógicas de A e confirmar estratégia de restauração de `_b`. Mesmo cópias A verificadas não são prova de um boot de emergência bem-sucedido.
 
-`EXP21.8D_BACKUP_SLOT_A=NOT_EXECUTED_ON_DEVICE`; `SLOT_A_RECOVERY=UNPROVEN`; **`FLASH_READY=false`**.
+`EXP21.8D_BACKUP_SLOT_A=PASS_REAL`; `SLOT_A_RECOVERY=UNPROVEN`; **`FLASH_READY=false`**.
