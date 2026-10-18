@@ -46,6 +46,30 @@ jobs:
           Write-Output $diff
           if (-not $diff.Contains('changed_blocks=1') -or -not $diff.Contains('first_diff_offset=7000')) { throw 'Content difference not detected' }
 
+      - name: Fetch pinned original EXP01 GitHub artifact ZIP
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $uri = 'https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/artifacts/12132145301/zip'
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = "application/vnd.github+json"
+            'X-GitHub-Api-Version' = "2022-11-28"
+          }
+          Invoke-WebRequest -Uri $uri -Headers $headers -OutFile exp01-from-actions.zip
+          $hash = (Get-FileHash exp01-from-actions.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne '048c88f81c1909242eafbb1ff97e03dc1668a56b83bc8e02849bda4240a8897d') { throw "Unexpected artifact ZIP hash $hash" }
+
+      - name: Exercise real ZIP extraction and hash gate on synthetic backup
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $same = & ./tools/exp05-compare-kernels.ps1 -BackupDir 'exp05-fixtures/prefix-matches' -Exp01Zip 'exp01-from-actions.zip' -SyntheticTest | Out-String
+          Write-Output $same
+          if (-not $same.Contains('changed_blocks=0')) { throw 'Real ZIP path failed' }
+
       - name: PowerShell 7 compare
         shell: pwsh
         run: |
