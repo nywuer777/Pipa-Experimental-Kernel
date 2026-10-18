@@ -1,0 +1,66 @@
+name: Pipa EXP08 - Runtime Kernel Identity Audit (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp08-runtime-identity.yml"
+      - "tools/exp08-runtime-identity.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-tests:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Synthesize contradictory and consistent kernel interfaces
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = @{
+            uname_release = '5.10.404R'
+            toybox_release = '5.10.404R'
+            proc_osrelease = '5.10.404R'
+            proc_version = 'Linux version 4.19.404R (build-user@build-host) #14 SMP PREEMPT Sun Aug 23 09:16:08 UTC 2026'
+            uname_full = 'Linux localhost 5.10.404R #14 SMP PREEMPT Sun Aug 23 09:16:08 UTC 2026 aarch64 Toybox'
+            kernel_version = '#14 SMP PREEMPT Sun Aug 23 09:16:08 UTC 2026'
+            slot = '_b'
+            device = 'pipa'
+          }
+          $base | ConvertTo-Json | Set-Content -Encoding UTF8 mismatch.json
+          $base.proc_version = $base.proc_version.Replace('4.19.404R','5.10.404R')
+          $base | ConvertTo-Json | Set-Content -Encoding UTF8 consistent.json
+          $base.toybox_release = '4.19.404R'
+          $base | ConvertTo-Json | Set-Content -Encoding UTF8 user-space-mismatch.json
+
+      - name: Test discrepancy detection in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $result = & ./tools/exp08-runtime-identity.ps1 -FixtureJson mismatch.json | Out-String
+          Write-Output $result
+          if (!$result.Contains('RESULT PROC_VERSION_MISMATCH')) { throw 'Expected /proc/version mismatch' }
+          $result2 = & ./tools/exp08-runtime-identity.ps1 -FixtureJson consistent.json | Out-String
+          Write-Output $result2
+          if (!$result2.Contains('RESULT RELEASE_SOURCES_AGREE')) { throw 'Expected matched versions' }
+
+      - name: Test userspace detection in PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $result = & ./tools/exp08-runtime-identity.ps1 -FixtureJson user-space-mismatch.json | Out-String
+          Write-Output $result
+          if (!$result.Contains('RESULT USERSPACE_UNAME_MISMATCH')) { throw 'Expected userspace discrepancy' }
+
+      - name: Confirm no boot image or flash command
+        shell: pwsh
+        run: |
+          if (Test-Path boot.img) { throw 'Forbidden flashable output' }
+          $source = Get-Content tools/exp08-runtime-identity.ps1 -Raw
+          if ($source.Contains('fastboot flash') -or $source.Contains('adb reboot') -or $source.Contains('dd if=')) { throw 'Unsafe action in runtime audit' }
+          Write-Output 'EXP08 test passed: no device, no partition writes.'
