@@ -19,7 +19,11 @@ function AssertKnownHashes {
     Require ($Known.Count -eq 4) 'expected exactly four SHA-256 references'
     foreach($key in @('vbmeta_b.img','boot_b.img','dtbo_b.img','vendor_boot_b.img')) {
         Require ($Known.ContainsKey($key)) ("reference missing: $key")
-        Require ($Known[$key] -cmatch '^[0-9a-f]{64}function BE32([byte[]]$B,[int]$O) {
+        Require ($Known[$key] -cmatch '^[0-9a-f]{64}$') ("invalid SHA-256 reference length/format: $key")
+    }
+}
+AssertKnownHashes
+function BE32([byte[]]$B,[int]$O) {
     Require ($O -ge 0 -and $O+4 -le $B.Length) 'BE32 offset'
     return (([long]$B[$O] -shl 24) -bor ([long]$B[$O+1] -shl 16) -bor ([long]$B[$O+2] -shl 8) -bor [long]$B[$O+3])
 }
