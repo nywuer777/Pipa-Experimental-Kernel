@@ -1,3 +1,11 @@
+## EXP18.2 — Transporte Fastboot do bootloader homologado (18/10/2026)
+
+O usuário confirmou driver Windows funcional e executou com sucesso `fastboot devices -l` e `tools/exp18-2-fastboot-readonly.ps1` no Xiaomi Pad 6 real. Evidência: `product=pipa`, `current_slot=b`, `is_userspace=no`, `unlocked=yes`, `slot_count=2`, `RESULT=FASTBOOT_BOOTLOADER_TRANSPORT_PASS`. Nenhuma partição alterada.
+
+Isso resolve a dúvida operacional sobre o estado de desbloqueio informado diretamente pelo **bootloader** (`unlocked=yes`), embora não explique as propriedades `locked` lidas anteriormente no Android. A conexão Fastboot em hardware foi provada; recuperação de kernel não inicializável e AVB/KernelSU **ainda não**.
+
+Próxima fase EXP18.3 (gate de retorno sem escrita): `fastboot reboot` manual, depois `adb devices -l`, `adb shell getprop ro.product.device` e `adb shell getprop ro.boot.slot_suffix`. Isso prova ida e volta normal de modos com boot original intacto, não a restauração após falha experimental. `FLASH_READY=false`.
+
 ## EXP18.1 — HOMOLOGAÇÃO REAL DO INVENTÁRIO (18/10/2026)
 
 O usuário executou `EXP18-1-recovery-preflight.ps1` em Windows PowerShell, com o tablet pipa conectado via ADB. Ambas as fases concluíram com aprovação:
