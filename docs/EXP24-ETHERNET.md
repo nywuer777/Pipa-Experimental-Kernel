@@ -95,3 +95,18 @@ Registro de exp24-usb-E404-20261018-194548.txt (coleta ADB Wi-Fi com USB-C ocupa
 Correção no repositório: tools/exp24-usb-ethernet-evidence.ps1 v3, commit 312147c4bbbfaa1a5cf11a3b28a0fa1f436fa35b. Substitui comandos remotos com parênteses/regex/for por comandos ADB simples, enumeração dos nomes USB no PowerShell, leitura individual de VID:PID, classes de interface, symlinks de driver e dados de rede. Pendente reexecução no Windows; não declarada validação no hardware desta versão.
 
 Próximo gate: capturar /sys/bus/usb/devices/2-1/{idVendor,idProduct} e descritores de interface, cruzar com drivers EXP24 presentes. Somente após auditoria do boot Android v3 considerar autorização de teste temporário. FLASH_READY=false.
+
+## Premissa obrigatória: reconhecimento intermitente no E404
+
+Observação direta informada pelo usuário (18/10/2026): **o E404 reconhece o adaptador Ethernet USB-C de forma INTERMITENTE**. Algumas conexões funcionam; em outras, não há sequer reconhecimento de dispositivo. Portanto, um teste isolado com adaptador não detectado NÃO comprova ausência de driver, nem um teste isolado com adaptador detectado na EXP24 comprova que os drivers novos causaram a melhora.
+
+Protocolo A/B para comparação válida (somente após boot EXP24 temporário autorizado e auditado):
+1. Identificar antes o adaptador pelo USB VID:PID/descritores quando for enumerado; registrar quando não houver enumeração. Não presumir que '2-1' identifica o adaptador em todas as tentativas.
+2. Usar mesmo cabo, adaptador, hub, alimentação, porta, rede e condições semelhantes no E404 e na EXP24. Manter ADB Wi-Fi independente do Ethernet.
+3. Repetir pelo menos 10 ciclos de desconectar/reconectar no E404, e 10 na EXP24, registrando a duração até enumerar e o resultado de cada tentativa; testes consecutivos podem ter dependências e não bastam para confiança estatística.
+4. Classificar cada ciclo: A) sem evento/enumeração USB; B) USB enumerado com VID:PID, sem driver vinculado; C) driver vinculado e interface eth*/usb* criada; D) IP, rota e tráfego via interface Ethernet funcional; E) operação sustentada e recupera após reconexão.
+5. Separar problema OTG/USB-C, energia, cabo/hub e enumeração USB da seleção do driver (binding), e esta da camada Android Ethernet/DHCP/roteamento. Drivers adicionais somente podem atuar quando o dispositivo enumera adequadamente; não garantem consertar uma falha física de enumeração.
+6. Comparar taxas por fase e logs do kernel em cada sistema, junto de identidade da Image/EXP24 no boot. Só atribuir melhora ao novo kernel mediante diferença reproduzível e evidência técnica coerente, não pela conexão eventual.
+7. Antes de qualquer teste EXP24, cumprir auditoria de boot v3, confirmar reversibilidade e obter autorização de inicialização temporária. FLASH_READY=false.
+
+Registro original: o relatório E404 de 19:45 mostrou interfaces USB 2-1:2.0/2-1:2.1 sem driver, mas VID:PID ausente e nenhum Ethernet na rede; a intermitência impede afirmar que o resultado represente todas as tentativas.
