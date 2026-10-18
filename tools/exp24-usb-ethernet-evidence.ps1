@@ -1,6 +1,6 @@
-# EXP24 - E404 / EXP24 USB Ethernet A/B evidence (read-only, Windows PowerShell 5.1+)
-# Run once with -Stage E404 and once with -Stage EXP24, only after authorized temporary boot.
-# If a USB-C Ethernet adapter occupies the tablet's only port, use already-configured wireless ADB.
+# EXP24 / E404 - USB Ethernet A/B evidence v3 (read-only)
+# Windows PowerShell 5.1+; requires a working ADB connection (wireless if USB-C is occupied).
+# Avoid Android shell loops, parentheses and regex: adb.exe can strip nested quotes on Windows.
 [CmdletBinding()]
 param(
     [string]$Adb = 'C:\platform-tools\adb.exe',
@@ -8,55 +8,104 @@ param(
     [ValidateSet('E404','EXP24')][string]$Stage = 'E404',
     [string]$OutDir = '.\exp24-usb-ethernet-evidence'
 )
+
 $ErrorActionPreference = 'Stop'
 if (-not (Test-Path -LiteralPath $Adb -PathType Leaf)) {
     throw "ADB executable not found: $Adb"
 }
-New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
+
 $adbArgs = @()
 if ($Serial -ne '') { $adbArgs += @('-s', $Serial) }
-& $Adb @adbArgs get-state | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'ADB target unavailable; connect to the tablet before capture.' }
+try {
+    $state = (& $Adb @adbArgs get-state 2>&1 | Out-String).Trim()
+} catch {
+    throw "ADB connection failed: $($_.Exception.Message)"
+}
+if ($LASTEXITCODE -ne 0 -or $state -ne 'device') {
+    throw "ADB target unavailable ($state). Run 'adb devices -l' and use -Serial if needed."
+}
 
-$commands = @(
-    @{Title='kernel'; Cmd='uname -a; cat /proc/version; (cat /proc/sys/kernel/osrelease 2>/dev/null || echo "osrelease unavailable (permission denied or absent)")'},
-    @{Title='USB VID PID and driver binding'; Cmd='for d in /sys/bus/usb/devices/*; do [ -r "$d/idVendor" ] || continue; echo "USB_DEVICE=$d"; printf "VID="; cat "$d/idVendor"; printf "PID="; cat "$d/idProduct"; echo "DRIVER_SYMLINK:"; ls -l "$d/driver" 2>/dev/null || true; done'},
-    @{Title='USB interface-level driver binding'; Cmd='for d in /sys/bus/usb/devices/*:*; do [ -e "$d" ] || continue; echo "USB_INTERFACE=$d"; echo "INTERFACE_DRIVER:"; ls -l "$d/driver" 2>/dev/null || true; done'},
-    @{Title='all network interfaces'; Cmd='ip -o link show; ip -4 address show'},
-    @{Title='USB network interfaces sysfs'; Cmd='for d in /sys/class/net/*; do [ -e "$d" ] || continue; echo "NET_IF=$d"; echo "DEVICE_SYMLINK:"; ls -l "$d/device" 2>/dev/null || true; echo "CARRIER:"; cat "$d/carrier" 2>/dev/null || true; done'},
-    @{Title='IPv4 routes'; Cmd='ip -4 route show'},
-    @{Title='runtime Ethernet services'; Cmd='getprop | grep -i ethernet'},
-    @{Title='kernel config if available'; Cmd='if [ -r /proc/config.gz ]; then zcat /proc/config.gz | grep -E "^(CONFIG_USB_(USBNET|RTL8152|NET_AX88179_178A|NET_CDCETHER|NET_CDC_NCM)|CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US)="; else echo "/proc/config.gz unavailable"; fi'}
-)
+New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 $lines = New-Object 'System.Collections.Generic.List[string]'
-$lines.Add("# EXP24 Ethernet A/B read-only evidence")
-$lines.Add("# Stage=$Stage")
-$lines.Add("# Captured=$(Get-Date -Format o)")
-foreach ($entry in $commands) {
-    $lines.Add("")
-    $lines.Add("======== $($entry.Title) ========")
-    # PowerShell 5.1 may convert native ADB stderr into a terminating NativeCommandError
-    # when ErrorActionPreference=Stop. Keep the strict policy for setup, but capture
-    # per-section output under Continue, including optional Android permission failures.
+[void]$lines.Add('# EXP24 Ethernet A/B read-only evidence v3')
+[void]$lines.Add("# Stage=$Stage")
+[void]$lines.Add("# Captured=$(Get-Date -Format o)")
+[void]$lines.Add("# ADB device=$state")
+
+function Invoke-Probe {
+    param(
+        [Parameter(Mandatory=$true)][string]$Title,
+        [Parameter(Mandatory=$true)][string[]]$ShellArgs
+    )
+    [void]$lines.Add('')
+    [void]$lines.Add("======== $Title ========")
+    # Each ADB invocation has plain shell words, not nested quotes/loops/pipes.
+    # Android can refuse optional sysfs or /proc reads; record and continue.
     $previousPreference = $ErrorActionPreference
+    $captured = @()
+    $exitCode = -1
     try {
         $ErrorActionPreference = 'Continue'
-        $captured = @(& $Adb @adbArgs shell $entry.Cmd 2>&1 | ForEach-Object { $_.ToString() })
+        $captured = @(& $Adb @adbArgs shell @ShellArgs 2>&1 | ForEach-Object { $_.ToString() })
         $exitCode = $LASTEXITCODE
+    } catch {
+        $captured += "PowerShell/ADB exception: $($_.Exception.Message)"
     } finally {
         $ErrorActionPreference = $previousPreference
     }
     if ($captured.Count -eq 0) {
-        $lines.Add('(empty or not accessible)')
+        [void]$lines.Add('(empty or not accessible)')
     } else {
-        foreach ($line in $captured) { $lines.Add([string]$line) }
+        foreach ($line in $captured) { [void]$lines.Add([string]$line) }
     }
-    $lines.Add("exit_code=$exitCode")
+    [void]$lines.Add("exit_code=$exitCode")
     if ($exitCode -ne 0) {
-        $lines.Add('NOTE: Optional section failed or permission denied. Capture continues.')
+        [void]$lines.Add('NOTE: optional read failed; continuing without root.')
     }
+    return $captured
 }
-$out = Join-Path $OutDir ("exp24-usb-{0}-{1}.txt" -f $Stage, (Get-Date -Format 'yyyyMMdd-HHmmss'))
-[IO.File]::WriteAllLines((Join-Path (Resolve-Path $OutDir) (Split-Path $out -Leaf)), $lines, [Text.UTF8Encoding]::new($false))
-Write-Host "Read-only device evidence saved: $out"
-Write-Host 'Do not infer driver success from Internet access alone: compare VID/PID, driver symlink, network interface, DHCP/route and loaded EXP24 identity.'
+
+# Kernel identity: do not group commands using remote shell parentheses.
+Invoke-Probe -Title 'kernel / uname -a' -ShellArgs @('uname', '-a') | Out-Null
+Invoke-Probe -Title 'kernel / uname -r' -ShellArgs @('uname', '-r') | Out-Null
+Invoke-Probe -Title 'kernel / proc version' -ShellArgs @('cat', '/proc/version') | Out-Null
+Invoke-Probe -Title 'kernel / device name' -ShellArgs @('getprop', 'ro.product.device') | Out-Null
+
+# Enumerate actual USB sysfs entries locally in PowerShell; avoid -r filters in Android shell.
+$usbEntries = @(Invoke-Probe -Title 'USB / sysfs entries' -ShellArgs @('ls', '-1', '/sys/bus/usb/devices'))
+$usbDevices = @($usbEntries | ForEach-Object { $_.Trim() } |
+    Where-Object { $_ -match '^\d+-\d+(?:\.\d+)*$' } | Select-Object -Unique)
+$usbInterfaces = @($usbEntries | ForEach-Object { $_.Trim() } |
+    Where-Object { $_ -match '^\d+-\d+(?:\.\d+)*:\d+\.\d+$' } | Select-Object -Unique)
+[void]$lines.Add("USB device paths found=$($usbDevices.Count); interfaces found=$($usbInterfaces.Count)")
+
+foreach ($device in $usbDevices) {
+    $base = "/sys/bus/usb/devices/$device"
+    foreach ($field in @('idVendor','idProduct','bDeviceClass','bDeviceSubClass',
+                         'bDeviceProtocol','bConfigurationValue','manufacturer','product')) {
+        Invoke-Probe -Title "USB $device / $field" -ShellArgs @('cat', "$base/$field") | Out-Null
+    }
+    Invoke-Probe -Title "USB $device / device driver" -ShellArgs @('ls', '-l', "$base/driver") | Out-Null
+}
+
+foreach ($iface in $usbInterfaces) {
+    $base = "/sys/bus/usb/devices/$iface"
+    foreach ($field in @('bInterfaceClass','bInterfaceSubClass','bInterfaceProtocol')) {
+        Invoke-Probe -Title "USB interface $iface / $field" -ShellArgs @('cat', "$base/$field") | Out-Null
+    }
+    Invoke-Probe -Title "USB interface $iface / bound driver" -ShellArgs @('ls', '-l', "$base/driver") | Out-Null
+}
+
+# Network and Android service views. Failure of one diagnostic is not a kernel failure.
+Invoke-Probe -Title 'network / interfaces in sysfs' -ShellArgs @('ls', '-l', '/sys/class/net') | Out-Null
+Invoke-Probe -Title 'network / ip link' -ShellArgs @('ip', 'link', 'show') | Out-Null
+Invoke-Probe -Title 'network / IPv4 addresses' -ShellArgs @('ip', '-4', 'address', 'show') | Out-Null
+Invoke-Probe -Title 'network / IPv4 routes' -ShellArgs @('ip', '-4', 'route', 'show') | Out-Null
+Invoke-Probe -Title 'Android / Ethernet service' -ShellArgs @('dumpsys', 'ethernet') | Out-Null
+Invoke-Probe -Title 'kernel / proc config if allowed' -ShellArgs @('ls', '-l', '/proc/config.gz') | Out-Null
+
+$filename = 'exp24-usb-{0}-{1}.txt' -f $Stage, (Get-Date -Format 'yyyyMMdd-HHmmss')
+$out = Join-Path (Resolve-Path -LiteralPath $OutDir).Path $filename
+[IO.File]::WriteAllLines($out, $lines, (New-Object System.Text.UTF8Encoding($false)))
+Write-Host "Read-only USB Ethernet evidence saved: $out"
+Write-Host 'Inspect VID:PID, interface class/driver, network interface, IP/route and running kernel.'
