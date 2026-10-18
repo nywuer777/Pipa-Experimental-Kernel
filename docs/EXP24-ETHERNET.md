@@ -310,3 +310,13 @@ ls: /sys/bus/usb/devices/2-1:2.1/driver: No such file or directory
 **Próxima coleta de leitura e nenhuma escrita no dispositivo:** enquanto 2-1 estiver presente ler `bConfigurationValue`, `bNumConfigurations`, `speed`, `bInterfaceClass`, `bInterfaceSubClass`, `bInterfaceProtocol` para `2-1:2.0` e `2-1:2.1`. Revalidar os links de `driver` na mesma janela; se possível capturar sysfs em uma única chamada ADB para diminuir race. Interpretar valores hexadecimais: `ff` = vendor-specific; `02:06:00` = CDC Ethernet control; `0a` = CDC data interface (somente exemplo, não afirmar valor não observado).
 
 **Prioridade de engenharia:** não diagnosticar 'driver ausente do código' apenas pelo sysfs porque `/proc/config.gz` informou `CONFIG_USB_RTL8152=y` e o código-fonte do EXP24 possui o driver. Investigar razão do driver não aparecer registrado na base E404 atual e a identidade discrepante `uname 5.10.404R` versus `/proc/sys/kernel/osrelease` e `/proc/version` 4.19.404R. Resultados de EXP24 CI continuam restritos a compilação e config gates; sem boot físico/flash. **FLASH_READY=false**.
+
+## Falha na coleta de nove atributos: resultado inconclusivo
+
+O usuário executou o script PowerShell que fazia 30 tentativas de coletar nove atributos sysfs USB em `2-1`, `2-1:2.0` e `2-1:2.1`. O script terminou com `Adaptador nao capturado nas 30 tentativas.`.
+
+**NÃO interpretar como 30 amostras de ausência do adaptador.** A condição de sucesso anterior era `LASTEXITCODE=0` **e** exatamente nove linhas na saída do `cat` de nove arquivos. Qualquer arquivo ausente, permissão, transição de configuração USB ou desconexão no meio da leitura faz a tentativa inteira ser descartada, mesmo se VID:PID tenha sido lido. A contagem não diferencia falta de enumeração de atributos indisponíveis.
+
+Próximo protocolo correto é amostrar somente `ls /sys/bus/usb/devices` para identificar a presença de `2-1` em cada ciclo; quando presente, ler VID, PID e nove atributos individualmente, preservar captura parcial e registrar symlinks de driver. Gerar no PC um arquivo de evidência, sem alterações no dispositivo. Não forçar binding, não mexer em SELinux, não instalar módulo e não flashear.
+
+**Estado do experimento:** identificação `0BDA:8153` confirmada em tentativa anterior; driver `r8152` não registrado na lista de `/sys/bus/usb/drivers`, duas interfaces sem symlink em captura anterior; enumeração intermitente. O resultado da coleta rígida não altera essas conclusões. **FLASH_READY=false**.
