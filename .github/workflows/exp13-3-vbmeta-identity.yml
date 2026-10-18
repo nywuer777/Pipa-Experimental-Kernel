@@ -1,0 +1,59 @@
+name: Pipa EXP13.3 - Top-level VBMeta Digest Identity (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp13-3-vbmeta-identity.yml"
+      - "tools/exp13-3-vbmeta-identity.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  digest-audit:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: SHA-256 AVB0 blob synthetic validation on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out = & ./tools/exp13-3-vbmeta-identity.ps1 -SelfTest | Out-String
+          Write-Output $out
+          if(!$out.Contains('EXP13.3 SYNTHETIC VBMETA DIGEST TEST: PASS')){throw 'PS5.1 regression'}
+          if(!$out.Contains('FLASH_READY=false')){throw 'Missing no-flash gate'}
+      - name: SHA-256 AVB0 blob synthetic validation on PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out = & ./tools/exp13-3-vbmeta-identity.ps1 -SelfTest | Out-String
+          Write-Output $out
+          if(!$out.Contains('EXP13.3 SYNTHETIC VBMETA DIGEST TEST: PASS')){throw 'PS7 regression'}
+      - name: Fail closed for absent private backup
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $rejected=$false
+          try { & ./tools/exp13-3-vbmeta-identity.ps1 -VbmetaPath "C:\missing-vbmeta.img" | Out-Null } catch { $rejected=$true }
+          if(!$rejected){throw 'Accepted nonexistent vbmeta private backup'}
+      - name: Verify pinned digest, read only and no partition writes
+        shell: pwsh
+        run: |
+          $src=Get-Content tools/exp13-3-vbmeta-identity.ps1 -Raw
+          $expected='86d703c2ea2f73a55aa86374329bd89ffd975c0e95e33645a156cfdc343889ff'
+          if(!$src.Contains($expected)){throw 'Pinned full vbmeta backup digest missing'}
+          foreach($unsafe in @('fastboot flash','fastboot boot','adb reboot','WriteAllBytes','Set-Content','Invoke-WebRequest','Start-Process','Format-Volume','dd if=')){
+            if($src.Contains($unsafe)){throw "Unsafe command in auditor source: $unsafe"}
+          }
+          if(Test-Path boot.img){throw 'Boot image creation forbidden'}
+          Write-Output 'EXP13.3 CI: PASS read-only, synthetic-only, no secrets output'
+      - name: Publish tested script
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp13-3-vbmeta-identity-${{ github.run_number }}
+          path: tools/exp13-3-vbmeta-identity.ps1
+          if-no-files-found: error
+          retention-days: 30
