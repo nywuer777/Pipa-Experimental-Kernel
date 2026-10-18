@@ -1,0 +1,55 @@
+name: Pipa EXP18.2 - Fastboot Read-Only Audit (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp18-2-fastboot-readonly.yml"
+      - "tools/exp18-2-fastboot-readonly.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fastboot-readonly:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test synthetic pipa fastboot parser in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=& ./tools/exp18-2-fastboot-readonly.ps1 -SelfTest | Out-String
+          Write-Output $out
+          if(!$out.Contains('EXP18.2 SYNTHETIC FASTBOOT PARSER SELFTEST: PASS')){throw 'PowerShell 5.1 parser failure'}
+          if(!$out.Contains('FLASH_READY=false')){throw 'Missing no-flash guard'}
+      - name: Test synthetic parser under PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=& ./tools/exp18-2-fastboot-readonly.ps1 -SelfTest | Out-String
+          Write-Output $out
+          if(!$out.Contains('EXP18.2 SYNTHETIC FASTBOOT PARSER SELFTEST: PASS')){throw 'PowerShell 7 parser failure'}
+      - name: Audit executable for strict read-only operations
+        shell: pwsh
+        run: |
+          $src=Get-Content tools/exp18-2-fastboot-readonly.ps1 -Raw
+          foreach($operation in @('fastboot flash','fastboot boot','set_active','--set-active','adb reboot','fastboot reboot','erase','unlock','WriteAllBytes','Set-Content','Remove-Item','Move-Item','dd if=')) {
+            if($src -cmatch [regex]::Escape($operation)) {
+              if($operation -eq 'unlock' -and $src.Contains("'unlocked'")){continue}
+              throw "Potentially unsafe operation $operation"
+            }
+          }
+          foreach($needed in @("'product'","'current-slot'","'is-userspace'","'unlocked'","'slot-count'")) {
+            if(!$src.Contains($needed)){throw "Missing queried property $needed"}
+          }
+          Write-Output 'EXP18.2 static safety audit PASS'
+      - name: Publish tested EXP18.2 PowerShell auditor
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp18-2-fastboot-readonly-${{ github.run_number }}
+          path: tools/exp18-2-fastboot-readonly.ps1
+          retention-days: 30
+          if-no-files-found: error
