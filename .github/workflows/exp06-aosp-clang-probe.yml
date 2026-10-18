@@ -1,0 +1,67 @@
+name: Pipa EXP06 - AOSP Clang 21 Toolchain Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp06-aosp-clang-probe.yml"
+      - "docs/EXP06.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Verify official Android clang-r563880c toolchain (no boot image)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show host and disk limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          uname -a
+          df -h .
+          git --version
+
+      - name: Fetch pinned Android Clang prebuilt using shallow sparse blob filtering
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init android-clang-prebuilt
+          cd android-clang-prebuilt
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          du -sh clang-r563880c
+          df -h .
+
+      - name: Validate exact compiler version against installed E404
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang_bin="$PWD/android-clang-prebuilt/clang-r563880c/bin/clang"
+          "$clang_bin" --version | tee aosp-clang-identity.txt
+          grep -F 'Android' aosp-clang-identity.txt
+          grep -F 'clang version 21.0.0' aosp-clang-identity.txt
+          grep -F '14054515' aosp-clang-identity.txt
+          "$PWD/android-clang-prebuilt/clang-r563880c/bin/ld.lld" --version
+          echo 'EXP06: exact Android clang-r563880c build 14054515 verified.'
+          echo 'NO KERNEL COMPILATION, NO BOOT IMAGE, NO FLASH.'
+
+      - name: Save toolchain identity report only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp06-aosp-clang21-identity-${{ github.run_number }}
+          path: aosp-clang-identity.txt
+          retention-days: 14
+          if-no-files-found: warn
