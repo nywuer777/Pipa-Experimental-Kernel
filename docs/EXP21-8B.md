@@ -1,3 +1,25 @@
+## EXP21.8B — HOMOLOGAÇÃO REAL DOS QUATRO HASHES DO SLOT A (18/10/2026)
+
+A partir do Android no slot `_b`, usuário executou `adb shell "su -c 'sha256sum /dev/block/by-name/<part_a>'"` para quatro partições do slot alternativo, sem trocar slots, gravar conteúdo ou copiar imagens. Todos os comandos terminaram com `EXIT_CODE=0` e produziram SHA-256 completo:
+
+| Partição | Capacidade (bytes), EXP21.8A | SHA-256 medido na EXP21.8B | Difere de B? |
+| --- | ---: | --- | --- |
+| `boot_a` | 201326592 | `5c4f51f70132ca01b183da2a3fb27446bfacdfcc035385d83d8b3c4339b2ad97` | SIM |
+| `vendor_boot_a` | 100663296 | `267e0445174c9c53d7154677644fe82947053daaac2f855aa3fa54968e803346` | SIM |
+| `dtbo_a` | 33554432 | `0ec73d9af213f02675f9b11201b890874baa51f7ec2bb554dd57d2be037ada27` | SIM |
+| `vbmeta_a` | 131072 | `b2a60ea8249203b392db63a88ac1b39b5156d796ed3a6b5757dd5e787fb6948a` | SIM |
+
+Cada hash `_a` é distinto do hash `_b` previamente homologado do mesmo tipo de partição. `sha256sum` com código 0 comprova sucesso de leitura e cálculo de identidade dos dados **neste instante**, mas não compara os bytes do A com uma imagem oficial de referência; não permite classificar A como íntegro, corrompido ou compatível com Android 16. A sinalização do bootloader `successful=yes` e `unbootable=no` registrada na EXP21.2 não altera esta limitação.
+
+**Resultado:** `EXP21.8B_SHA256_SLOT_A=PASS_REAL`, `SLOT_A_IDENTITIES=RECORDED`, `SLOT_A_VS_B=ALL_4_DIFFERENT`; `SLOT_A_BOOTABLE_IMAGE=UNVERIFIED`, `SLOT_A_RECOVERY=UNPROVEN`, `FLASH_READY=false`.
+
+**Próximo portão EXP21.8C:** pequena leitura root de assinaturas/cabeçalhos de A em vez de ativação do slot. Confrontar `ANDROID!` (boot), `VNDRBOOT` (vendor_boot), magic de DTBO `0xd7b7ab1e` e `AVB0` (vbmeta), conferir versões de formato e limites de comprimento, sem leitura de dados privados, escrita, troca de slot ou `fastboot`. Formato correto é somente uma verificação estrutural inicial; para habilitar recuperação ainda faltará preservar cópias/aval de conteúdo A, compatibilidade do sistema/firmware e estratégia realista de restauração do B.
+
+Referências AOSP:
+- https://source.android.com/docs/core/architecture/bootloader/boot-image-header
+- https://source.android.com/docs/core/architecture/dto/partitions
+- https://android.googlesource.com/platform/external/avb/+/refs/heads/master/libavb/avb_vbmeta_image.h
+
 # EXP21.8B — SHA-256 das quatro partições do slot A, sem mudança de slot
 
 **Data:** 18/10/2026 | **Pré-requisito:** EXP21.8A `PASS_REAL`, com capacidades exatas de todas as quatro partições A verificadas por `su -c 'blockdev --getsize64 ...'`, `EXIT_CODE=0`, Android ativo no slot `_b`.
@@ -50,4 +72,4 @@ Não forçar igualdade A/B: o objetivo é inventariar hashes reais A, associando
 
 Se os quatro hashes forem obtidos, homologar a leitura sob contexto KernelSU no dispositivo e preservar os valores como evidência; avaliar diferencias A/B, detectar AVB descriptors/magic/estrutura com verificadores somente leitura. Para declarar slot A confiável como alternativa, ainda serão necessários metadados e/ou hashes confiáveis do firmware correspondente, compatibilidade de `vendor`/`system` e um plano comprovado de restauração sem dependência da inicialização de A.
 
-**Estado atual:** `EXP21.8A=PASS_REAL`, `EXP21.8B_HASH_SLOT_A=PENDING`, `SLOT_A_RECOVERY=UNPROVEN`, `FLASH_READY=false`.
+**Estado atual:** `EXP21.8A=PASS_REAL`, `EXP21.8B_HASH_SLOT_A=PASS_REAL`, `SLOT_A_RECOVERY=UNPROVEN`, `FLASH_READY=false`.
