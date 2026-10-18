@@ -13,19 +13,19 @@ permissions:
 
 jobs:
   digest-audit:
-    runs-on: windows-2022
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: SHA-256 AVB0 blob synthetic validation on Windows PowerShell 5.1
-        shell: powershell
+      - name: SHA-256 AVB0 blob synthetic validation on Linux PowerShell 7
+        shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $out = & ./tools/exp13-3-vbmeta-identity.ps1 -SelfTest | Out-String
           Write-Output $out
-          if(!$out.Contains('EXP13.3 SYNTHETIC VBMETA DIGEST TEST: PASS')){throw 'PS5.1 regression'}
+          if(!$out.Contains('EXP13.3 SYNTHETIC VBMETA DIGEST TEST: PASS')){throw 'Linux PS7 regression'}
           if(!$out.Contains('FLASH_READY=false')){throw 'Missing no-flash gate'}
-      - name: SHA-256 AVB0 blob synthetic validation on PowerShell 7
+      - name: Repeat SHA-256 AVB0 blob synthetic validation (PowerShell 7)
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -33,7 +33,7 @@ jobs:
           Write-Output $out
           if(!$out.Contains('EXP13.3 SYNTHETIC VBMETA DIGEST TEST: PASS')){throw 'PS7 regression'}
       - name: Fail closed for absent private backup
-        shell: powershell
+        shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           $rejected=$false
