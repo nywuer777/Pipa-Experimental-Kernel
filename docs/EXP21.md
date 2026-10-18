@@ -1,3 +1,28 @@
+## EXP21.0 — HOMOLOGAÇÃO REAL DA COLETA DE RUNTIME (18/10/2026)
+
+O usuário executou em Android iniciado com ADB autorizado as consultas de `ro.product.device`, `ro.boot.slot_suffix`, `/proc/version`, quatro propriedades de Verified Boot e o digest VBMeta. Resultado (sem número de série pessoal):
+
+```text
+ADB: device product:pipa model:23043RP34G device:pipa
+ro.product.device=pipa
+ro.boot.slot_suffix=_b
+/proc/version:
+Linux version 4.19.404R (build-user@build-host) (Android (14054515, +pgo, +bolt, +lto, +mlgo, based on r563880c) clang version 21.0.0, LLD 21.0.0) #14 SMP PREEMPT Sun Aug 23 09:16:08 UTC 2026
+ro.boot.verifiedbootstate=green
+ro.boot.vbmeta.device_state=locked
+ro.boot.flash.locked=1
+ro.boot.veritymode=enforcing
+ro.boot.vbmeta.digest=f6a9a87fa3187d6c2d544d724c1c0e4a36a2c365dec1b2ab86f91f16178e3c9c
+```
+
+**Confirmado:** kernel informado em `/proc/version` é 4.19.404R, construído com Android Clang/LLD 21 (#14, 23/08/2026), consistentemente com E404; `uname -r` reportou 5.10.404R em consulta anterior, possivelmente pela personalização em `kernel/sys.c` para o shell. Slot permanece `_b`; digest do VBMeta é *exatamente* igual ao blob top-level original homologado em EXP13.3.
+
+**Anomalia AVB ainda aberta:** o Fastboot do bootloader **informou `unlocked=yes`** em EXP18.2, enquanto o Android reporta `green`, `locked` e `flash.locked=1`. No comportamento de referência do AOSP AVB, `green` é típico de dispositivo bloqueado com root of trust OEM, enquanto um dispositivo desbloqueado deveria anunciar `orange`; **não atribuir o conflito automaticamente a AVB desabilitado, falsificação intencional, ou falha de verificação**. As propriedades coletadas mostram estados anunciados mas não a política real aceita para uma imagem de kernel alterado. Além disso, `ro.boot.veritymode=enforcing` não resolve a discrepância do `vbmeta_b` com `flags=3` em EXP13.2. Fontes: https://android.googlesource.com/platform/external/avb/+/android11-release/README.md e https://source.android.com/docs/security/features/verifiedboot/boot-flow .
+
+**Portão seguinte (somente leitura, Android iniciado):** consultar a Boot Control HAL com comandos `bootctl get-number-slots`, `get-current-slot`, `get-active-boot-slot` (se suportado), `get-suffix 0`, `get-suffix 1`, `is-slot-bootable 0/1` e `is-slot-marked-successful 0/1`, observando saída e código de retorno independentemente. AOSP `bootctl`: https://android.googlesource.com/platform/system/extras/+/main/bootctl/bootctl.cpp . **Não** executar `mark-boot-successful`, `set-active-boot-slot` nem `set-slot-as-unbootable`, pois alteram o estado de boot.
+
+**Estado:** `EXP21_RUNTIME_INVENTORY=PASS_REAL`; `EXP21_BOOTCONTROL=NOT_TESTED`; `AVB_EFFECTIVE_POLICY=UNKNOWN`; `RECOVERY_BROKEN_BOOT=NOT_TESTED`; `FLASH_READY=false`.
+
 # EXP21 — Pré-validação de política AVB, versão de kernel e condições de recuperação
 
 **Estado:** implementação do portão de evidências de runtime e de política de recuperação. `EXP20=PASS_REAL`; `FLASH_READY=false`. Data 18/10/2026.
