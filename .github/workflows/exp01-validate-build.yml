@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/exp01-validate-build.yml"
       - "PipaExperimental-EXP01-source.zip"
+      - "patches/0001-pipa-exp01-schedutil-rate-limit.patch"
   workflow_dispatch:
     inputs:
       mode:
@@ -37,6 +38,8 @@ jobs:
           echo "548ebb47ad0febe3c4541b9e93f2233bb9188c78d8f9ec298dd397a11216b852  PipaExperimental-EXP01-source.zip" | sha256sum -c -
           mkdir -p exp01-src
           unzip -q PipaExperimental-EXP01-source.zip -d exp01-src
+          # The original ZIP is immutable; use the audited patch with exact upstream hunk offsets.
+          cp patches/0001-pipa-exp01-schedutil-rate-limit.patch exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch
           test -s exp01-src/prepare-build.sh
           test -s exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch
           test -s exp01-src/SOURCE.lock
