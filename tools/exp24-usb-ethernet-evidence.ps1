@@ -21,6 +21,7 @@ if ($LASTEXITCODE -ne 0) { throw 'ADB target unavailable; connect to the tablet 
 $commands = @(
     @{Title='kernel'; Cmd='uname -a; cat /proc/version; cat /proc/sys/kernel/osrelease'},
     @{Title='USB VID PID and driver binding'; Cmd='for d in /sys/bus/usb/devices/*; do [ -r "$d/idVendor" ] || continue; echo "USB_DEVICE=$d"; printf "VID="; cat "$d/idVendor"; printf "PID="; cat "$d/idProduct"; echo "DRIVER_SYMLINK:"; ls -l "$d/driver" 2>/dev/null || true; done'},
+    @{Title='USB interface-level driver binding'; Cmd='for d in /sys/bus/usb/devices/*:*; do [ -e "$d" ] || continue; echo "USB_INTERFACE=$d"; echo "INTERFACE_DRIVER:"; ls -l "$d/driver" 2>/dev/null || true; done'},
     @{Title='all network interfaces'; Cmd='ip -o link show; ip -4 address show'},
     @{Title='USB network interfaces sysfs'; Cmd='for d in /sys/class/net/*; do [ -e "$d" ] || continue; echo "NET_IF=$d"; echo "DEVICE_SYMLINK:"; ls -l "$d/device" 2>/dev/null || true; echo "CARRIER:"; cat "$d/carrier" 2>/dev/null || true; done'},
     @{Title='IPv4 routes'; Cmd='ip -4 route show'},
