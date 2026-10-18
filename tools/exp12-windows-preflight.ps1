@@ -3,10 +3,14 @@
 param(
     [string]$BackupDir = 'C:\platform-tools\pipa_backup',
     [string]$Exp06Zip = '',
-    [switch]$SelfTest
+    [switch]$SelfTest,
+    [switch]$ZipOnlySelfTest
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+# PowerShell 5.1 keeps ZipFile in FileSystem, unlike PowerShell 7.
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 $Expected=[ordered]@{
     'boot_b.img'='31f57cded5fa4b37426b4387b58c1c7330703a1c1a8a5aa584b348fcbb78c2f4'
     'vendor_boot_b.img'='a24ea921db6014a49f9895cc5c18efbb6c6674d697f25cde3b7a1670a643c28c'
@@ -163,28 +167,32 @@ function TestParsers {
 }
 if($SelfTest){TestParsers; return}
 Assert (-not [string]::IsNullOrWhiteSpace($Exp06Zip)) 'Provide -Exp06Zip'
-Assert ([IO.Directory]::Exists($BackupDir)) 'Backup directory missing'
-Assert ([IO.File]::Exists($Exp06Zip)) 'EXP06 GitHub artifact ZIP missing'
-CheckHash (SHAFile $Exp06Zip) $Exp06ZipHash 'EXP06 pinned ZIP'
-foreach($name in $Expected.Keys) {
-    $path=Join-Path $BackupDir $name
-    Assert ([IO.File]::Exists($path)) "Missing private backup: $name"
-    CheckHash (SHAFile $path) $Expected[$name] $name
+if($ZipOnlySelfTest) {
+    # Genuine archive/hash/entry test in Windows PowerShell 5.1, without private backup images.
+    $boot=@{kernel_bytes=30349336}
+} else {
+    Assert ([IO.Directory]::Exists($BackupDir)) 'Backup directory missing'
+    Assert ([IO.File]::Exists($Exp06Zip)) 'EXP06 GitHub artifact ZIP missing'
+    CheckHash (SHAFile $Exp06Zip) $Exp06ZipHash 'EXP06 pinned ZIP'
+    foreach($name in $Expected.Keys) {
+        $path=Join-Path $BackupDir $name
+        Assert ([IO.File]::Exists($path)) "Missing private backup: $name"
+        CheckHash (SHAFile $path) $Expected[$name] $name
+    }
+    $boot=FromFile (Join-Path $BackupDir 'boot_b.img') {param($s) ParseBoot $s}
+    $vendor=FromFile (Join-Path $BackupDir 'vendor_boot_b.img') {param($s) ParseVendor $s}
+    $dtbo=FromFile (Join-Path $BackupDir 'dtbo_b.img') {param($s) ParseDtbo $s}
+    $vbmeta=FromFile (Join-Path $BackupDir 'vbmeta_b.img') {param($s) ParseVbmeta $s}
+    CheckHash $boot.original_kernel_sha256 $OldKernelHash 'original kernel'
+    CheckHash $boot.generic_ramdisk_sha256 $GenericRamdiskHash 'original generic ramdisk'
+    CheckHash $vendor.vendor_ramdisk_sha256 $VendorRamdiskHash 'original vendor ramdisk'
+    CheckHash $vendor.dtb_sha256 $DTBHash 'original vendor DTB'
+    CheckHash $dtbo.table_sha256 $DTBOHash 'original DTBO table'
+    Assert ($boot.kernel_bytes -eq 30349336 -and $boot.generic_bytes -eq 1849345) 'original boot sizes unexpectedly differ'
+    Assert ($vendor.dtb_bytes -eq 460314 -and $vendor.vendor_ramdisk_bytes -eq 20412235) 'original vendor sizes unexpectedly differ'
+    Assert ($dtbo.total_bytes -eq 688455 -and $dtbo.entries -eq 1) 'original DTBO table sizes unexpectedly differ'
+    Assert ($vbmeta.version -ceq '1.0' -and $vbmeta.algorithm -eq 2 -and $vbmeta.flags -eq 3) 'unexpected AVB metadata'
 }
-$boot=FromFile (Join-Path $BackupDir 'boot_b.img') {param($s) ParseBoot $s}
-$vendor=FromFile (Join-Path $BackupDir 'vendor_boot_b.img') {param($s) ParseVendor $s}
-$dtbo=FromFile (Join-Path $BackupDir 'dtbo_b.img') {param($s) ParseDtbo $s}
-$vbmeta=FromFile (Join-Path $BackupDir 'vbmeta_b.img') {param($s) ParseVbmeta $s}
-CheckHash $boot.original_kernel_sha256 $OldKernelHash 'original kernel'
-CheckHash $boot.generic_ramdisk_sha256 $GenericRamdiskHash 'original generic ramdisk'
-CheckHash $vendor.vendor_ramdisk_sha256 $VendorRamdiskHash 'original vendor ramdisk'
-CheckHash $vendor.dtb_sha256 $DTBHash 'original vendor DTB'
-CheckHash $dtbo.table_sha256 $DTBOHash 'original DTBO table'
-Assert ($boot.kernel_bytes -eq 30349336 -and $boot.generic_bytes -eq 1849345) 'original boot sizes unexpectedly differ'
-Assert ($vendor.dtb_bytes -eq 460314 -and $vendor.vendor_ramdisk_bytes -eq 20412235) 'original vendor sizes unexpectedly differ'
-Assert ($dtbo.total_bytes -eq 688455 -and $dtbo.entries -eq 1) 'original DTBO table sizes unexpectedly differ'
-Assert ($vbmeta.version -ceq '1.0' -and $vbmeta.algorithm -eq 2 -and $vbmeta.flags -eq 3) 'unexpected AVB metadata'
-Add-Type -AssemblyName System.IO.Compression
 $z=[IO.Compression.ZipFile]::OpenRead($Exp06Zip)
 try {
     $entries=@{
@@ -210,6 +218,11 @@ try {
         } finally {$stream.Dispose()}
     }
 } finally {$z.Dispose()}
+if($ZipOnlySelfTest) {
+    Write-Output 'EXP12 ZIP ONLY: PASS - genuine EXP06 ZIP, ARM64 Image, DTB and DTBO verified in PowerShell 5.1'
+    Write-Output 'NO PRIVATE BACKUPS AUDITED. NO IMAGE CREATED. FLASH_READY=false'
+    return
+}
 Write-Output 'EXP12 REAL SLOT-B OFFLINE PREFLIGHT: PASS'
 Write-Output "BACKUPS sha256=verified count=4 device=pipa slot=_b"
 Write-Output "BOOT version=3 original_kernel_bytes=$($boot.kernel_bytes) offset=$($boot.kernel_offset) generic_ramdisk_bytes=$($boot.generic_bytes) offset=$($boot.generic_offset)"
