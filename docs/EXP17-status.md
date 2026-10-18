@@ -1,3 +1,7 @@
+## EXP17.1 — Autoteste real no Windows: PASS
+
+Usuário confirmou Python 3.12.10 instalado, iniciador corrigido em `Downloads\EXP17\EXP17-run-windows.ps1` e saída: `EXP17.1 PYTHON_RUNTIME=VALIDATED selector=py`, `EXP17 LOCAL SYNTHETIC WRAPPER SELFTEST: PASS`, `OFFICIAL_AOSP_MKBOOTIMG_EXECUTED=False`, `NO ORIGINAL BACKUP READ`, `FLASH_READY=false`. Os erros anteriores 9009 foram resolvidos; a execução com `-FetchAosp` e `boot_b.img` ainda está pendente. Não homologar o `mkbootimg` oficial apenas com esse autoteste.
+
 # EXP17 — Estado de validação do AOSP mkbootimg (18/10/2026)
 
 A EXP16 foi aprovada pelo usuário no Windows real, incluindo resultado MATCH de SHA-256 dos 32206848 bytes compactos originais: 202aaaf67fe5c0a963965c4e29f67866b509916e0bdff15dde38ef55b3d321e7.
