@@ -320,3 +320,34 @@ O usuário executou o script PowerShell que fazia 30 tentativas de coletar nove 
 Próximo protocolo correto é amostrar somente `ls /sys/bus/usb/devices` para identificar a presença de `2-1` em cada ciclo; quando presente, ler VID, PID e nove atributos individualmente, preservar captura parcial e registrar symlinks de driver. Gerar no PC um arquivo de evidência, sem alterações no dispositivo. Não forçar binding, não mexer em SELinux, não instalar módulo e não flashear.
 
 **Estado do experimento:** identificação `0BDA:8153` confirmada em tentativa anterior; driver `r8152` não registrado na lista de `/sys/bus/usb/drivers`, duas interfaces sem symlink em captura anterior; enumeração intermitente. O resultado da coleta rígida não altera essas conclusões. **FLASH_READY=false**.
+
+## Diagnóstico da captura CDC ECM Realtek e blacklist explícita no E404
+
+**Amostra física E404 às 20:53 (PowerShell exp24-rtl8153-observe.ps1):**
+```text
+Attempt 9/40 : USB 2-1 present
+  VID=0bda PID=8153 Configuration=2
+  Interface_2.0_Class=02 Subclass=06 Protocol=00
+  Interface_2.1_Class=[unavailable, missing or disconnected]
+  Driver_2-1:2.0=[no driver symlink or device disappeared]
+Attempt 23/40 : USB 2-1 present
+  VID=0bda PID=8153 Configuration=2
+  Interface_2.0_Class=02 Subclass=06 Protocol=00
+  Interface_2.1_Class=0a Subclass=00 Protocol=00
+  Driver_2-1:2.0=[no driver symlink or device disappeared]
+  Driver_2-1:2.1=[no driver symlink or device disappeared]
+USB 2-1 observed in 2/40 scans. Complete capture: True
+```
+
+**Precisão da contagem:** o script v1 contém `if ($successCount -eq $fields.Count) { $complete = $true; break }` e a segunda captura completa ocorreu na tentativa **23**. Portanto, foram **2 aparições dentre 23 sondagens realmente executadas**, embora o log apresente denominador 40 (limite programado). Não tratar 2/40 como taxa experimental, nem presumir independência de observações. Como cada atributo era uma chamada ADB diferente, o desaparecimento entre leituras continua possível, especialmente na tentativa 9.
+
+**Nova descoberta causal verificável diretamente na fonte E404 fixada** (repositório `kvsnr113/xiaomi_sm8250_kernel_e404` commit `fed88a6024cd4d46c52eda607a95d97d7371ba81`):
+- Em `drivers/net/usb/cdc_ether.c`, a tabela `products[]` inclui, na seção BLACKLIST, `USB_DEVICE_AND_INTERFACE_INFO(REALTEK_VENDOR_ID, 0x8153, USB_CLASS_COMM, USB_CDC_SUBCLASS_ETHERNET, USB_CDC_PROTO_NONE)` com `.driver_info=0` (linhas ~757-762). Isso corresponde exatamente ao VID:PID `0BDA:8153` e classe/subclasse/protocolo `02/06/00` capturados na interface `2-1:2.0`.
+- Em `drivers/net/usb/usbnet.c`, `usbnet_probe()` interpreta `prod->driver_info == 0` como blacklist, emite `blacklisted by %s` em nível debug e retorna `-ENODEV` (linhas ~1686-1690). Assim, **o cdc_ether presente NÃO é um substituto viável para o r8152 para esse dispositivo, na árvore de código conferida**.
+- Em `drivers/net/usb/r8152.c`, `REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)` contempla tanto interface vendor-specific quanto `CDC 02/06/00` e o `rtl8152_driver` teria nome `r8152` via `module_usb_driver()`. A CONFIG_USB_RTL8152=y do build EXP24 deveria incluir a implementação conforme gates da CI, mas não existe evidência ainda de boot/registro físico.
+
+**Interpretação cautelosa:** a combinação da rejeição explícita pelo `cdc_ether` (código-fonte) + ausência de `r8152` em `/sys/bus/usb/drivers` (tablet) + adaptador 0BDA:8153 CDC config 2 (tablet) explica a **ausência de binding nessas capturas se a árvore E404 em execução seguir o código-fonte fixado**. Ainda não sabemos por que o driver dedicado não aparece registrado, pois `/proc/config.gz` do tablet declara `CONFIG_USB_RTL8152=y`, nem por que o dispositivo some da enumeração; a divergência `uname 5.10.404R` vs `/proc/version` e `/proc/sys/kernel/osrelease` 4.19.404R ainda demanda investigação da proveniência.
+
+**Política técnica:** não remover a entrada da blacklist CDC às cegas — ela existe para encaminhar estes dispositivos ao driver adequado; forçar generic CDC pode falhar. A solução prioritária é garantir registro operacional do `r8152` na versão de kernel efetivamente compatível e medir USB host/energia/reenumeração separadamente. Não modificar kernel/USB/SELinux no tablet; **FLASH_READY=false**, artefato EXP24 somente compilado e não flashável.
+
+**Fonte direta auditada:** https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/blob/fed88a6024cd4d46c52eda607a95d97d7371ba81/drivers/net/usb/cdc_ether.c#L749-L763 ; https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/blob/fed88a6024cd4d46c52eda607a95d97d7371ba81/drivers/net/usb/usbnet.c#L1686-L1690 ; https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/blob/fed88a6024cd4d46c52eda607a95d97d7371ba81/drivers/net/usb/r8152.c#L5310-L5357 .
