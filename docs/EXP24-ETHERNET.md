@@ -140,3 +140,17 @@ Nova coleta manual no PowerShell pelo usuário com `/sys/bus/usb/devices/2-1` pr
 Próximo teste somente leitura e sem alterar SELinux/permissões: tentar `adb shell dumpsys usb` para identificar VID:PID via USB host manager; se insuficiente e root Magisk já autorizado, confirmar `adb shell su -c id` = uid=0 e então ler explicitamente `idVendor/idProduct` com `adb shell "su -c 'cat /sys/bus/usb/devices/2-1/idVendor'"` e análogo idProduct. O caminho 2-1 é efêmero: recapturar após reenumeração. Evitar `chmod`, `setenforce 0`, rebinding de drivers, flash ou alterações no tablet.
 
 Comparar VID:PID com tabelas USB dos drivers habilitados (`rtl8152`, `ax88179_178a`, `cdc_ether`, `cdc_ncm` etc.) antes de atribuir a falha à configuração. Divergência uname=5.10.404R vs /proc/version=4.19.404R permanece bloqueio de compatibilidade; FLASH_READY=false.
+
+## E404: KernelSU root confirmado; evento USB product=33107
+
+Nova sessão PowerShell no Xiaomi Pad 6: `adb shell su -c id` retornou `uid=0(root) gid=0(root) context=u:r:ksu:s0`, comprovando que root KernelSU está disponível para consultas read-only.
+
+`adb shell dumpsys usb | Select-String` mostrou repetidamente `product=33107` no `USB Event Log=UsbDeviceManager activity`, além de entradas `vendor_id=-1`, `product_id=-1` e `product_name=null` em outra parte da saída. **33107 decimal = 0x8153**; esse PID é característico do Realtek RTL8153, **mas ainda não está associado ao dispositivo conectado** porque o filtro removeu o contexto e não foi obtido VID.
+
+A fonte E404 fixada `kvsnr113/xiaomi_sm8250_kernel_e404` commit `fed88a6024cd4d46c52eda607a95d97d7371ba81`, `drivers/net/usb/r8152.c`, contém `VENDOR_ID_REALTEK 0x0bda` e a entrada `REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)`. Logo, caso o dispositivo seja `0bda:8153`, o driver habilitado na EXP24 `CONFIG_USB_RTL8152=y` é candidato coerente. Não declarar driver vinculado nem funcionalidade comprovada até teste em hardware.
+
+Logo após a confirmação de root, as leituras privilegiadas `/sys/bus/usb/devices/2-1/idVendor`, `idProduct` e `product` retornaram `No such file or directory`, e não `Permission denied`: o USB `2-1` havia desaparecido mais uma vez entre comandos. Esse resultado não deve ser tratado como bloqueio SELinux. A intermitência já foi observada independentemente de root.
+
+Próximos comandos de leitura: (a) `adb shell dumpsys usb | Select-String -Pattern 'product=33107' -Context 8,5` para verificar vendor e contexto; (b) `adb shell "su -c 'dmesg'" | Select-String -Pattern 'idVendor|idProduct|usb 2-1|r8152|rtl8153|usbnet' | Select-Object -Last 80` para eventos persistentes USB; (c) `adb shell "su -c 'zcat /proc/config.gz'"` filtrado no host para opções relacionadas e versão, se disponível. Não alterar sysfs, SELinux, boot ou driver binding.
+
+Estado segue `FLASH_READY=false`, já que `uname -r=5.10.404R` difere de `/proc/version=4.19.404R`; solucionar identidade/compatibilidade antes de boot experimental.
