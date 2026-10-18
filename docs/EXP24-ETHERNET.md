@@ -266,3 +266,30 @@ O filtro de configuração pesquisou `CONFIG_KSU_SUSFS|CONFIG_SUSFS|CONFIG_IKCON
 .\adb.exe shell "su -c 'cat /proc/sys/kernel/osrelease'"
 ```
 Interpretar resultados como observações em um namespace/visão; não alterar flags de segurança, mountpoints ou serviços para testar. Até prova adicional, **nenhum novo experimento de boot/flash na EXP24** (`FLASH_READY=false`).
+
+## E404: procfs hidepid=2 não explica sozinho a ausência de módulos/kallsyms
+
+**Evidência recebida em 18/10/2026:**
+```text
+CONFIG_LOCALVERSION="-perf"
+CONFIG_LOCALVERSION_AUTO=y
+CONFIG_UTS_NS=y
+CONFIG_KALLSYMS=y
+CONFIG_KALLSYMS_ALL=y
+CONFIG_KALLSYMS_BASE_RELATIVE=y
+CONFIG_MODULES_USE_ELF_RELA=y
+CONFIG_MODULES=y
+CONFIG_MODULES_TREE_LOOKUP=y
+CONFIG_USB_NET_DRIVERS=y
+CONFIG_USB_RTL8152=y
+CONFIG_PROC_FS=y
+37 34 0:5 / /proc rw,noatime shared:4 - proc proc rw,gid=3009,hidepid=2
+```
+
+O filtro read-only do `dmesg` por `r8152|rtl8152|usbcore|registered new interface driver` não retornou linhas na janela consultada. O resultado vazio não prova que nunca houve registro nem descreve integralmente a inicialização do kernel; os eventos podem não constar no buffer atual.
+
+**Interpretação verificada:** a opção procfs `hidepid=2` controla visibilidade/acesso aos diretórios `/proc/<pid>` de outros processos, e por si só **não deveria ocultar arquivos globais** `/proc/modules` e `/proc/kallsyms`. Referência: https://www.kernel.org/doc/html/latest/filesystems/proc.html#mount-options . As opções `CONFIG_KALLSYMS=y`, `CONFIG_MODULES=y`, `CONFIG_PROC_FS=y` declaradas em `/proc/config.gz` contrastam com os arquivos globais ausentes; possível customização/hide do ambiente ou divergência entre configuração e runtime, ainda não demonstrada. Não inferir SUSFS apenas destes dados.
+
+**Estado técnico:** identificação `0BDA:8153` confirmada pelo histórico Android; o driver `r8152` não consta em `/sys/bus/usb/drivers`, mesmo que `/proc/config.gz` declare `CONFIG_USB_RTL8152=y`. Os drivers `cdc_ether`, `cdc_ncm`, `cdc_subset` estão registrados, mas não houve associação à interface `2-1:2.0`/`2-1:2.1` nas coletas. Kernel: `/proc/version` e `/proc/sys/kernel/osrelease` informam `4.19.404R`; `uname -r` informa `5.10.404R`; identidade/compatibilidade de boot NÃO RESOLVIDA.
+
+**Gate seguinte sem escrita no tablet:** obter um snapshot atômico enquanto `2-1` reaparecer, incluindo leitura root de `idVendor/idProduct`, bInterfaceClass/subclass/protocol e symlinks dos drivers; se viável, registrar `dumpsys usb` host history num relatório e contexto de versão. Separar falha de enumeração, falha de bind e ausência de registro. Reavaliar apenas após evidência material se construir uma variante de diagnóstico; CI EXP24 bem-sucedido não prova correção em hardware. **FLASH_READY=false**.
