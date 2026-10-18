@@ -1,3 +1,21 @@
+## EXP18.1 — Inventário inicial real de conexão e ferramentas (18/10/2026)
+
+O usuário confirmou no PowerShell local:
+
+```text
+fastboot version 37.0.1-15733141
+Installed as C:\platform-tools\fastboot.exe
+List of devices attached
+[serial omitido] device product:pipa model:23043RP34G device:pipa transport_id:6
+_b
+```
+
+**Conclusão efetiva:** o executável `fastboot.exe` está instalado e executa `--version`; o ADB reconhece um Xiaomi Pad 6 (pipa) autorizado; o Android reporta slot ativo `_b`. **Não foi testada comunicação fastboot com o dispositivo em modo bootloader**, nem acesso de emergência, rollback, recovery ou comportamento em caso de falha de boot.
+
+O usuário informou expressamente que o bootloader está desbloqueado, mas o `getprop` previamente coletado reportou `locked`; essa contradição continua em aberto. Não tomar `fastboot --version` como prova de estado de desbloqueio.
+
+Ferramenta nova: [`tools/exp18-1-recovery-preflight.ps1`](https://github.com/nywuer777/Pipa-Experimental-Kernel/blob/main/tools/exp18-1-recovery-preflight.ps1). Auditor **somente leitura**, usando ADB `devices -l`, duas propriedades `getprop`, versão local do Fastboot e `Get-FileHash` de quatro backups mais o ZIP EXP06 com referências aprovadas anteriormente. Saídas de CI/PowerShell real desse novo script ainda **pendentes**. O autoteste não lê arquivos privados nem executa ADB. Sucesso não autoriza flash: `FLASH_READY=false`.
+
 # EXP18 — Critérios de aceitação para candidato kernel EXP06 (somente offline)
 
 **Data:** 2026-10-18 | **Dispositivo:** Xiaomi Pad 6 (pipa) | **Slot de origem:** `_b`.
