@@ -1,3 +1,33 @@
+## EXP21.2 — A/B comprovado no bootloader real: PASS READ-ONLY (18/10/2026)
+
+O usuário retornou voluntariamente ao bootloader em Fastboot e confirmou o seguinte no Xiaomi Pad 6 (`pipa`), com todas as consultas `EXIT_CODE=0`:
+
+| Variável `fastboot getvar` | Resultado |
+| --- | --- |
+| `product` | `pipa` |
+| `current-slot` | `b` |
+| `slot-count` | `2` |
+| `has-slot:boot` | `yes` |
+| `slot-successful:a` | `yes` |
+| `slot-unbootable:a` | `no` |
+| `slot-retry-count:a` | `6` |
+| `slot-successful:b` | `yes` |
+| `slot-unbootable:b` | `no` |
+| `slot-retry-count:b` | `6` |
+
+Depois, `fastboot reboot` respondeu `Rebooting OKAY`. **Nesta coleta específica ainda não há ADB posterior ao reboot**, então não afirmar Android iniciado com sucesso a partir do retorno de Fastboot; o retorno completo foi comprovado anteriormente na EXP18.3.
+
+**Semântica AOSP:** `slot-successful` é a marca administrativa de boot anteriormente bem-sucedido; `slot-unbootable=no` indica que o slot **não está marcado** como não inicializável; `slot-retry-count` reporta o contador de tentativas, mas, com ambas as marcas `successful=yes`, não equivale a garantia de seis recuperações automáticas. Essas informações são **metadados do bootloader**; não verificam o conteúdo atual das partições `boot_a`, `vendor_boot_a`, `dtbo_a`, `vbmeta_a`, `system_a` e `vendor_a`, nem sua compatibilidade com Android 16/crDroid atual. Logo, o slot A **ainda não é um fallback comprovado**.
+
+Referências oficiais:
+- https://source.android.com/docs/core/ota/ab/ab_implement
+- https://source.android.com/docs/core/architecture/bootloader/updating
+- https://source.android.com/docs/core/ota/ab
+
+**Resultado:** `EXP21.2_AB_BOOTLOADER_METADATA=PASS_REAL`; `SLOT_A_CONTENT_VALIDATED=false`; `BROKEN_BOOT_RECOVERY_VALIDATED=false`; `FLASH_READY=false`. Não ativar slot A, não mudar as flags A/B, não executar `fastboot boot` ou `fastboot flash` em EXP21.
+
+**Próximo portão EXP21.3:** confirmar Android/ADB após reboot, colher informações de build do Android/boot/partições **somente leitura** e definir prova não destrutiva do conteúdo do slot A antes de tratá-lo como reserva. A imagem candidata EXP06 permanece offline e **não autorizada para instalação**.
+
 ## EXP21.1 — Consulta Android Boot Control HAL bloqueada por ausência do binário (18/10/2026)
 
 O usuário executou nove consultas `adb shell bootctl` (`get-number-slots`, `get-current-slot`, `get-active-boot-slot`, `get-suffix 0/1`, `is-slot-bootable 0/1`, `is-slot-marked-successful 0/1`). Em **todas**, o shell respondeu `/system/bin/sh: bootctl: inaccessible or not found`, `EXIT_CODE=127`.
