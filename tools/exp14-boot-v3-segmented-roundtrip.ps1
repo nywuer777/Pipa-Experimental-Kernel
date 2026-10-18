@@ -68,26 +68,22 @@ function RegionHash([IO.Stream]$F,[long]$Off,[long]$Len) {
     try{Feed $h $F $Off $Len;return (FinishHash $h)}
     finally{$h.Dispose()}
 }
-function SegmentedHash([IO.Stream]$F,[object]$L){
+function SegmentedHash([IO.Stream]$F,[object]$L) {
     $h=[Security.Cryptography.SHA256]::Create()
     try {
-        $span=@(
-          @($L.header_page_start,$L.header_page_bytes),
-          @($L.kernel_start,$L.kernel_bytes),
-          @($L.padding_start,$L.padding_bytes),
-          @($L.ramdisk_start,$L.ramdisk_bytes),
-          @($L.tail_start,$L.tail_bytes)
-        )
-        [long]$expected=0
-        foreach($r in $span){
-            $off=[long]$r[0];$len=[long]$r[1]
-            Need ($off -eq $expected) 'missing/reordered segment'
-            Feed $h $F $off $len
-            $expected+=$len
-        }
-        Need ($expected -eq $L.total) 'reconstructed image length differs'
+        Need ($L.header_page_start -eq 0) 'unexpected first segment'
+        Need (($L.header_page_start + $L.header_page_bytes) -eq $L.kernel_start) 'header/kernel gap'
+        Need (($L.kernel_start + $L.kernel_bytes) -eq $L.padding_start) 'kernel/padding gap'
+        Need (($L.padding_start + $L.padding_bytes) -eq $L.ramdisk_start) 'padding/ramdisk gap'
+        Need (($L.ramdisk_start + $L.ramdisk_bytes) -eq $L.tail_start) 'ramdisk/tail gap'
+        Need (($L.tail_start + $L.tail_bytes) -eq $L.total) 'tail does not cover rest of partition'
+        Feed $h $F $L.header_page_start $L.header_page_bytes
+        Feed $h $F $L.kernel_start $L.kernel_bytes
+        Feed $h $F $L.padding_start $L.padding_bytes
+        Feed $h $F $L.ramdisk_start $L.ramdisk_bytes
+        Feed $h $F $L.tail_start $L.tail_bytes
         return (FinishHash $h)
-    } finally{$h.Dispose()}
+    } finally {$h.Dispose()}
 }
 function Synthetic {
     [byte[]]$image=New-Object byte[] 12299
