@@ -166,3 +166,31 @@ Conferência com o E404 fixado `fed88a6024cd4d46c52eda607a95d97d7371ba81`: `driv
 Nova chamada `adb shell "su -c 'dmesg'" | Select-String -Pattern 'idVendor|idProduct|usb 2-1|r8152|rtl8153|usbnet|disconnect'` exibiu apenas duas mensagens `cnss-daemon` disconnect e duas `android_work ... USB_STATE=DISCONNECTED`; **não mostrou** eventos de driver USB Ethernet. Isso não apaga o histórico USB mostrado pelo Android: dmesg filtrado pode não ter logs relevantes; `USB_STATE` se refere ao estado USB do dispositivo e pode não refletir diretamente OTG host.
 
 **Próximo gate:** capturar baseline do kernel E404 (`adb shell "su -c 'zcat /proc/config.gz'" | Select-String -Pattern 'CONFIG_USB_RTL8152|CONFIG_USB_NET_CDCETHER|CONFIG_USB_NET_CDC_NCM|CONFIG_MODULES|CONFIG_LOCALVERSION'`); confirmar binding de `/sys/bus/usb/devices/2-1:2.0/driver` e interface Ethernet nas janelas em que USB 0BDA:8153 reaparece. Permanecem 10 ciclos A/B, auditoria de boot v3, identidade divergente uname=5.10 / proc=4.19 e autorização específica para teste temporário. FLASH_READY=false.
+
+## Correção de hipótese: configuração real do kernel E404 contém RTL8152=y
+
+**Evidência direta de leitura privilegiada no tablet (18/10/2026):** `adb shell "su -c 'zcat /proc/config.gz'" | Select-String ...` retornou:
+
+```text
+CONFIG_LOCALVERSION="-perf"
+CONFIG_LOCALVERSION_AUTO=y
+CONFIG_MODULES_USE_ELF_RELA=y
+CONFIG_MODULES=y
+CONFIG_MODULES_TREE_LOOKUP=y
+CONFIG_USB_RTL8152=y
+CONFIG_USB_USBNET=y
+CONFIG_USB_NET_CDCETHER=y
+CONFIG_USB_NET_CDC_NCM=y
+```
+
+**CORREÇÃO OBRIGATÓRIA DA HIPÓTESE ANTERIOR:** para a configuração apresentada pelo kernel atualmente em execução, não é correto supor que falta `CONFIG_USB_RTL8152`. O suporte de compilação já consta como `=y`. Logo, a adição dessa opção na EXP24 **não é, por si só, uma correção demonstrada** para o adaptador `0BDA:8153`. Uma `=y` indica compilação na configuração reportada, mas não garante driver registrado, que fez probe bem-sucedido, vinculação, interface criada, DHCP ou estabilidade.
+
+**INCOMPATIBILIDADE EXTRA IMPORTANTE:** o defconfig do E404 fixado no EXP24 informava `# CONFIG_MODULES is not set` e `# CONFIG_USB_RTL8152 is not set`, diferente do `/proc/config.gz` atual (`CONFIG_MODULES=y`, `CONFIG_USB_RTL8152=y`), além da divergência já conhecida entre `uname -r=5.10.404R` e `/proc/version=4.19.404R`. Não presumir que a árvore-fonte do EXP24 reproduz o kernel rodando no dispositivo, nem qual identidade é verdadeira sem auditar proveniência. Antes de qualquer `boot.img` ou `fastboot boot`, validar versão e compatibilidade real; **FLASH_READY=false**.
+
+**Novo gate read-only no E404 (sem mexer em SELinux/driver/flash):**
+1. `adb shell "su -c 'ls -ld /sys/bus/usb/drivers/r8152'"` para verificar registro do driver, e `adb shell "su -c 'ls -ld /sys/module/r8152'"` para investigar presença no sistema (ausência isolada desse segundo caminho não equivale a ausência de código).
+2. `adb shell "su -c 'cat /proc/sys/kernel/osrelease'"` e `adb shell "su -c 'zcat /proc/config.gz'" | Select-String -Pattern 'CONFIG_IKCONFIG|CONFIG_LOCALVERSION|CONFIG_USB_RTL8152|CONFIG_MODULES'` para documentar identidade/configuração, reconhecendo que os artefatos podem ter diferenças por patch/mascaramento.
+3. Quando `2-1` aparecer, capturar VID:PID root e symlinks `/sys/bus/usb/devices/2-1:2.0/driver`, `2-1:2.1/driver`; distinguir enumeração, bind e Ethernet funcional.
+4. Comparar em 10 ciclos controlados após estabelecer kernel/boot compatível. Não atribuir melhora à habilitação do RTL8152 sem diferenças comprovadas.
+
+**Estado:** CI EXP24 SUCCESS, hardware EXP24 NOT TESTED, runtime baseline possui RTL8152=y segundo /proc/config.gz, compatibilidade boot UNKNOWN, FLASH_READY=false.
