@@ -1,3 +1,20 @@
+## EXP12.1 — correção permanente do PowerShell 5.1 (18/10/2026)
+
+A execução local no Windows confirmou que a auditoria passava na validação de integridade dos quatro backups, cabeçalhos, ramdisks, DTB, DTBO e vbmeta antes de falhar na linha de leitura do ZIP com `TypeNotFound: [IO.Compression.ZipFile]`. A causa foi a ausência do carregamento da assembly `System.IO.Compression.FileSystem` no script, apesar de o teste original de CI carregar essa assembly separadamente.
+
+O script `tools/exp12-windows-preflight.ps1` foi **corrigido**, carregando agora `System.IO.Compression` e `System.IO.Compression.FileSystem` no próprio processo. Adicionou-se `-ZipOnlySelfTest` para validar o ZIP real EXP06, sua Image, seu DTB e seu DTBO sem necessitar dos backups privados.
+
+**Validação EXP12.1:** [GitHub Actions #39146270295](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39146270295) **success**, incluindo leitura real do ZIP nos ambientes Windows PowerShell 5.1 e PowerShell 7. O workflow publica também o script corrigido em um ZIP privado `pipa-exp12-windows-fixed-3` (artefato 12143795806).
+
+**Recomendação ao usuário:** substituir a cópia anterior `C:\platform-tools\exp12-run.ps1` pelo script corrigido (fornecido no chat como arquivo direto ou obtido no GitHub autenticado) e executar novamente:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "C:\platform-tools\exp12-run.ps1" -BackupDir "C:\platform-tools\pipa_backup" -Exp06Zip "$env:USERPROFILE\Downloads\pipa-exp06-clang21-1.zip"
+```
+
+Até obter a linha **`EXP12 REAL SLOT-B OFFLINE PREFLIGHT: PASS`** da execução no Windows real, o gate de auditoria local permanece **pendente**. `FLASH_READY=false`.
+
+
 # EXP12 — Pré-auditoria real no Windows (sem flash)
 
 ## Status de implementação
