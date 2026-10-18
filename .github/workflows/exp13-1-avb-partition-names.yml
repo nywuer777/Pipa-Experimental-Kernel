@@ -1,0 +1,62 @@
+name: Pipa EXP13.1 - Read-only AVB Partition Names (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp13-1-avb-partition-names.yml"
+      - "tools/exp13-1-avb-partition-names.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  descriptor-names:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse chain hash hashtree names under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $out = & ./tools/exp13-1-avb-partition-names.ps1 -SelfTest | Out-String
+          Write-Output $out
+          if(!$out.Contains('EXP13.1 SYNTHETIC 3-DESCRIPTOR NAMES TEST: PASS')){throw 'Windows PowerShell 5.1 AVB parsing failure'}
+          if(!$out.Contains('FLASH_READY=false')){throw 'No flash gate missing'}
+
+      - name: Parse chain hash hashtree names under PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out = & ./tools/exp13-1-avb-partition-names.ps1 -SelfTest | Out-String
+          Write-Output $out
+          if(!$out.Contains('EXP13.1 SYNTHETIC 3-DESCRIPTOR NAMES TEST: PASS')){throw 'PowerShell 7 AVB parsing failure'}
+
+      - name: Validate private backups missing -> rejection
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $rejected=$false
+          try{& ./tools/exp13-1-avb-partition-names.ps1 -VbmetaPath 'C:\nonexistent-vbmeta-b.img' | Out-Null}catch{$rejected=$true}
+          if(!$rejected){throw 'Expected missing private backup to fail closed'}
+
+      - name: Verify static no-write no secrets behavior
+        shell: pwsh
+        run: |
+          $src = Get-Content tools/exp13-1-avb-partition-names.ps1 -Raw
+          foreach($token in @('fastboot flash','adb reboot','WriteAllBytes','Set-Content','Invoke-WebRequest','Format-Volume','dd if=')){
+            if($src.Contains($token)){throw "Unsafe instruction: $token"}
+          }
+          if(Test-Path boot.img){throw 'No image may be generated'}
+          Write-Output 'PASS: no device commands, no network, no image writes.'
+
+      - name: Publish tested PowerShell auditor
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp13-1-descriptor-names-${{ github.run_number }}
+          path: tools/exp13-1-avb-partition-names.ps1
+          if-no-files-found: error
+          retention-days: 30
