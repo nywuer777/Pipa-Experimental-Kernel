@@ -1,0 +1,76 @@
+name: Pipa EXP10 - SHA-pinned Forensic Diff (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp10-forensic-diff.yml"
+      - "tools/exp10_forensic_diff.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  forensic:
+    name: Compare EXP06 patched vs EXP09 clean ARM64 Image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download original immutable EXP06 and EXP09 artifact ZIPs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p exp10-input
+          curl --fail --location --silent --show-error --retry 3             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "X-GitHub-Api-Version: 2022-11-28"             "https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/artifacts/12140930183/zip"             --output "exp10-input/exp06.zip"
+          curl --fail --location --silent --show-error --retry 3             -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             -H "X-GitHub-Api-Version: 2022-11-28"             "https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/artifacts/12142510461/zip"             --output "exp10-input/exp09.zip"
+          test -s exp10-input/exp06.zip
+          test -s exp10-input/exp09.zip
+          echo 'e32af6b61163fba4724211986823fc4ffab759956d213ef15b7fcda042241402  exp10-input/exp06.zip' | sha256sum --check
+          echo 'f65ec9512217e29dd85419a78420173c81ff83017b51cdc123d4476356273fd6  exp10-input/exp09.zip' | sha256sum --check
+
+      - name: Run exact byte-classified forensic audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp10_forensic_diff.py
+          python3 tools/exp10_forensic_diff.py             --exp06 exp10-input/exp06.zip             --exp09 exp10-input/exp09.zip             --out exp10-report
+          test -f exp10-report/EXP10-differential.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('exp10-report/EXP10-differential.json'))
+          assert d["status"]=="PASS_NONFLASHABLE_FORENSIC_COMPARISON"
+          assert d["flash_ready"] is False
+          assert d["different_bytes"]==39
+          assert len(d["changed_pages_4k"])==5
+          assert d["config_difference_count"]==2
+          assert d["classification_byte_counts"] == {
+            "build_timestamp": 8,
+            "gnu_build_id": 20,
+            "initramfs_cpio_mtime": 9,
+            "schedutil_movz_instruction": 2,
+          }
+          m=d["schedutil_immediate"][0]
+          assert m["experimental_immediate"] == 1500
+          assert m["control_immediate"] == 2000
+          print("PASS: exact schedutil movz immediate 2000 -> 1500 verified")
+          PY
+          sha256sum exp10-report/* > exp10-report-sha256.txt
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+
+      - name: Upload forensic report only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp10-differential-${{ github.run_number }}
+          path: |
+            exp10-report/
+            exp10-report-sha256.txt
+          if-no-files-found: warn
+          retention-days: 30
