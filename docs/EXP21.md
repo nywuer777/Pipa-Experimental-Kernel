@@ -1,3 +1,15 @@
+## EXP21.1 — Consulta Android Boot Control HAL bloqueada por ausência do binário (18/10/2026)
+
+O usuário executou nove consultas `adb shell bootctl` (`get-number-slots`, `get-current-slot`, `get-active-boot-slot`, `get-suffix 0/1`, `is-slot-bootable 0/1`, `is-slot-marked-successful 0/1`). Em **todas**, o shell respondeu `/system/bin/sh: bootctl: inaccessible or not found`, `EXIT_CODE=127`.
+
+**Interpretação:** `bootctl` não está disponível/executável neste ambiente de shell Android. Nenhuma consulta à Boot Control HAL foi executada. Isso **não constitui** resultado negativo para slots; não significa corrupção A/B, e não há motivo para instalar uma ferramenta `bootctl` arbitrária.
+
+**Alternativa read-only:** consultar via Fastboot do bootloader as variáveis A/B documentadas no AOSP: `current-slot`, `slot-count`, `has-slot:boot`, `slot-successful:a`, `slot-unbootable:a`, `slot-retry-count:a`, e os mesmos três com `:b`, juntamente com `product`, `unlocked`, `is-userspace`. Referência AOSP https://source.android.com/docs/core/ota/ab/ab_implement . Valores não reconhecidos são `UNKNOWN`. Não usar `fastboot getvar all` por conter dados irrelevantes ou potencialmente pessoais; preferir nomes explicitamente definidos.
+
+O usuário já homologou a comunicação Fastboot `pipa`, `current-slot=b`, `slot-count=2`, `unlocked=yes`, `is-userspace=no` na EXP18.2, e seu retorno normal com `fastboot reboot` na EXP18.3. Opcionalmente, pode realizar outra entrada **manual** em bootloader, somente leitura, e retornar ao Android, sem alterar partições ou slots.
+
+**Estado:** `EXP21_RUNTIME=PASS_REAL`; `EXP21_BOOTCTL=UNAVAILABLE_127`; `EXP21_BOOTLOADER_AB_GETVAR=PENDING`; `RECOVERY_BROKEN_BOOT=UNTESTED`; `FLASH_READY=false`.
+
 ## EXP21.0 — HOMOLOGAÇÃO REAL DA COLETA DE RUNTIME (18/10/2026)
 
 O usuário executou em Android iniciado com ADB autorizado as consultas de `ro.product.device`, `ro.boot.slot_suffix`, `/proc/version`, quatro propriedades de Verified Boot e o digest VBMeta. Resultado (sem número de série pessoal):
