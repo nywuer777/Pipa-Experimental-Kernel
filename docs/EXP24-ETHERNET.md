@@ -74,3 +74,12 @@ GitHub Actions disparou automaticamente: [run #39171851569](https://github.com/n
 - Criado `tools/exp24-usb-ethernet-evidence.ps1` (PowerShell Windows; procedimento read-only; hardware não testado nesta sessão). Captura `VID:PID`, vinculação dos drivers em interfaces USB, interfaces de rede, endereço e rota IPv4, `/proc/version` e opções de configuração expostas.
 - Protocolo de teste: executar primeiro no **E404 persistente**, com o adaptador conectado; em teste autorizado posterior, repetir no **EXP24 inicializado temporariamente** sob as mesmas condições; comparar VID:PID, driver vinculado e conectividade estável. Apenas conectividade, sozinha, não comprova driver novo nem kernel novo.
 - Estado continua **`FLASH_READY=false`** até build real, .config resolvido, auditoria boot Android v3 e autorização específica.
+
+## EXP24 build homologado em CI (18/10/2026, 22:43 UTC)
+
+- GitHub Actions [#39172615397](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39172615397), workflow `exp24-ethernet-clang21-build.yml`: **SUCCESS** em todos os passos, com Clang Android 21.0.0 fixado, E404 commit fixado e KernelSU preservado.
+- Log do build confirma: `EXP24 final resolved kernel .config: ALL 21 SUPPORTED CONFIG SYMBOLS = y; EXP06 SUGOV 1500 PRESERVED; MODULES DISABLED`; `EXP24 CONFIG_GATE=PASS`.
+- `Image` SHA256 **`773b37133766cb6877937bc53c84b2d5ad0a94985ca754d88a685e7c00648da0`**.
+- Artifact `pipa-exp24-ethernet-clang21-2` (ID 12152679061), 12.385.469 bytes ZIP, digest **`sha256:01b25af08fec6573258464ecae0bb6181794e35999d4358213980d66e97c2038`**, expira em 01/11/2026. O artifact contém evidências e a Image NÃO INSTALÁVEL diretamente.
+- `tools/exp24-usb-ethernet-evidence.ps1` recebeu correção adicional em `854071e6239dab5e2ffcd22bb0b4ce7e2ecc45bb`: o Android nega leitura a `/proc/sys/kernel/osrelease` sob ADB shell; antes isso provocava `NativeCommandError` em Windows PowerShell. Agora o campo é opcional e seções de diagnóstico não interrompem a coleta por stderr. Requer baixar novamente o script para o Windows.
+- **Não alterar o critério de segurança:** `FLASH_READY=false`. Próximo passo é coletar a referência E404 e auditar empacotamento Android boot v3 com backups para eventual inicialização temporária autorizada. O A/B do USB Ethernet no hardware ainda não foi realizado.
