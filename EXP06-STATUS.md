@@ -42,3 +42,9 @@ Isso identifica a **revisão do prebuilt** que coincide com a string compilada d
 5. Apenas depois auditar empacotamento reversível sem sobrescrever a única cópia de um slot funcional.
 
 **Não há boot.img, AnyKernel3 instalável nem comando fastboot flash nesta fase.**
+
+## Resultados de execução (18/10/2026)
+
+- **Sondagem do prebuilt oficial:** GitHub Actions [#39135672153](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39135672153) **aprovado**; `Android (14054515, +pgo, +bolt, +lto, +mlgo, based on r563880c) clang version 21.0.0` reproduz o identificador do E404 original. O checkout sparse ocupou **3,7 GiB**; a compilação completa ainda não fazia parte dessa sondagem.
+- **Recompilação EXP06 com compilador alinhado:** GitHub Actions [#39136149722](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39136149722), disparada com workflow `.github/workflows/exp06-clang21-build.yml`. Não afirmar sucesso nem hash até a conclusão do job.
+- **Medida de segurança:** nenhuma etapa gera `boot.img` e não existem operações de gravação no dispositivo.
