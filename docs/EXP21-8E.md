@@ -8,8 +8,8 @@ Comparar **somente arquivos Windows** do slot A (`C:\platform-tools\pipa_backup_
 
 Entrega na conversa: `PipaExperimental-EXP21-8E-offline-ab-structural.zip`.
 
-- SHA-256 ZIP: `784328310f08eb16321e978c0c56a578f972347a49e093d50fb06e7d1f54bf84`.
-- `EXP21-8E/EXP21-8E-offline-ab-structural.py`: SHA-256 `2ef86828725f5928d4ba8891f545234447c01b42cdaa4f2fa956f6e7ef2efe36`.
+- SHA-256 ZIP: `144352e417ca42e7735176d67b8985fbc900e99571f9fc14b822090946642b37`.
+- `EXP21-8E/EXP21-8E-offline-ab-structural.py`: SHA-256 `3dfebc4309994ac061766113f6de7c961713385ddc6e461bb7ef32ecddc452b5`.
 - `EXP21-8E/EXP21-8E-LEIA-ME.txt`: SHA-256 `c1edc5e1bf4fad8bfd45a5c1dd538dc5adaf86710b3feaeeaf1ff5e80728f045`.
 
 O Python usa apenas stdlib e é **somente leitura**: verifica SHA256 e tamanho das 8 partições frente a pinos homologados, rejeita qualquer divergência, depois decodifica estruturalmente:
