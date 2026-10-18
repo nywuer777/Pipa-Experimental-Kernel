@@ -1,3 +1,13 @@
+## EXP23.1 — Sensores sysfs identificados, mas saída do comando anterior invalidada por shell (18/10/2026)
+
+O usuário executou na sessão **Windows PowerShell 5.1** o comando `adb shell 'for z in ...; ... echo "$z | $t | $v"; done'` sugerido na conversa anterior. Em vez de linhas delimitadas, recebeu dezenas de mensagens `/system/bin/sh: <nome_do_sensor>: inaccessible or not found` e `/system/bin/sh: <valor>: inaccessible or not found`, incluindo `cpu_therm`/`32290`, `gpuss-0-usr`/`30800`, `soc`/`34700`, `battery`/`28200`, `batt_therm`/`290`, `charger_therm0`/`29423`. O `|` inserido no texto echo atravessou a serialização de argumentos entre PowerShell nativo/adb shell sem preservação das aspas pretendidas; o shell remoto o tratou como **operador pipe** e tentou executar nomes de sensores/valores como comandos. **Não** interpretar esses erros como inexistência das thermal zones ou defeito do kernel.
+
+Também foi executado `adb shell cat /sys/class/power_supply/battery/temp`, que retornou `Permission denied` no usuário de shell comum. Não houve tentativa de root, de escrever temperaturas ou de modificar o kernel.
+
+**Resultado:** `EXP23_SYSFS_SENSOR_DISCOVERY=PARTIAL_UNFORMATTED`; a saída informa tipos/valores crus plausíveis, mas **não** é uma coleta formatada confiável; nenhum valor térmico absoluto será homologado até leitura corrigida. Não misturar escalas: muitos sensores usam miligraus Celsius (por exemplo `cpu_therm=32290` pode significar 32,290 °C), enquanto `batt_therm=290` pode usar décimos de grau (29,0 °C). As unidades dependem de cada driver.
+
+**Correção simples e somente leitura:** executar uma iteração sem o caractere `|` dentro do comando remoto e formatar como `echo $z $t $v`, com filtro local `Select-String` no PowerShell, ou fazer `adb shell cat <thermal_zoneN>/type` e `/temp` separadamente. Isso é correção de quoting na invocação anterior do assistente, não mudança no dispositivo. Continuar em E404 original, sem nova tentativa de `fastboot boot` EXP06, sem root para esse diagnóstico e `FLASH_READY=false`.
+
 ## EXP23.A — BASELINE CPU/MAX E SERVIÇO TÉRMICO COLETADO NO E404 REAL (18/10/2026)
 
 Após EXP22.3 e retorno ao kernel original, usuário executou em PowerShell:
