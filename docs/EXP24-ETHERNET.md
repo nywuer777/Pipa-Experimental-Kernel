@@ -208,3 +208,34 @@ Conferência da fonte E404 fixa (`fed88a6024cd4d46c52eda607a95d97d7371ba81`): `d
 Próximo gate sem alteração: enumerar `/sys/bus/usb/drivers` com root; consultar `/proc/modules` se houver modulo carregado, e opcionalmente procurar `r8152`/`rtl8152` nos símbolos do kernel (`/proc/kallsyms`, sujeito a permissões e restrições de segurança). Obter `CONFIG_IKCONFIG` e opções relacionadas de `/proc/config.gz`, e verificar `/proc/sys/kernel/osrelease` novamente. Se o adaptador `2-1` surgir, capturar binding de interfaces e `VID:PID`. Não forçar bind/probe, não alterar SELinux, não flashear.
 
 CI EXP24 continua aprovado quanto a build e flags; capacidade de reparar RTL8153 intermitente não demonstrada. **FLASH_READY=false**, inclusive pela divergência da configuração da árvore usada versus kernel vivo.
+
+## E404: enumeração dos drivers USB e procfs indisponível (20:30)
+
+Saída fornecida pelo usuário em 18/10/2026 às ~20:30 (ADB via Wi-Fi; KernelSU root):
+```text
+cdc_ether
+cdc_ncm
+cdc_subset
+hub
+snd-usb-audio
+uas
+usb
+usb-storage
+usbfs
+usbhid
+xpad
+cat: /proc/modules: No such file or directory
+cat: /proc/kallsyms: No such file or directory
+```
+
+**Fato confirmado:** na visão atual de `/sys/bus/usb/drivers`, `r8152` NÃO está registrado (há `cdc_ether`, `cdc_ncm` e `cdc_subset`). Sob condições normais, `CONFIG_USB_RTL8152=y` e registro bem-sucedido via `module_usb_driver(rtl8152_driver)` deveriam tornar `r8152` visível nesse barramento. A ausência do registro não identifica ainda a causa. Os arquivos procfs `/proc/modules` e `/proc/kallsyms` não existem nessa visão nem com root; não concluir que os conteúdos reais seriam vazios, nem instalar/fazer insmod.
+
+**Nova hipótese de auditoria:** há implementações de módulos KernelSU/SUSFS que oferecem *spoofing* de `uname`, ocultação de símbolos/módulos e redirecionamento de caminhos. Isto poderia explicar algumas discrepâncias (`uname 5.10.404R` versus `/proc/sys/kernel/osrelease` e `/proc/version` 4.19.404R; arquivos procfs indisponíveis), porém a presença de SUSFS **não foi confirmada** nem demonstraria, sozinha, a ausência de `r8152`. Referências públicas de contexto: https://github.com/sidex15/susfs4ksu-module (documentação de spoof de uname) e https://github.com/ahmed-alnassif/ReSuSFS (uname.txt, open_redirect.txt); não alterar flags nem módulos durante diagnóstico.
+
+**Próximo procedimento somente leitura:**
+1. Verificar indicação de SUSFS na configuração disponível: `adb shell "su -c 'zcat /proc/config.gz'" | Select-String -Pattern 'CONFIG_KSU_SUSFS|CONFIG_SUSFS|CONFIG_IKCONFIG|CONFIG_USB_RTL8152|CONFIG_MODULES'`. Não esperar que a ausência dessa opção exclua módulo userspace.
+2. Enumerar somente nomes de módulos para suspeita de spoof: `adb shell "su -c 'ls -1 /data/adb/modules'" | Select-String -Pattern 'susfs|resusfs|uname|hide|root'`. Não ler segredos, não editar arquivos.
+3. `adb shell "su -c 'ls -l /proc/modules /proc/kallsyms /proc/config.gz'"` e `adb shell "su -c 'ls -1 /sys/bus/usb/drivers'"` para confirmar a visão procfs/sysfs.
+4. Coletar estado USB 0BDA:8153 durante enumeração com root, interfaces e binding, e, se possível, eventos do Android `dumpsys usb`, antes de uma proposta de patch específico.
+
+**Não classificar CI da EXP24 como conserto comprovado.** O driver está previsto em build, mas a origem da configuração E404, da ausência do registro e da intermitência USB continuam sem demonstração causal. Boot v3/compatibilidade não liberado: **FLASH_READY=false**.
