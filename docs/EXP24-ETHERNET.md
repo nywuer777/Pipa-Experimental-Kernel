@@ -83,3 +83,15 @@ GitHub Actions disparou automaticamente: [run #39171851569](https://github.com/n
 - Artifact `pipa-exp24-ethernet-clang21-2` (ID 12152679061), 12.385.469 bytes ZIP, digest **`sha256:01b25af08fec6573258464ecae0bb6181794e35999d4358213980d66e97c2038`**, expira em 01/11/2026. O artifact contém evidências e a Image NÃO INSTALÁVEL diretamente.
 - `tools/exp24-usb-ethernet-evidence.ps1` recebeu correção adicional em `854071e6239dab5e2ffcd22bb0b4ce7e2ecc45bb`: o Android nega leitura a `/proc/sys/kernel/osrelease` sob ADB shell; antes isso provocava `NativeCommandError` em Windows PowerShell. Agora o campo é opcional e seções de diagnóstico não interrompem a coleta por stderr. Requer baixar novamente o script para o Windows.
 - **Não alterar o critério de segurança:** `FLASH_READY=false`. Próximo passo é coletar a referência E404 e auditar empacotamento Android boot v3 com backups para eventual inicialização temporária autorizada. O A/B do USB Ethernet no hardware ainda não foi realizado.
+
+## Referência física E404 de 19:45:47 (18/10/2026)
+
+Registro de exp24-usb-E404-20261018-194548.txt (coleta ADB Wi-Fi com USB-C ocupado):
+- Interfaces USB 2-1:2.0 e 2-1:2.1 enumeradas sem symlinks de driver exibidos; isso não comprova qual adaptador é 2-1 antes do VID:PID.
+- Nenhuma interface Ethernet em /sys/class/net; lo e wlan0 apareceram no ip; wlan0=192.168.1.105/24. A rota local mostrada usa wlan0.
+- A identificação VID:PID saiu vazia; a identidade kernel falhou por sintaxe de shell. Logo, modelo do adaptador e razão da não vinculação ainda estão pendentes.
+- ip reportou uma mensagem Permission denied, mas mostrou endereços; isso não comprova falha de kernel.
+
+Correção no repositório: tools/exp24-usb-ethernet-evidence.ps1 v3, commit 312147c4bbbfaa1a5cf11a3b28a0fa1f436fa35b. Substitui comandos remotos com parênteses/regex/for por comandos ADB simples, enumeração dos nomes USB no PowerShell, leitura individual de VID:PID, classes de interface, symlinks de driver e dados de rede. Pendente reexecução no Windows; não declarada validação no hardware desta versão.
+
+Próximo gate: capturar /sys/bus/usb/devices/2-1/{idVendor,idProduct} e descritores de interface, cruzar com drivers EXP24 presentes. Somente após auditoria do boot Android v3 considerar autorização de teste temporário. FLASH_READY=false.
