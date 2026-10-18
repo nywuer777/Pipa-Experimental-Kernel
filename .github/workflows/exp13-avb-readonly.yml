@@ -1,0 +1,59 @@
+name: Pipa EXP13 - AVB Header and Rollback Layout Tests (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp13-avb-readonly.yml"
+      - "tools/exp13-avb-offline.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  avb-parsing:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Synthetic AVB descriptors on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = & ./tools/exp13-avb-offline.ps1 -SelfTest | Out-String
+          Write-Output $r
+          if (!$r.Contains('EXP13 SYNTHETIC AVB HEADER AND DESCRIPTOR TEST: PASS')) {throw 'PS5.1 AVB regression'}
+          if (!$r.Contains('FLASH_READY=false')) {throw 'Incorrect safety gate'}
+      - name: Synthetic AVB descriptors on PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = & ./tools/exp13-avb-offline.ps1 -SelfTest | Out-String
+          Write-Output $r
+          if (!$r.Contains('EXP13 SYNTHETIC AVB HEADER AND DESCRIPTOR TEST: PASS')) {throw 'PS7 AVB regression'}
+      - name: Reject unpinned or absent backups
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $failed = $false
+          try {
+            & ./tools/exp13-avb-offline.ps1 -VbmetaPath "C:\never-existing-vbmeta-b.img" | Out-Null
+          } catch { $failed=$true; Write-Output $_.Exception.Message }
+          if (!$failed) {throw 'Unpinned or missing backup did not fail closed'}
+      - name: Audit non-destructive source
+        shell: pwsh
+        run: |
+          $source=Get-Content -LiteralPath 'tools/exp13-avb-offline.ps1' -Raw
+          foreach($forbidden in @('fastboot flash','adb reboot','WriteAllBytes','Set-Content','Invoke-WebRequest','Start-Process','Format-Volume','dd if=')) {
+            if($source.Contains($forbidden)){throw "Unsafe source: $forbidden"}
+          }
+          if(Test-Path boot.img){throw 'No boot.img output allowed'}
+          Write-Output 'PASS: no network, device commands or image outputs'
+      - name: Package tested Windows EXP13 PowerShell auditor
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp13-avb-windows-${{ github.run_number }}
+          path: tools/exp13-avb-offline.ps1
+          if-no-files-found: error
+          retention-days: 30
