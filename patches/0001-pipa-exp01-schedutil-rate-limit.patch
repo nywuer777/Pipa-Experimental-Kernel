@@ -1,0 +1,50 @@
+--- a/drivers/cpufreq/Kconfig
++++ b/drivers/cpufreq/Kconfig
+@@ -218,4 +218,24 @@
+ 
+ 	  If in doubt, say N.
+ 
++config PIPA_EXP_SUGOV
++	bool "Pipa experimental schedutil response interval"
++	depends on CPU_FREQ_GOV_SCHEDUTIL
++	default n
++	help
++	  Enable an experimental lower default rate limit for schedutil on
++	  the Xiaomi Pad 6 (pipa). This does not change cpufreq limits,
++	  thermal protections, GPU clocks or runtime governor selection.
++	  Enable only for dedicated pipa builds.
++
++config PIPA_EXP_SUGOV_RATE_LIMIT_US
++	int "Pipa experimental schedutil rate limit (microseconds)"
++	depends on PIPA_EXP_SUGOV
++	range 1000 2000
++	default 1500
++	help
++	  Initial schedutil frequency update interval. The original E404
++	  value is 2000 microseconds; this experiment defaults to 1500.
++	  The existing sysfs governor tunable remains available.
++
+ config CPU_INPUT_BOOST
+--- a/kernel/sched/cpufreq_schedutil.c
++++ b/kernel/sched/cpufreq_schedutil.c
+@@ -800,7 +800,12 @@
+ 		goto stop_kthread;
+ 	}
+ 
++	/* EXP01: only the pipa defconfig opts in; respect cpufreq policy limits. */
++#ifdef CONFIG_PIPA_EXP_SUGOV
++	tunables->rate_limit_us = CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US;
++#else
+ 	tunables->rate_limit_us = 2000;
++#endif
+ 
+ 	policy->governor_data = sg_policy;
+ 	sg_policy->tunables = tunables;
+--- a/arch/arm64/configs/vendor/pipa_defconfig
++++ b/arch/arm64/configs/vendor/pipa_defconfig
+@@ -586,3 +586,5 @@
+ # CONFIG_CPU_BOOST is not set
+ CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
++CONFIG_PIPA_EXP_SUGOV=y
++CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500
+ # CONFIG_CPU_INPUT_BOOST is not set
