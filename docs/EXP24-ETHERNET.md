@@ -194,3 +194,17 @@ CONFIG_USB_NET_CDC_NCM=y
 4. Comparar em 10 ciclos controlados após estabelecer kernel/boot compatível. Não atribuir melhora à habilitação do RTL8152 sem diferenças comprovadas.
 
 **Estado:** CI EXP24 SUCCESS, hardware EXP24 NOT TESTED, runtime baseline possui RTL8152=y segundo /proc/config.gz, compatibilidade boot UNKNOWN, FLASH_READY=false.
+
+## Investigação da divergência CONFIG_USB_RTL8152=y versus ausência de r8152 no sysfs
+
+Nova evidência ADB com KernelSU root (`uid=0`, contexto `u:r:ksu:s0`):
+- `adb shell "su -c 'ls -ld /sys/bus/usb/drivers/r8152'"` retornou `No such file or directory`.
+- `adb shell "su -c 'ls -ld /sys/module/r8152'"` retornou `No such file or directory`. Essa segunda ausência, isoladamente, não comprova que um driver builtin inexista.
+- `adb shell "su -c 'cat /proc/sys/kernel/osrelease'"` retornou **`4.19.404R`**; contrastar com `uname -r = 5.10.404R` e `/proc/version = Linux version 4.19.404R`. Uma discrepância de observáveis exige investigar mascaramento/customização de `uname`; não afirmar manipulação como fato até prova.
+- Leitura anterior do `/proc/config.gz` via root declarou `CONFIG_USB_RTL8152=y`, `CONFIG_MODULES=y`, `CONFIG_LOCALVERSION="-perf"`. A coexistência de config=y com diretório USB `r8152` ausente é contraditória com registro normal esperado, mas **não prova** ausência do código, falha de init, motivo da desconexão USB nem correção EXP24.
+
+Conferência da fonte E404 fixa (`fed88a6024cd4d46c52eda607a95d97d7371ba81`): `drivers/net/usb/Makefile` contém `obj-$(CONFIG_USB_RTL8152) += r8152.o`; `drivers/net/usb/r8152.c` define `MODULENAME "r8152"` e registra o driver USB via `module_usb_driver(rtl8152_driver)`. Portanto, `/sys/bus/usb/drivers/r8152` é caminho esperado quando o driver está registrado no barramento da revisão citada. A configuração de compilação por si só não demonstra que esse caminho exista em runtime.
+
+Próximo gate sem alteração: enumerar `/sys/bus/usb/drivers` com root; consultar `/proc/modules` se houver modulo carregado, e opcionalmente procurar `r8152`/`rtl8152` nos símbolos do kernel (`/proc/kallsyms`, sujeito a permissões e restrições de segurança). Obter `CONFIG_IKCONFIG` e opções relacionadas de `/proc/config.gz`, e verificar `/proc/sys/kernel/osrelease` novamente. Se o adaptador `2-1` surgir, capturar binding de interfaces e `VID:PID`. Não forçar bind/probe, não alterar SELinux, não flashear.
+
+CI EXP24 continua aprovado quanto a build e flags; capacidade de reparar RTL8153 intermitente não demonstrada. **FLASH_READY=false**, inclusive pela divergência da configuração da árvore usada versus kernel vivo.
