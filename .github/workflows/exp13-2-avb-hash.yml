@@ -48,6 +48,39 @@ jobs:
           }
           if(Test-Path boot.img){throw 'No image output allowed'}
           Write-Output 'PASS: no network, no changes to backed up partitions, no raw digests or salts printed'
+      - name: Regression - compare all four pinned backup hashes to EXP12 and require 64 hexadecimal characters
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $exp12=Get-Content -LiteralPath tools/exp12-windows-preflight.ps1 -Raw
+          $exp132=Get-Content -LiteralPath tools/exp13-2-avb-hash-crosscheck.ps1 -Raw
+          foreach($n in @('vbmeta_b.img','boot_b.img','dtbo_b.img','vendor_boot_b.img')){
+            $pattern=[regex]::Escape("'$n'") + "='([0-9a-f]+)'"
+            $m12=[regex]::Match($exp12,$pattern)
+            $m132=[regex]::Match($exp132,$pattern)
+            if(!$m12.Success -or !$m132.Success){throw "Missing expected hash reference for $n"}
+            $a=$m12.Groups[1].Value
+            $b=$m132.Groups[1].Value
+            if($a -cne $b){throw "EXP13.2 pinned digest differs from approved EXP12 for $n"}
+            if($b.Length -ne 64){throw "Incorrect SHA-256 length for $n"}
+          }
+          Write-Output 'EXP13.2 pinned hashes identical to EXP12, all 64 chars: PASS'
+
+      - name: Negative regression - malformed 65-character SHA-256 must be rejected before synthetic test
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $orig=Get-Content -LiteralPath tools/exp13-2-avb-hash-crosscheck.ps1 -Raw
+          $correct='31f57cded5fa4b37426b4387b58c1c7330703a1c1a8a5aa584b348fcbb78c2f4'
+          $bad='31f57cded5fa4b37426b4387b58c1c7330703a1c1a8a5aa5844b348fcbb78c2f4'
+          if(!$orig.Contains($correct)){throw 'Missing original hash in source'}
+          $corrupt=$orig.Replace($correct,$bad)
+          [IO.File]::WriteAllText((Join-Path (Get-Location) 'exp13-2-invalid-hash.ps1'),$corrupt,[Text.Encoding]::UTF8)
+          $output=& powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./exp13-2-invalid-hash.ps1 -SelfTest 2>&1 | Out-String
+          if($LASTEXITCODE -eq 0){throw 'A 65-character hash was incorrectly accepted'}
+          if(!$output.Contains('invalid SHA-256 reference length/format: boot_b.img')){throw "Expected specific fail-closed message; actual: $output"}
+          Write-Output 'Bad hash length rejected before any backup read: PASS'
+
       - name: Upload validated EXP13.2 Windows auditor
         uses: actions/upload-artifact@v4
         with:
