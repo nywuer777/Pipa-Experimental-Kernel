@@ -1,0 +1,61 @@
+name: Pipa EXP05 - Kernel identity read-only tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp05-binary-compare.yml"
+      - "tools/exp05-compare-kernels.ps1"
+      - "tests/exp05_synthetic_comparison.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download immutable successful EXP01 build for test
+        uses: actions/download-artifact@v4
+        with:
+          name: pipa-exp01-5-build
+          repository: ${{ github.repository }}
+          run-id: 39112000643
+          github-token: ${{ github.token }}
+          path: exp01-original
+
+      - name: Generate synthetic prefix match and one byte difference
+        shell: pwsh
+        run: |
+          python tests/exp05_synthetic_comparison.py exp05-fixtures exp01-original/exp01-work/out/arch/arm64/boot/Image
+
+      - name: Windows PowerShell 5.1 compare
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $args = @{ Exp01ImagePath = 'exp01-original/exp01-work/out/arch/arm64/boot/Image'; SyntheticTest = $true }
+          $same = & ./tools/exp05-compare-kernels.ps1 @args -BackupDir 'exp05-fixtures/prefix-matches' | Out-String
+          Write-Output $same
+          if (-not $same.Contains('changed_blocks=0') -or -not $same.Contains('difference_bytes=8') -or -not $same.Contains('first_diff_offset=-1')) { throw 'Prefix match fixture failed' }
+          $diff = & ./tools/exp05-compare-kernels.ps1 @args -BackupDir 'exp05-fixtures/content-differs' | Out-String
+          Write-Output $diff
+          if (-not $diff.Contains('changed_blocks=1') -or -not $diff.Contains('first_diff_offset=7000')) { throw 'Content difference not detected' }
+
+      - name: PowerShell 7 compare
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $diff = & ./tools/exp05-compare-kernels.ps1 -BackupDir exp05-fixtures/content-differs -Exp01ImagePath exp01-original/exp01-work/out/arch/arm64/boot/Image -SyntheticTest | Out-String
+          Write-Output $diff
+          if (-not $diff.Contains('first_diff_offset=7000')) { throw 'PowerShell 7 compare regression' }
+
+      - name: Guard against flashable outputs
+        shell: pwsh
+        run: |
+          if (Test-Path boot.img) { throw 'Unexpected boot.img output' }
+          Write-Output 'PASS: read-only parser tested; no flashable output.'
