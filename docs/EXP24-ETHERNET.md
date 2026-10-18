@@ -239,3 +239,30 @@ cat: /proc/kallsyms: No such file or directory
 4. Coletar estado USB 0BDA:8153 durante enumeração com root, interfaces e binding, e, se possível, eventos do Android `dumpsys usb`, antes de uma proposta de patch específico.
 
 **Não classificar CI da EXP24 como conserto comprovado.** O driver está previsto em build, mas a origem da configuração E404, da ausência do registro e da intermitência USB continuam sem demonstração causal. Boot v3/compatibilidade não liberado: **FLASH_READY=false**.
+
+## Kernel E404 observado: IKCONFIG ativo, módulos procfs ausentes, sem evidência positiva SUSFS
+
+**Evidência da coleta PowerShell do usuário em 18/10/2026:**
+```text
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y
+CONFIG_MODULES_USE_ELF_RELA=y
+CONFIG_MODULES=y
+CONFIG_MODULES_TREE_LOOKUP=y
+CONFIG_USB_RTL8152=y
+ls: /proc/modules: No such file or directory
+ls: /proc/kallsyms: No such file or directory
+-r--r--r-- 1 root root 44819 ... /proc/config.gz
+```
+O filtro de configuração pesquisou `CONFIG_KSU_SUSFS|CONFIG_SUSFS|CONFIG_IKCONFIG|CONFIG_USB_RTL8152|CONFIG_MODULES` e não retornou opção SUSFS; busca por nomes `susfs|resusfs|uname|hide|root` em `/data/adb/modules` não retornou correspondências. **Não há evidência positiva de SUSFS nesta coleta.** Ausência desses termos também não prova que não haja outras customizações, nomes diferentes, ou hooks.
+
+**Avaliação:** a configuração publicada via `IKCONFIG_PROC` indica explicitamente `CONFIG_USB_RTL8152=y` e `CONFIG_MODULES=y`. Apesar disso, o driver `r8152` não está registrado em `/sys/bus/usb/drivers`, e `/proc/modules` não existe na visão do shell root. Isso impede concluir se a configuração descreve fielmente o binário em execução e exige investigar visibilidade do procfs/sysfs, falha de registro initcall, e proveniência do kernel. `/proc/kallsyms` pode depender da opção CONFIG_KALLSYMS e de outras restrições; sua ausência sozinha não basta para inferir ocultação deliberada.
+
+**Próximo diagnóstico limitado e read-only, executável em PowerShell:**
+```powershell
+.\adb.exe shell "su -c 'zcat /proc/config.gz'" | Select-String -Pattern 'CONFIG_KALLSYMS|CONFIG_PROC_FS|CONFIG_UTS_NS|CONFIG_USB_NET_DRIVERS|CONFIG_USB_RTL8152|CONFIG_LOCALVERSION|CONFIG_MODULES'
+.\adb.exe shell "su -c 'cat /proc/1/mountinfo'" | Select-String -Pattern ' /proc |/proc/modules|/proc/kallsyms'
+.\adb.exe shell "su -c 'ls -l /sys/bus/usb/drivers /sys/module'" | Select-String -Pattern 'r8152|cdc_ether|cdc_ncm|usbnet'
+.\adb.exe shell "su -c 'cat /proc/sys/kernel/osrelease'"
+```
+Interpretar resultados como observações em um namespace/visão; não alterar flags de segurança, mountpoints ou serviços para testar. Até prova adicional, **nenhum novo experimento de boot/flash na EXP24** (`FLASH_READY=false`).
