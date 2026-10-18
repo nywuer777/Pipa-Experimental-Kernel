@@ -1,3 +1,5 @@
+> **Correção factual informada pelo usuário (18/10/2026): o bootloader do Xiaomi Pad 6 (pipa) está DESBLOQUEADO.** A conclusão anterior de que estaria bloqueado foi incorreta. As propriedades coletadas por ADB — `ro.boot.verifiedbootstate=green`, `ro.boot.flash.locked=1`, `ro.boot.vbmeta.device_state=locked` e `ro.boot.veritymode=enforcing` — são saídas observadas, mas estão em contradição com a confirmação do usuário sobre o estado real. Não usar tais propriedades isoladas como prova do estado de desbloqueio. Motivo específico da divergência ainda não foi investigado; não presumir spoofing sem evidência. Estado de flash experimental continua `FLASH_READY=false` por faltar validação de empacotamento, inicialização, AVB aplicável, root e procedimento de recuperação, **não por presumir bootloader bloqueado**.
+
 ## Homologação EXP13 local + propriedades de boot (18/10/2026)
 
 O usuário executou o auditor `exp13-avb-offline.ps1` sobre seu **backup original** `C:\platform-tools\pipa_backup\vbmeta_b.img`. Resultado confirmado:
