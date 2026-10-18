@@ -1,3 +1,21 @@
+## Homologação em hardware: auditoria offline dos backups reais (18/10/2026)
+
+**RESULTADO: PASS, fornecido pelo usuário no PowerShell do Windows**, usando `C:\platform-tools\exp12-run.ps1` corrigido com o ZIP original da EXP06. Abaixo as evidências mais relevantes extraídas da saída real:
+
+```text
+EXP12 REAL SLOT-B OFFLINE PREFLIGHT: PASS
+BACKUPS sha256=verified count=4 device=pipa slot=_b
+BOOT version=3 original_kernel_bytes=30349336 offset=4096 generic_ramdisk_bytes=1849345 offset=30355456
+VENDOR_BOOT version=3 vendor_ramdisk_bytes=20412235 dtb_bytes=460314 dtb_sha256=9b92c1aa019fffdfaf3bfe36dcd84c2858c804109c100b684e08f62228881117
+DTBO table_bytes=688455 entries=1 table_sha256=6a0e109590742ce67713d738aef1320e015e9abc6b509d5be7f6e9ed46dd4f9c
+VBMETA version=1.0 algorithm=2 flags=3 signature_verified=False
+EXP06 image_sha256=7b3c971a6bd92e8e609e4c56fb6e33df78a7668463e9bcfc342aa1cdee9a0033 kernel_size_preserves_offsets=True dtb_dtbo_same_as_backup=True
+NO IMAGE CREATED. NO FILE MODIFIED. FLASH_READY=false
+```
+
+**Confirmações e limites:** os quatro hashes originais de backup e os componentes internos passaram na auditoria local; o ZIP da EXP06 também passou. O uso de `SHA-256` e a análise de offsets provam integridade do conjunto fornecido e compatibilidade *estrutural* do layout, não inicialização. A assinatura AVB, a aceitação da imagem pelo bootloader, integridade do KernelSU, recovery/rollback e desempenho continuam sem comprovação. Não gerar/instalar `boot.img` enquanto as barreiras não forem fechadas. **`FLASH_READY=false`.**
+
+
 ## EXP12.1 — correção permanente do PowerShell 5.1 (18/10/2026)
 
 A execução local no Windows confirmou que a auditoria passava na validação de integridade dos quatro backups, cabeçalhos, ramdisks, DTB, DTBO e vbmeta antes de falhar na linha de leitura do ZIP com `TypeNotFound: [IO.Compression.ZipFile]`. A causa foi a ausência do carregamento da assembly `System.IO.Compression.FileSystem` no script, apesar de o teste original de CI carregar essa assembly separadamente.
