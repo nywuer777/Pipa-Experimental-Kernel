@@ -40,6 +40,15 @@ jobs:
              if (-not $out.Contains($expected)) { throw "EXP03 parser missing expected result: $expected" }
           }
 
+      - name: Run legacy Windows PowerShell 5.1 parser
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = & ./tools/exp03-boot-structure.ps1 -BackupDir ./test-fixtures | Out-String
+          Write-Output $out
+          if (-not $out.Contains('PASS: header')) { throw 'PowerShell 5.1 structure audit failed' }
+          if (-not $out.Contains('non_fdt_entries=0')) { throw 'PowerShell 5.1 DTBO parsing failed' }
+
       - name: Negative test rejects corrupt DTBO magic
         shell: pwsh
         run: |
