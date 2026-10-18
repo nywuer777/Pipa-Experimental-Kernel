@@ -1,3 +1,30 @@
+## EXP18.3 — Homologação real: Fastboot → Android, sem alterações (18/10/2026)
+
+Após `EXP18.2 FASTBOOT_BOOTLOADER_TRANSPORT_PASS`, o usuário executou no Xiaomi Pad 6 (`pipa`) a reinicialização normal:
+
+```text
+fastboot devices -l
+[serial omitido] fastboot
+GETVAR product=pipa current_slot=b is_userspace=no unlocked=yes slot_count=2
+RESULT=FASTBOOT_BOOTLOADER_TRANSPORT_PASS
+fastboot reboot
+Rebooting OKAY
+adb devices -l
+[serial omitido] device product:pipa model:23043RP34G device:pipa
+adb shell getprop ro.product.device
+pipa
+adb shell getprop ro.boot.slot_suffix
+_b
+adb shell uname -r
+5.10.404R
+```
+
+**Resultado: `EXP18.3 NORMAL_BOOT_RETURN=PASS_REAL`.** O dispositivo voltou do Fastboot no bootloader para o Android, restabeleceu ADB, manteve identidade `pipa` e slot `_b`; nenhum flash, troca de slot ou alteração de imagem foi realizado. Esta é a homologação real do ciclo normal Android → bootloader Fastboot → Android. A string `uname -r=5.10.404R` pode ser mascarada pelo kernel em `kernel/sys.c` para processos do shell UID2000 (o kernel efetivo no caso documentado é 4.19.404R); não usar essa string como prova de versão real de kernel.
+
+**Escopo estrito:** o retorno normal não valida a recuperação após kernel corrompido, restauração de partições, compatibilidade EXP06, KernelSU, política AVB ou restauração por Fastboot. O usuário confirmou `unlocked=yes` pelo bootloader, mas propriedades Android anteriores foram divergentes. Não realizar flash; manter `FLASH_READY=false`.
+
+**Próximo portão:** criação offline de imagem candidata EXP06 separada dos backups, com hashes fixados e reprodução determinística de header, kernel, padding, ramdisk e cauda; antes de instalação, plano de recuperação testado e validações separadas AVB/KernelSU.
+
 ## EXP18.2 — Transporte Fastboot do bootloader homologado (18/10/2026)
 
 O usuário confirmou driver Windows funcional e executou com sucesso `fastboot devices -l` e `tools/exp18-2-fastboot-readonly.ps1` no Xiaomi Pad 6 real. Evidência: `product=pipa`, `current_slot=b`, `is_userspace=no`, `unlocked=yes`, `slot_count=2`, `RESULT=FASTBOOT_BOOTLOADER_TRANSPORT_PASS`. Nenhuma partição alterada.
