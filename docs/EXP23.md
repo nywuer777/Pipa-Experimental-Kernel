@@ -1,3 +1,22 @@
+## EXP23.1 — Correção shell e inventário térmico realizado no E404 (18/10/2026)
+
+O usuário executou a versão corrigida do comando PowerShell/ADB, sem `|` no interior do `echo`, e filtrou nomes no Windows com `Select-String`. A saída **sem erros de shell** foi:
+
+```text
+gpuss-0-usr=30800
+gpuss-1-usr=32400
+pm8150_tz=35024
+soc=
+charger_therm0=29307
+batt_therm=288
+cpu_therm=32401
+battery=28200
+```
+
+**Resultado:** `EXP23_SYSFS_SENSOR_DISCOVERY=PASS_REAL`: oito nomes retornados, sete com número e um `soc` sem valor. Unidades **não foram confirmadas por documentação específica do driver**: para `cpu_therm`, `gpuss-0-usr`, `gpuss-1-usr`, `pm8150_tz`, `charger_therm0`, `battery` é plausível a escala de milésimos de grau Celsius (valores aproximadamente 32.401, 30.800, 32.400, 35.024, 29.307 e 28.200 °C respectivamente); para `batt_therm=288` é plausível décimos de grau (28.8 °C). Não comparar diretamente as grandezas sem considerar a escala nem classificar `soc=` como zero; isto último significa leitura vazia/inacessível no momento. A saída foi obtida com kernel E404 original após reversão EXP22.3; não há teste EXP06 repetido nesta fase.
+
+**Controle de desempenho pendente:** valores são instantâneos e não contêm frequência real sob carga, frametimes/FPS, potência, controle de temperatura inicial ou replicatas. Planejar primeira amostra E404 com workload definido e CSV em Windows; nova autorização será necessária para outro `fastboot boot` EXP06. Nenhum ganho FPS/latência/estabilidade pode ser inferido somente dos sensores. A saída anterior de `dumpsys thermalservice` tinha `HAL Ready: false`, por isso sysfs é a fonte operacional de medição neste momento. `FLASH_READY=false`.
+
 ## EXP23.1 — Sensores sysfs identificados, mas saída do comando anterior invalidada por shell (18/10/2026)
 
 O usuário executou na sessão **Windows PowerShell 5.1** o comando `adb shell 'for z in ...; ... echo "$z | $t | $v"; done'` sugerido na conversa anterior. Em vez de linhas delimitadas, recebeu dezenas de mensagens `/system/bin/sh: <nome_do_sensor>: inaccessible or not found` e `/system/bin/sh: <valor>: inaccessible or not found`, incluindo `cpu_therm`/`32290`, `gpuss-0-usr`/`30800`, `soc`/`34700`, `battery`/`28200`, `batt_therm`/`290`, `charger_therm0`/`29423`. O `|` inserido no texto echo atravessou a serialização de argumentos entre PowerShell nativo/adb shell sem preservação das aspas pretendidas; o shell remoto o tratou como **operador pipe** e tentou executar nomes de sensores/valores como comandos. **Não** interpretar esses erros como inexistência das thermal zones ou defeito do kernel.
@@ -39,7 +58,7 @@ Temperature headroom thresholds:
 
 **Próximo gate diagnóstico somente leitura (sem root):** consultar nomes e valores crus dos thermal zones de sysfs, e, separadamente, sensor de bateria se acessível. Não converter escalas de temp automaticamente: algumas interfaces publicam miligraus Celsius, outras décimos e valores não confiáveis. Se leitura/sysfs não disponível ou todos sensores inválidos, marcar `THERMAL_MEASUREMENT=UNAVAILABLE` e concentrar teste A/B em carga, cpufreq e métricas confiáveis de frametime, em vez de presumir temperatura.
 
-**Estado:** `EXP23_THERMALSERVICE_TEMPERATURE=UNAVAILABLE`, `EXP23_SYSFS_SENSOR_DISCOVERY=PENDING`, `EXP23_EXP06_REPEAT_AUTH=PENDING`, `FLASH_READY=false`. Não houve nova inicialização EXP06 nem flash durante esta coleta.
+**Estado:** `EXP23_THERMALSERVICE_TEMPERATURE=UNAVAILABLE`, `EXP23_SYSFS_SENSOR_DISCOVERY=PASS_REAL`, `EXP23_EXP06_REPEAT_AUTH=PENDING`, `FLASH_READY=false`. Não houve nova inicialização EXP06 nem flash durante esta coleta.
 
 # EXP23 — Teste controlado de desempenho e estabilidade E404 vs EXP06
 
