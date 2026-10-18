@@ -1,0 +1,106 @@
+name: Pipa EXP11 - Canonicalization and Boot-V3 Synthetic Audit (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp11-reproducibility-preflight.yml"
+      - "tools/exp11_canonical_diff.py"
+      - "tools/exp11_offline_boot_preflight.py"
+      - "tools/exp10_forensic_diff.py"
+      - "tests/exp11_synthetic_preflight.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  forensic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run synthetic boot-v3, vendor_boot-v3, dtbo and vbmeta safety tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p exp11_synthetic_preflight.py -v
+          python3 -m py_compile tools/exp11_canonical_diff.py tools/exp11_offline_boot_preflight.py
+
+      - name: Download immutable EXP06 and EXP09 archives
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p exp11-input
+          curl --fail --location --silent --show-error --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/12140930183/zip" \
+            --output "exp11-input/exp06.zip"
+          curl --fail --location --silent --show-error --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/12142510461/zip" \
+            --output "exp11-input/exp09.zip"
+          echo 'e32af6b61163fba4724211986823fc4ffab759956d213ef15b7fcda042241402  exp11-input/exp06.zip' | sha256sum -c -
+          echo 'f65ec9512217e29dd85419a78420173c81ff83017b51cdc123d4476356273fd6  exp11-input/exp09.zip' | sha256sum -c -
+
+      - name: Canonical diff and deterministic digest audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp11_canonical_diff.py --exp06 exp11-input/exp06.zip --exp09 exp11-input/exp09.zip --out exp11-report
+          python3 - <<'PY'
+          import json
+          d=json.load(open("exp11-report/EXP11-canonical-digests.json"))
+          assert d["status"]=="PASS_CANONICAL_NONFLASHABLE"
+          assert d["flash_ready"] is False
+          assert d["metadata_bytes_normalized"] == 37
+          assert d["different_bytes_after_metadata_normalization"] == 2
+          assert d["remaining_offsets"] == [538488,538489]
+          assert d["sha256_after_also_masking_two_instruction_bytes"] == "2f87ad47c3c42e9236cece6fc1bd09ee2b72785ac8b25c9beeddae56f914f5ee"
+          print("PASS: normalized 37 metadata bytes; only MOVZ immediate changes")
+          PY
+          sha256sum exp11-report/* | tee exp11-report-sha256.txt
+
+      - name: Reject intentionally corrupted EXP06 artifact (fail closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("exp11-input/exp06.zip").read_bytes()
+          Path("exp11-input/invalid-exp06.zip").write_bytes(src[:-1] + bytes([src[-1] ^ 0xff]))
+          PY
+          if python3 tools/exp11_canonical_diff.py --exp06 exp11-input/invalid-exp06.zip --exp09 exp11-input/exp09.zip --out exp11-report-bad; then
+            echo 'FAIL: corrupted archive accepted'
+            exit 1
+          fi
+          echo 'PASS: corrupt or unpinned archive rejected'
+
+      - name: Assert no partition image outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e dtbo.img
+          test ! -e vbmeta.img
+          echo 'EXP11 CI: NO FLASH, NO PARTITION WRITES, NO IMG EMITTED.'
+
+      - name: Publish reports and synthetic test summary only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp11-canonical-${{ github.run_number }}
+          path: |
+            exp11-report/
+            exp11-report-sha256.txt
+          if-no-files-found: warn
+          retention-days: 30
