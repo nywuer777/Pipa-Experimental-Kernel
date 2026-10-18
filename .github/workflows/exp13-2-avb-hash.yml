@@ -1,0 +1,57 @@
+name: Pipa EXP13.2 - AVB Salted Hash Crosscheck (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp13-2-avb-hash.yml"
+      - "tools/exp13-2-avb-hash-crosscheck.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  avb-hash:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test salted SHA256 and tamper rejection Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $result = & ./tools/exp13-2-avb-hash-crosscheck.ps1 -SelfTest | Out-String
+          Write-Output $result
+          if(!$result.Contains('EXP13.2 SYNTHETIC SALTED HASH TEST: PASS')){throw 'Windows PowerShell 5.1 test failed'}
+          if(!$result.Contains('FLASH_READY=false')){throw 'Missing no-flash gate'}
+      - name: Test salted SHA256 and tamper rejection PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $result = & ./tools/exp13-2-avb-hash-crosscheck.ps1 -SelfTest | Out-String
+          Write-Output $result
+          if(!$result.Contains('EXP13.2 SYNTHETIC SALTED HASH TEST: PASS')){throw 'PowerShell 7 test failed'}
+      - name: Reject missing private backups
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $failed=$false
+          try { & ./tools/exp13-2-avb-hash-crosscheck.ps1 -BackupDir 'C:\nonexistent-backups' | Out-Null } catch { $failed=$true; Write-Output $_.Exception.Message }
+          if(!$failed){throw 'Missing private backups were accepted'}
+      - name: Audit read-only behavior and strict privacy
+        shell: pwsh
+        run: |
+          $script=Get-Content -Raw 'tools/exp13-2-avb-hash-crosscheck.ps1'
+          foreach($forbidden in @('fastboot flash','fastboot boot','adb reboot','WriteAllBytes','Set-Content','Invoke-WebRequest','Format-Volume','Write-File','dd if=')){
+            if($script.Contains($forbidden)){throw "Unsafe instruction found: $forbidden"}
+          }
+          if(Test-Path boot.img){throw 'No image output allowed'}
+          Write-Output 'PASS: no network, no changes to backed up partitions, no raw digests or salts printed'
+      - name: Upload validated EXP13.2 Windows auditor
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp13-2-avb-hash-${{ github.run_number }}
+          path: tools/exp13-2-avb-hash-crosscheck.ps1
+          retention-days: 30
+          if-no-files-found: error
