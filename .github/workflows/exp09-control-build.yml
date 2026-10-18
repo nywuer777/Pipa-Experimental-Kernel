@@ -1,0 +1,148 @@
+name: Pipa EXP09 - E404 Clean Control Build (AOSP Clang21, NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp09-control-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: pipa-exp09-control-build
+  cancel-in-progress: false
+
+jobs:
+  control:
+    name: E404 clean control / pinned Clang 21 / pipa ARM64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      WORKDIR: ${{ github.workspace }}/exp09-work
+      LLVM_REV: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      SOURCE_REV: fed88a6024cd4d46c52eda607a95d97d7371ba81
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify source regression facts for kernel release identification
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s patches/0001-pipa-exp01-schedutil-rate-limit.patch
+          echo 'EXP09: clean E404 comparison with EXP06; no patch is installed in the control kernel.'
+
+      - name: Install kernel build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi device-tree-compiler \
+            liblz4-tool zstd rsync ccache
+
+      - name: Restore same exact AOSP Android Clang21 as EXP06
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init android-clang-prebuilt
+          cd android-clang-prebuilt
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$LLVM_REV"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$LLVM_REV"
+          test -x clang-r563880c/bin/clang
+          clang-r563880c/bin/clang --version | tee "$GITHUB_WORKSPACE/exp09-toolchain.txt"
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp09-toolchain.txt"
+          grep -F 'clang version 21.0.0' "$GITHUB_WORKSPACE/exp09-toolchain.txt"
+          rm -rf .git
+          df -h .
+
+      - name: Checkout clean E404 at exact EXP06 base and pinned KernelSU
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORKDIR"
+          git clone --branch main-bpf --single-branch --depth 1 https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404.git "$WORKDIR/kernel"
+          cd "$WORKDIR/kernel"
+          test "$(git rev-parse HEAD)" = "$SOURCE_REV"
+          git submodule update --init --depth 1 KernelSU
+          test -f drivers/kernelsu/Kconfig
+          git diff --quiet
+          git diff --cached --quiet
+          ! grep -q '^CONFIG_PIPA_EXP_SUGOV=' arch/arm64/configs/vendor/pipa_defconfig
+
+          # Permanently ground the two read-only findings from EXP08.
+          grep -F 'strlcpy(tmp.release, "5.10.404R", sizeof(tmp.release));' kernel/sys.c
+          grep -F 'strcpy(tmp.release, "5.10.404");' kernel/sys.c
+          test "$(git hash-object arch/arm64/configs/stock_defconfig)" = 7376facb778195969c2b320be5bab9dcbb40b241
+          printf 'CLEAN_SOURCE=%s\nSTOCK_DEFCONFIG_GIT_BLOB=7376facb778195969c2b320be5bab9dcbb40b241\n' "$SOURCE_REV" | tee "$GITHUB_WORKSPACE/exp09-source-identity.txt"
+
+      - name: Configure pipa and build WITHOUT experimental schedutil patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          cd "$WORKDIR/kernel"
+          mkdir -p "$WORKDIR/out"
+          make O="$WORKDIR/out" ARCH=arm64 LLVM=1 LLVM_IAS=1 vendor/pipa_defconfig 2>&1 | tee "$GITHUB_WORKSPACE/exp09-defconfig.log"
+          test ! -e "$WORKDIR/out/boot.img"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          grep -qx '# CONFIG_MODULES is not set' "$WORKDIR/out/.config"
+          ! grep -q '^CONFIG_PIPA_EXP_SUGOV=' "$WORKDIR/out/.config"
+          ! grep -q '^CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=' "$WORKDIR/out/.config"
+          make O="$WORKDIR/out" ARCH=arm64 LLVM=1 LLVM_IAS=1 \
+            CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+            -j"$(nproc)" 2>&1 | tee "$GITHUB_WORKSPACE/exp09-build.log"
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee "$GITHUB_WORKSPACE/exp09-Image.sha256"
+          ls -l "$WORKDIR/out/arch/arm64/boot/" | tee "$GITHUB_WORKSPACE/exp09-output-list.txt"
+          echo 'E404 clean control built successfully. This is not a boot.img.'
+          df -h .
+
+      - name: Compare identity and DTB DTBO with known EXP06 results
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'E404 clean control (no EXP patch)\n' > exp09-comparison.txt
+          echo 'Compiler: AOSP Android Clang 21.0.0 build 14054515' >> exp09-comparison.txt
+          echo 'EXP06 patched kernel Image hash: 7b3c971a6bd92e8e609e4c56fb6e33df78a7668463e9bcfc342aa1cdee9a0033' >> exp09-comparison.txt
+          for f in dtb dtbo.img; do
+            target="$WORKDIR/out/arch/arm64/boot/$f"
+            if [[ -f "$target" ]]; then sha256sum "$target" | tee -a exp09-comparison.txt; fi
+          done
+          if [[ -s "$WORKDIR/out/arch/arm64/boot/dtb" ]]; then
+            echo '9b92c1aa019fffdfaf3bfe36dcd84c2858c804109c100b684e08f62228881117' | grep -Fx "$(sha256sum "$WORKDIR/out/arch/arm64/boot/dtb" | cut -d' ' -f1)"
+          fi
+          if [[ -s "$WORKDIR/out/arch/arm64/boot/dtbo.img" ]]; then
+            echo '6a0e109590742ce67713d738aef1320e015e9abc6b509d5be7f6e9ed46dd4f9c' | grep -Fx "$(sha256sum "$WORKDIR/out/arch/arm64/boot/dtbo.img" | cut -d' ' -f1)"
+          fi
+          test ! -e boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE - no device writes, no boot image.'
+
+      - name: Publish nonflashable clean control build outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp09-clean-control-${{ github.run_number }}
+          path: |
+            exp09-toolchain.txt
+            exp09-source-identity.txt
+            exp09-defconfig.log
+            exp09-build.log
+            exp09-Image.sha256
+            exp09-output-list.txt
+            exp09-comparison.txt
+            exp09-work/out/.config
+            exp09-work/out/arch/arm64/boot/Image
+            exp09-work/out/arch/arm64/boot/dtb
+            exp09-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
