@@ -68,6 +68,16 @@ jobs:
           set -euo pipefail
           bash exp01-src/prepare-build.sh "$WORKDIR" prepare 2>&1 | tee prepare.log
 
+      - name: Restore E404 pinned KernelSU submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORKDIR/kernel"
+          git submodule update --init --depth 1 KernelSU
+          test -f drivers/kernelsu/Kconfig
+          test -f drivers/kernelsu/Makefile
+          git submodule status KernelSU
+
       - name: Verify patch and pipa kernel configuration
         shell: bash
         run: |
