@@ -584,3 +584,13 @@ Usuário confirmou o adaptador RTL8153 estável em outro equipamento, inclusive 
 **Novo instrumento de diagnóstico local (não instalado no tablet):** `EXP24-rtl8153-hotplug-timeline.ps1`, hash SHA256 `b75308f33d71dab6107857db0653e21acb99acd11db4d09b52cb03fb5ec51427`, disponibilizado na conversa, **não há prova de execução no hardware ainda**. Por ADB Wi-Fi e root KernelSU, valida pipa+Clang21, faz amostragem temporal de presença real por VID:PID, interfaces associadas a `r8152`, `eth0/carrier`, velocidade e nós LPM quando existem, coleta PID dos hubs e eventos `dmesg`. Preserva hub e mouse; não escreve em sysfs, altera energia, faz reboot, flash nem outro comando destrutivo. A cada evento classificar USB ausente vs presente sem bind vs bind sem carrier vs bind/carrier ON. Somente após isso discutir EXP25 e hipótese de power/Type-C/host/hub/PHY, sem aplicar patches às cegas.
 
 **Estado:** Ethernet comprovadamente opera na EXP24, mas HOTPLUG_RELIABILITY=FAIL/UNPROVEN, EPROTO=-71_OBSERVED, RTL8153_NO_LPM_QUIRK=ALREADY_IN_SOURCE, FLASH_READY=false.
+
+## EXP24 — Hotplug timeline V2: PowerShell parser e variavel PID corrigidos
+
+Em teste no Windows PowerShell 5.1, a versao inicial do observador `EXP24-rtl8153-hotplug-timeline.ps1` nao chegou a executar: erro de parse na linha 83, `Write-Host "Sample $i/$Samples: ..."`, porque `:` apos `$Samples` e ambiguo para o parser PowerShell.
+
+Auditoria estatica revelou uma segunda falha que impediria a deteccao de Realtek mesmo se o parse fosse corrigido: tentativa de escrever `$pid`, nome reservado `PID` (automatic variable read-only case-insensitive) para guardar objeto de resultado `idProduct`.
+
+**V2 disponibilizada:** `EXP24-rtl8153-hotplug-timeline-v2.ps1`, 7.062 bytes, SHA-256 `523a79df4e9f2f5eaa78aebc336d0daf3d999fa1cf74e783f86bd17c413ab9b0`. Corrige interpolacao para `"Sample ${i}/${Samples}: ..."`, substitui `$pid` por `$productIdResult` e delimita interpolacao das chaves de log `${p}` e `${lpm}`. Diff revisado; varredura local de sintaxe suspeita e uso de `$pid=` passou; **nao houve parser real PowerShell/Windows nem teste ADB real da V2 neste ambiente**, pois PowerShell nao instalado. Usuario deve validar parse com `[System.Management.Automation.Language.Parser]::ParseFile` antes da execucao; coleta deve permanecer read-only.
+
+A V1 nao gerou relatorio, pois falhou ANTES da execucao; isso nao e evidência de falha no kernel, driver nem USB. `FLASH_READY=false`.
