@@ -503,3 +503,15 @@ drwxr-xr-x 2 root root ... /sys/bus/usb/drivers/r8152
 **Proxima etapa segura:** habilitar ADB sem fio e validar acesso antes de remover cabo USB do PC; conectar RTL8153 a USB-C do tablet e capturar sem alterar sistema, usando `tools/exp24-usb-ethernet-evidence.ps1 -Stage EXP24 -Serial <adb-wireless-serial>` em PowerShell. O script registra sysfs dos dispositivos, driver associado, interfaces de rede e dumpsys ethernet. Confirmar se `readlink driver` resolve `r8152`, e checar estado de link e IP; nao depender somente de `ls -ld /sys/bus/usb/drivers/r8152` que atesta registro mas nao binding. Evitar confundir falha OTG de enumeração com falta de driver. Reboot normal retorna ao E404 anterior; ainda nao demonstrado nesta execucao.
 
 **Status atualizado:** `TEMP_BOOT_PASS=true`, `R8152_REGISTERED=true`, `SUGOV_1500_TRIPLE_PASS=true`, `USB_ETHERNET_LINK_TEST=NOT_YET`, `FLASH_READY=false`.
+
+## EXP24 — primeira coleta RTL8153 pelo ADB Wi-Fi: permissões impedem conclusão
+
+Após `fastboot boot` temporário bem-sucedido, o ADB Wi-Fi voltou a responder e foi confirmado novamente kernel `4.19.404R` de runner/Clang21 com o caminho `/sys/bus/usb/drivers/r8152` presente. `dumpsys ethernet` mostra EthernetTracker habilitado, filtro de nomes `(usb|eth)\d+`, **nenhuma interface rastreada** em EthernetNetworkFactory.
+
+Leituras do shell ADB **sem root** de `/sys/bus/usb/devices/2-1/idVendor` e `idProduct` retornaram `Permission denied`. As tentativas `ls -l /sys/bus/usb/devices/2-1:2.0/driver` e `...2.1/driver` retornaram `No such file or directory`. `ip link show` sem root retornou `request send failed: Permission denied`; `ip -4 address show` mostrou somente `lo` e `wlan0`, com IPv4 em `wlan0`. Esses erros isolados NAO demonstram falha de probe; dispositivo pode desaparecer entre chamadas.
+
+**Decisao:** nao afirmar que `r8152` falhou ao bind nem que a rede Ethernet existe. Fazer a proxima coleta com `su -c`, enumeracao dinamica USB (nao supor endereco sempre `2-1`), consultar interface device/driver e `/sys/bus/usb/drivers/r8152` por root, coletar `ip link` root, Ethernet dumpsys e log `dmesg` filtrado. Ao investigar interface rede, se o nome for outro que `usb[0-9]+` ou `eth[0-9]+`, Android EthernetTracker nao ira rastrea-la automaticamente (filtro observado).
+
+Diagnostico Windows somente leitura fornecido como arquivo da conversa `EXP24-rtl8153-root-binding-diagnostic.ps1`, SHA256 `fb43ce1bce8f23b3da16c86d0605f645f0f8db5bb0300b13ff73a35b45463a61` (arquivo NAO inserido na arvore do repositorio). Exige serial ADB Wi-Fi explicitamente, comprova Clang21 e root, amostra 3 vezes IDs Realtek via sysfs, separa existencia das interfaces e driver, registra rede e logs filtrados. Nao faz bind/unbind, escrita sysfs, reboot, fastboot ou flash.
+
+**Estado:** EXP24_TEMP_BOOT=PASS, R8152_DRIVER_REGISTERED=PASS, RTL8153_ENUMERATION_WITH_ROOT=PENDING, RTL8153_BINDING=PENDING, ETHERNET_IP=PENDING, FLASH_READY=false.
