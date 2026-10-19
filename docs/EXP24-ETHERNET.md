@@ -400,3 +400,25 @@ Artefato publicado `pipa-exp24-ethernet-clang21-4` ID 12155857590; ainda nao e b
 Coleta E404 observador V2: 36 de 40 sondagens com RTL8153 `0bda:8153` presente; 34 capturas completas dos descritores; nenhuma vinculacao de driver constatada. Presenca entre amostras correlacionadas nao equivale a confiabilidade em 40 reconexoes.
 
 Identidade/proveniencia e compatibilidade permanecem pendentes (`uname -r=5.10.404R`, `/proc/version` e `/proc/sys/kernel/osrelease=4.19.404R`, E404 `CONFIG_MODULES=y` versus EXP24 `CONFIG_MODULES=n`). `FLASH_READY=false`.
+
+## Auditoria de compatibilidade boot no slot b
+
+Coleta ADB read-only no Xiaomi Pad 6 (E404, Android 16 crDroid):
+
+- `ro.boot.slot_suffix` -> `_b` (slot atual).
+- `ro.boot.bootdevice` -> `1d84000.ufshc`.
+- `/dev/block/by-name/boot_a` -> `/dev/block/sde12`.
+- `/dev/block/by-name/boot_b` -> `/dev/block/sde37`.
+- `/dev/block/by-name/vendor_boot_a` -> `/dev/block/sde25`.
+- `/dev/block/by-name/vendor_boot_b` -> `/dev/block/sde49`.
+- `/proc/cmdline` reporta `androidboot.verifiedbootstate=orange`, `androidboot.hwversion=4.19.0`, `androidboot.slot_suffix=_b`, `androidboot.bootdevice=1d84000.ufshc`, `androidboot.usbcontroller=a600000.dwc3`, `androidboot.dtbo_idx=0`, `androidboot.dtb_idx=0`, `androidboot.force_normal_boot=1`.
+
+**Privacidade:** o `cmdline` original inclui um identificador de serie do dispositivo; nao replicar o valor em relatorios ou artefatos publicos.
+
+**Interpretacao:** o firmware atualmente usa slot `_b`; as particoes boot/vendor_boot em ambos slots sao acessiveis via symlinks. A presenca de vendor_boot nao prova por si so header version 3 ou 4. `androidboot.hwversion=4.19.0` e metadado de hardware, nao identificacao confiavel da release Linux. O estado `orange` nao basta para atestar flash seguro.
+
+**Proximo gate (somente leitura):** obter os primeiros 64 bytes de `boot_b` e `vendor_boot_b`, decodificar assinaturas `ANDROID!` e `VNDRBOOT` e versoes de cabecalho. Para boot header v3/v4 `header_version` esta no offset 40 little endian; para vendor_boot v3/v4 esta no offset 8. Esses offsets seguem o codigo oficial AOSP `bootimg.h`; validar valor e layout antes de usar ferramentas de empacotamento. Verificar dimensoes das particoes com `blockdev --getsize64` sem gravacao.
+
+Referencias tecnicas: https://source.android.com/docs/core/architecture/bootloader/boot-image-header e https://android.googlesource.com/platform/system/tools/mkbootimg/+/refs/heads/android16-qpr2-release/include/bootimg/bootimg.h
+
+A EXP24 run #39179600330 passou no gate `EXP24_RTL8153_LINK_PASS` e preserva `FLASH_READY=false`; artefato atual contem kernel `Image`, nao boot.img. Nao iniciar `fastboot boot` nem gravar particoes antes de auditoria de header, proveniencia/config e reconstrucao verificavel.
