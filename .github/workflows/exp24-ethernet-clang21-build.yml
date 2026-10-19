@@ -130,8 +130,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # CONFIG_USB_RTL8152=y alone is NOT proof that the driver reached vmlinux.
-          # Require the actual compiled object, linked kernel, System.map and build log.
           test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
           test -s "$WORKDIR/out/vmlinux"
           test -s "$WORKDIR/out/System.map"
@@ -139,51 +137,15 @@ jobs:
           grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
           grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
           grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
-          grep -Eq '^CONFIG_USB_RTL8152=y        shell: bash
-        run: |
-          set -euo pipefail
-          test ! -e boot.img
-          test ! -e vendor_boot.img
-          test ! -e "$WORKDIR/out/boot.img"
-          echo 'NON_FLASHABLE EXP24 (EXP06 + Ethernet) kernel Image. Device boot and module compatibility not tested.'
-
-      - name: Publish compiler fingerprint, Image, config and build logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pipa-exp24-ethernet-clang21-${{ github.run_number }}
-          path: |
-            exp06-clang-version.txt
-            exp06-prepare.log
-            exp06-console.log
-            exp24-Image.sha256
-            exp24-ethernet-input.sha256
-            exp24-ethernet-config-gate.log
-            exp24-rtl8153-link-gate.txt
-            exp24-rtl8153-linked-symbols.txt
-            configs/ethernet.config
-            exp06-work/build.log
-            exp06-work/out/.config
-            exp06-work/out/arch/arm64/boot/Image
-            exp06-work/out/arch/arm64/boot/dtb
-            exp06-work/out/arch/arm64/boot/dtbo.img
-          include-hidden-files: true
-          if-no-files-found: warn
-          retention-days: 14
- "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
           grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
           grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
-          # LTO can suffix internal names. A miss FAILS this gate for manual review.
-          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" \
-            | tee exp24-rtl8153-linked-symbols.txt
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
           grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
           grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
           {
             echo 'EXP24_RTL8153_LINK_PASS'
             echo 'USB_ID=0bda:8153'
-            echo 'EXP24_DRIVER_OBJECT=r8152.o'
-            echo 'EXP24_DRIVER_SYMBOLS=rtl8152_driver,rtl8152_probe'
-            echo 'RESULT_SCOPE=offline_compile_and_link_only'
             echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
             echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
             echo 'FLASH_READY=false'
@@ -212,6 +174,8 @@ jobs:
             exp24-Image.sha256
             exp24-ethernet-input.sha256
             exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
             configs/ethernet.config
             exp06-work/build.log
             exp06-work/out/.config
