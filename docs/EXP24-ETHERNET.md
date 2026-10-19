@@ -458,3 +458,27 @@ Candidate reported size: **32,477,184 bytes**. SHA256: `ee8bae62c49166211f374768
 Independent calculation from the original EXP24 Actions artifact: `Image` 30,619,672 bytes with verified SHA256 `da39d6a9bf983d76f42d788543644c4cba9a4f345ced2b517a8a75d6e8df75d2`; Android V3 layout `4096 + align(kernel,4096) + align(stock_ramdisk=1849345,4096)` gives exactly **32,477,184 bytes**. Original compact control was 32,206,848 bytes.
 
 Candidate image and JSON audit are stored locally on user's Windows device. The assistant has not read the newly created candidate bytes or JSON file directly. Next gate: independent hash of the local candidate and consistency review of the JSON audit. No boot/flash was executed; `FLASH_READY=false`.
+
+## EXP24 — gate de auditoria independente: 14 de 14 PASS
+
+Em 18/10/2026, verificacao independente via PowerShell Windows do candidato EXP24 terminou com **14/14 PASS** (output do proprio usuario). Resultado observado:
+```text
+SHA256: PASS
+AuditHash: PASS
+Size: PASS
+AuditSize: PASS
+Roundtrip: PASS
+Ramdisk: PASS
+Cmdline: PASS
+OSMetadata: PASS
+KernelHash: PASS
+KernelOffset: PASS
+RamdiskOffset: PASS
+VendorBootPreserved: PASS
+NoPartitionWrites: PASS
+FlashBlocked: PASS
+```
+
+Hash independente do arquivo candidato: `ee8bae62c49166211f374768ab5ab76d2fba54c2565d69477c3e8aa49fe395c3`; tamanho 32,477,184 bytes. Compara com os campos JSON do empacotador. `aosp_stock_roundtrip=MATCH`, `ramdisk_identical=true`, `cmdline_identical=true`, `os_word_identical=true`, novo kernel SHA256 `da39d6a9bf983d76f42d788543644c4cba9a4f345ced2b517a8a75d6e8df75d2`, offsets kernel 4096 e ramdisk 30625792. As condicoes de preservacao de `vendor_boot` e ausencia de escritas reportadas no JSON foram confirmadas como consistentes, nao como auditoria externa do firmware.
+
+**Decisao:** gate de empacotamento e consistencia offline aprovado. Nao equivale a boot real ou funcionamento do RTL8153. Precedente EXP19/EXP06 validou `fastboot boot` temporario sem flash no mesmo modelo `pipa`, slot b, bootloader unlocked, fastboot nao-userspace, rollback por reboot normal para E404. Qualquer primeiro teste EXP24 deve ser **isolado via `fastboot boot`**, com cabo de rede USB-C desligado e guardas de identidade/caminho/hash, nunca comandos `fastboot flash`. Em caso de FAILED ou boot sem Android, nao repetir blindamente; usar reboot de recuperacao. O candidato nao e flashavel e permanece `FLASH_READY=false`.
