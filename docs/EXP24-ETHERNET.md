@@ -351,3 +351,23 @@ USB 2-1 observed in 2/40 scans. Complete capture: True
 **Política técnica:** não remover a entrada da blacklist CDC às cegas — ela existe para encaminhar estes dispositivos ao driver adequado; forçar generic CDC pode falhar. A solução prioritária é garantir registro operacional do `r8152` na versão de kernel efetivamente compatível e medir USB host/energia/reenumeração separadamente. Não modificar kernel/USB/SELinux no tablet; **FLASH_READY=false**, artefato EXP24 somente compilado e não flashável.
 
 **Fonte direta auditada:** https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/blob/fed88a6024cd4d46c52eda607a95d97d7371ba81/drivers/net/usb/cdc_ether.c#L749-L763 ; https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/blob/fed88a6024cd4d46c52eda607a95d97d7371ba81/drivers/net/usb/usbnet.c#L1686-L1690 ; https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/blob/fed88a6024cd4d46c52eda607a95d97d7371ba81/drivers/net/usb/r8152.c#L5310-L5357 .
+
+## EXP24 — prova adicional de compilação Realtek e auditoria de ligação CI
+
+Em 18/10/2026 foi auditado o log integral do job GitHub Actions da EXP24 **#39172615397**, job 117808656784, concluído com sucesso. Entradas diretas do log:
+```text
+CC      drivers/net/usb/r8152.o
+LTO     vmlinux.o
+MODPOST vmlinux.o
+LD      vmlinux
+SYSMAP  System.map
+```
+Também foram confirmados `CONFIG_USB_RTL8152=y` no resolved `.config`, o gate Kconfig 21 opções builtin e o SHA256 da `Image` EXP24 `773b37133766cb6877937bc53c84b2d5ad0a94985ca754d88a685e7c00648da0`.
+
+**Intervenção de CI somente no repositório, sem dispositivo:** workflow `.github/workflows/exp24-ethernet-clang21-build.yml` atualizado em commit **`4d23c847da5f96b79ed5a09b77265d635d838a89`**. Novo step *Prove RTL8153 presence in final linked vmlinux* exige os arquivos `r8152.o`, `vmlinux` e `System.map` do build, linhas CC/LTO/LD/SYSMAP do log, linha de suporte a `0BDA:8153` e macro de registro do driver na fonte, e evidência dos símbolos `rtl8152_driver` e `rtl8152_probe` no `System.map` final. Publica `exp24-rtl8153-linked-symbols.txt` e `exp24-rtl8153-link-gate.txt`; inclui `FLASH_READY=false`, `RUNTIME_DRIVER_REGISTRATION=NOT_TESTED`. Condição fail-closed: se nomes forem otimizados/renomeados pelo LTO, falhar e revisar antes de afrouxar a prova.
+
+**Status honesto:** step recém-integrado ainda sem resultado do novo CI verificado nesta sessão. O build anterior já comprovou compilação de `r8152.o` e link de `vmlinux`, mas ainda não disponibilizou o mapa de símbolos como prova. Não declarar `RTL8153_LINK_PASS` até novo CI confirmar. Em nenhum caso o gate de link equivale a prova de registro físico do driver.
+
+**Correção de ferramenta local:** observador PowerShell v2 elimina encerramento antecipado na tentativa 23, registra `Scan_attempts_executed` e cada scan ausente, reporta presença sobre scans realmente executados e salva arquivo `exp24-rtl8153-v2-*` no PC. Nova versão existe como artefato local; não alegar que foi instalada ou executada no Windows. Comparação do E404: 2 presenças nas 23 sondagens efetivamente executadas da versão anterior, com sucesso de leitura dos nove atributos em uma janela; não taxa estatística definitiva.
+
+**Bloqueios:** versão `uname=5.10.404R` vs `/proc/version` e `/proc/sys/kernel/osrelease` `4.19.404R`, config vivo `CONFIG_MODULES=y` vs fonte EXP24 `CONFIG_MODULES=n`, e enumeração/registro runtime ainda por esclarecer. **FLASH_READY=false**, sem imagem de boot gerada.
