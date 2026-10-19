@@ -482,3 +482,24 @@ FlashBlocked: PASS
 Hash independente do arquivo candidato: `ee8bae62c49166211f374768ab5ab76d2fba54c2565d69477c3e8aa49fe395c3`; tamanho 32,477,184 bytes. Compara com os campos JSON do empacotador. `aosp_stock_roundtrip=MATCH`, `ramdisk_identical=true`, `cmdline_identical=true`, `os_word_identical=true`, novo kernel SHA256 `da39d6a9bf983d76f42d788543644c4cba9a4f345ced2b517a8a75d6e8df75d2`, offsets kernel 4096 e ramdisk 30625792. As condicoes de preservacao de `vendor_boot` e ausencia de escritas reportadas no JSON foram confirmadas como consistentes, nao como auditoria externa do firmware.
 
 **Decisao:** gate de empacotamento e consistencia offline aprovado. Nao equivale a boot real ou funcionamento do RTL8153. Precedente EXP19/EXP06 validou `fastboot boot` temporario sem flash no mesmo modelo `pipa`, slot b, bootloader unlocked, fastboot nao-userspace, rollback por reboot normal para E404. Qualquer primeiro teste EXP24 deve ser **isolado via `fastboot boot`**, com cabo de rede USB-C desligado e guardas de identidade/caminho/hash, nunca comandos `fastboot flash`. Em caso de FAILED ou boot sem Android, nao repetir blindamente; usar reboot de recuperacao. O candidato nao e flashavel e permanece `FLASH_READY=false`.
+
+## EXP24 — teste em hardware: boot temporario e registro do r8152 aprovados
+
+**Resultado fisico informado pelo usuario:** no Xiaomi Pad 6 `pipa`, slot `b`, bootloader `unlocked:yes`, `is-userspace:no`, candidato EXP24 offline com SHA-256 `ee8bae62c49166211f374768ab5ab76d2fba54c2565d69477c3e8aa49fe395c3` inicializou temporariamente via `fastboot boot` com `Sending boot.img OKAY` e `Booting OKAY`. O Android voltou a responder ao ADB.
+
+Leituras POS-BOOT (transcritas):
+```text
+Linux version 4.19.404R (runner@runnervm8k3b6) (Android (14054515, +pgo, +bolt, +lto, +mlgo, based on r563880c) Clang 21.0.0, LLD 21.0.0) #1 SMP PREEMPT Mon Oct 19 00:15:52 UTC 2026
+drwxr-xr-x 2 root root ... /sys/bus/usb/drivers/r8152
+1500
+1500
+1500
+```
+
+**Conclusao comprovada:** o novo kernel compilado via CI #39179600330 inicializou em hardware, registrou o driver USB `r8152` no sysfs (ausente na coleta anterior do E404) e preservou a alteracao EXP06 de `schedutil/rate_limit_us=1500` em tres politicas. O resultado do `fastboot boot` nao e uma gravacao de particao; a instalacao persistente E404 deve ser preservada.
+
+**Ainda nao testado:** vinculacao de `0bda:8153` ao `r8152` (`2-1:2.0/driver` ou `2-1:2.1/driver`), criacao de interface `eth*` / `enx*`, Ethernet service, DHCP, ping e estabilidade em 40 sondagens. O adaptador USB-C estava desconectado durante o teste de boot; nao declarar Ethernet funcional.
+
+**Proxima etapa segura:** habilitar ADB sem fio e validar acesso antes de remover cabo USB do PC; conectar RTL8153 a USB-C do tablet e capturar sem alterar sistema, usando `tools/exp24-usb-ethernet-evidence.ps1 -Stage EXP24 -Serial <adb-wireless-serial>` em PowerShell. O script registra sysfs dos dispositivos, driver associado, interfaces de rede e dumpsys ethernet. Confirmar se `readlink driver` resolve `r8152`, e checar estado de link e IP; nao depender somente de `ls -ld /sys/bus/usb/drivers/r8152` que atesta registro mas nao binding. Evitar confundir falha OTG de enumeração com falta de driver. Reboot normal retorna ao E404 anterior; ainda nao demonstrado nesta execucao.
+
+**Status atualizado:** `TEMP_BOOT_PASS=true`, `R8152_REGISTERED=true`, `SUGOV_1500_TRIPLE_PASS=true`, `USB_ETHERNET_LINK_TEST=NOT_YET`, `FLASH_READY=false`.
