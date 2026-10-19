@@ -37,3 +37,17 @@ Em amostragem V2 de 18 pontos do mesmo EXP24, hubs Genesys `05e3:0610` (USB2) e 
 - ANDROID_INPUT_DISPATCH: PENDING
 - SLOT_A_VS_B: NOT_TESTED
 - FLASH_READY=false
+
+## Coleta 23:05 — Novatek firmware falha em cinco retomadas
+
+Foi analisado o relatorio privado `EXP24-touch-slotB-20261018-230535.txt`, capturado em pipa slot b e kernel EXP24 Clang21 via ADB Wi-Fi root. A versao original do relatorio nao foi comitada porque inclui dados do sistema.
+
+**Deteccao OK:** `NVTCapacitiveTouchScreen` em `/dev/input/event8` com suporte `ABS_MT` e `NVTCapacitivePen` event9; dispositivo SPI `spi0.0`, driver `NVT-ts`, probe do chip `This is NVT touch IC`, IRQ 521 `request irq succeed`, e InputReader Android em touch DIRECT associado ao display 0 ativo.
+
+**Painel concreto CSOT:** o driver detectou painel pelo lockdown `0x53,0x42` e selecionou `novatek_nt36532_m82_fw_csot.bin` em vez de `novatek_nt36532_m82_fw_tm.bin`. O primeiro download terminou em `Update firmware success!` em uptime ~12.297s (fw_ver 0x12, PID 0x5975). A falta do arquivo TM num caminho consultado nao explica este evento e nao prova CSOT ausente.
+
+**Defeito reproduzivel:** em **5 de 5 retomadas** registradas apos tela apagar, `nvt_ts_resume` inicia novo download CSOT, `nvt_check_fw_reset_state` le sequencia zerada apos repeticoes, `nvt_download_firmware_hw_crc` atinge retry=3, `crc_done=0` e `golden=0`, e reporta `Download Firmware failed. (-1)` mais `download firmware failed, ignore check fw state`. Up times proximos: 34s, 73s, 98s, 1014s, 2782s. O `resume` ainda emite `end` nas cinco falhas. IRQ `NVT-ts` 521 apresenta contadores zero no momento da coleta, mas nao houve teste dinamico de evento sob toque, logo ausencia de IRQ fisica ainda a confirmar.
+
+**Achado de codigo na base E404 fixa** `kvsnr113/xiaomi_sm8250_kernel_e404@fed88a6024cd4d46c52eda607a95d97d7371ba81`: `drivers/input/touchscreen/nt36532/nt36xxx.c::nvt_ts_resume()` inclui `if (nvt_update_firmware(ts->fw_name)) NVT_ERR("download firmware failed, ignore check fw state"); else nvt_check_fw_reset_state(RESET_STATE_REK);`, e depois marca `bTouchIsAwake = 1` e retorna `0` mesmo no caminho de erro. Isso pode declarar dispositivo acordado apesar de firmware nao executavel, sem tentativa adicional nesta rotina. `nvt_irq_enable(true)` no resume e condicionado a `!ts->db_wakeup`, tambem requer instrumentacao, mas nao justifica modificacao direta sem observacao.
+
+**Proximo teste nao invasivo:** tela ligada, ler linha `NVT-ts` de `/proc/interrupts`, tocar a tela repetidamente por 10 segundos, ler linha novamente e filtrar dmesg; opcional capturar getevent com timeout apos validar comando Android. Diferenciar falha fisica do IRQ vs evento entregue mas descartado pelo Android. EXP25 potencial deve focar reinicializacao segura do controlador SPI/firmware CSOT com estrategia limitada, preservar mouse/hub, sem flashing de firmware em particoes, sem troca de slot e sem alterar sistema vivo. `FLASH_READY=false`.
