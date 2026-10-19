@@ -448,3 +448,13 @@ Em 18/10/2026 foi preparado um pacote local de scripts para Windows (disponibili
 Opcional `-FetchAosp` busca script oficial numa revisao Git fixa com verificacao de hash de blob, ou `-Mkbootimg` aponta para a copia local ja usada EXP17/EXP19. O processo nao utiliza adb, fastboot, grava particoes nem publica dados privados. Testes sinteticos com boot v3 reduzido (nao equivalem ao boot real) passaram incluindo offsets, round-trip, preservacao ramdisk e rejeicao de entrada corrupta, prova de simbolos ausente, imagem alterada e sobrescrita. `python -m py_compile` aprovado.
 
 **Estado honesto:** o ZIP/script foi criado materialmente no ambiente da conversa e disponibilizado para execucao na maquina Windows; o candidato real ainda NAO FOI CRIADO, pois os arquivos privados `boot_b-stock-compact-control.img` e artefato local baixado nao estao disponiveis no ambiente de execucao do assistente. A validacao da Image do EXP24 contra o boot_b privado depende da execucao no Windows. FLASH_READY=false. O pacote offline deve permanecer distinto da instalacao do kernel.
+
+## EXP24 V3 offline candidate verified by Windows output
+
+User Windows execution returned `EXP24 AOSP_STOCK_ROUNDTRIP=MATCH`, `EXP24_CANDIDATE=OFFLINE_CREATED_UNTESTED`, `RAMDISK_IDENTICAL=True`, and `FLASH_READY=false`.
+
+Candidate reported size: **32,477,184 bytes**. SHA256: `ee8bae62c49166211f374768ab5ab76d2fba54c2565d69477c3e8aa49fe395c3`.
+
+Independent calculation from the original EXP24 Actions artifact: `Image` 30,619,672 bytes with verified SHA256 `da39d6a9bf983d76f42d788543644c4cba9a4f345ced2b517a8a75d6e8df75d2`; Android V3 layout `4096 + align(kernel,4096) + align(stock_ramdisk=1849345,4096)` gives exactly **32,477,184 bytes**. Original compact control was 32,206,848 bytes.
+
+Candidate image and JSON audit are stored locally on user's Windows device. The assistant has not read the newly created candidate bytes or JSON file directly. Next gate: independent hash of the local candidate and consistency review of the JSON audit. No boot/flash was executed; `FLASH_READY=false`.
