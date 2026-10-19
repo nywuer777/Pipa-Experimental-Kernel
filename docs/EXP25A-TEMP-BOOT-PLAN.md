@@ -75,3 +75,23 @@ Este timestamp de compilacao e ambiente `runner` sao consistentes com CI EXP25A 
 **Limites:** IRQ acumulada 203 nao demonstra capacidade atual de toque nem restauraçao pos-suspend. No EXP24 a IRQ podia ficar em zero apos retomar, com falha do firmware CSOT. Proximo experimento deve ser read-only: durante tela ligada coletar contador IRQ antes e depois de 12s de toques fisicos; depois, caso seja seguro, apagar/reacender a tela manualmente e coletar mensagens `EXP25A_IRQ_RESTORE`, firmware e novo delta da IRQ. Preservar conexao de ADB Wi-Fi e mouse/hub; nenhuma mudanca em GPIO/SPI/USB/sistema de arquivos do tablet.
 
 **Atualização da decisão:** `FASTBOOT_BOOT=OKAY`, `ANDROID_BOOT=PASS`, `EXP25A_RUNTIME=CONFIRMED`, `NVT_IRQ_AT_SAMPLE=203`, `TOUCH_FUNCTIONAL=UNTESTED`, `CSOT_FW_RESUME=UNTESTED`, `FLASH_READY=false`. A primeira retomada ao kernel persistente no teste anterior segue com causa nao determinada.
+
+## EXP25A em hardware — IRQ responde a toques (delta +480 em 12s)
+
+O usuário baixou o script `EXP25A-postboot-diagnostico.ps1`, confirmou no Windows o SHA-256 esperado `8edc95b553c834a2f422a174c812eac49d0b87669e59a5f1e9044d2107f411a2` (`EXP25A DIAGNOSTIC FILE: PASS`) e o executou em ADB Wi-Fi com `-TouchSeconds 12`.
+
+Identidade em execução: `Linux version 4.19.404R (runner@runnervm8k3b6) ... #1 SMP PREEMPT Mon Oct 19 02:32:14 UTC 2026`, compatível com o EXP25A carregado temporariamente.
+
+Saída literal principal:
+```text
+IRQ antes: 755
+Toque fisicamente na tela por 12 segundos enquanto ela estiver ligada.
+IRQ depois: 1235; delta=480
+SAVED=C:\platform-tools\EXP25A-postboot-evidence\EXP25A-postboot-20261019-004121.txt
+NVT_IRQ_DELTA=480
+FLASH_READY=false
+```
+
+**Interpretação:** incremento de 480 interrupções da NVT-ts IRQ 521 durante janela de 12s solicitando toques físicos (~40/s). Demonstra atividade de interrupção e diferencia-se de coleta prévia da EXP24 com delta zero após resume; não demonstra que houve eventos multitouch de `/dev/input/event8`, funcionalidade do Android, nem comprova a correção de firmware/IRQ após tela dormir. O script oferece Power off/on manual *opcional* e salva `NVT_IRQ_TOTAL_AFTER_WAKE` e as 180 últimas linhas filtradas de `dmesg` com `EXP25A_IRQ_RESTORE` e firmware. **O usuário ainda não compartilhou o relatório nem afirmou que usou o botão Power**, não presumir que fez resume.
+
+**Próximo gate:** obter conteúdo do relatório gerado pelo Windows (pelo menos `NVT_IRQ_TOTAL_AFTER_WAKE`, presença de `EXP25A_IRQ_RESTORE`, mensagens de download firmware e falha CRC); confirmar se o toque produz efeito na UI. Quando necessário, observar eventos brutos `getevent -lt /dev/input/event8` de forma somente leitura com operador disponível. Não reiniciar, não desconectar USB, não modificar SPI/GPIO, não fazer flash. `FLASH_READY=false`.
