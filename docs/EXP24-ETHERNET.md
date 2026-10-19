@@ -422,3 +422,19 @@ Coleta ADB read-only no Xiaomi Pad 6 (E404, Android 16 crDroid):
 Referencias tecnicas: https://source.android.com/docs/core/architecture/bootloader/boot-image-header e https://android.googlesource.com/platform/system/tools/mkbootimg/+/refs/heads/android16-qpr2-release/include/bootimg/bootimg.h
 
 A EXP24 run #39179600330 passou no gate `EXP24_RTL8153_LINK_PASS` e preserva `FLASH_READY=false`; artefato atual contem kernel `Image`, nao boot.img. Nao iniciar `fastboot boot` nem gravar particoes antes de auditoria de header, proveniencia/config e reconstrucao verificavel.
+
+## Reuso do boot compacto EXP19/EXP06 validado em hardware
+
+Histórico técnico recuperado da validação anterior do projeto (18/10/2026): NÃO exigir ao usuário repetir o preflight de Android Boot V3 ou um teste prévio de `fastboot boot` do EXP06.
+
+**Original E404 compacto controlado:** `C:\platform-tools\pipa_preflight\boot_b-stock-compact-control.img`, 32,206,848 bytes, SHA256 `202aaaf67fe5c0a963965c4e29f67866b509916e0bdff15dde38ef55b3d321e7`. Executou `fastboot boot` temporário e iniciou Android (`OKAY`).
+
+**Ciclo EXP19:** a ferramenta oficial AOSP `mkbootimg` reproduziu o boot compacto original com comparação `MATCH` antes de alterar o kernel; esta foi a prova de round-trip. Candidato `Downloads\EXP19-output\EXP19-EXP06-NOT-FOR-FLASH.candidate.bin`, 32,206,848 bytes, SHA256 compacto `30065a39be707d836594da574be11b08c0228018ca91a681e1b122e6f0e6f60c`; SHA256 da partição virtual completa `c50a7b4d8447426331adbfae9296439a957069c0860a1d36d476b63aae083f00`. `EXP15_match=True`.
+
+**Teste físico EXP06:** `fastboot boot` temporário aprovou inicialização em `pipa` slot `_b`; `proc/version` identificou kernel `4.19.404R`, compilação `runner@runnervm8k3b6` Clang21 em 18/10/2026; três políticas `schedutil/rate_limit_us=1500`. Reboot normal retornou persistentemente ao E404 original (`build-user@build-host`, #14, 23/08/2026) com `rate_limit_us=2000/2000/2000`. Não confundir `fastboot boot` temporário com flash.
+
+**Estrutura V3 validada e re-observada:** `boot_b` magic `ANDROID!`, header version 3, kernel 30,349,336 bytes a partir do offset 4096, ramdisk 1,849,345 bytes a partir do offset 30,355,456, header_size 1580 e alinhamento 4096. Fim compacto calculado: `4096 + align(30349336,4096) + align(1849345,4096) = 32206848` bytes, idêntico ao tamanho do controle EXP19. `vendor_boot_b` magic `VNDRBOOT`, header 3, page size 4096. `boot_b` partição tem 201326592 bytes; `vendor_boot_b` 100663296 bytes. Slot ativo `_b` confirmado. `androidboot.hwversion=4.19.0` não é uma medida direta da versão do kernel.
+
+**Ponto atual EXP24:** build #39179600330 confirmou `EXP24_RTL8153_LINK_PASS` e initcall real no `System.map`, Image SHA256 `da39d6a9bf983d76f42d788543644c4cba9a4f345ced2b517a8a75d6e8df75d2`. Candidato EXP24 ainda NAO EMPACOTADO nem testado. O procedimento deve **reutilizar integralmente o pipeline EXP19 de mkbootimg AOSP**, conferir igualdade de round-trip do controle original, substituir somente kernel preservando ramdisk, cmdline, os_version/header, dtb em vendor_boot, e validar hashes/offsets/tamanhos e persistência offline. Não gravar partições; candidato só para auditoria e potencial boot temporário posteriormente se gates passarem.
+
+**Decisão:** preflight de formato V3, `fastboot boot` original e EXP06 são PROVAS PREVIAS REUTILIZADAS; não repetir comandos de medição de header ou slot sem motivo concreto. Eles não demonstram compatibilidade da nova Image EXP24. `FLASH_READY=false`.
