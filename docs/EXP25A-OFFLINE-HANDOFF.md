@@ -74,3 +74,15 @@ Conferidos: candidato SHA-256 `12100d94c8d2cc68ebc6a4424fff0ace659cd4e2299db144c
 **Pendente:** pré-condições operacionais do uso do tablet (mouse USB via hub como único acesso porque touch não funciona; confirmar Wi-Fi ADB ativo, identidade `pipa`, slot `_b`, recuperação viável) e inspeção física de troca do hub/USB antes de qualquer reboot; manter tudo conectado até haver plano seguro. Testes de boot, touch, CSOT, energia USB/RTL8153 não foram executados para EXP25A.
 
 `FLASH_READY=false`.
+
+## EXP25A — Preflight Wi-Fi ADB no pipa: PASS
+
+O usuario executou no Windows, usando `C:\platform-tools\adb.exe` e serial TLS Wi-Fi `adb-6665d3e6-i745L2._adb-tls-connect._tcp`, os comandos somente leitura `get-state`, `getprop ro.product.device`, `getprop ro.boot.slot_suffix`, `getprop sys.boot_completed`, `uname -r`.
+
+Resultados reportados: ADB= `device`; `DEVICE=pipa`; `SLOT=_b`; `BOOT_COMPLETED=1`; `KERNEL=5.10.404R`; `EXP25A PREFLIGHT READ-ONLY: PASS`; `FLASH_READY=false`.
+
+Esta validacao confirma Android operacional e identidade declarada, **nao** prova que a EXP25A esta instalada/rodando. A diferenca `uname -r 5.10.404R` versus `/proc/version 4.19.404R` e conhecida de reportes anteriores, devendo permanecer documentada sem inferir troca de fonte, ate nova coleta read-only.
+
+**Gate operacional ainda pendente:** o tablet esta com touchscreen sem resposta e o controle funcional depende exclusivamente de mouse receptor 2.4GHz via hub USB. Mudar a porta para fastboot por PC potencialmente interrompe o mouse e o ADB Wi-Fi; exigir contingencia de controle/recuperacao sem usar USB hub ou reboots ao vivo antes de autorizar ensaio `fastboot boot`. Recomendam-se apenas verificacoes read-only de `/proc/version`, status da bateria e topologia do receptor do mouse; nenhum `adb reboot bootloader`, `fastboot boot` ou flash nesta etapa.
+
+`FLASH_READY=false`.
