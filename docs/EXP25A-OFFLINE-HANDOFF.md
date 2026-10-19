@@ -62,3 +62,15 @@ EXP25A OFFLINE GATE: PASS. NOT A TESTED BOOT IMAGE. FLASH_READY=false
 **Interpretação:** o script de reempacotamento com AOSP oficial reproduziu o controle original byte a byte; gerou candidato de 32.477.184 bytes; nova Image SHA-256 já verificada separadamente contra o CI; preservou bytes do ramdisk. Tudo foi executado sem acessar dispositivo. O SHA-256 do candidato acima é reportado pelo processo; checagem independente pós-escrita pelo PowerShell ainda está pendente, bem como inspeção do JSON completo. Nenhum boot foi realizado na EXP25A. Testes touchscreen IRQ 521, firmware CSOT e Realtek pendentes. `FLASH_READY=false`.
 
 **Gate seguinte:** reler candidato do disco e confirmar SHA+bytes, inspecionar JSON `result=OFFLINE_CANDIDATE_CREATED_UNTESTED`, `aosp_stock_roundtrip=MATCH`, `candidate_sha256`, `ramdisk_identical`, `cmdline_identical`, `os_word_identical`, `touch_irq_ci_gate=PASS`, `device_partitions_modified=false`, `FLASH_READY=false`. Não anexar backups privados. Qualquer boot experimental é somente via `fastboot boot <candidato>` depois de preflight do bootloader e disponibilidade operacional do hub/mouse. Nunca usar `flash`, `set_active`, `erase` ou `reboot` sem ter preparado a contingência.
+
+## Gate Windows independente — 13/13 PASS
+
+Em verificação independente posterior, o usuário confirmou no PowerShell com leitura de disco e JSON: `EXP25A CANDIDATE INTEGRITY: PASS`, 13/13 campos auditados `True`, `EXP25A BOOT V3 AUDIT: PASS`, `READY_FOR_TEMP_BOOT_REVIEW=PASS` e `FLASH_READY=false`.
+
+Conferidos: candidato SHA-256 `12100d94c8d2cc68ebc6a4424fff0ace659cd4e2299db144cd64f0bb65aa5604`, 32.477.184 bytes, `candidate_kernel_sha256` igual ao SHA do CI, `result=OFFLINE_CANDIDATE_CREATED_UNTESTED`, `aosp_stock_roundtrip=MATCH`, `touch_irq_ci_gate=PASS`, `stock_header_version=3`, `ramdisk_identical=true`, `cmdline_identical=true`, `os_word_identical=true`, `vendor_boot_modified=false`, `device_partitions_modified=false`, `FLASH_READY=false`.
+
+**Atenção ao campo `FLASH_READY: True` impresso no loop:** esse `True` apenas significa que o teste `($audit.FLASH_READY -eq $false)` retornou verdadeiro, e portanto o JSON continua registrando `FLASH_READY=false`. O resultado permite **revisar** um possível boot temporário, NÃO aprova flash nem atesta a segurança operacional da transição a fastboot.
+
+**Pendente:** pré-condições operacionais do uso do tablet (mouse USB via hub como único acesso porque touch não funciona; confirmar Wi-Fi ADB ativo, identidade `pipa`, slot `_b`, recuperação viável) e inspeção física de troca do hub/USB antes de qualquer reboot; manter tudo conectado até haver plano seguro. Testes de boot, touch, CSOT, energia USB/RTL8153 não foram executados para EXP25A.
+
+`FLASH_READY=false`.
