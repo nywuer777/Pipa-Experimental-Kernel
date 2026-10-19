@@ -371,3 +371,32 @@ Também foram confirmados `CONFIG_USB_RTL8152=y` no resolved `.config`, o gate K
 **Correção de ferramenta local:** observador PowerShell v2 elimina encerramento antecipado na tentativa 23, registra `Scan_attempts_executed` e cada scan ausente, reporta presença sobre scans realmente executados e salva arquivo `exp24-rtl8153-v2-*` no PC. Nova versão existe como artefato local; não alegar que foi instalada ou executada no Windows. Comparação do E404: 2 presenças nas 23 sondagens efetivamente executadas da versão anterior, com sucesso de leitura dos nove atributos em uma janela; não taxa estatística definitiva.
 
 **Bloqueios:** versão `uname=5.10.404R` vs `/proc/version` e `/proc/sys/kernel/osrelease` `4.19.404R`, config vivo `CONFIG_MODULES=y` vs fonte EXP24 `CONFIG_MODULES=n`, e enumeração/registro runtime ainda por esclarecer. **FLASH_READY=false**, sem imagem de boot gerada.
+
+## EXP24 run #39179600330 - prova pos-link aprovada
+
+Auditoria GitHub Actions da execucao #39179600330, job #117829321751: workflow concluido com `success` em todas as etapas, incluindo `Prove RTL8153 presence in final linked vmlinux (read-only; no boot)`.
+
+Evidencias verificadas no log do job:
+```text
+CC      drivers/net/usb/r8152.o
+LTO     vmlinux.o
+LD      vmlinux
+SYSMAP  System.map
+rtl8152_probe
+rtl8152_driver_init
+rtl8152_driver_exit
+__initcall__kmod_r8152__220_5357_rtl8152_driver_init6
+rtl8152_driver
+EXP24_RTL8153_LINK_PASS
+RUNTIME_DRIVER_REGISTRATION=NOT_TESTED
+PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED
+FLASH_READY=false
+```
+
+Image ARM64 nova SHA256 `da39d6a9bf983d76f42d788543644c4cba9a4f345ced2b517a8a75d6e8df75d2`, 30 MB aproximados. System.map SHA256 `b03da4fe392c374e954ad4fe23c1e897c4c1e2b0d8919a9d83010ff684e80a24`; objeto r8152.o SHA256 `ea3fbe36b27c2fa6316d1a0b28c48220b21604cbfa36f403e3e181caa5ec0f3f`.
+
+Artefato publicado `pipa-exp24-ethernet-clang21-4` ID 12155857590; ainda nao e boot.img. Este gate prova compilacao, ligacao e presenca de initcall no ELF offline, NAO sua execucao/registro em hardware.
+
+Coleta E404 observador V2: 36 de 40 sondagens com RTL8153 `0bda:8153` presente; 34 capturas completas dos descritores; nenhuma vinculacao de driver constatada. Presenca entre amostras correlacionadas nao equivale a confiabilidade em 40 reconexoes.
+
+Identidade/proveniencia e compatibilidade permanecem pendentes (`uname -r=5.10.404R`, `/proc/version` e `/proc/sys/kernel/osrelease=4.19.404R`, E404 `CONFIG_MODULES=y` versus EXP24 `CONFIG_MODULES=n`). `FLASH_READY=false`.
