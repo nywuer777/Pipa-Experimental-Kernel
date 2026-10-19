@@ -2,14 +2,14 @@
 
 **EXP** é um kernel Android ARM64 experimental para o **Xiaomi Pad 6 (pipa, Snapdragon 870)**.
 
-**Versão de desenvolvimento: EXP25A.** A última versão com `fastboot boot` e inicialização confirmados no dispositivo é a **EXP24**. EXP25A não está homologada, e nenhuma versão está autorizada para instalação persistente (`FLASH_READY=false`).
+**Versão de desenvolvimento: EXP25A (compilação CI aprovada, hardware pendente).** A última versão com `fastboot boot` e inicialização confirmados no dispositivo é a **EXP24**. EXP25A não está homologada, e nenhuma versão está autorizada para instalação persistente (`FLASH_READY=false`).
 
 ## Estado técnico do projeto
 
 | Frente | Estado atual |
 | --- | --- |
 | Nome oficial do projeto | **EXP** |
-| Versão de desenvolvimento | **EXP25A** (correção experimental de IRQ Novatek; validação pendente) |
+| Versão de desenvolvimento | **EXP25A** (compilação Clang 21 aprovada; teste no tablet pendente) |
 | Última inicialização temporária validada | **EXP24** (Linux 4.19.404R, Clang 21) |
 | Ethernet Realtek RTL8153 | `r8152`, `eth0` e IPv4 comprovados na EXP24; reconexão USB intermitente |
 | Touchscreen slot B | Novatek NT36532 reconhecido, falha de recarga de firmware CSOT após suspend/resume, IRQ 521 em zero |
@@ -21,11 +21,11 @@
 ## Desenvolvimento e próximas validações
 
 - **EXP24:** base experimental iniciada temporariamente; driver Ethernet funcional sob enumeração, com instabilidade USB-C/hub ainda em investigação.
-- **EXP25A:** mudança isolada no retorno da IRQ do Novatek ao acordar a tela; compilação Clang 21 no GitHub Actions, sem afirmar solução para firmware ou touch antes do ensaio físico.
+- **EXP25A:** mudança isolada no retorno da IRQ do Novatek ao acordar a tela; compilação Clang 21 **aprovada** no GitHub Actions #39190015939, sem afirmar solução para firmware ou touch antes do ensaio físico.
 - **EXP25B (reserva):** diagnóstico/correção separada de recuperação do firmware CSOT após análise dos resultados da EXP25A.
 - **Próximas versões:** estabilidade USB-C/RTL8153 e melhorias de desempenho orientadas por medições, sem reduzir proteções elétricas ou térmicas.
 
-Documentação: [versões e política de liberação](docs/EXP-VERSIONING.md) · [toque no slot B](docs/EXP24-TOUCH-SLOT-B.md) · [Ethernet e USB-C](docs/EXP24-ETHERNET.md).
+Documentação: [handoff da EXP25A compilada](docs/EXP25A-CI-HANDOFF.md) · [versões e política de liberação](docs/EXP-VERSIONING.md) · [toque no slot B](docs/EXP24-TOUCH-SLOT-B.md) · [Ethernet e USB-C](docs/EXP24-ETHERNET.md).
 
 CI: [EXP25A — Clang21, Novatek IRQ (sem flash)](../../actions/workflows/exp25-touch-clang21-build.yml) · [EXP24 — Ethernet Clang21 (sem flash)](../../actions/workflows/exp24-ethernet-clang21-build.yml).
 
