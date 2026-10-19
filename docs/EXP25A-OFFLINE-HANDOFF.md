@@ -38,3 +38,27 @@ Se a ferramenta `mkbootimg.py` da EXP19 já estiver no disco, usar `-Mkbootimg '
 Saídas propostas: `C:\platform-tools\EXP25A-boot-prep\EXP25A-TOUCH-IRQ-NOT-FOR-FLASH.candidate.bin` e `EXP25A-TOUCH-IRQ-offline-audit.json`. Não repetir após sucesso sem conferir, pois o script recusa sobrescrever.
 
 **Gates pendentes:** hash do candidato, round-trip original real em Windows, auditoria JSON, preparo do boot temporário separado, detecção física da IRQ após resume, firmware CSOT, Ethernet USB-C. A rotina de firmware CSOT da EXP25A permanece inalterada; IRQ corrigida somente em código. Preservar USB hub e mouse, sem troca de slot e **`FLASH_READY=false`**.
+
+## 2026-10-18 — Empacotamento real no Windows: PASS
+
+O usuário executou no Windows PowerShell 5.1 `EXP25A-run-windows.ps1 -FetchAosp` após verificar SHA-256 do ZIP de scripts `fd56cf4db1c51ab48b40535becc69143f73855e1f9e555c97cd3c6f6bf9566c9` e confirmar `EXP25A SCRIPT PARSER: PASS`. Python 3.12.10.
+
+Saída literal dos gates:
+
+```text
+EXP25A AOSP_STOCK_ROUNDTRIP=MATCH
+EXP25A_CANDIDATE=OFFLINE_CREATED_UNTESTED
+EXP25A_CANDIDATE_SHA256=12100d94c8d2cc68ebc6a4424fff0ace659cd4e2299db144cd64f0bb65aa5604
+EXP25A_CANDIDATE_BYTES=32477184
+EXP25A_TOUCH_IRQ_CI_GATE=PASS
+NOVATEK_FW_RECOVERY=UNCHANGED
+RAMDISK_IDENTICAL=True
+FLASH_READY=false
+CANDIDATE=C:\platform-tools\EXP25A-boot-prep\EXP25A-TOUCH-IRQ-NOT-FOR-FLASH.candidate.bin
+AUDIT=C:\platform-tools\EXP25A-boot-prep\EXP25A-TOUCH-IRQ-offline-audit.json
+EXP25A OFFLINE GATE: PASS. NOT A TESTED BOOT IMAGE. FLASH_READY=false
+```
+
+**Interpretação:** o script de reempacotamento com AOSP oficial reproduziu o controle original byte a byte; gerou candidato de 32.477.184 bytes; nova Image SHA-256 já verificada separadamente contra o CI; preservou bytes do ramdisk. Tudo foi executado sem acessar dispositivo. O SHA-256 do candidato acima é reportado pelo processo; checagem independente pós-escrita pelo PowerShell ainda está pendente, bem como inspeção do JSON completo. Nenhum boot foi realizado na EXP25A. Testes touchscreen IRQ 521, firmware CSOT e Realtek pendentes. `FLASH_READY=false`.
+
+**Gate seguinte:** reler candidato do disco e confirmar SHA+bytes, inspecionar JSON `result=OFFLINE_CANDIDATE_CREATED_UNTESTED`, `aosp_stock_roundtrip=MATCH`, `candidate_sha256`, `ramdisk_identical`, `cmdline_identical`, `os_word_identical`, `touch_irq_ci_gate=PASS`, `device_partitions_modified=false`, `FLASH_READY=false`. Não anexar backups privados. Qualquer boot experimental é somente via `fastboot boot <candidato>` depois de preflight do bootloader e disponibilidade operacional do hub/mouse. Nunca usar `flash`, `set_active`, `erase` ou `reboot` sem ter preparado a contingência.
