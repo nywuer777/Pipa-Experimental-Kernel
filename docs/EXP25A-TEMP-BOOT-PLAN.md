@@ -43,3 +43,17 @@ Finished. Total time: 0.952s
 Interpretação rigorosa: transferência Fastboot e comando de boot **aprovados**. `ANDROID_BOOT_COMPLETED=UNVERIFIED`, `ADB_WIFI_RECONNECTED=UNVERIFIED`, `NVT_IRQ_RECOVERY=UNTESTED`, `NOVATEK_CSOT_FW_RESUME=UNTESTED`, `USB_ETHERNET_POSTBOOT=UNTESTED`. Não confundir `Booting OKAY` com Android inicializado. O comando foi de boot temporário (não houve solicitação de flash), e kernel persistente deve permanecer intacto.
 
 Próxima leitura segura, **somente após Android acessível**: consultar `adb get-state`, `ro.product.device`, `ro.boot.slot_suffix`, `sys.boot_completed`, `/proc/version`, estado da IRQ NVT-ts `/proc/interrupts` e mensagens `EXP25A_IRQ_RESTORE` após suspensão/retomada **manual**; não forçar suspend/reset/USB por ADB. Atenção ao mouse via hub. `FLASH_READY=false`.
+
+## Boot EXP25A aceito pelo fastboot, Android posterior esta na imagem persistente antiga
+
+**Nova evidência após `fastboot boot`:** o Windows ADB listou transportes USB serial `6665d3e6` e Wi-Fi TLS, ambos `device`. `ro.product.device=pipa`, `ro.boot.slot_suffix=_b`, `sys.boot_completed=1`, logo o Android está operacional. Entretanto `/proc/version` retornou:
+
+```text
+Linux version 4.19.404R (build-user@build-host) (Android (14054515, +pgo, +bolt, +lto, +mlgo, based on r563880c) clang version 21.0.0, LLD 21.0.0) #14 SMP PREEMPT Sun Aug 23 09:16:08 UTC 2026
+```
+
+**Conclusão:** esta identidade é a imagem E404 persistente/controle histórico, *não* a imagem EXP25A compilada no GitHub CI, esperada com metadados de `runner` e data de outubro de 2026. Assim, `fastboot boot ... OKAY` provou transferência e aceitação pelo bootloader, mas não a continuidade do boot da EXP25A. É possível que o aparelho tenha reiniciado durante o boot e retornado ao persistente ou que o candidato não tenha se efetivado; **a causa ainda não está determinada**. Contador IRQ `521 NVT-ts: 250 0 0 0 0 0 0 0` pertence ao **kernel antigo**; não avaliar como resultado do patch EXP25A. A tela touch estar funcional ou não nesta sessão não é diagnóstico válido do patch.
+
+**GATE:** não repetir `fastboot boot`, não flash, não trocar slot, não resetar USB. Coletar somente informações read-only via ADB Wi-Fi: uptime, motivos de boot (`ro.boot.bootreason`, `sys.boot.reason`, `persist.sys.boot.reason`), `/proc/version`, `ro.boot.slot_suffix`, fingerprint do kernel por `su -c 'cat /proc/sys/kernel/osrelease'`, presença de `/sys/fs/pstore` (nomes, sem envio automático de dados sensíveis) e logs `dmesg` filtrados por `panic|watchdog|reboot|bootreason|NVT-ts|EXP25A_IRQ_RESTORE`. Se pstore existir, pedir apenas arquivos relevantes e discutir redação antes de compartilhar. **Não presumir kernel experimental ativo até comprovação independente.**
+
+`FASTBOOT_TRANSFER=PASS`; `ANDROID_BOOT=PASS_STOCK_KERNEL`; `EXP25A_RUNTIME=NOT_CONFIRMED`; `IRQ_COUNT_250=STOCK`; `FLASH_READY=false`.
