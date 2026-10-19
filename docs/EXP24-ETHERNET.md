@@ -515,3 +515,17 @@ Leituras do shell ADB **sem root** de `/sys/bus/usb/devices/2-1/idVendor` e `idP
 Diagnostico Windows somente leitura fornecido como arquivo da conversa `EXP24-rtl8153-root-binding-diagnostic.ps1`, SHA256 `fb43ce1bce8f23b3da16c86d0605f645f0f8db5bb0300b13ff73a35b45463a61` (arquivo NAO inserido na arvore do repositorio). Exige serial ADB Wi-Fi explicitamente, comprova Clang21 e root, amostra 3 vezes IDs Realtek via sysfs, separa existencia das interfaces e driver, registra rede e logs filtrados. Nao faz bind/unbind, escrita sysfs, reboot, fastboot ou flash.
 
 **Estado:** EXP24_TEMP_BOOT=PASS, R8152_DRIVER_REGISTERED=PASS, RTL8153_ENUMERATION_WITH_ROOT=PENDING, RTL8153_BINDING=PENDING, ETHERNET_IP=PENDING, FLASH_READY=false.
+
+## EXP24 runtime root diagnostic: NIC absent from USB enumeration
+
+User ran `EXP24-rtl8153-root-binding-diagnostic.ps1` with ADB over Wi-Fi and `su -c` successfully, on temporary EXP24 kernel Clang 21, root `uid=0`.
+
+Observed hardware and results in three samples:
+- USB device `1-1` vendor `05e3`, `2-1` vendor `05e3` (USB hub); `1-1.3` vendor `32c2` (dmesg labels the downstream receiver 2.4G Wireless).
+- **No `0bda:8153` enumerated in 3/3 samples**, nor any other enumerated Realtek NIC. The address `2-1` now names hub 05e3, NOT RTL8153. USB paths are not stable identities.
+- Registered `/sys/bus/usb/drivers/r8152` contains bind/new_id/remove_id/uevent/unbind but NO bound interface entry; `dmesg` unequivocally contains `usbcore: registered new interface driver r8152`.
+- Root `ip link` and `/sys/class/net`: no Ethernet interface. `dumpsys ethernet`: tracker enabled, interface regex `(usb|eth)\d+`, no tracking interfaces. Wi-Fi `wlan0` has IPv4.
+
+**Boundary of conclusion:** `R8152_RUNTIME_REGISTERED=PASS`; `REALTEK_0BDA8153_USB_ENUMERATION=NOT_OBSERVED`; `RTL8153_DRIVER_BINDING=NOT_TESTABLE_YET`; `ETHERNET_INTERFACE=ABSENT`. This is NOT evidence that Realtek probe failed, because probe cannot occur until NIC is enumerated. Does not establish whether dongle was physically connected, whether USB hub has an unpowered/disconnected port, OTG USB-C negotiation issues, or an intermittent link.
+
+Next safe experiment: leave temporary kernel and Wi-Fi ADB running; ensure the RTL8153 dongle with RJ45 connector is actually connected and powered, preferably directly into tablet USB-C without intermediary hub where feasible. Capture VID and PID dynamically via root across multiple samples, not from hard-coded `2-1`; only after observing `0bda:8153` examine `driver` symlinks and `dmesg` for Realtek errors. No sysfs writes/bind/unbind, no kernel rebuild/flash. `FLASH_READY=false`.
