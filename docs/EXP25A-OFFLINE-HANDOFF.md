@@ -86,3 +86,13 @@ Esta validacao confirma Android operacional e identidade declarada, **nao** prov
 **Gate operacional ainda pendente:** o tablet esta com touchscreen sem resposta e o controle funcional depende exclusivamente de mouse receptor 2.4GHz via hub USB. Mudar a porta para fastboot por PC potencialmente interrompe o mouse e o ADB Wi-Fi; exigir contingencia de controle/recuperacao sem usar USB hub ou reboots ao vivo antes de autorizar ensaio `fastboot boot`. Recomendam-se apenas verificacoes read-only de `/proc/version`, status da bateria e topologia do receptor do mouse; nenhum `adb reboot bootloader`, `fastboot boot` ou flash nesta etapa.
 
 `FLASH_READY=false`.
+
+## ADB read-only: versao, bateria, receptor e fastboot do Windows
+
+Nova coleta feita no dispositivo operacional por ADB Wi-Fi: `/proc/version` retornou `Linux version 4.19.404R (runner@runnervm8k3b6) (Android (14054515, ... Clang 21.0.0, LLD 21.0.0) #1 SMP PREEMPT Mon Oct 19 00:15:52 UTC 2026`. Isso corresponde à identificação de compilação/teste anterior EXP24; **não** à EXP25A recém-gerada, que ainda não foi inicializada.
+
+`cat /proc/sys/kernel/osrelease` sem root retornou `Permission denied`. O `uname -r` da coleta precedente foi `5.10.404R`. A discrepância de apresentação versus `/proc/version` permanece; não inferir versão da árvore por apenas um deles.
+
+`dumpsys battery`: AC=false, USB powered=true, wireless=false, dock=false, status=2 (carregando), level=56%, capacity level=3. O comando `su -c 'cat /proc/bus/input/devices' | Select-String Mouse|Receiver|32c2` retornou **nenhuma linha**; isso não prova que o dongle não esteja conectado, pois nome pode ser genérico, receptor HID aparecer como teclado ou haver falha de leitura. `fastboot --version` no Windows: `37.0.1-15733141`.
+
+**Decisão:** parar antes de reboot/fastboot. Coletar passivamente nomes/handlers de todos os input devices e listagem USB (sem mudar hub) e exigir caminho de recuperação comprovado antes do teste físico. Preservar mouse 2,4GHz via hub. **`FLASH_READY=false`**.
