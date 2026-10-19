@@ -57,3 +57,21 @@ Linux version 4.19.404R (build-user@build-host) (Android (14054515, +pgo, +bolt,
 **GATE:** não repetir `fastboot boot`, não flash, não trocar slot, não resetar USB. Coletar somente informações read-only via ADB Wi-Fi: uptime, motivos de boot (`ro.boot.bootreason`, `sys.boot.reason`, `persist.sys.boot.reason`), `/proc/version`, `ro.boot.slot_suffix`, fingerprint do kernel por `su -c 'cat /proc/sys/kernel/osrelease'`, presença de `/sys/fs/pstore` (nomes, sem envio automático de dados sensíveis) e logs `dmesg` filtrados por `panic|watchdog|reboot|bootreason|NVT-ts|EXP25A_IRQ_RESTORE`. Se pstore existir, pedir apenas arquivos relevantes e discutir redação antes de compartilhar. **Não presumir kernel experimental ativo até comprovação independente.**
 
 `FASTBOOT_TRANSFER=PASS`; `ANDROID_BOOT=PASS_STOCK_KERNEL`; `EXP25A_RUNTIME=NOT_CONFIRMED`; `IRQ_COUNT_250=STOCK`; `FLASH_READY=false`.
+
+## Segundo teste: EXP25A realmente ativa no Android
+
+Usuario repetiu a passagem por fastboot no PC; `getvar product=pipa`, `current-slot=b`, `unlocked=yes`, `is-userspace=no` e um unico serial `6665d3e6`. O boot temporario do candidato EXP25A foi aceito (`Sending boot.img OKAY 0.692s`, `Booting OKAY 0.239s`, total 0.964s).
+
+Na primeira coleta imediata ADB Wi-Fi ainda nao estava disponivel; **ADB USB ja constava** em `adb devices -l`. Na segunda coleta, **ambos USB e Wi-Fi** estavam `device`. `DEVICE=pipa`, `SLOT=_b`, `BOOT_COMPLETED=1`, `EXP25A ANDROID BOOT: PASS`.
+
+**Identidade de runtime decisiva:**
+
+```text
+Linux version 4.19.404R (runner@runnervm8k3b6) (Android (14054515, +pgo, +bolt, +lto, +mlgo, based on r563880c) Clang 21.0.0, LLD 21.0.0) #1 SMP PREEMPT Mon Oct 19 02:32:14 UTC 2026
+```
+
+Este timestamp de compilacao e ambiente `runner` sao consistentes com CI EXP25A #39190015939, diferente do kernel persistente reportado na coleta anterior (`build-user@build-host` 23/08/2026). **Agora a EXP25A esta confirmada no Android pelo conjunto de evidencias de build e boot.** IRQ 521 `NVT-ts` com contador `203 0 0 0 0 0 0 0` no instante da coleta.
+
+**Limites:** IRQ acumulada 203 nao demonstra capacidade atual de toque nem restauraçao pos-suspend. No EXP24 a IRQ podia ficar em zero apos retomar, com falha do firmware CSOT. Proximo experimento deve ser read-only: durante tela ligada coletar contador IRQ antes e depois de 12s de toques fisicos; depois, caso seja seguro, apagar/reacender a tela manualmente e coletar mensagens `EXP25A_IRQ_RESTORE`, firmware e novo delta da IRQ. Preservar conexao de ADB Wi-Fi e mouse/hub; nenhuma mudanca em GPIO/SPI/USB/sistema de arquivos do tablet.
+
+**Atualização da decisão:** `FASTBOOT_BOOT=OKAY`, `ANDROID_BOOT=PASS`, `EXP25A_RUNTIME=CONFIRMED`, `NVT_IRQ_AT_SAMPLE=203`, `TOUCH_FUNCTIONAL=UNTESTED`, `CSOT_FW_RESUME=UNTESTED`, `FLASH_READY=false`. A primeira retomada ao kernel persistente no teste anterior segue com causa nao determinada.
