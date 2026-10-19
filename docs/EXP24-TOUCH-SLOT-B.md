@@ -75,3 +75,8 @@ Gerado `EXP25-pipa-touch-irq-confirmacao.ps1` (somente leitura, sem alterar tabl
 **Build experimental apenas de Image kernel** definido em `.github/workflows/exp25-touch-clang21-build.yml` (sem boot.img nem flash). GitHub Actions execucao [#39190015939](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39190015939), commit base `8e77fcb4cefb112a4258af36f9a9f855f333bb9b`. Na ultima consulta, job em andamento, aprovados checkout, teste EXP25A, teste EXP24, preflight EXP01, dependências; download Clang21 em andamento. **Nao afirmar Image compilada nem touchscreen corrigido** sem resultado de CI + boot temporario + novos logs.
 
 **Limitacao reconhecida:** fix IRQ, isoladamente, pode nao recuperar touchscreen enquanto 5/5 downloads de firmware CSOT apos resume continuarem com falha de reset state/CRC. Essa sequencia exige investigacao/patch separados EXP25B baseado em medidas. `FLASH_READY=false`, preservar mouse e hub e boot persistente do slot B.
+
+
+## EXP25A — CI SUCCESS / dispositivo ainda não testado
+
+Workflow [#39190015939](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/39190015939) completado com sucesso (15m55s). Image SHA-256 `2dac2dd05fe3cab8b167ea10bc632512c1508fa4d26db88d002837d0dc681e08`, build AOSP Clang 21. Artefato `pipa-exp25a-touch-irq-clang21-1`. Gates `EXP25A_HERMETIC_TESTS=PASS`, `EXP25A_NVT_IRQ_GATE=PASS`, `EXP24 CONFIG_GATE=PASS`, `EXP24_RTL8153_LINK_PASS`, `EXP25A_IMAGE_BUILT=YES` confirmados nos logs. **Isto confirma compilação, não recuperação de IRQ ou firmware em hardware.** Faltam empacotamento auditado de boot temporário, novo teste IRQ/touch e teste USB. [Handoff](EXP25A-CI-HANDOFF.md). `FLASH_READY=false`.
