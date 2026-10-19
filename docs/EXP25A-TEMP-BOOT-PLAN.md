@@ -25,3 +25,21 @@ Fontes: https://www.mi.com/global/support/faq/details/KA-557238/ e https://githu
 EXP25A-postboot-diagnostico.ps1, SHA256 8edc95b553c834a2f422a174c812eac49d0b87669e59a5f1e9044d2107f411a2, arquivado como anexo na conversa. Somente ADB Wi-Fi read-only; valida pipa, slot b, boot e NVT event8; coleta IRQ do NVT antes/depois de 12 segundos de toque físico e após transição de tela por botão Power efetuada manualmente, e filtra últimas 180 linhas NVT/firmware. Revisão estática OK; PowerShell Windows ainda não executado. Preserva USB/hub e partições.
 
 STATUS: OFFLINE_BUILD_AND_REPACK=PASS; READONLY_WIFI_PREFLIGHT=PASS; MOUSE_RECOVERY_GATE=PENDING; TEMP_BOOT=NOT_RUN; TOUCH_FIXED=UNPROVEN; FLASH_READY=false.
+
+## Primeira execução de fastboot boot EXP25A — OKAY
+
+Usuário realizou verificação de `Image` e candidato offline com hashes corretos. Entrou no bootloader por `adb -s <serial TLS Wi-Fi> reboot bootloader`. Em seguida, `fastboot devices` retornou **um único dispositivo** serial `6665d3e6`; `getvar product=pipa`, `current-slot=b`, `unlocked=yes`, `is-userspace=no`.
+
+Comando físico executado no PC: `fastboot -s 6665d3e6 boot C:\platform-tools\EXP25A-boot-prep\EXP25A-TOUCH-IRQ-NOT-FOR-FLASH.candidate.bin`.
+
+Saída literal:
+
+```text
+Sending 'boot.img' (31716 KB)                      OKAY [  0.687s]
+Booting                                            OKAY [  0.239s]
+Finished. Total time: 0.952s
+```
+
+Interpretação rigorosa: transferência Fastboot e comando de boot **aprovados**. `ANDROID_BOOT_COMPLETED=UNVERIFIED`, `ADB_WIFI_RECONNECTED=UNVERIFIED`, `NVT_IRQ_RECOVERY=UNTESTED`, `NOVATEK_CSOT_FW_RESUME=UNTESTED`, `USB_ETHERNET_POSTBOOT=UNTESTED`. Não confundir `Booting OKAY` com Android inicializado. O comando foi de boot temporário (não houve solicitação de flash), e kernel persistente deve permanecer intacto.
+
+Próxima leitura segura, **somente após Android acessível**: consultar `adb get-state`, `ro.product.device`, `ro.boot.slot_suffix`, `sys.boot_completed`, `/proc/version`, estado da IRQ NVT-ts `/proc/interrupts` e mensagens `EXP25A_IRQ_RESTORE` após suspensão/retomada **manual**; não forçar suspend/reset/USB por ADB. Atenção ao mouse via hub. `FLASH_READY=false`.
