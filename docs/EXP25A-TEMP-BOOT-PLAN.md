@@ -95,3 +95,29 @@ FLASH_READY=false
 **Interpretação:** incremento de 480 interrupções da NVT-ts IRQ 521 durante janela de 12s solicitando toques físicos (~40/s). Demonstra atividade de interrupção e diferencia-se de coleta prévia da EXP24 com delta zero após resume; não demonstra que houve eventos multitouch de `/dev/input/event8`, funcionalidade do Android, nem comprova a correção de firmware/IRQ após tela dormir. O script oferece Power off/on manual *opcional* e salva `NVT_IRQ_TOTAL_AFTER_WAKE` e as 180 últimas linhas filtradas de `dmesg` com `EXP25A_IRQ_RESTORE` e firmware. **O usuário ainda não compartilhou o relatório nem afirmou que usou o botão Power**, não presumir que fez resume.
 
 **Próximo gate:** obter conteúdo do relatório gerado pelo Windows (pelo menos `NVT_IRQ_TOTAL_AFTER_WAKE`, presença de `EXP25A_IRQ_RESTORE`, mensagens de download firmware e falha CRC); confirmar se o toque produz efeito na UI. Quando necessário, observar eventos brutos `getevent -lt /dev/input/event8` de forma somente leitura com operador disponível. Não reiniciar, não desconectar USB, não modificar SPI/GPIO, não fazer flash. `FLASH_READY=false`.
+
+## EXP25A: log de resume confirma IRQ RESTORE e firmware CSOT bem-sucedidos
+
+Usuário leu com PowerShell o relatório gerado pelo teste real: `C:\platform-tools\EXP25A-postboot-evidence\EXP25A-postboot-20261019-004121.txt`.
+
+```text
+NVT_IRQ_TOTAL_BEFORE=755
+NVT_IRQ_TOTAL_AFTER=1235
+NVT_IRQ_DELTA=480
+NVT_IRQ_TOTAL_AFTER_WAKE=2081
+[   12.160059] [NVT-ts] update_firmware_request 323: filename is novatek_nt36532_m82_fw_csot.bin
+[   12.265226] [NVT-ts] nvt_update_firmware 845: Update firmware success! <105141 us>
+[  339.211143] [NVT-ts] nvt_ts_resume 3808: start
+[  339.211147] [NVT-ts] update_firmware_request 323: filename is novatek_nt36532_m82_fw_csot.bin
+[  339.319124] [NVT-ts] nvt_update_firmware 845: Update firmware success! <107948 us>
+[  339.329421] [NVT-ts] nvt_irq_enable 220: enable=1, desc->depth=0
+[  339.329429] [NVT-ts] nvt_ts_resume 3846: EXP25A_IRQ_RESTORE db_wakeup=0x01 irq_enabled=1
+[  339.329433] [NVT-ts] nvt_ts_resume 3872: reload the game mode cmd
+[  339.372165] [NVT-ts] nvt_ts_resume 3878: end
+```
+
+**Resultado:** EXP25A `nvt_ts_resume` efetivamente executa a restauração da IRQ mesmo com `db_wakeup=0x01` (antes esta condição bloqueava). Firmware CSOT carregado com sucesso na sequência de `resume` (~108ms), sem indicação de CRC/reset-state failure no excerto filtrado; não generalizar para todos os ciclos sem logs completos. Após a coleta inicial delta de 480 IRQ em 12s, a contagem na coleta pós-wake chegou a 2081 (+846 sobre a medição anterior), mas não há linha de base/intervalo controlado pós-wake para atribuir esse incremento exclusivamente a toques pós-resume. Não há ainda prova de input events `ABS_MT_POSITION_X/Y` em `/dev/input/event8` nem confirmação do usuário de interação touch funcional na UI.
+
+**Gates atualizados:** `EXP25A_RUNTIME=CONFIRMED`, `IRQ_RESTORE_LOG=PASS`, `IRQ_DESC_DEPTH_0=PASS`, `CSOT_FW_RESUME_ONE_CYCLE=PASS`, `IRQ_DELTA_PREWAKE=+480`, `NVT_IRQ_AFTER_WAKE_TOTAL=2081`, `TOUCH_UI_FUNCTION=NOT_VERIFIED`, `POSTWAKE_TOUCH_DELTA=NOT_MEASURED`, `FLASH_READY=false`.
+
+Próximo: teste somente de leitura dos eventos multitouch `getevent -lt /dev/input/event8` durante toque físico; coletar delta IRQ delimitado após resume. Se não houver eventos ou efeito na UI, investigar protocolo/input antes de partir para EXP25B. Não reiniciar nem desconectar USB/hub ou fazer flash.
