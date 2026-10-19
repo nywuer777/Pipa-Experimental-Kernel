@@ -529,3 +529,17 @@ Observed hardware and results in three samples:
 **Boundary of conclusion:** `R8152_RUNTIME_REGISTERED=PASS`; `REALTEK_0BDA8153_USB_ENUMERATION=NOT_OBSERVED`; `RTL8153_DRIVER_BINDING=NOT_TESTABLE_YET`; `ETHERNET_INTERFACE=ABSENT`. This is NOT evidence that Realtek probe failed, because probe cannot occur until NIC is enumerated. Does not establish whether dongle was physically connected, whether USB hub has an unpowered/disconnected port, OTG USB-C negotiation issues, or an intermittent link.
 
 Next safe experiment: leave temporary kernel and Wi-Fi ADB running; ensure the RTL8153 dongle with RJ45 connector is actually connected and powered, preferably directly into tablet USB-C without intermediary hub where feasible. Capture VID and PID dynamically via root across multiple samples, not from hard-coded `2-1`; only after observing `0bda:8153` examine `driver` symlinks and `dmesg` for Realtek errors. No sysfs writes/bind/unbind, no kernel rebuild/flash. `FLASH_READY=false`.
+
+## EXP24 — coleta root: RTL8153 ausente no barramento, nao houve tentativa de probe
+
+Coleta via ADB Wi-Fi e `su -c` no Xiaomi Pad 6 usando o kernel EXP24 temporário, hora local de coleta `2026-10-18T22:26:32-03:00`. Evidência dos dois textos apresentados pelo usuário (conteúdo coincidente).
+
+**Provas positivas de kernel e root:** `/proc/version` mostra compilação `runner@runnervm8k3b6`, Clang21 / Linux `4.19.404R`. `su -c id` retornou `uid=0(root)`, contexto KernelSU. `dmesg` confirma `usbcore: registered new interface driver r8152` durante inicialização. `/sys/bus/usb/drivers/r8152` contém os atributos `bind`, `unbind`, `new_id`, `remove_id`, `uevent`, mas **nenhum dispositivo ou interface associada** naquele instante.
+
+**Topologia observada nas três amostras:** USB paths `1-1`, `1-1.3`, `2-1`, interfaces `1-1:1.0`, `1-1.3:1.0`, `1-1.3:1.1`, `2-1:1.0`. Os idVendor lidos foram `1-1=05e3`, `2-1=05e3` (possíveis hubs em buses USB 2/3) e `1-1.3=32c2` (periférico sem fio, conforme mensagens do kernel `2.4G Wireless`). **Nenhum `0bda`** foi visto, logo o Realtek RTL8153 (`0bda:8153`) não estava enumerado no período. O caminho `2-1` anteriormente ocupado pelo RTL8153 pode ter sido reutilizado pelo hub; nunca identificar hardware somente por caminho sysfs.
+
+**Redes:** `/sys/class/net` e `ip link` root mostram loopback, `wlan0`, interfaces Wi-Fi e interfaces virtuais; nenhuma Ethernet física `eth*` ou `usb*`. `ip -4 addr` mostra IPv4 somente no `wlan0`. `dumpsys ethernet`: serviço enabled, filtro `(usb|eth)\d+`, `Tracking interfaces` vazio.
+
+**Decisão causal:** o resultado NÃO prova falha de `rtl8152_probe`, nem regressão do driver; o VID/PID alvo simplesmente não foi capturado (0 de 3 amostras). `dmesg` traz o registro bem-sucedido do r8152, mas nenhuma linha de hotplug `0bda:8153` nesta coleta. Proximo gate: confirmar fisicamente o dongle RTL8153 conectado (um cabo RJ45 isolado nao substitui adaptador USB conectado), coletar `idVendor/idProduct/product` de TODOS os USB paths via root por vários instantes, localizando o alvo dinamicamente. Caso `0bda:8153` apareça: capturar interfaces e links `driver`, `ip link` com root e logs completos proximos da inserção. Se permanecer ausente, investigar topologia/conexão, cabo/OTG, alimentação, enumeração e hub, e nao mexer no `r8152`.
+
+**Segurança:** nenhuma escrita sysfs, bind/unbind, reinit USB, reboot, fastboot ou flash; `FLASH_READY=false`. Não copiar identificador serial presente em trechos extensos de kernel cmdline para a documentação pública.
