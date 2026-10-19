@@ -553,3 +553,24 @@ Na última coleta root foram encontrados os dispositivos USB `05e3` (dois caminh
 **Gate prioritário touchscreen, somente leitura, preservando EXP24 temporária e controle por mouse:** via ADB Wi-Fi coletar `/proc/bus/input/devices`, `getevent -pl`, mensagens dmesg filtradas por touch/input/I2C/panel/firmware e `/proc/interrupts` relevante. Após identificar um dispositivo touchscreen correto, realizar leitura controlada de eventos `getevent -lt /dev/input/eventN` enquanto o usuário toca a tela (e somente se o caminho for comprovadamente touchscreen). Se não há dispositivo de input, suspeitar da inicialização/firmware/DT; se existe mas não produz eventos, investigar hardware/IRQ/controlador; se produz EV_ABS, investigar Android input/overlays. Nenhuma dessas hipóteses está ainda demonstrada.
 
 **A/B:** slot `b` não é por si só causa demonstrada. Não trocar slot/ROM, não escrever nodes sysfs, não forçar bind/unbind, não reiniciar sem necessidade, pois `fastboot boot` EXP24 é temporário. Se posteriormente desejar isolar kernel, comparar com boot persistente E404 apenas após salvar logs e aceitar perder a sessão EXP24 temporária. FLASH_READY=false.
+
+## EXP24 — RTL8153 reconhecido, vinculado ao r8152 e Ethernet operacional no Android
+
+Coleta real no Xiaomi Pad 6 pipa com o kernel EXP24 em `fastboot boot` temporario, ADB Wi-Fi com KernelSU root; `2026-10-18T22:33` horario local, arquivo de evidencia do Windows `EXP24-rtl8153-root-binding-20261018-223315.txt` (logs privados, nao comitar sua integralidade porque dmesg inclui serial/MAC/endereco).
+
+### Gate USB + driver + Android: PASS
+
+- VID/PID **`0bda:8153`** presente no sysfs em **3/3 amostras**, em `2-1.1` atras de hub USB `05e3` na porta `2-1`; outras interfaces no hub sao perifero 2.4GHz `32c2`, utilizado para operar o dispositivo sem touchscreen funcional.
+- Configuracao USB ativa `1`, authorized `1`, speed `5000` Mb/s = USB SuperSpeed negociado, NAO throughput Ethernet medido. Interface correta **`2-1.1:1.0`**, e NAO as interfaces `:2.0/:2.1` do adaptador antes de passar pela selecao atual de configuracao. `modalias=usb:v0BDAp8153d31FDdc00dsc00dp00icFFiscFFip00in00`.
+- Symlink da interface `2-1.1:1.0/driver` aponta diretamente para `/sys/bus/usb/drivers/r8152`; a pasta do driver contem entrada de dispositivo `2-1.1:1.0`. **Probe e bind bem-sucedidos.**
+- `/sys/class/net` contem `eth0`; `ip link` root: `eth0 <BROADCAST,MULTICAST,UP,LOWER_UP>`, state `UP`, MTU 1500. IPv4 `192.168.1.106/24` em `eth0` via configuracao Android; WLAN `192.168.1.109/24` separada.
+- Android `dumpsys ethernet` registra `eth0` em EthernetNetworkFactory, `EthernetPort(eth0, ifindex=21)`, `up:true`, agente de rede e IpClient, IPv4, DNS e rota padrao via `192.168.1.254`. Isso confirma integracao da interface ao EthernetTracker e configuracao IP. Nao publicar MAC especifico.
+- Dmesg confirma `usbcore: registered new interface driver r8152`, `r8152 2-1.1:1.0 eth0: v1.09.9`, terminando com `r8152 2-1.1:1.0 eth0: carrier on`.
+
+**Limite de escopo:** nao houve teste de ping por eth0 com interface forcada, perda de pacotes, throughput, durabilidade ou recuperacao sob carga. `USB_ENUMERATION=PASS`; `R8152_BIND=PASS`; `ANDROID_ETHERNET_IP=PASS`; `LINK_CARRIER=ON`; `TRAFFIC_TEST=PENDING`; `LONG_TERM_STABILITY=PENDING`.
+
+### Issue aberta: erros de protocolo USB
+
+Dmesg registra diversas ocorrencias `r8152 2-1.1:1.0 eth0: Stop submitting intr, status -71` seguidas por novas mensagens `eth0: v1.09.9`; isso indica periodos transitorios de falha/interrupcao da transferencia URB USB e reinitializacao/reprobe aparente. `-71` e `-EPROTO` Linux; pode ser hub/energia/cabo/sinal/controlador, mas a causa nao foi isolada. **Nao rotular este evento como driver r8152 corrigido, nem exigir remocao do hub**, pois o hub e necesssario para mouse enquanto touchscreen nao responde. Sem alteracoes no kernel por tentativa e erro.
+
+**Proximo gate read-only e isolado:** amostrar contadores `eth0` (`rx_packets`, `tx_packets`, `rx_errors`, `tx_errors`, `carrier_changes`, se presentes), `ip route`, latencia/perda por `ping -I eth0` ao gateway local (nao usar rota Wi-Fi inadvertidamente), e dmesg filtrado depois. Manter kernel EXP24 temporario sem reboot, coletar touchscreen separadamente como issue independente. Nao fazer flash; `FLASH_READY=false`.
