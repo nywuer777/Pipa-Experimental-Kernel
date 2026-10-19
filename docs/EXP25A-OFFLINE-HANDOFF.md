@@ -96,3 +96,13 @@ Nova coleta feita no dispositivo operacional por ADB Wi-Fi: `/proc/version` reto
 `dumpsys battery`: AC=false, USB powered=true, wireless=false, dock=false, status=2 (carregando), level=56%, capacity level=3. O comando `su -c 'cat /proc/bus/input/devices' | Select-String Mouse|Receiver|32c2` retornou **nenhuma linha**; isso não prova que o dongle não esteja conectado, pois nome pode ser genérico, receptor HID aparecer como teclado ou haver falha de leitura. `fastboot --version` no Windows: `37.0.1-15733141`.
 
 **Decisão:** parar antes de reboot/fastboot. Coletar passivamente nomes/handlers de todos os input devices e listagem USB (sem mudar hub) e exigir caminho de recuperação comprovado antes do teste físico. Preservar mouse 2,4GHz via hub. **`FLASH_READY=false`**.
+
+## Nova coleta: osrelease root confirmado e mouse USB ausente da listagem de input
+
+O usuário executou leituras somente leitura por ADB Wi-Fi no tablet pipa, slot `_b`, ainda no kernel experimental EXP24. Resultado de `su -c 'cat /proc/sys/kernel/osrelease'` = **`4.19.404R`**, concordando com `/proc/version` e divergindo do retorno anterior de `uname -r` = `5.10.404R`. A causa da divergência permanece não determinada; não inferir adulteração sem evidência.
+
+Listagem filtrada de `su -c 'cat /proc/bus/input/devices'` exibiu: `xiaomi-touch event0`, `qpnp_pon event1`, `gpio-keys event2`, `xiaomi keyboard WakeUp event7`, `NVTCapacitiveTouchScreen event8`, `NVTCapacitivePen event9`, dispositivos `kona-mtp-snd-card` event3/4/5. Nenhum nome de `Mouse`, `Receiver` ou dispositivo adicional do receptor USB 2.4GHz apareceu. `dumpsys usb` filtrado por `32c2|0066|Mouse|Receiver|HID` só revelou `usb_charging=true` e `com.android.mtp.ReceiverActivity` (último pertence ao MTP, não ao receptor HID); **não houve prova de detecção do mouse USB no instante da coleta**.
+
+O sinal `usb_charging=true` não prova que o host OTG esteja ativo, nem identifica o hub. Possibilidades incluem receptor temporariamente ausente, USB host desativado, perda de enumeração ou formato de relatório incompleto. Não afirmar causa sem dados adicionais.
+
+**HARD GATE para qualquer boot:** confirmar se mouse 2.4GHz realmente está funcionando agora, e documentar capacidade de recuperação/controle do tablet caso ele não volte a funcionar depois de conectar o PC para entrar em fastboot. Mesmo sem aparecer nas listas de input, o usuário pode estar operando via outro mecanismo; não presumir falha física. Coletar somente leituras passivas de sysfs/dumpsys e não resetar controladores ou desligar host. Nenhuma autorização para `adb reboot bootloader`, `fastboot boot`, `fastboot flash`, mudança de slot ou energia USB. `FLASH_READY=false`.
