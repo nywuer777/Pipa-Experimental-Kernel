@@ -72,3 +72,28 @@ Próximo gate read-only enquanto o PC permanece conectado: ler individualmente a
 Fontes dos significados de Type-C para Linux v4.19: https://www.kernel.org/doc/html/v4.19/driver-api/usb/typec.html e https://kernel.googlesource.com/pub/scm/linux/kernel/git/cip/linux-cip/+/refs/tags/v4.19.97/Documentation/ABI/testing/sysfs-class-typec; unidades power_supply: https://www.kernel.org/doc/html/latest/power/power_supply_class.html.
 
 EXP26_FIX=NOT_STARTED; USB_PM_ROOT_CAUSE=UNDETERMINED; FLASH_READY=false.
+
+## EXP26.0B — Type-C sink/device 5V sem PD no parceiro, coleta em PC
+
+Coleta de usuario (EXP25A boot temporario, ligada ao PC diretamente via USB gadget ADB):
+
+```text
+/sys/class/typec/port0/data_role = host [device]
+/sys/class/typec/port0/power_role = source [sink]
+/sys/class/typec/port0/power_operation_mode = 3.0A
+/sys/class/typec/port0-partner/supports_usb_power_delivery = no
+/sys/class/power_supply/usb/online = 1
+/sys/class/power_supply/usb/present = 1
+/sys/class/power_supply/usb/voltage_now = 4916130
+/sys/class/power_supply/usb/real_type = USB
+/sys/class/power_supply/usb/typec_mode = Source attached (high current)
+orientation/current_now/usb_type = INDISPONIVEL
+```
+
+Segundo ABI do Linux Type-C, o papel ativo aparece entre colchetes: device (dados) e sink (energia). A classe Type-C reporta modo de corrente de 3.0A em USB Type-C (não equivale à corrente realmente consumida e não representa negociação Power Delivery); a propriedade do PARCEIRO USB-PD reportou no, e o modo do sistema não reporta usb_power_delivery. O atributo voltage_now normalmente é microvolts, cerca de 4,916 V no momento, coerente com 5 V nominal; não demonstra integridade elétrica durante desconexões. Real_type USB, present=1, online=1. Orientação e current_now indisponíveis não são falhas demonstradas.
+
+Esse baseline device/sink é esperado para Android conectado ao PC. Mesmo que 3.0A seja anunciado, não se deve inferir que o PC efetivamente fornece 3A; distinguir convenções do driver e limitações do sink. Não houve evidência de sobretensão ou evento de PD nesta foto. A alternância anterior do USB gadget e do estado charging/discharging continua sem causalidade comprovada; não alterar firmware, tensão, power_role ou data_role pelo sysfs.
+
+Fontes ABI: https://kernel.googlesource.com/pub/scm/linux/kernel/git/cip/linux-cip/+/refs/tags/v4.19.97/Documentation/ABI/testing/sysfs-class-typec e https://github.com/torvalds/linux/blob/master/Documentation/ABI/testing/sysfs-class-power.
+
+Próximo gate: leitura passiva de tipos/correntes máximas e estado gadget/PMIC, eventualmente amostragem temporal sem provocação, depois validar Android touch e ADB Wi-Fi como controle alternativo antes de mudar fisicamente PC para hub/RTL8153. EXP26_CODE_CHANGES=NONE; FLASH_READY=false.
