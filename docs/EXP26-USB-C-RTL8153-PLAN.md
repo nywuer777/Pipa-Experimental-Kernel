@@ -54,3 +54,21 @@ Mensagens dmesg USB gadget (uptime segundos) confirmam desconexoes com reconexoe
 Essa sequencia e compativel com perda transitoria do ADB USB observada na homologacao touchscreen, mas **nao prova** se a causa foi dispositivo gadget, cabo/porta, power, suspensao ou host Windows. Nao relacionar automaticamente aos problemas de deteccao em modo OTG/RTL8153, pois o tablet opera como dispositivo USB conectado a um PC no teste atual. `dmesg` de inicializacao mostra `usbcore: registered new interface driver r8152` em uptime 0.600676s; isso apenas prova driver registrado.
 
 **Proximo passo:** analisar vizinhanca temporal dos eventos gadget na mesma sessao, checar propriedades `sys.usb.*`, `dumpsys usb` e estados power_supply/Type-C e redes read-only. Nao reconectar cabos nem mudar para host/OTG ate documentar caminho alternativo de acesso confiavel. `FLASH_READY=false`.
+
+## EXP26.0 — Type-C partner, alimentação e contexto temporal USB gadget
+
+Coleta complementar do usuário no tablet ainda em EXP25A no boot c9c5a5af-c470-4e39-9adf-9f8f8c57e809: `/proc/uptime = 1731.92 12985.68`, `sys.usb.config=adb`, `sys.usb.state` vazio nesta leitura, `sys.usb.controller=a600000.dwc3`.
+
+USB Type-C registrou `/sys/class/typec/port0` e `port0-partner`, ambos relacionados ao PM8150B USB PD PHY em `.../qcom,pm8150b@2:qcom,usb-pdphy@1700/typec/port0`. A presença de partner prova partner reconhecido pela classe typec, mas NÃO confirma contrato PD, papéis específicos ou tensão. `dumpsys battery`: USB powered=true, battery level=99, status=2 (carregando), voltage=4416 (mV da bateria), Max charging voltage=4416980 (não confundir com tensão VBUS negociada).
+
+`/sys/class/power_supply` inclui battery, bms, usb, pc_port, main, dc, wireless, bq2597x-standalone e outros; paths disponíveis para leitura de status online/real_type/usb_type/voltage_now/current_now/PD/Type-C, sem escritas.
+
+Com root a listagem de `/sys/class/net` e `ip -o link show` confirmou apenas wlan0/1, p2p0, wifi-aware0, rmnet_ipa0, dummy0, lo, vti e tunnels; nenhum `eth0` ou `usb0`. Isto é esperado com tablet em modo USB gadget ligado ao computador, sem dongle Realtek presente. O erro anterior de `ip link show` foi privilégio, não falha de rede.
+
+Sequências significativas do `dmesg`: 297.534 `smblib_wireless_set_rx_sleep enable: 1`, 297.539 `USB_STATE=DISCONNECTED`, healthd muda de st=2 (charging) para st=3 (discharging) e st=4 (not charging), depois recupera st=2; 628.782 `smblib_wireless_set_rx_sleep enable: 1`, 628.784 `USB_STATE=DISCONNECTED`, healthd st=3, depois st=4, 631.570 `smblib_wireless_set_rx_sleep enable: 0`, 632.521 USB CONNECTED, 632.603 USB CONFIGURED. Eventos entre 626 e 628 incluem duas reenumeracoes rapidas. A coincidência temporal motiva investigação do subsistema PMIC/SMB5/USB-C, mas NÃO prova causalidade de alimentação, nem defeito PHY/PD/cabo.
+
+Próximo gate read-only enquanto o PC permanece conectado: ler individualmente atributos existentes sob `/sys/class/typec/port0/` (data_role, power_role, power_operation_mode, orientation), `port0-partner/supports_usb_power_delivery`, e `/sys/class/power_supply/usb/` (online, present, voltage_now, current_now, usb_type, real_type, typec_mode). Não escrever nestes atributos mesmo quando o kernel os exponha como R/W. Coletar no Android com root por ADB USB sem trocar cabo; de preferência identificar após outro evento espontâneo, sem provocar desconexão. Somente depois confirmar controle alternativo e ensaiar USB host + RTL8153.
+
+Fontes dos significados de Type-C para Linux v4.19: https://www.kernel.org/doc/html/v4.19/driver-api/usb/typec.html e https://kernel.googlesource.com/pub/scm/linux/kernel/git/cip/linux-cip/+/refs/tags/v4.19.97/Documentation/ABI/testing/sysfs-class-typec; unidades power_supply: https://www.kernel.org/doc/html/latest/power/power_supply_class.html.
+
+EXP26_FIX=NOT_STARTED; USB_PM_ROOT_CAUSE=UNDETERMINED; FLASH_READY=false.
