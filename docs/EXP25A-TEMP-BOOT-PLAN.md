@@ -138,3 +138,15 @@ Usuario revalidou hash do candidato (`EXP25A IMAGE: PASS`) e entrou no bootloade
 Fastboot boot temporal: Sending boot.img OKAY [0.683s]; Booting OKAY [0.238s]; Finished. Total time 0.942s.
 ADB USB apos boot: sys.boot_completed=1; /proc/version=Linux version 4.19.404R (runner@runnervm8k3b6) ... #1 SMP PREEMPT Mon Oct 19 02:32:14 UTC 2026.
 Estado: runtime EXP25A confirmado nesta sessao. Homologacao multiciclo 0/6; executar script ja validado de seis ciclos somente apos ADB Wi-Fi estar disponivel e plano de controle fisico pronto. Sem gravacao de particao. FLASH_READY=false.
+
+## 2026-10-24 — Homologacao multiciclo: 2 PASS, interrupcao ADB USB no terceiro
+
+Usuario executou EXP25A-resume-estabilidade-v1.ps1 por ADB USB serial 6665d3e6 com seis ciclos pretendidos. O script validou runtime EXP25A (pipa slot b, runner@runnervm8k3b6, #1 2026-10-19) e registrou boot_id c9c5a5af-c470-4e39-9adf-9f8f8c57e809. Baseline EXP25A_IRQ_RESTORE=1, firmware Update success=2.
+
+Ciclo 1: IRQ pre-sleep 51, after-wake 1699, restore_added=1, fw_success_added=1, touch delta=374, UI touch real=s, PASS.
+Ciclo 2: IRQ pre-sleep 2285, after-wake 2285, restore_added=1, fw_success_added=1, touch delta=453, UI touch real=s, PASS.
+Ciclo 3: IRQ pre-sleep 2745; apos o usuario operar Power para apagar e reacender, comando ADB pelo serial USB 6665d3e6 falhou apos quatro tentativas com adb.exe device not found, antes de verificar boot_id e novas IRQ ou firmware; teste abortou. Nao confundir com falha touchscreen; diferenciar USB gadget ou transport reset, cabo, reboot inesperado, reinicializacao kernel, outros. O script Invoke-Tablet tenta 4 vezes com 3 segundos de espera; transporte USB fixo, sem fallback Wi-Fi.
+
+Relatorio Windows: C:\platform-tools\EXP25A-stability-evidence\EXP25A-resume-20261024-203001.txt. Arquivo completo ainda nao revisado. Sessao de kernel EXP25A durante os dois primeiros ciclos confirmada. Gates STABILITY=2/6 PASS, CYCLE_3=INTERRUPTED_ADB_LOST, TOUCH_AFTER_CYCLE_3=UNKNOWN, FLASH_READY=false.
+
+Proximo passo estritamente read-only sem reiniciar/desconectar: adb devices -l, consultar ADB USB e Wi-Fi TLS separadamente; caso um transporte responda, coletar cat /proc/sys/kernel/random/boot_id para comparar com baseline c9c5a5af-c470-4e39-9adf-9f8f8c57e809, /proc/version, uptime, sys.boot_completed, sys.usb.state, sys.boot.reason. Se boot_id igual, tablet nao reiniciou, e confirmar restauro USB. Se mudou, registrar reboot e nao continuar estabilidade da mesma sessao. So apos diagnostico adaptar coleta multiciclo para canal Wi-Fi se valido, sem mudar porta ou reiniciar. Nenhum flash, erase, set_active ou alteracao USB. FLASH_READY=false.
