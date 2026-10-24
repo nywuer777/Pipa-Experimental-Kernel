@@ -33,3 +33,24 @@ Enquanto o ADB USB ainda estiver disponivel, colher `adb devices -l`, `getprop r
 ## Estados
 
 TOUCH_FUNCTIONAL=PASS; TOUCH_SIX_CYCLE_STABILITY=INCOMPLETE; USB_ETHERNET_DRIVER_CAPABILITY=DEMONSTRATED_EXP24; USB_HOTPLUG_RELIABILITY=NOT_CERTIFIED; USB_TRANSPORT_SUSPEND=INTERMITTENT; EXP26_CODE_CHANGES=NONE; FLASH_READY=false.
+
+## EXP26.0 — Coleta USB por ADB no kernel EXP25A
+
+Leitura read-only reportada pelo usuario no Android EXP25A: `/proc/version` indica `runner@runnervm8k3b6`, Clang 21, kernel `4.19.404R`, compilado 2026-10-19 02:32:14 UTC; boot ID `c9c5a5af-c470-4e39-9adf-9f8f8c57e809` permanece igual ao da homologacao touch. ADB USB serial `6665d3e6` operacional no momento da coleta.
+
+`/sys/bus/usb/devices`: `total 0`; USB host não apresentou perifericos externos. `/sys/bus/usb/drivers` inclui `r8152`, `cdc_ether`, `cdc_ncm`, `asix`, `ax88179_178a`, `usbhid`, `hub` e outros. Isso atesta registro de drivers, nao deteccao/binding do RTL8153. `dumpsys usb` retornou `connected=true`, `configured=true`, `host_connected=false` para estado de dispositivo Android ligado a PC, sem prova de host/OTG.
+
+`ip link show` sem root falhou `request send failed: Permission denied`; essa falha de coleta nao constitui falha de rede. Consultar `su -c ip ...` e/ou `/sys/class/net` read-only.
+
+Mensagens dmesg USB gadget (uptime segundos) confirmam desconexoes com reconexoes do USB gadget Android:
+
+```text
+297.539515 DISCONNECTED; 299.778273 CONNECTED; 299.861334 CONFIGURED
+626.788655 DISCONNECTED; 626.871673 CONNECTED; 626.892553 CONFIGURED
+627.545364 DISCONNECTED; 627.840578 CONNECTED; 627.922545 CONFIGURED
+628.784875 DISCONNECTED; 632.521769 CONNECTED; 632.603088 CONFIGURED
+```
+
+Essa sequencia e compativel com perda transitoria do ADB USB observada na homologacao touchscreen, mas **nao prova** se a causa foi dispositivo gadget, cabo/porta, power, suspensao ou host Windows. Nao relacionar automaticamente aos problemas de deteccao em modo OTG/RTL8153, pois o tablet opera como dispositivo USB conectado a um PC no teste atual. `dmesg` de inicializacao mostra `usbcore: registered new interface driver r8152` em uptime 0.600676s; isso apenas prova driver registrado.
+
+**Proximo passo:** analisar vizinhanca temporal dos eventos gadget na mesma sessao, checar propriedades `sys.usb.*`, `dumpsys usb` e estados power_supply/Type-C e redes read-only. Nao reconectar cabos nem mudar para host/OTG ate documentar caminho alternativo de acesso confiavel. `FLASH_READY=false`.
