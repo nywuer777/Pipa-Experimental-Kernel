@@ -121,3 +121,13 @@ NVT_IRQ_TOTAL_AFTER_WAKE=2081
 **Gates atualizados:** `EXP25A_RUNTIME=CONFIRMED`, `IRQ_RESTORE_LOG=PASS`, `IRQ_DESC_DEPTH_0=PASS`, `CSOT_FW_RESUME_ONE_CYCLE=PASS`, `IRQ_DELTA_PREWAKE=+480`, `NVT_IRQ_AFTER_WAKE_TOTAL=2081`, `TOUCH_UI_FUNCTION=NOT_VERIFIED`, `POSTWAKE_TOUCH_DELTA=NOT_MEASURED`, `FLASH_READY=false`.
 
 Próximo: teste somente de leitura dos eventos multitouch `getevent -lt /dev/input/event8` durante toque físico; coletar delta IRQ delimitado após resume. Se não houver eventos ou efeito na UI, investigar protocolo/input antes de partir para EXP25B. Não reiniciar nem desconectar USB/hub ou fazer flash.
+
+## 2026-10-24 — Homologação seis ciclos interrompida pelo gate de identidade
+
+O usuário verificou SHA-256 do script `EXP25A-resume-estabilidade-v1.ps1` (`13e42d8de9568e7d65ca3d8077e9e443ce0907c141140d084dbe29050601a008`) e parse no Windows; `EXP25A STABILITY SCRIPT: PASS`. Tentou executar `-Cycles 6 -TouchSeconds 8`.
+
+O script gravou relatório `C:\platform-tools\EXP25A-stability-evidence\EXP25A-resume-20261024-202453.txt` e abortou antes dos ciclos: `TEST_STOPPED_ERROR=Kernel EXP25A desta homologacao NAO confirmado`, pois `/proc/version` retornou `Linux version 4.19.404R (build-user@build-host) ... #14 SMP PREEMPT Sun Aug 23 09:16:08 UTC 2026`, não o `runner@runnervm8k3b6 ... Mon Oct 19 02:32:14 UTC 2026` documentado na sessão EXP25A.
+
+**Interpretação**: teste de estabilidade **0/6**, nenhuma falha de resume observada; apenas gate de identidade protegeu contra atribuir resultados do kernel persistente à EXP25A. Provável reboot intermediário por transcorrerem dias desde o teste com fastboot boot temporário, mas não há prova do motivo. Não considerar regressão da EXP25A. O script declara que não alterou kernel, USB ou partições; `FLASH_READY=false`.
+
+Próximo passo apenas quando o usuário estiver presencialmente preparado com mouse/hub e retorno físico de contingência: conferir SHA do candidato e estado ADB, USB fastboot, product=pipa/slot=b/unlocked=yes/is-userspace=no, executar apenas `fastboot boot` em RAM e reconfirmar `/proc/version` antes de repetir seis ciclos. Sem flash, erase, set_active, reset USB nem reinicializações automatizadas da fase de estabilidade.
