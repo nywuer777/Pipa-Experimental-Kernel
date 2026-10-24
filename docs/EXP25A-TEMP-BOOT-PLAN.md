@@ -150,3 +150,13 @@ Ciclo 3: IRQ pre-sleep 2745; apos o usuario operar Power para apagar e reacender
 Relatorio Windows: C:\platform-tools\EXP25A-stability-evidence\EXP25A-resume-20261024-203001.txt. Arquivo completo ainda nao revisado. Sessao de kernel EXP25A durante os dois primeiros ciclos confirmada. Gates STABILITY=2/6 PASS, CYCLE_3=INTERRUPTED_ADB_LOST, TOUCH_AFTER_CYCLE_3=UNKNOWN, FLASH_READY=false.
 
 Proximo passo estritamente read-only sem reiniciar/desconectar: adb devices -l, consultar ADB USB e Wi-Fi TLS separadamente; caso um transporte responda, coletar cat /proc/sys/kernel/random/boot_id para comparar com baseline c9c5a5af-c470-4e39-9adf-9f8f8c57e809, /proc/version, uptime, sys.boot_completed, sys.usb.state, sys.boot.reason. Se boot_id igual, tablet nao reiniciou, e confirmar restauro USB. Se mudou, registrar reboot e nao continuar estabilidade da mesma sessao. So apos diagnostico adaptar coleta multiciclo para canal Wi-Fi se valido, sem mudar porta ou reiniciar. Nenhum flash, erase, set_active ou alteracao USB. FLASH_READY=false.
+
+## 2026-10-24 — Mesmo boot apos perda de ADB, script V2
+
+Depois da interrupcao do ciclo 3, usuario coletou ADB read-only sem desconectar USB: USB serial 6665d3e6 em estado device; Wi-Fi TLS indisponivel. /proc/sys/kernel/random/boot_id=c9c5a5af-c470-4e39-9adf-9f8f8c57e809, exatamente igual ao baseline da homologacao. /proc/version manteve EXP25A runner@runnervm8k3b6, compilacao 2026-10-19 02:32:14 UTC. /proc/uptime=411.36 2884.09; sys.usb.state vazio, sys.boot.reason=bootloader, boot_completed=1.
+
+Conclusao: kernel nao reiniciou no intervalo; desconexao do ADB USB foi transitoria e o transporte recuperou. Causa ainda nao isolada (USB gadget, suspensao, cabo, transporte, etc.). Nao interpretar o terceiro ciclo como falha de touchscreen. Gate de estabilidade concluido somente 2/6 PASS; ciclo 3 interrompido sem verificar.
+
+Gerado em conversa o script local EXP25A-resume-estabilidade-v2.ps1 (8.025 bytes), SHA256 d3bc193d92844992e264670d4a6a02332f7ea3b067b429474569e1fa67166196, derivado diretamente de V1. Alteracoes: aguardar ate aproximadamente 90 segundos para retorno de ADB USB, registrar tentativas e recuperacao, opcional ExpectedBootId para bloquear reboot intermediario, revalidar boot_id apos toques, reiniciar contagem de seis ciclos em nova rodada; sem operacoes de escrita no dispositivo. Auditoria estatica read-only OK; parser Windows precisa ser validado pelo usuario; nao foi executado em hardware.
+
+Proxima etapa: com EXP25A temporaria ativa e USB reconectado, verificar hash+parse em Windows e executar V2 com -Serial 6665d3e6 -ExpectedBootId c9c5a5af-c470-4e39-9adf-9f8f8c57e809 -ReconnectSeconds 90 -Cycles 6 -TouchSeconds 8. Evitar reboot/fastboot/desconexao. FLASH_READY=false.
