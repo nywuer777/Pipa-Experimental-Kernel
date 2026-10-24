@@ -131,3 +131,10 @@ O script gravou relatório `C:\platform-tools\EXP25A-stability-evidence\EXP25A-r
 **Interpretação**: teste de estabilidade **0/6**, nenhuma falha de resume observada; apenas gate de identidade protegeu contra atribuir resultados do kernel persistente à EXP25A. Provável reboot intermediário por transcorrerem dias desde o teste com fastboot boot temporário, mas não há prova do motivo. Não considerar regressão da EXP25A. O script declara que não alterou kernel, USB ou partições; `FLASH_READY=false`.
 
 Próximo passo apenas quando o usuário estiver presencialmente preparado com mouse/hub e retorno físico de contingência: conferir SHA do candidato e estado ADB, USB fastboot, product=pipa/slot=b/unlocked=yes/is-userspace=no, executar apenas `fastboot boot` em RAM e reconfirmar `/proc/version` antes de repetir seis ciclos. Sem flash, erase, set_active, reset USB nem reinicializações automatizadas da fase de estabilidade.
+
+## 2026-10-24 — EXP25A reativada para homologacao
+
+Usuario revalidou hash do candidato (`EXP25A IMAGE: PASS`) e entrou no bootloader: unico serial 6665d3e6; product=pipa, slot=b, unlocked=yes, is-userspace=no.
+Fastboot boot temporal: Sending boot.img OKAY [0.683s]; Booting OKAY [0.238s]; Finished. Total time 0.942s.
+ADB USB apos boot: sys.boot_completed=1; /proc/version=Linux version 4.19.404R (runner@runnervm8k3b6) ... #1 SMP PREEMPT Mon Oct 19 02:32:14 UTC 2026.
+Estado: runtime EXP25A confirmado nesta sessao. Homologacao multiciclo 0/6; executar script ja validado de seis ciclos somente apos ADB Wi-Fi estar disponivel e plano de controle fisico pronto. Sem gravacao de particao. FLASH_READY=false.
