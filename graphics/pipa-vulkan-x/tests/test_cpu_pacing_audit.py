@@ -39,12 +39,12 @@ for token in (
     "final boolean alignWithDisplay=syncDisplay.isChecked();",
     "stressHold144.setOnClickListener(",
     "stressFg144.setOnClickListener(",
-    "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius);",
+    "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,scene3d);",
     "copyReport.setOnClickListener(v->",
     "ClipboardManager clipboard=",
 ): assert token in ui,token
 assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
-assert "versionCode 311" in gradle and "29.21-lab" in gradle
+assert "versionCode 312" in gradle and "29.22-lab" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.
