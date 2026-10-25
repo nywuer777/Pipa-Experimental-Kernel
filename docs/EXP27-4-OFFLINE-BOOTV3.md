@@ -35,3 +35,16 @@ Saídas locais: **EXP27.4-RTL8153-NOT-FOR-FLASH.candidate.bin** e **EXP27.4-offl
 A extensão candidate.bin e o rótulo NOT-FOR-FLASH são avisos operacionais, não proteção física contra gravação. Não executar fastboot boot, flash, erase, set_active, reboot, rebind USB ou mudanças de alimentação. Nenhuma alteração do Xiaomi pipa ou da EXP25A ocorreu neste ciclo.
 
 **EXP27_4_SYNTHETIC_AOSP=PASS; EXP27_4_CI_IMAGE_PROVENANCE=PASS; EXP27_4_REAL_WINDOWS_REPACK=PENDING; RECOVERY_VERIFIED=false; TEMP_BOOT_AUTHORIZED=false; FLASH_READY=false.**
+
+
+## Homologação real no Windows — auditoria local 11/11 PASS
+
+**Evidência fornecida pelo operador, Windows PowerShell local:** o controle compacto stock em `C:\platform-tools\pipa_preflight\boot_b-stock-compact-control.img` foi encontrado e conferido por `Get-FileHash`, SHA256 `202aaaf67fe5c0a963965c4e29f67866b509916e0bdff15dde38ef55b3d321e7`. Os arquivos `exp27-4-build-offline.py` e `pipa-exp27-r8152-v11011-clang21-3.zip` foram detectados no PC e `py -3 --version` respondeu Python 3.15.0.
+
+O usuário executou materialmente o empacotador offline com o controle stock e ZIP EXP27.1, obtendo `EXP27.4_RESULT=OFFLINE_CANDIDATE_CREATED_UNTESTED`, candidato local `C:\platform-tools\EXP27.4-boot-prep\EXP27.4-RTL8153-NOT-FOR-FLASH.candidate.bin` com **32.411.648 bytes**, **SHA256 `df9eb41441770035849e95a6e54ccc110357d5c171a06758cc2df60a192a01d7`** e JSON `EXP27.4-offline-audit.json`.
+
+Na segunda execução independente, PowerShell releu o candidato via `Get-FileHash`, tamanho de arquivo e JSON gerado, e mostrou **11/11 PASS**: SHA256, tamanho, hash do JSON, valor de resultado, hash da Image EXP27.1, flags `ramdisk_identical`, `cmdline_identical`, `header_other_bytes_identical`, `device_partitions_modified=false`, `boot_tested=false` e `flash_ready=false`. Saída final `EXP27.4 AUDITORIA LOCAL: PASS`. Note que a conferência de ramdisk/cmdline é **validação do relatório produzido pelo empacotador**, não uma segunda desmontagem independente do boot resultante. O hash do candidato foi relido independentemente do arquivo salvo.
+
+**Limites:** a evidência de saída foi fornecida pelo usuário; os bytes privados do candidato/controle não foram enviados ao GitHub nem reinspecionados aqui. Não houve boot EXP27.1, teste RTL8153 em hardware ou ensaio de falha/rollback. Não confundir `OFFLINE_CANDIDATE_CREATED_UNTESTED` com autorização de boot ou flash. **`EXP27_4_REAL_WINDOWS_REPACK=PASS`; `EXP27_4_LOCAL_AUDIT=11/11 PASS`; `RECOVERY_VERIFIED=false`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`.**
+
+**Próximo gate EXP27.5:** preservar EXP25A e a alimentação USB-C/PD funcional; realizar somente planejamento e inventário read-only do caminho de controle e recuperação antes de qualquer troca do hub/USB-C, reboot ou fastboot. A prova EXP18.3 de retorno normal fastboot→Android não garante recuperação se o touchscreen ou kernel falharem.
