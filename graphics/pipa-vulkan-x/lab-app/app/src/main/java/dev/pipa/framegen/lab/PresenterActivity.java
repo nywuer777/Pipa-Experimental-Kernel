@@ -57,7 +57,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("Teste 2x usa quadros únicos produzidos em Vulkan Compute (cena própria); controles antigos mantêm A/B estático. "
+        root.addView(text("Teste 2x usa quadros únicos em Vulkan Compute e apresenta no próprio VkSwapchainKHR; controles antigos mantêm A/B estático. "
             +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
