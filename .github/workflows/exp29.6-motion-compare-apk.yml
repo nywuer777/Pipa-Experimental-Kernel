@@ -1,0 +1,90 @@
+name: Pipa EXP29.6 - Motion Fast/Legacy GPU Benchmark APK (NO FLASH)
+
+on:
+  push:
+    branches: [main, exp29.6-opt-motion-profile]
+    paths:
+      - "graphics/pipa-vulkan-x/**"
+      - ".github/workflows/exp29.6-motion-compare-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipa-exp29-6-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  lab-android-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SPIR-V toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y glslang-tools spirv-tools
+          mkdir -p graphics/pipa-vulkan-x/lab-app/app/src/main/assets
+          for input in graphics/pipa-vulkan-x/shaders/*.comp; do
+            output="graphics/pipa-vulkan-x/lab-app/app/src/main/assets/$(basename "$input").spv"
+            glslangValidator -V --target-env vulkan1.1 -S comp "$input" -o "$output"
+            spirv-val --target-env vulkan1.1 "$output"
+          done
+          python3 graphics/pipa-vulkan-x/tests/test_vk_contract.py
+          python3 graphics/pipa-vulkan-x/tests/test_lab_contract.py
+          python3 graphics/pipa-vulkan-x/tests/test_gpu_benchmark_contract.py
+          sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.6-shader-sha256.txt
+
+      - name: Android SDK setup
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install pinned Android SDK, NDK and CMake
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          test -f "$ANDROID_HOME/ndk/27.2.12479018/build/cmake/android.toolchain.cmake"
+
+      - name: Setup Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Generate portable Gradle wrapper for source artifact
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app wrapper --gradle-version 8.13
+
+      - name: Assemble standalone experimental lab APK
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app :app:assembleDebug 2>&1 | tee exp29.6-gradle-build.log
+          APK="graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          sha256sum "$APK" | tee exp29.6-apk-sha256.txt
+          echo "EXP29_6_APK_SPLIT_GPU_TIMESTAMPS_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.6-status.txt
+          echo "NO_KERNEL_FLASH=true" | tee -a exp29.6-status.txt
+
+      - name: Publish APK and build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp29-6-vulkan-lab-${{ github.run_number }}
+          path: |
+            graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk
+            graphics/pipa-vulkan-x/lab-app/gradlew
+            graphics/pipa-vulkan-x/lab-app/gradlew.bat
+            graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.jar
+            graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.properties
+            graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv
+            exp29.6-shader-sha256.txt
+            exp29.6-apk-sha256.txt
+            exp29.6-gradle-build.log
+            exp29.6-status.txt
+          if-no-files-found: warn
+          retention-days: 14
