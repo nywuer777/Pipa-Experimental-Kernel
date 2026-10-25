@@ -120,6 +120,29 @@ public final class MainActivity extends Activity {
             return out.toByteArray();
         }
     }
+    private static String accuracy(int[] gpu) {
+        // Known ideal midpoint: frame B is frame A shifted exactly +2 px.
+        long gpuError=0, naiveError=0, samples=0;
+        for(int y=20;y<H-20;y++)for(int x=20;x<W-20;x++) {
+            int index=y*W+x;
+            int want=sample(x-1,y);
+            int past=PREVIOUS[index],now=CURRENT[index];
+            for(int shift:new int[]{0,8,16}) {
+                int expected=(want>>>shift)&255;
+                int actual=(gpu[index]>>>shift)&255;
+                int naive=(((past>>>shift)&255)+((now>>>shift)&255)+1)/2;
+                gpuError+=Math.abs(actual-expected);
+                naiveError+=Math.abs(naive-expected);
+                samples++;
+            }
+        }
+        double maeGpu=gpuError/(double)Math.max(samples,1);
+        double maeNaive=naiveError/(double)Math.max(samples,1);
+        return String.format(Locale.US,
+          "Erro medio vs. frame ideal: GPU=%.2f / blend simples=%.2f (menor e melhor).",
+          maeGpu,maeNaive);
+    }
+
     private void runTest() {
         run.setEnabled(false);
         status.setText("Preparando recursos Vulkan e executando shader...");
@@ -131,12 +154,13 @@ public final class MainActivity extends Activity {
                 int[] pixels=nativeGenerate(PREVIOUS,CURRENT,W,H,motion,interp);
                 double totalMs=(SystemClock.elapsedRealtimeNanos()-start)/1000000.0;
                 String report=nativeReport();
+                final String score=pixels!=null && pixels.length==W*H ? accuracy(pixels) : "";
                 runOnUiThread(()->{
                     if(pixels!=null && pixels.length==W*H) {
                         result.setImageBitmap(asBitmap(pixels));
                         status.setText("GPU: execução concluída. "+report+
                             "\nTempo total JNI+Vulkan: "+String.format(Locale.US,"%.2f ms",totalMs)+
-                            ". Não implica ganho de FPS na apresentação.");
+                            ". "+score+" Não implica ganho de FPS na apresentação.");
                     } else {
                         status.setText("Falha no teste: "+report);
                     }
