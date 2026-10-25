@@ -26,16 +26,16 @@ for token in (
     "p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()",
 ): assert token in native,token
 for token in (
-    "EXP29.22 - 3D ASPECT FIT",
-    "boolean alignWithDisplay, int motionRadius, boolean fit3dAspect);",
-    "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,scene3d);",
+    "EXP29.23 - WSI ORIENTATION",
+    "boolean alignWithDisplay, int motionRadius, boolean fit3dAspect,",
+    "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "scene3dHold.setOnClickListener(",
     "scene3dFg.setOnClickListener(",
     "copyReport.setOnClickListener(",
     "fastMotion.setChecked(false);",
 ): assert token in java,token
-assert "versionCode 312" in gradle
-assert "29.22-lab" in gradle
+assert "versionCode 313" in gradle
+assert "29.23-lab" in gradle
 # Reference algebra for source 1280x720; FIT rect always fits and
 # keeps a source-equivalent aspect ratio to within pixel rounding.
 for w,h in ((1280,720),(2844,790),(2048,1280),(1920,1080),(790,2844),(512,512)):
