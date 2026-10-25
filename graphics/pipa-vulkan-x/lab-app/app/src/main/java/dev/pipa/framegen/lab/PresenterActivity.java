@@ -23,7 +23,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     static { System.loadLibrary("pipa_lab"); }
     private native String nativePresent(Surface surface, byte[] motion, byte[] warp,
                                         byte[] scene, int targetHz, int frames, boolean continuous, boolean holdInsteadOfFG,
-                                        boolean alignWithDisplay, int motionRadius);
+                                        boolean alignWithDisplay, int motionRadius, boolean fit3dAspect);
     private native void nativeStop();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile boolean validSurface = false;
@@ -39,10 +39,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.21 - 3D OCCLUSION", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.22 - 3D ASPECT FIT", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Vulkan FIFO 720p | perspectiva 3D | profundidade, oclusao, HUD",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | 3D 16:9 sem distorcao | Motion/Warp GPU",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",12,0xffeeeeee);
         root.addView(status);
         LinearLayout legacyControls=new LinearLayout(this);
@@ -120,7 +120,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.21: camera perspectiva, esferas em profundidades distintas, oclusao e HUD fixo. Renderizacao 3D analitica via Vulkan Compute, nao e jogo externo. Compare HOLD e FrameGen com mesmo raio e SYNC. Todos os modos via VkSwapchainKHR; chamadas vkQueuePresentKHR não provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
+        root.addView(text("EXP29.22: renderizacao 3D preserva proporcao 16:9, com barras quando necessario; camera perspectiva, esferas em profundidades distintas, oclusao e HUD fixo. Renderizacao 3D analitica via Vulkan Compute, nao e jogo externo. Compare HOLD e FrameGen com mesmo raio e SYNC. Todos os modos via VkSwapchainKHR; chamadas vkQueuePresentKHR não provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));
@@ -140,7 +140,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         copyReport.setOnClickListener(v->{
             ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
             if(clipboard!=null)clipboard.setPrimaryClip(
-                ClipData.newPlainText("Pipa EXP29.21 Vulkan Timing",status.getText()));
+                ClipData.newPlainText("Pipa EXP29.22 Vulkan Timing",status.getText()));
         });
         toggle(true);
     }
@@ -224,7 +224,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                     v2?"pipa_scene_v2.comp.spv":
                     diagnostic?"pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"):null;
                 result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,
-                                     continuous,holdInsteadOfFG,alignWithDisplay,motionRadius);
+                                     continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,scene3d);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
             }
