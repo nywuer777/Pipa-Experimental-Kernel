@@ -14,7 +14,7 @@ for entry in ("nativeGenerate","nativeReport"):
     assert f"Java_dev_pipa_framegen_lab_MainActivity_{entry}" in native,entry
 for shader in ("pipa_motion.comp.spv","pipa_interpolate.comp.spv"):
     assert shader in java
-for token in ("pipa_framegen_vk_create(", "pipa_framegen_vk_record_profiled(",
+for token in ("pipa_framegen_vk_create_ex(", "pipa_framegen_vk_record_profiled(",
               "vkCmdCopyBufferToImage(", "vkCmdCopyImageToBuffer(",
               "VK_PIPELINE_STAGE_HOST_BIT", "vkQueueSubmit(",
               "vkWaitForFences(", "vkMapMemory("):
