@@ -66,7 +66,7 @@ void main() {
         ivec2 offset=center+ivec2(dx,dy);
         if(any(greaterThan(abs(offset),ivec2(radius)))) continue;
         float score=tileCost(origin,end,offset);
-        int length2=dot(offset,offset);
+        int length2=offset.x*offset.x+offset.y*offset.y;
         if(score<best || (score==best && length2<bestLength2)) {
             best=score;
             bestLength2=length2;
