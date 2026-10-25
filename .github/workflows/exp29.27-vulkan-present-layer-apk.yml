@@ -7,6 +7,11 @@ on:
     paths:
       - "graphics/pipa-vulkan-x/**"
       - ".github/workflows/exp29.27-vulkan-present-layer-apk.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "graphics/pipa-vulkan-x/**"
+      - ".github/workflows/exp29.27-vulkan-present-layer-apk.yml"
   workflow_dispatch:
 
 permissions:
