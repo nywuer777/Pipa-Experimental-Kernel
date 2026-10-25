@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 #define CHECK(expr) do { if (!(expr)) { \
-  std::fprintf(stderr, "FAIL %s:%d: %s\\n", __FILE__, __LINE__, #expr); \
+  std::fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #expr); \
   std::exit(1); \
 } } while (0)
 
