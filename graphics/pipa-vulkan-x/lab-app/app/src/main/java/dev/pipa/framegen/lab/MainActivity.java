@@ -45,7 +45,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.23", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.24", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
