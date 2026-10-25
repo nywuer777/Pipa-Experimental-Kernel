@@ -19,7 +19,7 @@ O CI comparou uma reconstrução sintética produzida por nosso algoritmo com o 
 
 ## Executar no Windows sem acesso ao tablet
 
-Salvar tools/exp27-4-build-offline.py na pasta C:\platform-tools. Baixar e manter no Downloads o artefato original do Actions EXP27.1. O script faz verificações SHA-256 antes de produzir candidato. Ele recusa a existência prévia da pasta de saída.
+Baixar o pacote de ferramentas EXP27.4 (artifact pipa-exp27-4-windows-offline-tools-2, run 40154752210, ID 12584186903): https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40154752210/artifacts/12584186903 . O ZIP contém o código em tools/exp27-4-build-offline.py, testes e documentação (nenhum backup privado e nenhum candidato real). Extrair o script para C:\platform-tools\exp27-4-build-offline.py ou ajustar o caminho do script no comando abaixo. Baixar também e manter no Downloads o ZIP original do Actions EXP27.1, artifact pipa-exp27-r8152-v11011-clang21-3. O script recusa a existência prévia da pasta de saída.
 
 ~~~powershell
 Get-FileHash "C:\platform-tools\pipa_preflight\boot_b-stock-compact-control.img" -Algorithm SHA256
