@@ -9,15 +9,21 @@ expected={
     "pipa_motion_fast.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
     "pipa_motion_parallel.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
     "pipa_motion_sparse.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
+    "pipa_motion_sparse32.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
     "pipa_interpolate.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","readonly"),3:("rgba8","writeonly")},
     "pipa_interpolate_adaptive.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","readonly"),3:("rgba8","writeonly")},
+    "pipa_interpolate_tiled.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","readonly"),3:("rgba8","writeonly")},
 }
 for name, bindings in expected.items():
     source=(root/"shaders"/name).read_text()
     pattern=r"layout\(set=0,\s*binding=(\d+),\s*(\w+)\)\s+uniform\s+(readonly|writeonly)\s+image2D"
     found={int(idx):(fmt,access) for idx,fmt,access in re.findall(pattern,source)}
     assert found==bindings,(name,found)
-    assert "layout(local_size_x=8, local_size_y=8, local_size_z=1)" in source
+    group = {
+        "pipa_motion_sparse32.comp": "layout(local_size_x=8, local_size_y=4, local_size_z=1)",
+        "pipa_interpolate_tiled.comp": "layout(local_size_x=16, local_size_y=16, local_size_z=1)",
+    }.get(name,"layout(local_size_x=8, local_size_y=8, local_size_z=1)")
+    assert group in source,(name,group)
     assert "ivec2 frameSize;\n    int searchRadius;\n    float phase;\n    float errorCutoff;" in source
     assert "greaterThanEqual" in source
 
