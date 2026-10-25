@@ -66,7 +66,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("Compare os modos DIAG sólido HOLD e DIAG sólido FrameGen para detectar distorções sem o padrão procedural. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Controles anteriores mantidos. "
+        root.addView(text("Compare os modos DIAG sólido HOLD e DIAG sólido FrameGen para detectar distorções sem o padrão procedural. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Todos os modos seguem via VkSwapchainKHR; controles anteriores mantidos. "
             +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
