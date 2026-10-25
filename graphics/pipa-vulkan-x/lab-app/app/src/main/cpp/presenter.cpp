@@ -22,8 +22,7 @@ namespace {
 std::atomic<bool> g_stop{false};
 std::atomic<bool> g_inUse{false};
 constexpr uint32_t kWidth=1280, kHeight=720;
-// EXP29.26 diagnostic load: repeat the identical source scene only while the GPU Guard is active.
-constexpr uint32_t kGpuBudgetValidationSceneRepeatPasses=4u;
+
 constexpr char kPipaTraceLayerName[]="VK_LAYER_PIPA_present_trace";
 constexpr char kPipaTraceLayerLibrary[]="libVkLayer_PIPA_present_trace.so";
 using PipaTraceResetFn=void (*)();
@@ -236,7 +235,6 @@ struct Presenter {
     bool pendingPairRealAvailable=false;
     uint32_t gpuBudgetOverruns=0, gpuBudgetHeld=0, gpuBudgetProbeFrames=0;
     uint32_t gpuBudgetHoldCountdown=0, gpuBudgetOverrunStreak=0;
-    uint32_t gpuBudgetStressScenePasses=0u;
     uint32_t gpuBudgetGovernorTrips=0, gpuBudgetMissingPairs=0;
     std::vector<double> gpuPairMs;
     std::string traceLayerSummary() const {
@@ -901,7 +899,7 @@ struct Presenter {
     }
     int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,
             bool alignWithDisplay,int motionRadius,bool fit3dAspect,
-            bool enableGpuBudget,bool enableGpuBudgetStressScene) {
+            bool enableGpuBudget) {
         recordedMotionRadius=motionRadius;
         fitAspect=fit3dAspect;
         const double fitScale=std::min(double(extent.width)/double(kWidth),
@@ -924,8 +922,6 @@ struct Presenter {
         gpuBudgetRequested=enableGpuBudget;
         gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&
                           gpuQueryPool!=VK_NULL_HANDLE;
-        gpuBudgetStressScenePasses=gpuBudgetEnabled && enableGpuBudgetStressScene?
-            kGpuBudgetValidationSceneRepeatPasses:0u;
         // Two refresh periods contain one genuine frame plus one synthetic.
         // Reserve 15% margin for other GPU work before shedding FG slots.
         gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;
@@ -991,13 +987,6 @@ struct Presenter {
             if(continuous && !odd) {
                 const uint32_t sourcePair=uint32_t(frame/2);
                 recordSourceScene(command,sourcePair);
-                if(gpuBudgetEnabled) {
-                    // Diagnostic-only extra compute work. It renders the same
-                    // pair again, leaving the visible geometry and final images unchanged.
-                    for(uint32_t stressPass=0;
-                        stressPass<gpuBudgetStressScenePasses;++stressPass)
-                        recordSourceScene(command,sourcePair);
-                }
             }
             if(synthesized) {
                 // Reusing motionField between generated frames requires a read-to-
@@ -1164,7 +1153,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
     jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius,
     jboolean fit3dAspectMode,jboolean preferIdentity3dMode,
-    jboolean gpuBudgetMode,jboolean gpuBudgetStressSceneMode) {
+    jboolean gpuBudgetMode) {
     bool expected=false;
     if(!g_inUse.compare_exchange_strong(expected,true))
         return env->NewStringUTF("Uma sessão Vulkan já está ativa.");
@@ -1188,8 +1177,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
                          alignWithDisplayMode==JNI_TRUE,int(motionRadius),
                          fit3dAspectMode==JNI_TRUE,
-                         gpuBudgetMode==JNI_TRUE,
-                         gpuBudgetStressSceneMode==JNI_TRUE);
+                         gpuBudgetMode==JNI_TRUE);
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -1206,7 +1194,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
           " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
           " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
-          " passes stress cena="+std::to_string(p.gpuBudgetStressScenePasses)+
+          " passes stress cena=0"+
           " teto="+std::to_string(p.gpuBudgetMs)+"ms"+
           " probes pares="+std::to_string(p.gpuBudgetProbeFrames)+
           " acima teto par="+std::to_string(p.gpuBudgetOverruns)+
