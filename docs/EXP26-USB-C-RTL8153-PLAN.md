@@ -358,3 +358,19 @@ Fix experimental apenas no runner do workflow: apos validar fonte por SHA e copi
 ### EXP27.1 recompilacao concluida: v1.10.11 integrada, verificacoes PASS
 
 GitHub Actions run `40152429269` concluiu com **`status=completed`, `conclusion=success`**. Todos os passos obtiveram `success`, incluindo Clang 21 pinned, repositorio E404/KernelSU, aplicacao do `r8152.c` Linux 5.4.290 v1.10.11 (blob verificado), adaptacao isolada da API `dev_set_mac_address` de 3 para 2 argumentos (E404), configuracao EXP24, preservacao da correcao de IRQ de touchscreen Novatek EXP25A, compilacao integral do kernel ARM64, verificacao RTL8153 linked em vmlinux, integridade da EXP25A e gate de outputs nao-flashaveis. Run: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40152429269 . Artefato de logs/Image/kernel gerado: `pipa-exp27-r8152-v11011-clang21-3` (artifact ID `12583456855`, ~12.4MB ZIP). **So comprova compilacao/integracao; nao houve teste no pipa, boot.img nao foi gerado, USB-C/PD permanece sem alteracoes e `FLASH_READY=false`.** Proximo gate deve avaliar ABI/regressoes e condicoes de teste seguro sem tocar no equipamento atualmente funcional; nao fazer flash.
+
+## EXP27.2 — Comparacao automatizada EXP25A versus EXP27.1: PASS
+
+Foi criado o verificador independente `tools/exp27-2-artifact-audit.py` e o workflow `.github/workflows/exp27-2-artifact-audit.yml`, sem comandos dirigidos ao aparelho. O workflow compara artefatos imutaveis do build EXP25A run `39190015939` (artifact `pipa-exp25a-touch-irq-clang21-1`) e EXP27.1 run `40152429269` (artifact `pipa-exp27-r8152-v11011-clang21-3`).
+
+Execucao da auditoria run **`40153757336`** obteve `status=completed, conclusion=success`. Comprovacoes dos SHA-256 iguais entre EXP25A/EXP27.1:
+
+- Kernel `.config`: `5ec68929f839c35df8251a40bc917f3e09f05515f4cc913ce305804514f9319e` (igual).
+- Device Tree `dtb`: `9b92c1aa019fffdfaf3bfe36dcd84c2858c804109c100b684e08f62228881117` (igual).
+- Overlay `dtbo.img`: `6a0e109590742ce67713d738aef1320e015e9abc6b509d5be7f6e9ed46dd4f9c` (igual).
+- Patch touchscreen `exp25-touch-code.diff`: `2409f1f3a45babe7cce01bb11216d6a31b51b71a0af6db3035d1e0163fbd3e09` (igual).
+- Compilador `exp06-clang-version.txt`: `270d6d8b5919d0d42b06a5f974719fdbbb1ef6f041e4f6d90fcfec0cf87febde` (igual).
+
+Outros gates PASS: EXP25A/EXP27 Image ARM64 presentes, `v1.10.11` identificada dentro do Image candidato, `CONFIG_USB_RTL8152=y`, `CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y`, `CONFIG_KSU=y`, sugov 1500 preservado, sem modulos, proveniencia de fonte (`v5.4.290` blob `92b51c4c46f57b660f3053804ba74f6df9e71c76`) e link RTL8153 verificados, `boot.img` e `vendor_boot.img` ausentes. O relatorio da auditoria foi publicado como artifact `exp27-2-artifact-audit-1`, ID `12583696990`, URL https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40153757336/artifacts/12583696990 .
+
+**Limites**: equivalencia de config/DT e patch touchscreen nao equivale a certificacao funcional do dispositivo, timings USB/PD ou regressao de bateria. A mudanca no codigo de `r8152.c` pode afetar o comportamento em tempo de execucao; a fonte antiga voltou a funcionar com outro carregador, portanto melhoria do driver nao prova resolucao da instabilidade alimentacao USB-PD. Teste em hardware ainda bloqueado por requisito de recovery seguro do touchscreen EXP25A. Mantida configuracao conhecida como funcional, sem reinicializar, flash ou alteracoes USB-C. `FLASH_READY=false`.
