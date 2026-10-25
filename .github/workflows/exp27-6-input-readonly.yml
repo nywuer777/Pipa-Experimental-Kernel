@@ -1,0 +1,58 @@
+name: Pipa EXP27.6 - Passive input/IRQ observation guardrails (NO REBOOT)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp27-6-input-readonly.yml"
+      - "tools/exp27-6-input-readonly.py"
+      - "tests/test_exp27_6_input_readonly.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipa-exp27-6-input-readonly
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate python and run only synthetic ADB fixtures (no hardware)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp27-6-input-readonly.py tests/test_exp27_6_input_readonly.py
+          python3 -m unittest discover -s tests -p test_exp27_6_input_readonly.py -v 2>&1 | tee exp27-6-unit-tests.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('tools/exp27-6-input-readonly.py').read_text()
+          forbidden=('fastboot', 'adb reboot', 'input tap', 'setprop', 'adb connect')
+          # Comments/docstrings may mention forbidden operations, but the command
+          # argument allowlist must exclude all verbs with a mutation mechanism.
+          import importlib.util
+          spec=importlib.util.spec_from_file_location('exp276','tools/exp27-6-input-readonly.py')
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          assert all(args[0] in ('getprop','cat') for args in m.ALLOWED_READS)
+          assert all(args[0]!='cat' or args[1].startswith('/proc/') for args in m.ALLOWED_READS)
+          print('EXP27_6_ADB_READ_WHITELIST=PASS')
+          print('EXP27_6_DEVICE_COMMANDS_EXECUTED=NONE')
+          print('TEMP_BOOT_AUTHORIZED=false; FLASH_READY=false')
+          PY
+
+      - name: Publish Windows tool, tests and documentation ONLY
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp27-6-input-readonly-tools-${{ github.run_number }}
+          path: |
+            tools/exp27-6-input-readonly.py
+            tests/test_exp27_6_input_readonly.py
+            docs/EXP27-6-INPUT-RECOVERY-OBSERVATION.md
+            exp27-6-unit-tests.txt
+          if-no-files-found: error
+          retention-days: 14
