@@ -1,0 +1,123 @@
+name: Pipa EXP27.4 - Offline Boot V3 canonical packer audit (NO BOOT)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp27-4-offline-bootv3.yml"
+      - "tools/exp27-4-build-offline.py"
+      - "tests/test_exp27_4_offline.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: pipa-exp27-4-offline-bootv3
+  cancel-in-progress: false
+
+jobs:
+  offline:
+    name: EXP27.4 synthetic packer vs official pinned AOSP (no device)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Execute negative-gate and source-preservation unit tests
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp27-4-build-offline.py tests/test_exp27_4_offline.py
+          python3 -m unittest discover -s tests -p test_exp27_4_offline.py -v
+
+      - name: Compare synthetic repack against original AOSP mkbootimg pinned source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, gzip, hashlib, importlib.util, pathlib, struct, subprocess, sys, tempfile
+          from urllib.request import urlopen
+          COMMIT = 'd2bb0af5ba6d3198a3e99529c97eda1be0b5a093'
+          BLOBS = {
+              'mkbootimg.py': 'ec2958179691a434df917cd1b6f196edaa80e31d',
+              'gki/generate_gki_certificate.py': '739c61b04a9dbd95cafa5196533e3a472c31f2d9',
+          }
+          spec = importlib.util.spec_from_file_location('exp27_4', 'tools/exp27-4-build-offline.py')
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          def gitsha(data):
+              prefix = b'blob ' + str(len(data)).encode() + b'\0'
+              return hashlib.sha1(prefix + data).hexdigest()
+          with tempfile.TemporaryDirectory(prefix='exp27-v3-') as folder:
+              root = pathlib.Path(folder)
+              for name, check in BLOBS.items():
+                  url = f'https://android.googlesource.com/platform/system/tools/mkbootimg/+/{COMMIT}/{name}?format=TEXT'
+                  with urlopen(url, timeout=30) as src:
+                      content = base64.b64decode(src.read(), validate=True)
+                  assert gitsha(content) == check, 'AOSP source checksum mismatch'
+                  p = root / name
+                  p.parent.mkdir(parents=True, exist_ok=True)
+                  p.write_bytes(content)
+              old = bytearray(bytes(range(256)) * 30)
+              new = bytearray(bytes(reversed(range(256))) * 34)
+              old[56:60] = new[56:60] = b'ARM\x64'
+              rd = gzip.compress(b'EXP27 deterministic synthetic ramdisk')
+              (root/'old').write_bytes(old)
+              (root/'new').write_bytes(new)
+              (root/'rd').write_bytes(rd)
+              def official(kernel, output):
+                  args = [sys.executable, str(root/'mkbootimg.py'),
+                          '--header_version', '3', '--kernel', str(root/kernel),
+                          '--ramdisk', str(root/'rd'),
+                          '--cmdline', 'EXP27 synthetic only', '--output', str(root/output)]
+                  p = subprocess.run(args, capture_output=True, text=True)
+                  assert p.returncode == 0, p.stderr
+                  return (root/output).read_bytes()
+              stock = official('old','original')
+              expected = official('new','replacement')
+              actual, report = module.build(
+                  stock, bytes(new), expected_stock_sha=module.sha(stock),
+                  expected_old_kernel_sha=module.sha(old),
+                  expected_ramdisk_sha=module.sha(rd),
+                  expected_new_sha=module.sha(new), pinned=False)
+              assert actual == expected, 'Candidate differs from AOSP official mkbootimg'
+              assert not report['flash_ready'] and not report['temporary_boot_authorized']
+              print('EXP27_4_SYNTHETIC_AOSP_BYTE_MATCH=PASS')
+              print('EXP27_4_AOSP_GIT_BLOB_VERIFIED=PASS')
+              print('EXP27_4_PRIVATE_STOCK_NOT_ACCESSED=YES')
+              print('TEMP_BOOT_AUTHORIZED=false; FLASH_READY=false')
+          PY
+
+      - name: Prove EXP27.1 archive matches pinned driver and complete CI evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          gh run download 40152429269 -R "$GITHUB_REPOSITORY" \
+            -n pipa-exp27-r8152-v11011-clang21-3 -D evidence
+          python3 - <<'PY'
+          import hashlib, pathlib
+          f = pathlib.Path('evidence/exp06-work/out/arch/arm64/boot/Image')
+          assert f.is_file()
+          assert hashlib.sha256(f.read_bytes()).hexdigest() == 'a14b536b471c97db877482afe97bcbeb97daa74ebc48a3a344d90ead57d56967'
+          assert b'v1.10.11' in f.read_bytes()
+          stage = pathlib.Path('evidence/exp27-r8152-stage-gate.txt').read_text()
+          link = pathlib.Path('evidence/exp24-rtl8153-link-gate.txt').read_text()
+          touch = pathlib.Path('evidence/exp25-touch-final-gate.log').read_text()
+          assert 'R8152_TARGET=v1.10.11' in stage
+          assert '92b51c4c46f57b660f3053804ba74f6df9e71c76' in stage
+          assert 'EXP24_RTL8153_LINK_PASS' in link
+          assert 'EXP25A_NVT_IRQ_GATE=PASS' in touch
+          print('EXP27_4_REAL_CI_ARTIFACT_PROVENANCE=PASS')
+          print('NO_PRIVATE_STOCK_AVAILABLE_HERE; NO_BOOT_CANDIDATE_GENERATED; FLASH_READY=false')
+          PY
+
+      - name: Publish audit status only (do not upload boot candidates)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'EXP27.4 OFFLINE CI=PASS, REAL_STOCK_REPACK=PENDING_WINDOWS'
+          echo 'NO_DEVICE_COMMANDS; NO_BOOT_OR_FLASH; FLASH_READY=false'
