@@ -76,3 +76,16 @@ Capture 31739 (20:07; battery 87%) is **3D 10s FrameGen 72→144**, with **SYNC 
 
 
 Compared with 31735 (**3D 10s FrameGen 72→144**, SYNC unchecked; same IDENTITY-on, Motion FAST-off, Guard-off settings), capture 31739 has 0 versus 318 CPU late starts. The reported WSI cadence is similar (approximately 143.5 Hz in both); long intervals were 1/541 with SYNC on versus 1/364 with it off. This supports using **SYNC experimental** for this workload to avoid the CPU late-start count, while the measured WSI cadence stayed similar. It is a single paired observation with unequal WSI windows, so repeat with reversed order before treating the effect as established.
+
+
+## Pair-budget A/B with fixed-request pacing (31740–31741; 20:14–20:17)
+
+Both captures used **3D 10s FrameGen 72→144**, **SYNC experimental** off, **Motion FAST experimental** on at radius 3, and **3D IDENTITY WSI** on. Only **GPU GUARD PAR 85%: HOLD após 3 pares GPU acima do teto** changed between runs. Both report the continuous 2× scene and 1,440 accepted Vulkan presents.
+
+| Capture | GPU Guard | Frames | Guard telemetry | CPU pacing | WSI cadence |
+|---|---|---|---|---|---|
+| 31740 | On | 720 real, 719 interpolated, 1 repeated | 719 pairs; 4 over the 11.805555 ms ceiling; 1 three-strike trip; pair mean 9.479760 ms, p95 9.843385 ms | FIXED_REQUEST 6.944444 ms; 1,109/1,440 starts over one period, all classified before sleep; 0 new after sleep | 142.952369 Hz; 2/363 intervals >1.5 cycles |
+| 31741 | Off | 720 real, 720 interpolated, 0 repeated | Guard inactive; no pair probes | FIXED_REQUEST 6.944444 ms; 0/1,440 starts over one period | 143.431206 Hz; 1/424 intervals >1.5 cycles |
+
+The no-Guard capture retained all 720 interpolated frames and reported zero late starts. With the Guard enabled, only one generated slot was repeated, while the report recorded 1,109 late starts. The sampled WSI cadences are close and the windows differ in length; this pair shows no presentation-regularity benefit from enabling the Guard and a large CPU-pacing anomaly in 31740. Treat the late-start difference as a result to reproduce, not proof of causation from one run. Keep the Guard off for the normal FrameGen reference; repeat this same pair in reverse order before making a stronger causal claim.
+
