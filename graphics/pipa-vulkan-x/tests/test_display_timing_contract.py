@@ -32,6 +32,6 @@ assert "VK_PRESENT_MODE_FIFO_KHR" in cpp
 assert "std::to_string(reportedActualNs.size())" in cpp
 assert "getDisplay().getRefreshRate()" in java
 assert "dp(48)" in java
-assert "versionCode 310" in gradle
-assert "versionName '29.20-lab'" in gradle
+assert "versionCode 311" in gradle
+assert "versionName '29.21-lab'" in gradle
 print("EXP29_13_DISPLAY_TIMING_SOURCE_CONTRACT=PASS; ADRENO_EXTENSION_AVAILABILITY=UNTESTED")
