@@ -103,8 +103,15 @@ struct Lab {
         queueInfo.queueFamilyIndex=family;
         queueInfo.queueCount=1;
         queueInfo.pQueuePriorities=&priority;
+        VkPhysicalDeviceFeatures availableFeatures{};
+        vkGetPhysicalDeviceFeatures(physical,&availableFeatures);
+        ensure(availableFeatures.shaderStorageImageExtendedFormats==VK_TRUE,
+               "GPU nao suporta shaderStorageImageExtendedFormats (RGBA16F)");
+        VkPhysicalDeviceFeatures enabledFeatures{};
+        enabledFeatures.shaderStorageImageExtendedFormats=VK_TRUE;
         VkDeviceCreateInfo deviceInfo{};
         deviceInfo.sType=VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceInfo.pEnabledFeatures=&enabledFeatures;
         deviceInfo.queueCreateInfoCount=1;
         deviceInfo.pQueueCreateInfos=&queueInfo;
         require(vkCreateDevice(physical,&deviceInfo,nullptr,&device),"vkCreateDevice");
