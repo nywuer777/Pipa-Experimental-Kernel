@@ -34,17 +34,17 @@ for token in (
     "const bool synthesized=odd && !holdInsteadOfFG;",
 ): assert token in cpp,token
 for token in (
-    "private CheckBox syncDisplay;",
+    "private CheckBox syncDisplay, fastMotion;",
     "syncDisplay.setChecked(false)",
     "final boolean alignWithDisplay=syncDisplay.isChecked();",
     "stressHold144.setOnClickListener(",
     "stressFg144.setOnClickListener(",
-    "continuous,holdInsteadOfFG,alignWithDisplay);",
+    "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius);",
     "copyReport.setOnClickListener(v->",
     "ClipboardManager clipboard=",
 ): assert token in ui,token
-assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText((alignWithDisplay?')
-assert "versionCode 309" in gradle and "29.19-lab" in gradle
+assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
+assert "versionCode 310" in gradle and "29.20-lab" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.
