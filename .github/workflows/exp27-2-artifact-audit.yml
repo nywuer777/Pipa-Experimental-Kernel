@@ -1,0 +1,64 @@
+name: Pipa EXP27.2 - EXP25A vs r8152 backport artifact audit (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp27-2-artifact-audit.yml"
+      - "tools/exp27-2-artifact-audit.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: pipa-exp27-2-artifact-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Compare immutable EXP25A and EXP27 build outputs (no device)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download exact successful builds from this repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v gh
+          mkdir -p audit/exp25a audit/exp27
+          gh run download 39190015939 -R "$GITHUB_REPOSITORY" \
+            -n "pipa-exp25a-touch-irq-clang21-1" -D audit/exp25a
+          gh run download 40152429269 -R "$GITHUB_REPOSITORY" \
+            -n "pipa-exp27-r8152-v11011-clang21-3" -D audit/exp27
+          test -s audit/exp25a/exp06-work/out/.config
+          test -s audit/exp27/exp06-work/out/.config
+          echo 'EXP27.2_ARTIFACTS_DOWNLOADED=YES'
+
+      - name: Compare config, device trees, touchscreen source diff and driver linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp27-2-artifact-audit.py \
+            --baseline audit/exp25a \
+            --candidate audit/exp27 \
+            --report exp27-2-audit-report.json | tee exp27-2-audit-console.log
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          echo "EXP27.2_STATIC_CHECKED; HARDWARE_NOT_BOOTED; FLASH_READY=false"
+
+      - name: Publish report only (never upload flashable images)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp27-2-artifact-audit-${{ github.run_number }}
+          path: |
+            exp27-2-audit-report.json
+            exp27-2-audit-console.log
+          if-no-files-found: warn
+          retention-days: 14
