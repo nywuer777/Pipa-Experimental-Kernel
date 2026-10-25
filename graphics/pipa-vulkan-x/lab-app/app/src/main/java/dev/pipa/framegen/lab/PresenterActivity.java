@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.Surface;
+import android.view.View;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Button;
@@ -30,7 +31,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     private CheckBox syncDisplay, fastMotion;
     private Button copyReport;
     private TextView status;
-    private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144, v2Hold144, v2Fg144, stressHold144, stressFg144;
+    private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144, v2Hold144, v2Fg144, stressHold144, stressFg144, scene3dHold, scene3dFg;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -38,12 +39,20 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.20 - MOTION / WARP", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.21 - 3D OCCLUSION", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Vulkan FIFO 720p | Motion vs Warp GPU | raio 4 padrao / 3 experimental",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | perspectiva 3D | profundidade, oclusao, HUD",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",12,0xffeeeeee);
         root.addView(status);
+        LinearLayout legacyControls=new LinearLayout(this);
+        legacyControls.setOrientation(LinearLayout.VERTICAL);
+        legacyControls.setVisibility(View.GONE);
+        Button legacyToggle=button("Mostrar / ocultar testes anteriores");
+        root.addView(legacyToggle,new LinearLayout.LayoutParams(-1,dp(38)));
+        root.addView(legacyControls);
+        legacyToggle.setOnClickListener(v->legacyControls.setVisibility(
+            legacyControls.getVisibility()==View.GONE?View.VISIBLE:View.GONE));
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
         start60=button("60 Hz (solicitar)");
@@ -53,30 +62,30 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         for(Button b:new Button[]{start60,start120,start144,stop}) {
             controls.addView(b,new LinearLayout.LayoutParams(0,dp(48),1));
         }
-        root.addView(controls,new LinearLayout.LayoutParams(-1,dp(52)));
+        legacyControls.addView(controls,new LinearLayout.LayoutParams(-1,dp(52)));
         LinearLayout continuousControls=new LinearLayout(this);
         continuousControls.setOrientation(LinearLayout.HORIZONTAL);
         animate120=button("2x: 60 reais + 60 gerados = 120 Hz");
         animate144=button("2x: 72 reais + 72 gerados = 144 Hz");
         continuousControls.addView(animate120,new LinearLayout.LayoutParams(0,dp(48),1));
         continuousControls.addView(animate144,new LinearLayout.LayoutParams(0,dp(48),1));
-        root.addView(continuousControls,new LinearLayout.LayoutParams(-1,dp(52)));
+        legacyControls.addView(continuousControls,new LinearLayout.LayoutParams(-1,dp(52)));
         hold144=button("Controle 72→144: repetir original (HOLD), sem FrameGen");
-        root.addView(hold144,new LinearLayout.LayoutParams(-1,dp(48)));
+        legacyControls.addView(hold144,new LinearLayout.LayoutParams(-1,dp(48)));
         LinearLayout diagnosticControls=new LinearLayout(this);
         diagnosticControls.setOrientation(LinearLayout.HORIZONTAL);
         diagHold144=button("DIAG sólido HOLD 72→144 (sem FG)");
         diagFg144=button("DIAG sólido FrameGen 72→144");
         diagnosticControls.addView(diagHold144,new LinearLayout.LayoutParams(0,dp(48),1));
         diagnosticControls.addView(diagFg144,new LinearLayout.LayoutParams(0,dp(48),1));
-        root.addView(diagnosticControls,new LinearLayout.LayoutParams(-1,dp(52)));
+        legacyControls.addView(diagnosticControls,new LinearLayout.LayoutParams(-1,dp(52)));
         LinearLayout v2Controls=new LinearLayout(this);
         v2Controls.setOrientation(LinearLayout.HORIZONTAL);
         v2Hold144=button("V2 corrigida HOLD 72→144 (sem FG)");
         v2Fg144=button("V2 corrigida FrameGen 72→144");
         v2Controls.addView(v2Hold144,new LinearLayout.LayoutParams(0,dp(48),1));
         v2Controls.addView(v2Fg144,new LinearLayout.LayoutParams(0,dp(48),1));
-        root.addView(v2Controls,new LinearLayout.LayoutParams(-1,dp(52)));
+        legacyControls.addView(v2Controls,new LinearLayout.LayoutParams(-1,dp(52)));
         LinearLayout stressControls=new LinearLayout(this);
         stressControls.setOrientation(LinearLayout.HORIZONTAL);
         stressHold144=button("STRESS 10s: V2 HOLD 72→144");
@@ -84,6 +93,13 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         stressControls.addView(stressHold144,new LinearLayout.LayoutParams(0,dp(48),1));
         stressControls.addView(stressFg144,new LinearLayout.LayoutParams(0,dp(48),1));
         root.addView(stressControls,new LinearLayout.LayoutParams(-1,dp(52)));
+        LinearLayout scene3dControls=new LinearLayout(this);
+        scene3dControls.setOrientation(LinearLayout.HORIZONTAL);
+        scene3dHold=button("3D 10s HOLD 72→144");
+        scene3dFg=button("3D 10s FrameGen 72→144");
+        scene3dControls.addView(scene3dHold,new LinearLayout.LayoutParams(0,dp(48),1));
+        scene3dControls.addView(scene3dFg,new LinearLayout.LayoutParams(0,dp(48),1));
+        root.addView(scene3dControls,new LinearLayout.LayoutParams(-1,dp(52)));
         syncDisplay=new CheckBox(this);
         syncDisplay.setText("SYNC experimental: usar periodo Vulkan WSI do monitor (144 Hz)");
         syncDisplay.setTextColor(0xffdde4ee);
@@ -104,9 +120,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("Motion FAST usa raio 3 e deve ser comparado ao raio 4 padrao, tanto em tempo de GPU quanto em artefatos. A V2 corrigida foi validada visualmente. FIXED reproduz o teste anterior; SYNC usa o ciclo WSI quando compatível. O atraso de CPU nao e contagem de quadros perdidos. Os perfis STRESS solicitam 10s e coletam tempos GPU de originais e gerados. A versão V2 substitui o ruído fino e elimina a região crescente de x=0. Compare V2 HOLD e V2 FrameGen com a cena procedural antiga e DIAG sólido. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Todos os modos seguem via VkSwapchainKHR; controles anteriores mantidos. "
-            +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
-            +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
+        root.addView(text("EXP29.21: camera perspectiva, esferas em profundidades distintas, oclusao e HUD fixo. Renderizacao 3D analitica via Vulkan Compute, nao e jogo externo. Compare HOLD e FrameGen com mesmo raio e SYNC. Chamadas WSI nao medem FPS opticos.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));
@@ -120,11 +134,13 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         v2Fg144.setOnClickListener(v->start(144,true,false,false,true));
         stressHold144.setOnClickListener(v->start(144,true,true,false,true,true));
         stressFg144.setOnClickListener(v->start(144,true,false,false,true,true));
+        scene3dHold.setOnClickListener(v->start(144,true,true,false,false,true,true));
+        scene3dFg.setOnClickListener(v->start(144,true,false,false,false,true,true));
         stop.setOnClickListener(v->nativeStop());
         copyReport.setOnClickListener(v->{
             ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
             if(clipboard!=null)clipboard.setPrimaryClip(
-                ClipData.newPlainText("Pipa EXP29.19 Vulkan Timing",status.getText()));
+                ClipData.newPlainText("Pipa EXP29.21 Vulkan Timing",status.getText()));
         });
         toggle(true);
     }
@@ -159,6 +175,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         v2Fg144.setEnabled(enabled && validSurface);
         stressHold144.setEnabled(enabled && validSurface);
         stressFg144.setEnabled(enabled && validSurface);
+        scene3dHold.setEnabled(enabled && validSurface);
+        scene3dFg.setEnabled(enabled && validSurface);
         if(syncDisplay!=null)syncDisplay.setEnabled(enabled && validSurface);
         if(fastMotion!=null)fastMotion.setEnabled(enabled && validSurface);
     }
@@ -182,6 +200,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     }
     private void start(int hz,boolean continuous,boolean holdInsteadOfFG,boolean diagnostic,
                        boolean v2,boolean stress) {
+        start(hz,continuous,holdInsteadOfFG,diagnostic,v2,stress,false);
+    }
+    private void start(int hz,boolean continuous,boolean holdInsteadOfFG,boolean diagnostic,
+                       boolean v2,boolean stress,boolean scene3d) {
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
         final boolean alignWithDisplay=syncDisplay.isChecked();
@@ -189,7 +211,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         status.setText("MOTION raio="+motionRadius+" "+
               (alignWithDisplay?"SYNC WSI ":"FIXED 144 ")+
               (stress?"STRESS 10s ":"TESTE CURTO ")+
-              (v2?"CENA V2 ":diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
+              (scene3d?"CENA 3D ":v2?"CENA V2 ":diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
               (holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
               " Hz | tela "+displayHz()+" Hz | criando Vulkan...");
         final Surface surface=surfaceView.getHolder().getSurface();
@@ -198,14 +220,17 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
             try {
                 byte[] motion=load("pipa_motion_sparse.comp.spv");
                 byte[] warp=load("pipa_interpolate_tiled.comp.spv");
-                byte[] scene=continuous?load(v2?"pipa_scene_v2.comp.spv":
+                byte[] scene=continuous?load(scene3d?"pipa_scene_3d.comp.spv":
+                    v2?"pipa_scene_v2.comp.spv":
                     diagnostic?"pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"):null;
                 result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,
                                      continuous,holdInsteadOfFG,alignWithDisplay,motionRadius);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
             }
-            final String finalResult=result+(v2?
+            final String finalResult=result+(scene3d?
+                " | FONTE=3D raycast perspectiva e oclusao":
+                v2?
                 " | FONTE=V2 tileable sem clamp":
                 diagnostic?" | FONTE=DIAGNOSTICA quadrantes solidos; sem ruido":
                 " | FONTE=PROCEDURAL antiga");
