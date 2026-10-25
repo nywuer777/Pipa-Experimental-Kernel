@@ -52,39 +52,42 @@ public final class MainActivity extends Activity {
         run=new Button(this);
         run.setAllCaps(false);
         run.setText("Executar interpolação na GPU");
-        base.addView(run,new LinearLayout.LayoutParams(-1,dp(52)));
         benchmark=new Button(this);
         benchmark.setAllCaps(false);
         benchmark.setText("Benchmark GPU (1 aquecimento + 32 amostras)");
-        base.addView(benchmark,new LinearLayout.LayoutParams(-1,dp(52)));
         fastButton=new Button(this);
         fastButton.setAllCaps(false);
         fastButton.setText("Benchmark FAST 256×128 (32 amostras)");
-        base.addView(fastButton,new LinearLayout.LayoutParams(-1,dp(52)));
         largeButton=new Button(this);
         largeButton.setAllCaps(false);
         largeButton.setText("Benchmark FAST 640×360 (8 amostras)");
-        base.addView(largeButton,new LinearLayout.LayoutParams(-1,dp(52)));
         parallelSmall=new Button(this);
         parallelSmall.setAllCaps(false);
         parallelSmall.setText("Benchmark PARALLEL 256×128 (32 amostras)");
-        base.addView(parallelSmall,new LinearLayout.LayoutParams(-1,dp(52)));
         parallelLarge=new Button(this);
         parallelLarge.setAllCaps(false);
         parallelLarge.setText("Benchmark PARALLEL 640×360 (8 amostras)");
-        base.addView(parallelLarge,new LinearLayout.LayoutParams(-1,dp(52)));
         sparseLarge=new Button(this);
         sparseLarge.setAllCaps(false);
         sparseLarge.setText("Benchmark SPARSE 640×360 (8 amostras)");
-        base.addView(sparseLarge,new LinearLayout.LayoutParams(-1,dp(52)));
         parallel720=new Button(this);
         parallel720.setAllCaps(false);
         parallel720.setText("Benchmark PARALLEL 1280×720 (8 amostras)");
-        base.addView(parallel720,new LinearLayout.LayoutParams(-1,dp(52)));
         sparse720=new Button(this);
         sparse720.setAllCaps(false);
-        sparse720.setText("Benchmark SPARSE 1280×720 (8 amostras)");
-        base.addView(sparse720,new LinearLayout.LayoutParams(-1,dp(52)));
+        sparse720.setText("SPARSE 1280×720 (8)");
+        run.setText("Interpolar");
+        benchmark.setText("LEGACY 256×128 (32)");
+        fastButton.setText("FAST 256×128 (32)");
+        parallelSmall.setText("PARALLEL 256×128 (32)");
+        largeButton.setText("FAST 640×360 (8)");
+        parallelLarge.setText("PARALLEL 640×360 (8)");
+        sparseLarge.setText("SPARSE 640×360 (8)");
+        parallel720.setText("PARALLEL 1280×720 (8)");
+        controlRow(base,run,benchmark);
+        controlRow(base,fastButton,parallelSmall);
+        controlRow(base,largeButton,parallelLarge,sparseLarge);
+        controlRow(base,parallel720,sparse720);
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
@@ -112,6 +115,19 @@ public final class MainActivity extends Activity {
         parallel720.setOnClickListener(v->runTest(9,2,1280,720));
         sparse720.setOnClickListener(v->runTest(9,3,1280,720));
         setContentView(outer);
+    }
+
+    private void controlRow(LinearLayout parent, Button... items) {
+        LinearLayout line=new LinearLayout(this);
+        line.setOrientation(LinearLayout.HORIZONTAL);
+        parent.addView(line,new LinearLayout.LayoutParams(-1,dp(48)));
+        for(Button item:items) {
+            item.setTextSize(12);
+            item.setSingleLine(true);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(46),1f);
+            lp.setMargins(dp(2),0,dp(2),0);
+            line.addView(item,lp);
+        }
     }
 
     private void picture(LinearLayout parent,String name,int[] data) {
