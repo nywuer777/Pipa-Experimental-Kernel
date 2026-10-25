@@ -450,3 +450,10 @@ Termux/root em runtime EXP27 (driver `r8152` v1.10.11 ligado ao Realtek RTL8153 
 A ausência de default na tabela principal observada anteriormente não era ausência de rota Ethernet — default existe na tabela Android `eth0`. A medição de latência ICMP não representa transferência de 1 Gbps; essa taxa foi link físico negociado. Ainda pendentes benchmark e estabilidade após horas/suspend, sem atribuir a v1.10.11 a solução de qualquer problema de PD. Evidências em `docs/EXP27-7-REAL-BOOT-AND-RTL8153-VALIDATION.md`, commit `de1af8a746c4a469d1af3c01f5822277ec77258d`.
 
 **Gates:** `EXP27_RUNTIME_BOOT=PASS`; `RTL8153_USB3_ENUM=PASS`; `R8152_BIND=PASS`; `ETH0_LINK_1000=PASS`; `ETH0_IPV4=PASS`; `ETH0_EXTERNAL_ICMP=PASS`; `LONG_DURATION=NOT_TESTED`; `FLASH_READY=false`. Não reiniciar/desconectar hub/carregador nem gravar boot.
+
+
+## EXP27.7 — RTL8153 continuidade curta 20/20 PASS, sem erros/drops
+
+Em EXP27.1 real no tablet, com `r8152 v1.10.11` associado ao `0bda:8153`, `eth0` com link 1000 Mb/s e IPv4 192.168.1.102, o operador executou `ping -I eth0 -c 20 -i 1 -W 2 1.1.1.1`. **20/20 respostas**, `0% packet loss`, `time 19020ms`, `rtt min/avg/max/mdev=2.846/3.362/4.235/0.332 ms`. Capturas dos contadores `rx_errors`, `tx_errors`, `rx_dropped`, `tx_dropped` antes e depois: **todos zero**. `EXP27_7_REAL_RTL8153_FUNCTIONAL=PASS` para boot, enumeração USB3, bind driver, `eth0`, IPv4, rota, ICMP externo e continuidade curta.
+
+Status precisamente limitado: `ETH_SHORT_CONTINUITY_20_20=PASS`; `ETH_SHORT_COUNTER_ERRORS_DROPS=0`; `THROUGHPUT_MEASURED=NO`; `LONG_RUN_STABILITY=NOT_TESTED`; `SUSPEND_USB_PD_RECOVERY=NOT_TESTED`; `FLASH_READY=false`. O teste positivo não prova que a troca do driver, isoladamente, solucionou o problema histórico de alimentação do hub/PD. Evidência completa em `docs/EXP27-7-REAL-BOOT-AND-RTL8153-VALIDATION.md`, commit `2c7bfb7e7494d422a892513d2440f5ba2124e85f`. Não repetir auditorias já concluídas nem induzir novas transições de energia automaticamente.
