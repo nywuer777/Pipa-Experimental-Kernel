@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.24: opt-in timestamp-based FrameGen GPU budget governor."""
+"""EXP29.25: completed GPU pair budget, three-strike fallback, no frame inflation."""
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 native=(root/"lab-app/app/src/main/cpp/presenter.cpp").read_text()
@@ -9,12 +9,18 @@ for tok in (
     "bool gpuBudgetRequested=false, gpuBudgetEnabled=false;",
     "gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&",
     "gpuQueryPool!=VK_NULL_HANDLE;",
-    "gpuBudgetMs=double(selectedPacingPeriodNs)*0.85e-6;",
-    "if(gpuBudgetEnabled) {",
+    "gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;",
+    "const double pairMs=realGpuMs.back()+ms;",
+    "gpuPairMs.push_back(pairMs);",
     "++gpuBudgetProbeFrames;",
-    "if(ms>gpuBudgetMs) {",
+    "if(pairMs>gpuBudgetMs) {",
     "++gpuBudgetOverruns;",
-    "gpuBudgetHoldCountdown=2u;",
+    "++gpuBudgetOverrunStreak;",
+    "if(gpuBudgetOverrunStreak>=3u) {",
+    "gpuBudgetHoldCountdown=1u;",
+    "++gpuBudgetGovernorTrips;",
+    "gpuBudgetOverrunStreak=0u;",
+    "gpuBudgetOverrunStreak=0u;",
     "const bool budgetFallback=odd && gpuBudgetEnabled &&",
     "gpuBudgetHoldCountdown>0;",
     "--gpuBudgetHoldCountdown;",
@@ -25,7 +31,9 @@ for tok in (
     "gpuBudgetMode==JNI_TRUE",
     '" | GPU BUDGET solicitado="',
     '" HOLD adaptativos="',
-    '" probes FG="',
+    '" probes pares="',
+    '" trips 3x="',
+    'summary(gpuPairMs,"GPU par real+FG")',
     "p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()",
 ): assert tok in native,tok
 for tok in (
@@ -35,27 +43,39 @@ for tok in (
     "boolean gpuBudgetGuard);",
     "scene3d,preferIdentity3d,adaptiveGuard);",
     "scene3d && continuous && !holdInsteadOfFG &&",
-    "GPU GUARD 85%",
+    "GPU GUARD PAR 85%",
     "scene3dHold.setOnClickListener(",
     "scene3dFg.setOnClickListener(",
 ): assert tok in ui,tok
-assert "versionCode 314" in gradle and "29.24-lab" in gradle
+assert "versionCode 315" in gradle and "29.25-lab" in gradle
 
-# Pure behavioral model: over-budget probe triggers exactly two HOLD slots,
-# then returns to a generated probe. A low-cost probe keeps FG active.
-def control(measured_times, limit=5.90):
-    cooldown=0; active=[]; idx=0
-    for frame in range(12):
-        if frame%2==0: active.append("real"); continue
+# Pure deterministic policy model (not Android device timing).
+def control(pair_costs, limit=11.83):
+    streak=0
+    cooldown=0
+    result=[]
+    sampled=0
+    for i in range(len(pair_costs)):
+        result.append("real")
         if cooldown:
-            active.append("hold");cooldown-=1;continue
-        active.append("fg")
-        ms=measured_times[idx];idx+=1
-        if ms>limit:cooldown=2
-    return active
-assert control([6.1,5.7,5.4,5.3])==[
- "real","fg","real","hold","real","hold","real","fg",
- "real","fg","real","fg"
-]
-# No generated frame is mislabeled as HOLD and real frame cadence remains intact.
-print("EXP29_24_GPU_BUDGET_GOVERNOR_SOURCE=PASS; HARDWARE_AB_PENDING")
+            result.append("hold")
+            cooldown-=1
+            continue
+        result.append("fg")
+        pair_ms=pair_costs[sampled]
+        sampled+=1
+        if pair_ms>limit:
+            streak+=1
+            if streak>=3:
+                cooldown=1
+                streak=0
+        else:
+            streak=0
+    return result
+no_overload=control([7.1]*10)
+assert no_overload.count("fg")==10 and no_overload.count("hold")==0
+overload=control([12.5]*10)
+assert overload[:8]==["real","fg","real","fg","real","fg","real","hold"]
+assert overload.count("hold")==2 and overload.count("fg")==8
+assert overload.count("real")==10
+print("EXP29_25_TWO_PERIOD_GPU_GOVERNOR_SOURCE=PASS; HARDWARE_AB_PENDING")
