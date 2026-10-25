@@ -253,7 +253,7 @@ Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
         rgbaFromArgb(previous,data);
         rgbaFromArgb(current,data+nbytes);
         vkUnmapMemory(lab.device,lab.stagingMemory);
-        const uint32_t flags=motionVariant==2 ?
+        const uint32_t flags=(motionVariant==2 || motionVariant==3) ?
             PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE : 0u;
         const int create=pipa_framegen_vk_create_ex(lab.physical,lab.device,
             motion.data(),motion.size()*4,interp.data(),interp.size()*4,flags,&lab.engine);
