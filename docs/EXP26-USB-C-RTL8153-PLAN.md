@@ -183,3 +183,11 @@ STATUS: HUB_USB3=ACTIVE, USB2_HID_ENUMERATED_IN_LOGS=YES, REALTEK_ENUMERATED=NO,
 ## EXP26 — Companion USB2 e USB3 com RTL8153 ausente
 
 Nova coleta Termux: USB2 hub 05e3:0610 em 1-1 a 480Mb/s, mouse 32c2:0066 em 1-1.3, teclado 36ae:fe9c em 1-1.4; USB3 hub 05e3:0625 em 2-1 a 5000Mb/s. RTL8153 em 2-1.1 AUSENTE. Type-C data role host, power role sink, partner USB-PD yes, fonte USB_PD, voltage_now=8613450 microvolts (8,61V na entrada reportada; nao no RTL8153). Perda seletiva de enumeracao de periferico SS, sem identificacao causal de driver ou conector. Evitar movimentacao de cabo e escrita USB/sysfs. FLASH_READY=false.
+
+## EXP26 — Usuario confirma carregador conectado a entrada PD do hub
+
+Usuário confirmou explicitamente que há um carregador conectado à entrada USB-C PD do hub enquanto o hub está ligado ao Xiaomi Pad 6. A evidência da mesma sessão é data_role=[host] device, power_role=source [sink], supports_usb_power_delivery=yes, usb/real_type=USB_PD, usb/voltage_now=8613450 microvolts (~8,61 V), compatível com alimentação negociada próxima de 9V para o tablet. A leitura não é a tensão downstream entregue ao adaptador Realtek. Datasheet específico do hub, potência do carregador, contrato PD, energia real da porta downstream e comportamento sem carregador permanecem desconhecidos.
+
+Com hub USB2/USB3 enumerado e dongle RTL8153 ausente em 2-1.1, não culpar automaticamente o carregador: hipóteses incluem perda de sinal SS, conector/folga, proteção por corrente de downstream ou diferenças na política Type-C/PD do tablet. O mesmo hub e dongle são estáveis no outro dispositivo ao movimentar cabo; **ainda não foi esclarecido se o mesmo carregador PD também estava conectado nesse controle A/B**. Este é o próximo detalhe comparativo mais importante.
+
+Não provocar perda mecânica nem remover PD enquanto mouse/hub possam ser necessários para operar o tablet; sem unbind/reset/port-power/fastboot ou flash. Comprovado: driver r8152 e eth0 com carrier funcionam quando dongle é enumerado. `FLASH_READY=false`.
