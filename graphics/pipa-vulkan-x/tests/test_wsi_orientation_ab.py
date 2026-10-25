@@ -18,7 +18,7 @@ for token in (
  "identity3dAccepted=preferIdentityFor3D && canIdentity;",
  "fit3dAspectMode==JNI_TRUE && preferIdentity3dMode==JNI_TRUE",
  "p.init(env,surface,motion,warp,scene,continuous,",
- "fit3dAspectMode==JNI_TRUE);",
+ "fit3dAspectMode==JNI_TRUE,",
  '" | supportedTransforms="',
  '" | currentTransform="',
  '" | IDENTITY solicitada="',
