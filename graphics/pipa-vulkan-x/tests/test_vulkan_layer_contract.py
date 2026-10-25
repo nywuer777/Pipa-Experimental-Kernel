@@ -20,8 +20,8 @@ assert "present.pResults=&perSwapchainResult;" in PRESENTER
 assert "querySurfaceAfterSuboptimal()" in PRESENTER
 assert "surfaceDiagnosticSummary()" in PRESENTER
 GRADLE = (ROOT / "lab-app/app/build.gradle").read_text()
-assert "versionCode 318" in GRADLE
-assert "29.28-suboptimal-wsi-probe" in GRADLE
+assert "versionCode 319" in GRADLE
+assert "29.29-real-load-gpu-guard" in GRADLE
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
-print("EXP29.27 explicit Vulkan layer contract: PASS")
+print("EXP29.29 explicit Vulkan layer contract: PASS")
