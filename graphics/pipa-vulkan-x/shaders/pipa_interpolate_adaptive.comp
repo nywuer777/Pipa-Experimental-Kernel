@@ -1,0 +1,59 @@
+#version 450
+
+// EXP29.10: adaptive fast-path for integer and axial bilinear sample coordinates.
+// Identical reconstruction algebra to EXP29.3; no approximate rounding.
+layout(local_size_x=8, local_size_y=8, local_size_z=1) in;
+layout(set=0, binding=0, rgba8) uniform readonly image2D previousFrame;
+layout(set=0, binding=1, rgba8) uniform readonly image2D currentFrame;
+layout(set=0, binding=2, rgba16f) uniform readonly image2D motionField;
+layout(set=0, binding=3, rgba8) uniform writeonly image2D synthesizedFrame;
+layout(push_constant) uniform Params {
+    ivec2 frameSize;
+    int searchRadius;
+    float phase;
+    float errorCutoff;
+} pc;
+
+vec4 sampleBilinear(bool previous, vec2 xy) {
+    vec2 limit=vec2(pc.frameSize - ivec2(1));
+    xy=clamp(xy,vec2(0.0),limit);
+    ivec2 p=ivec2(floor(xy));
+    ivec2 q=min(p+ivec2(1),pc.frameSize-ivec2(1));
+    vec2 f=fract(xy);
+    vec4 a=previous ? imageLoad(previousFrame,p) : imageLoad(currentFrame,p);
+    // Exact integer positions need only one storage-image fetch per source.
+    // Half-pixel horizontal or vertical positions need two, not four.
+    // All other positions preserve the original bilinear reconstruction.
+    if (f.x == 0.0 && f.y == 0.0) return a;
+    if (f.y == 0.0) {
+        vec4 b=previous ? imageLoad(previousFrame,ivec2(q.x,p.y)) : imageLoad(currentFrame,ivec2(q.x,p.y));
+        return mix(a,b,f.x);
+    }
+    if (f.x == 0.0) {
+        vec4 c=previous ? imageLoad(previousFrame,ivec2(p.x,q.y)) : imageLoad(currentFrame,ivec2(p.x,q.y));
+        return mix(a,c,f.y);
+    }
+    vec4 b=previous ? imageLoad(previousFrame,ivec2(q.x,p.y)) : imageLoad(currentFrame,ivec2(q.x,p.y));
+    vec4 c=previous ? imageLoad(previousFrame,ivec2(p.x,q.y)) : imageLoad(currentFrame,ivec2(p.x,q.y));
+    vec4 d=previous ? imageLoad(previousFrame,q) : imageLoad(currentFrame,q);
+    return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+}
+
+void main() {
+    ivec2 xy=ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(xy,pc.frameSize))) return;
+    float t=clamp(pc.phase,0.0,1.0);
+    vec4 result;
+    if (t<=0.0) result=imageLoad(previousFrame,xy);
+    else if (t>=1.0) result=imageLoad(currentFrame,xy);
+    else {
+        vec4 estimate=imageLoad(motionField,xy/16);
+        // Per-tile mismatch fallback: no motion compensation when unreliable.
+        vec2 flow=estimate.b>pc.errorCutoff ? vec2(0.0) : estimate.xy;
+        vec2 position=vec2(xy);
+        vec4 past=sampleBilinear(true,position-t*flow);
+        vec4 now=sampleBilinear(false,position+(1.0-t)*flow);
+        result=mix(past,now,t);
+    }
+    imageStore(synthesizedFrame,xy,result);
+}
