@@ -74,7 +74,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pipa-exp29-7-vulkan-lab-${{ github.run_number }}
+          name: pipa-exp29-8-sparse-vulkan-${{ github.run_number }}
           path: |
             graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk
             graphics/pipa-vulkan-x/lab-app/gradlew
