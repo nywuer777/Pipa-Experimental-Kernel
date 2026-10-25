@@ -1,0 +1,1765 @@
+name: Pipa EXP27 - r8152 v1.10.11 isolated compatibility build (NO FLASH)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipa-exp27-r8152-compat-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Pipa EXP27 / E404-Clang21 isolated r8152 driver backport probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      WORKDIR: ${{ github.workspace }}/exp06-work
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test isolated EXP25A Novatek IRQ patch (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_exp25_touch.py | tee exp25-touch-tests.log
+
+      - name: Unit tests for EXP24 Ethernet config (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_exp24_ethernet.py
+          sha256sum configs/ethernet.config | tee exp24-ethernet-input.sha256
+
+      - name: Verify original EXP01 ZIP and corrected patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '548ebb47ad0febe3c4541b9e93f2233bb9188c78d8f9ec298dd397a11216b852  PipaExperimental-EXP01-source.zip' | sha256sum -c -
+          mkdir -p exp01-src
+          unzip -q PipaExperimental-EXP01-source.zip -d exp01-src
+          test -s patches/0001-pipa-exp01-schedutil-rate-limit.patch
+          cp patches/0001-pipa-exp01-schedutil-rate-limit.patch exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch
+          python3 exp01-src/validate.py
+          bash -n exp01-src/prepare-build.sh
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi device-tree-compiler \
+            liblz4-tool zstd rsync ccache
+          df -h .
+
+      - name: Obtain exactly pinned AOSP Android Clang 21.0.0 / build 14054515
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init android-clang-prebuilt
+          cd android-clang-prebuilt
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          clang-r563880c/bin/clang --version | tee "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          grep -F 'clang version 21.0.0' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          printf 'AOSP toolchain repository commit: %s\n' "$ANDROID_LLVM_COMMIT" >> "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          # The revision above is already captured; git metadata not required for compilation.
+          rm -rf .git
+          df -h .
+
+      - name: Checkout exact E404 source, apply EXP01 and recover pinned KernelSU
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash exp01-src/prepare-build.sh "$WORKDIR" prepare 2>&1 | tee exp06-prepare.log
+          cd "$WORKDIR/kernel"
+          test "$(git rev-parse HEAD)" = fed88a6024cd4d46c52eda607a95d97d7371ba81
+          git submodule update --init --depth 1 KernelSU
+          test -f drivers/kernelsu/Kconfig
+          git apply --reverse --check "$GITHUB_WORKSPACE/exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch"
+          df -h .
+
+      - name: Stage pinned Linux 5.4.290 r8152 v1.10.11 (experimental, fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET="$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          test -f "$TARGET"
+          echo "PIPA_E404_BASE_DRIVER_BLOB=$(git -C "$WORKDIR/kernel" hash-object "$TARGET")" | tee exp27-r8152-stage-gate.txt
+          grep -Eq '^#define NETNEXT_VERSION[[:space:]]+"09"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -Eq '^#define NETNEXT_VERSION[[:space:]]+"10"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP27 (experimental r8152 v1.10.11 source + EXP25A touch gate) kernel Image; no boot.img; runtime not tested; FLASH_READY=false'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp27-r8152-v11011-clang21-${{ github.run_number }}
+          path: |
+            exp27-r8152-stage-gate.txt
+            exp27-r8152-diffstat.txt
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$TARGET"
+          grep -Eq '^#define NET_VERSION[[:space:]]+"9"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$TARGET"
+          curl -fLsS --retry 3 --connect-timeout 20 \
+            https://raw.githubusercontent.com/gregkh/linux/v5.4.290/drivers/net/usb/r8152.c \
+            -o exp27-r8152.c
+          test "$(git hash-object exp27-r8152.c)" = 92b51c4c46f57b660f3053804ba74f6df9e71c76
+          grep -Eq '^#define NETNEXT_VERSION[[:space:]]+"10"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ exp27-r8152.c
+          grep -Eq '^#define NET_VERSION[[:space:]]+"11"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ exp27-r8152.c
+          grep -Fq 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' exp27-r8152.c
+          grep -Fq 'module_usb_driver(rtl8152_driver)' exp27-r8152.c
+          cp exp27-r8152.c "$TARGET"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff --stat -- drivers/net/usb/r8152.c | tee exp27-r8152-diffstat.txt
+          echo 'R8152_TARGET=v1.10.11' | tee -a exp27-r8152-stage-gate.txt
+          echo 'UPSTREAM=gregkh/linux tag v5.4.290, git-blob 92b51c4c46f57b660f3053804ba74f6df9e71c76' | tee -a exp27-r8152-stage-gate.txt
+          echo 'SOURCE_STAGED_ONLY=YES; COMPILATION_PENDING=YES; FLASH_READY=false' | tee -a exp27-r8152-stage-gate.txt
+
+      - name: Enable 21 available Ethernet drivers in pinned E404 pipa config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -Eq '^#define NET_VERSION[[:space:]]+"11"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$TARGET"
+          grep -Eq '^#define NET_VERSION[[:space:]]+"9"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$TARGET"
+          curl -fLsS --retry 3 --connect-timeout 20 \
+            https://raw.githubusercontent.com/gregkh/linux/v5.4.290/drivers/net/usb/r8152.c \
+            -o exp27-r8152.c
+          test "$(git hash-object exp27-r8152.c)" = 92b51c4c46f57b660f3053804ba74f6df9e71c76
+          grep -Eq '^#define NETNEXT_VERSION[[:space:]]+"10"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ exp27-r8152.c
+          grep -Eq '^#define NET_VERSION[[:space:]]+"11"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ exp27-r8152.c
+          grep -Fq 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' exp27-r8152.c
+          grep -Fq 'module_usb_driver(rtl8152_driver)' exp27-r8152.c
+          cp exp27-r8152.c "$TARGET"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff --stat -- drivers/net/usb/r8152.c | tee exp27-r8152-diffstat.txt
+          echo 'R8152_TARGET=v1.10.11' | tee -a exp27-r8152-stage-gate.txt
+          echo 'UPSTREAM=gregkh/linux tag v5.4.290, git-blob 92b51c4c46f57b660f3053804ba74f6df9e71c76' | tee -a exp27-r8152-stage-gate.txt
+          echo 'SOURCE_STAGED_ONLY=YES; COMPILATION_PENDING=YES; FLASH_READY=false' | tee -a exp27-r8152-stage-gate.txt
+
+      - name: Enable 21 available Ethernet drivers in pinned E404 pipa config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          echo "EXP27_BACKPORT_EXPERIMENT=YES; COMPATIBILITY_BUILD_ONLY=YES; NVT_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$TARGET"
+          grep -Eq '^#define NET_VERSION[[:space:]]+"9"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$TARGET"
+          curl -fLsS --retry 3 --connect-timeout 20 \
+            https://raw.githubusercontent.com/gregkh/linux/v5.4.290/drivers/net/usb/r8152.c \
+            -o exp27-r8152.c
+          test "$(git hash-object exp27-r8152.c)" = 92b51c4c46f57b660f3053804ba74f6df9e71c76
+          grep -Eq '^#define NETNEXT_VERSION[[:space:]]+"10"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ exp27-r8152.c
+          grep -Eq '^#define NET_VERSION[[:space:]]+"11"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ exp27-r8152.c
+          grep -Fq 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' exp27-r8152.c
+          grep -Fq 'module_usb_driver(rtl8152_driver)' exp27-r8152.c
+          cp exp27-r8152.c "$TARGET"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff --stat -- drivers/net/usb/r8152.c | tee exp27-r8152-diffstat.txt
+          echo 'R8152_TARGET=v1.10.11' | tee -a exp27-r8152-stage-gate.txt
+          echo 'UPSTREAM=gregkh/linux tag v5.4.290, git-blob 92b51c4c46f57b660f3053804ba74f6df9e71c76' | tee -a exp27-r8152-stage-gate.txt
+          echo 'SOURCE_STAGED_ONLY=YES; COMPILATION_PENDING=YES; FLASH_READY=false' | tee -a exp27-r8152-stage-gate.txt
+
+      - name: Enable 21 available Ethernet drivers in pinned E404 pipa config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-touch-irq-clang21-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
