@@ -26,8 +26,8 @@ public final class MainActivity extends Activity {
 
     private TextView status;
     private ImageView result;
-    private Button run;
-    private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp);
+    private Button run, benchmark;
+    private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions);
     private native String nativeReport();
 
     @Override public void onCreate(Bundle state) {
@@ -41,7 +41,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.4", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.5", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -52,6 +52,10 @@ public final class MainActivity extends Activity {
         run.setAllCaps(false);
         run.setText("Executar interpolação na GPU");
         base.addView(run,new LinearLayout.LayoutParams(-1,dp(52)));
+        benchmark=new Button(this);
+        benchmark.setAllCaps(false);
+        benchmark.setText("Benchmark GPU (1 aquecimento + 32 amostras)");
+        base.addView(benchmark,new LinearLayout.LayoutParams(-1,dp(52)));
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
@@ -68,8 +72,9 @@ public final class MainActivity extends Activity {
         result.setScaleType(ImageView.ScaleType.FIT_CENTER);
         result.setBackgroundColor(0xff242428);
         generated.addView(result,new LinearLayout.LayoutParams(-1,dp(160)));
-        base.addView(label("Métrica: tempo de submissão e espera no CPU (inclui cópias e sincronização); não é tempo interno do shader. Saída exibida no Android UI, sem swapchain de jogo.",12,0xff9999a5));
-        run.setOnClickListener(v->runTest());
+        base.addView(label("GPU: timestamps Vulkan abrangem as duas passagens Compute, incluindo barreira entre elas. CPU: submissão+fence e inicialização JNI são métricas separadas. Medição offscreen de 256x128; não há FPS de jogo nem swapchain.",12,0xff9999a5));
+        run.setOnClickListener(v->runTest(1));
+        benchmark.setOnClickListener(v->runTest(33));
         setContentView(outer);
     }
 
@@ -143,15 +148,18 @@ public final class MainActivity extends Activity {
           maeGpu,maeNaive);
     }
 
-    private void runTest() {
+    private void runTest(int repetitions) {
         run.setEnabled(false);
-        status.setText("Preparando recursos Vulkan e executando shader...");
+        benchmark.setEnabled(false);
+        status.setText(repetitions==1 ?
+            "Executando uma interpolação Vulkan..." :
+            "Medindo 32 interpolações Vulkan após aquecimento...");
         new Thread(()->{
             try {
                 byte[] motion=shader("pipa_motion.comp.spv");
                 byte[] interp=shader("pipa_interpolate.comp.spv");
                 long start=SystemClock.elapsedRealtimeNanos();
-                int[] pixels=nativeGenerate(PREVIOUS,CURRENT,W,H,motion,interp);
+                int[] pixels=nativeGenerate(PREVIOUS,CURRENT,W,H,motion,interp,repetitions);
                 double totalMs=(SystemClock.elapsedRealtimeNanos()-start)/1000000.0;
                 String report=nativeReport();
                 final String score=pixels!=null && pixels.length==W*H ? accuracy(pixels) : "";
@@ -165,11 +173,13 @@ public final class MainActivity extends Activity {
                         status.setText("Falha no teste: "+report);
                     }
                     run.setEnabled(true);
+                    benchmark.setEnabled(true);
                 });
             } catch (Throwable t) {
                 runOnUiThread(()->{
                     status.setText("Falha: "+t.getClass().getSimpleName()+": "+t.getMessage());
                     run.setEnabled(true);
+                    benchmark.setEnabled(true);
                 });
             }
         },"pipa-vk-lab").start();
