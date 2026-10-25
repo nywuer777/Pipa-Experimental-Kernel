@@ -24,7 +24,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     private native String nativePresent(Surface surface, byte[] motion, byte[] warp,
                                         byte[] scene, int targetHz, int frames, boolean continuous, boolean holdInsteadOfFG,
                                         boolean alignWithDisplay, int motionRadius, boolean fit3dAspect,
-                                        boolean preferIdentity3d, boolean gpuBudgetGuard);
+                                        boolean preferIdentity3d, boolean gpuBudgetGuard,
+                                        boolean gpuBudgetStressScene);
     private native void nativeStop();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile boolean validSurface = false;
@@ -248,7 +249,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                     diagnostic?"pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"):null;
                 result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,
                                      continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,
-                                     scene3d,preferIdentity3d,adaptiveGuard);
+                                     scene3d,preferIdentity3d,adaptiveGuard,
+                                     stress && !scene3d);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
             }
