@@ -181,6 +181,8 @@ struct Presenter {
     VkPhysicalDeviceMemoryProperties memory{};
     std::string gpuName;
     bool useBlit=true;
+    bool fitAspect=false;
+    uint32_t fitWidth=0,fitHeight=0;
     VkSurfaceTransformFlagBitsKHR chosenTransform=VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     bool displayTimingEnabled=false;
     PFN_vkGetPastPresentationTimingGOOGLE getPastTiming=nullptr;
@@ -732,8 +734,13 @@ struct Presenter {
         check(vkWaitForFences(device,1,&fence,VK_TRUE,10000000000ULL),"Wait upload fence");
     }
     int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,
-            bool alignWithDisplay,int motionRadius) {
+            bool alignWithDisplay,int motionRadius,bool fit3dAspect) {
         recordedMotionRadius=motionRadius;
+        fitAspect=fit3dAspect;
+        const double fitScale=std::min(double(extent.width)/double(kWidth),
+                                       double(extent.height)/double(kHeight));
+        fitWidth=std::min(extent.width,std::max(1u,uint32_t(std::lround(kWidth*fitScale))));
+        fitHeight=std::min(extent.height,std::max(1u,uint32_t(std::lround(kHeight*fitScale))));
         const PipaFramegenVkImages images={
           tex[0].view,tex[1].view,tex[2].view,tex[3].view,tex[2].image
         };
@@ -831,13 +838,35 @@ struct Presenter {
                  VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,1,&destination);
 
             if(useBlit) {
+                // Preserve 16:9 geometry, even when SurfaceView is very wide.
+                // Black bars are explicit and the clear is transfer-ordered.
+                if(fitAspect) {
+                    VkClearColorValue black{};
+                    black.float32[3]=1.0f;
+                    VkImageSubresourceRange range{};
+                    range.aspectMask=VK_IMAGE_ASPECT_COLOR_BIT;
+                    range.levelCount=1;range.layerCount=1;
+                    vkCmdClearColorImage(command,swapImages[index],
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,&black,1,&range);
+                    VkMemoryBarrier clearToBlit{};
+                    clearToBlit.sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                    clearToBlit.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+                    clearToBlit.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+                    vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,0,1,&clearToBlit,0,nullptr,0,nullptr);
+                }
                 VkImageBlit blit{};
                 blit.srcSubresource.aspectMask=VK_IMAGE_ASPECT_COLOR_BIT;
                 blit.srcSubresource.layerCount=1;
                 blit.srcOffsets[1]={int32_t(kWidth),int32_t(kHeight),1};
                 blit.dstSubresource.aspectMask=VK_IMAGE_ASPECT_COLOR_BIT;
                 blit.dstSubresource.layerCount=1;
-                blit.dstOffsets[1]={int32_t(extent.width),int32_t(extent.height),1};
+                const int32_t left=fitAspect?int32_t((extent.width-fitWidth)/2):0;
+                const int32_t top=fitAspect?int32_t((extent.height-fitHeight)/2):0;
+                const int32_t width=fitAspect?int32_t(fitWidth):int32_t(extent.width);
+                const int32_t height=fitAspect?int32_t(fitHeight):int32_t(extent.height);
+                blit.dstOffsets[0]={left,top,0};
+                blit.dstOffsets[1]={left+width,top+height,1};
                 vkCmdBlitImage(command,texSource.image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                swapImages[index],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                1,&blit,VK_FILTER_NEAREST);
@@ -930,7 +959,8 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
-    jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius) {
+    jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius,
+    jboolean fit3dAspectMode) {
     bool expected=false;
     if(!g_inUse.compare_exchange_strong(expected,true))
         return env->NewStringUTF("Uma sessão Vulkan já está ativa.");
@@ -951,7 +981,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         p.init(env,surface,motion,warp,scene,continuous);
         auto t1=std::chrono::steady_clock::now();
         int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
-                         alignWithDisplayMode==JNI_TRUE,int(motionRadius));
+                         alignWithDisplayMode==JNI_TRUE,int(motionRadius),
+                         fit3dAspectMode==JNI_TRUE);
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -968,6 +999,9 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
           " | preTransform="+std::to_string(uint32_t(p.chosenTransform))+
           " | blit="+std::to_string(p.useBlit?1:0)+
+          " | FIT 16:9="+std::to_string(p.fitAspect?1:0)+
+          " | viewport destino="+std::to_string(p.fitAspect?p.fitWidth:p.extent.width)+
+          "x"+std::to_string(p.fitAspect?p.fitHeight:p.extent.height)+
           " | swapFormat="+std::to_string(int(p.swapFormat))+
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
@@ -975,7 +1009,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.20 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.22 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
