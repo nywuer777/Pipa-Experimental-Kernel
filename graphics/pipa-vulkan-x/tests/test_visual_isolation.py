@@ -34,7 +34,7 @@ for token in (
  "hold144=button(",
  "hold144.setOnClickListener(v->start(144,true,true));",
  "hold144.setEnabled(enabled && validSurface);",
- "nativePresent(surface,motion,warp,scene,hz,240,continuous,holdInsteadOfFG)",
+ "result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,",
 ): assert token in ui,token
 assert "versionCode 308" in gradle
 assert "versionName '29.18-lab'" in gradle
