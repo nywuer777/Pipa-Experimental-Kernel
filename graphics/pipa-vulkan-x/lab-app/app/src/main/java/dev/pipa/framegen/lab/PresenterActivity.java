@@ -22,12 +22,12 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     static { System.loadLibrary("pipa_lab"); }
     private native String nativePresent(Surface surface, byte[] motion, byte[] warp,
                                         byte[] scene, int targetHz, int frames, boolean continuous, boolean holdInsteadOfFG,
-                                        boolean alignWithDisplay);
+                                        boolean alignWithDisplay, int motionRadius);
     private native void nativeStop();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile boolean validSurface = false;
     private SurfaceView surfaceView;
-    private CheckBox syncDisplay;
+    private CheckBox syncDisplay, fastMotion;
     private Button copyReport;
     private TextView status;
     private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144, v2Hold144, v2Fg144, stressHold144, stressFg144;
@@ -38,10 +38,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.19 - CPU PACING", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.20 - MOTION / WARP", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Vulkan FIFO 720p | 144Hz fixo vs periodo do monitor | GPU+CPU+WSI",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | Motion vs Warp GPU | raio 4 padrao / 3 experimental",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",12,0xffeeeeee);
         root.addView(status);
         LinearLayout controls = new LinearLayout(this);
@@ -95,10 +95,16 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         copyReport=button("Copiar relatório");
         timingControls.addView(copyReport,new LinearLayout.LayoutParams(0,dp(44),1));
         root.addView(timingControls,new LinearLayout.LayoutParams(-1,dp(48)));
+        fastMotion=new CheckBox(this);
+        fastMotion.setText("Motion FAST experimental: raio 3 (padrao 4)");
+        fastMotion.setTextColor(0xffdde4ee);
+        fastMotion.setTextSize(12);
+        fastMotion.setChecked(false);
+        root.addView(fastMotion,new LinearLayout.LayoutParams(-1,dp(40)));
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("A V2 corrigida foi validada visualmente. FIXED reproduz o teste anterior; SYNC usa o ciclo WSI quando compatível. O atraso de CPU nao e contagem de quadros perdidos. Os perfis STRESS solicitam 10s e coletam tempos GPU de originais e gerados. A versão V2 substitui o ruído fino e elimina a região crescente de x=0. Compare V2 HOLD e V2 FrameGen com a cena procedural antiga e DIAG sólido. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Todos os modos seguem via VkSwapchainKHR; controles anteriores mantidos. "
+        root.addView(text("Motion FAST usa raio 3 e deve ser comparado ao raio 4 padrao, tanto em tempo de GPU quanto em artefatos. A V2 corrigida foi validada visualmente. FIXED reproduz o teste anterior; SYNC usa o ciclo WSI quando compatível. O atraso de CPU nao e contagem de quadros perdidos. Os perfis STRESS solicitam 10s e coletam tempos GPU de originais e gerados. A versão V2 substitui o ruído fino e elimina a região crescente de x=0. Compare V2 HOLD e V2 FrameGen com a cena procedural antiga e DIAG sólido. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Todos os modos seguem via VkSwapchainKHR; controles anteriores mantidos. "
             +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
@@ -154,6 +160,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         stressHold144.setEnabled(enabled && validSurface);
         stressFg144.setEnabled(enabled && validSurface);
         if(syncDisplay!=null)syncDisplay.setEnabled(enabled && validSurface);
+        if(fastMotion!=null)fastMotion.setEnabled(enabled && validSurface);
     }
     private byte[] load(String filename) throws Exception {
         try(InputStream in=getAssets().open(filename); ByteArrayOutputStream out=new ByteArrayOutputStream()) {
@@ -178,7 +185,9 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
         final boolean alignWithDisplay=syncDisplay.isChecked();
-        status.setText((alignWithDisplay?"SYNC WSI ":"FIXED 144 ")+
+        final int motionRadius=fastMotion.isChecked()?3:4;
+        status.setText("MOTION raio="+motionRadius+" "+
+              (alignWithDisplay?"SYNC WSI ":"FIXED 144 ")+
               (stress?"STRESS 10s ":"TESTE CURTO ")+
               (v2?"CENA V2 ":diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
               (holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
@@ -192,7 +201,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                 byte[] scene=continuous?load(v2?"pipa_scene_v2.comp.spv":
                     diagnostic?"pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"):null;
                 result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,
-                                     continuous,holdInsteadOfFG,alignWithDisplay);
+                                     continuous,holdInsteadOfFG,alignWithDisplay,motionRadius);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
             }
