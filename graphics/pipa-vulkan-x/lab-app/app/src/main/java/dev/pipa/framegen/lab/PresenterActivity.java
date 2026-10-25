@@ -23,7 +23,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     private volatile boolean validSurface = false;
     private SurfaceView surfaceView;
     private TextView status;
-    private Button start60, start120, start144, stop, animate120, animate144, hold144;
+    private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -31,10 +31,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.15 - VISUAL ISOLATION", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.16 - SCENE FORENSICS", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Vulkan FIFO 720p | quadro original vs gerado | comparação HOLD sem FG",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | original procedural vs cena diagnóstica sem ruído",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",14,0xffeeeeee);
         root.addView(status);
         LinearLayout controls = new LinearLayout(this);
@@ -56,10 +56,17 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.addView(continuousControls,new LinearLayout.LayoutParams(-1,dp(52)));
         hold144=button("Controle 72→144: repetir original (HOLD), sem FrameGen");
         root.addView(hold144,new LinearLayout.LayoutParams(-1,dp(48)));
+        LinearLayout diagnosticControls=new LinearLayout(this);
+        diagnosticControls.setOrientation(LinearLayout.HORIZONTAL);
+        diagHold144=button("DIAG sólido HOLD 72→144 (sem FG)");
+        diagFg144=button("DIAG sólido FrameGen 72→144");
+        diagnosticControls.addView(diagHold144,new LinearLayout.LayoutParams(0,dp(48),1));
+        diagnosticControls.addView(diagFg144,new LinearLayout.LayoutParams(0,dp(48),1));
+        root.addView(diagnosticControls,new LinearLayout.LayoutParams(-1,dp(52)));
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("O controle HOLD apresenta o mesmo frame duas vezes sem executar interpolação, para isolar artefatos visuais da fonte. O modo 2x mantém FrameGen Vulkan no próprio VkSwapchainKHR; os testes A/B antigos permanecem. "
+        root.addView(text("Compare os modos DIAG sólido HOLD e DIAG sólido FrameGen para detectar distorções sem o padrão procedural. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Controles anteriores mantidos. "
             +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
@@ -69,6 +76,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         animate120.setOnClickListener(v->start(120,true));
         animate144.setOnClickListener(v->start(144,true));
         hold144.setOnClickListener(v->start(144,true,true));
+        diagHold144.setOnClickListener(v->start(144,true,true,true));
+        diagFg144.setOnClickListener(v->start(144,true,false,true));
         stop.setOnClickListener(v->nativeStop());
         toggle(true);
     }
@@ -97,6 +106,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         animate120.setEnabled(enabled && validSurface);
         animate144.setEnabled(enabled && validSurface);
         hold144.setEnabled(enabled && validSurface);
+        diagHold144.setEnabled(enabled && validSurface);
+        diagFg144.setEnabled(enabled && validSurface);
     }
     private byte[] load(String filename) throws Exception {
         try(InputStream in=getAssets().open(filename); ByteArrayOutputStream out=new ByteArrayOutputStream()) {
@@ -105,12 +116,16 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
             return out.toByteArray();
         }
     }
-    private void start(int hz) { start(hz,false,false); }
-    private void start(int hz,boolean continuous) { start(hz,continuous,false); }
+    private void start(int hz) { start(hz,false,false,false); }
+    private void start(int hz,boolean continuous) { start(hz,continuous,false,false); }
     private void start(int hz,boolean continuous,boolean holdInsteadOfFG) {
+        start(hz,continuous,holdInsteadOfFG,false);
+    }
+    private void start(int hz,boolean continuous,boolean holdInsteadOfFG,boolean diagnostic) {
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
-        status.setText((holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
+        status.setText((diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
+              (holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
               " Hz | tela "+displayHz()+" Hz | criando Vulkan...");
         final Surface surface=surfaceView.getHolder().getSurface();
         new Thread(()->{
@@ -118,12 +133,15 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
             try {
                 byte[] motion=load("pipa_motion_sparse.comp.spv");
                 byte[] warp=load("pipa_interpolate_tiled.comp.spv");
-                byte[] scene=continuous?load("pipa_scene.comp.spv"):null;
+                byte[] scene=continuous?load(diagnostic?
+                    "pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"):null;
                 result=nativePresent(surface,motion,warp,scene,hz,240,continuous,holdInsteadOfFG);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
             }
-            final String finalResult=result;
+            final String finalResult=result+(diagnostic?
+                " | FONTE=DIAGNOSTICA quadrantes solidos; sem ruido":
+                " | FONTE=PROCEDURAL antiga");
             running.set(false);
             runOnUiThread(()->{
                 status.setText(finalResult+"\nTela Android informa "+displayHz()+" Hz.");
