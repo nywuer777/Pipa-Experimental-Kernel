@@ -113,3 +113,8 @@ O usuário confirmou o acesso TLS Wi-Fi em `adb-6665d3e6-i745L2._adb-tls-connect
 **Gate de segurança para próximo teste físico:** o touchscreen foi confirmado funcional na EXP25A, mas a homologação 6/6 não está completa. Operador deve testar resposta do touch no momento da troca; deixar ADB Wi-Fi ativo; então pode, caso tenha controle físico de contingência, trocar o cabo USB do PC pelo hub (com mouse e RTL8153), sem forçar reset USB, sem mudar estado OTG por sysfs. A troca física deve ser documentada porque resultados com USB gadget ligado ao PC não são resultados do host OTG. Se ADB Wi-Fi desaparecer, usar o touchscreen para observar estado e recuperar ligação normalmente; não fazer reboot/flash.
 
 **Próximo gate read-only:** com hub e adaptador efetivamente conectados, ler via ADB Wi-Fi as instâncias em `/sys/bus/usb/devices`, os IDs de fabricante/produto, estado de `/sys/bus/usb/drivers/r8152`, interfaces `/sys/class/net`, `ip -o link show` com root, carrier da eth0 quando presente e últimos logs USB/r8152/EPROTO. Ausência do RTL8153 deve ser qualificada como estado físico + ausência/presença em sysfs, sem concluir defeito do driver automaticamente. EXP26_CODE_CHANGES=NONE; FLASH_READY=false.
+
+
+## EXP26.1: RTL8153 enumerado e Ethernet com carrier
+
+Coleta em EXP25A: hub USB 05e3:0625 no caminho 2-1, adaptador 0bda:8153 em 2-1.1, ambos a 5000 Mb/s no barramento USB. Symlink 2-1.1:1.0 no driver r8152; eth0 criada com UP e LOWER_UP. Dmesg indica eth0 carrier on aos 2212.286s. DHCP, IP, rota e estabilidade temporal permanecem pendentes. Não modificar USB nem partições. FLASH_READY=false.
