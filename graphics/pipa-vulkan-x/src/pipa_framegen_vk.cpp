@@ -123,9 +123,10 @@ extern "C" int pipa_framegen_vk_create(VkPhysicalDevice gpu,VkDevice device,
     *out=e; return 0;
 }
 
-extern "C" int pipa_framegen_vk_record(PipaFramegenVk* e,VkCommandBuffer cmd,
+extern "C" int pipa_framegen_vk_record_profiled(PipaFramegenVk* e,VkCommandBuffer cmd,
     const PipaFramegenVkImages* images,uint32_t width,uint32_t height,
-    float phase,uint32_t radius,float cutoff) {
+    float phase,uint32_t radius,float cutoff,
+    VkQueryPool queryPool,uint32_t firstQuery) {
     if (!e || !cmd || !images || !images->motion_image ||
         !images->previous_view || !images->current_view ||
         !images->motion_view || !images->output_view ||
@@ -152,9 +153,14 @@ extern "C" int pipa_framegen_vk_record(PipaFramegenVk* e,VkCommandBuffer cmd,
     vkCmdPushConstants(cmd,e->layout,VK_SHADER_STAGE_COMPUTE_BIT,0,sizeof(params),&params);
     vkCmdBindDescriptorSets(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,e->layout,
                             0,1,&e->set,0,nullptr);
+    if(queryPool!=VK_NULL_HANDLE)
+        vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,queryPool,firstQuery);
     vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,e->motion);
     const uint32_t tx=(width+15)/16,ty=(height+15)/16;
     vkCmdDispatch(cmd,(tx+7)/8,(ty+7)/8,1);
+
+    if(queryPool!=VK_NULL_HANDLE)
+        vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,queryPool,firstQuery+1u);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -175,6 +181,14 @@ extern "C" int pipa_framegen_vk_record(PipaFramegenVk* e,VkCommandBuffer cmd,
                          0,nullptr,1,&barrier);
     vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,e->interpolate);
     vkCmdDispatch(cmd,(width+7)/8,(height+7)/8,1);
+    if(queryPool!=VK_NULL_HANDLE)
+        vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,queryPool,firstQuery+2u);
     // Output stays GENERAL. App owns output visibility and presentation.
     return 0;
+}
+extern "C" int pipa_framegen_vk_record(PipaFramegenVk* e,VkCommandBuffer cmd,
+    const PipaFramegenVkImages* images,uint32_t width,uint32_t height,
+    float phase,uint32_t radius,float cutoff) {
+    return pipa_framegen_vk_record_profiled(e,cmd,images,width,height,
+                                            phase,radius,cutoff,VK_NULL_HANDLE,0);
 }
