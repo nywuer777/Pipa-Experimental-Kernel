@@ -253,7 +253,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetDeviceQueue2(
     }
     if (state.nextGetDeviceQueue2 == nullptr) return;
     state.nextGetDeviceQueue2(device, queueInfo, queue);
-    if (queue != nullptr) registerQueue(*queue, state);
+    if (queue != nullptr) registerQueue(device, *queue, state);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkQueuePresentKHR(
