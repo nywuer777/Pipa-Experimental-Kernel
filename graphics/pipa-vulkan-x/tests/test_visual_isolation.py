@@ -36,8 +36,8 @@ for token in (
  "hold144.setEnabled(enabled && validSurface);",
  "nativePresent(surface,motion,warp,scene,hz,240,continuous,holdInsteadOfFG)",
 ): assert token in ui,token
-assert "versionCode 306" in gradle
-assert "versionName '29.16-lab'" in gradle
+assert "versionCode 307" in gradle
+assert "versionName '29.17-lab'" in gradle
 
 for hold in (False,True):
  for frame in range(240):
