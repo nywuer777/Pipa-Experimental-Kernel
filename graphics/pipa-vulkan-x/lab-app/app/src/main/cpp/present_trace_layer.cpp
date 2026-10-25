@@ -12,6 +12,7 @@ namespace {
 constexpr char kLayerName[] = "VK_LAYER_PIPA_present_trace";
 
 struct InstanceState {
+    VkInstance instance = VK_NULL_HANDLE;
     PFN_vkGetInstanceProcAddr nextGipa = nullptr;
     PFN_vkDestroyInstance nextDestroyInstance = nullptr;
 };
@@ -75,12 +76,12 @@ bool layerProperty(VkLayerProperties* property) {
     return true;
 }
 
-void registerQueue(VkQueue queue, const DeviceState& state) {
+void registerQueue(VkDevice device, VkQueue queue, const DeviceState& state) {
     if (queue == VK_NULL_HANDLE || state.nextQueuePresent == nullptr) return;
     void* key = dispatchKey(queue);
     std::lock_guard<std::mutex> lock(g_stateMutex);
     g_queues[key] = state.nextQueuePresent;
-    auto it = g_devices.find(key);
+    auto it = g_devices.find(dispatchKey(device));
     if (it != g_devices.end()) it->second.queueKeys.push_back(key);
 }
 
@@ -157,6 +158,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(
     VkResult result = nextCreate(createInfo, allocator, instance);
     if (result == VK_SUCCESS) {
         InstanceState state{};
+        state.instance = *instance;
         state.nextGipa = nextGipa;
         state.nextDestroyInstance = reinterpret_cast<PFN_vkDestroyInstance>(
             nextGipa(*instance, "vkDestroyInstance"));
@@ -195,13 +197,16 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(
     VkLayerDeviceLink* link = chain->u.pLayerInfo;
     PFN_vkGetInstanceProcAddr nextGipa = link->pfnNextGetInstanceProcAddr;
     PFN_vkGetDeviceProcAddr nextGdpa = link->pfnNextGetDeviceProcAddr;
+    VkInstance parentInstance = VK_NULL_HANDLE;
+    {
+        std::lock_guard<std::mutex> lock(g_stateMutex);
+        auto it = g_instances.find(dispatchKey(physicalDevice));
+        if (it != g_instances.end()) parentInstance = it->second.instance;
+    }
+    if (parentInstance == VK_NULL_HANDLE) return VK_ERROR_INITIALIZATION_FAILED;
     chain->u.pLayerInfo = link->pNext;
     auto nextCreate = reinterpret_cast<PFN_vkCreateDevice>(
-        nextGipa(VK_NULL_HANDLE, "vkCreateDevice"));
-    if (nextCreate == nullptr) {
-        nextCreate = reinterpret_cast<PFN_vkCreateDevice>(
-            nextGipa(VK_NULL_HANDLE, "vkCreateDevice"));
-    }
+        nextGipa(parentInstance, "vkCreateDevice"));
     if (nextCreate == nullptr) return VK_ERROR_INITIALIZATION_FAILED;
     VkResult result = nextCreate(physicalDevice, createInfo, allocator, device);
     if (result == VK_SUCCESS) {
@@ -234,7 +239,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetDeviceQueue(
     }
     if (state.nextGetDeviceQueue == nullptr) return;
     state.nextGetDeviceQueue(device, queueFamilyIndex, queueIndex, queue);
-    if (queue != nullptr) registerQueue(*queue, state);
+    if (queue != nullptr) registerQueue(device, *queue, state);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetDeviceQueue2(
