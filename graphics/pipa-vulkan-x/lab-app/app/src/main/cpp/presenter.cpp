@@ -252,8 +252,13 @@ struct Presenter {
         if(!displayTimingEnabled || !getPastTiming)
             return " | timing WSI: VK_GOOGLE_display_timing indisponivel";
         collectTiming();
+        const uint32_t accepted=sceneRealSubmitted+
+                        sceneGeneratedSubmitted+sceneHeldSubmitted;
         std::string result=" | VK_GOOGLE_display_timing: "+
-            std::to_string(reportedActualNs.size())+" amostras reais reportadas";
+            std::to_string(reportedActualNs.size())+" amostras reais reportadas"+
+            " | cobertura WSI="+
+            (accepted?std::to_string(100.0*double(reportedActualNs.size())/accepted):
+                       std::string("0"))+"% dos presents aceitos";
         if(refreshPeriodNs>0)
             result+=" | ciclo monitor reportado="+
                 std::to_string(double(refreshPeriodNs)/1.e6)+"ms";
@@ -275,15 +280,35 @@ struct Presenter {
                 double total=0.0;
                 for(double v:intervals)total+=v;
                 double avg=total/intervals.size();
+                size_t p50=(intervals.size()*50u+99u)/100u-1u;
                 size_t p95=(intervals.size()*95u+99u)/100u-1u;
+                size_t p99=(intervals.size()*99u+99u)/100u-1u;
                 result+=" | intervalos consecutivos n="+std::to_string(intervals.size())+
                     " media="+std::to_string(avg)+"ms"+
+                    " p50="+std::to_string(intervals[p50])+"ms"+
                     " p95="+std::to_string(intervals[p95])+"ms"+
+                    " p99="+std::to_string(intervals[p99])+"ms"+
+                    " max="+std::to_string(intervals.back())+"ms"+
                     " cadencia reportada="+std::to_string(1000.0/avg)+"Hz";
+                if(refreshPeriodNs>0) {
+                    uint32_t longIntervals=0;
+                    const double threshold=1.5*double(refreshPeriodNs)/1.e6;
+                    for(double v:intervals)if(v>threshold)++longIntervals;
+                    result+=" | intervalos >1.5 ciclos="+
+                        std::to_string(longIntervals)+"/"+
+                        std::to_string(intervals.size());
+                }
             } else result+=" | sem pares consecutivos validos";
         }
         if(timingQueryFailures)
             result+=" | falhas consultas="+std::to_string(timingQueryFailures);
+        if(!presentCallMs.empty()) {
+            std::vector<double> sorted=presentCallMs;
+            std::sort(sorted.begin(),sorted.end());
+            size_t p95=(sorted.size()*95u+99u)/100u-1u;
+            result+=" | CPU vkQueuePresentKHR p95="+
+                    std::to_string(sorted[p95])+"ms";
+        }
         return result;
     }
     ~Presenter() {
