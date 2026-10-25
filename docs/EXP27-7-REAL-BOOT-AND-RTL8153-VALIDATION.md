@@ -105,3 +105,35 @@ O operador executou no Termux, em EXP27.1 com driver r8152 associado ao Realtek 
 **Limite do roteamento:** `ip -4 route show` não mostrou rota default na tabela principal; Android pode empregar regras/tabelas de roteamento personalizadas. Não concluir falta de internet sem `ip -4 route show table all` e `ip -4 rule show`, mais tentativa explícita de tráfego vinculada a `eth0`. Teste de conectividade IPv4 real permanece pendente; ping pode ser filtrado na rede. Não usar Wi-Fi móvel como evidência de tráfego Ethernet.
 
 **Estado atualizado:** `RTL8153_USB3=PASS`; `RTL8153_BIND_R8152=PASS`; `ETH_LINK_1000=PASS`; `ETH_IPV4=PASS`; `ETH_RX_TX_COUNTERS_NONZERO=PASS`; `ETH_INTERNET_REACHABILITY=NOT_TESTED`; `ETH_STABILITY_LONG_RUN=NOT_TESTED`; `FLASH_READY=false`.
+
+
+## EXP27.7 — Conectividade IPv4 externa real via eth0: PASS
+
+**Evidência direta do operador via Termux/root na sessão EXP27 inicializada**, sem alteração de hub ou driver. Comando read-only `ip -4 route show table all`, `ip -4 rule show` e teste ICMP delimitado `ping -I eth0 -c 4 -W 2 1.1.1.1`.
+
+### Roteamento efetivo do Android
+
+```text
+default via 192.168.1.254 dev eth0 table eth0 proto static
+192.168.1.0/24 dev eth0 table eth0 proto static scope link
+192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.102
+```
+
+A consulta completa mostrou regras de policy routing Android (`fwmark`, UID e tabela `eth0`) e também uma rota `default dev dummy0 table dummy0`. A rota default de `eth0` existe **na tabela nomeada eth0**, apesar de não aparecer em consulta anterior restrita à tabela principal. Não confundir policy routes com perda de gateway. O resultado do ICMP explicitamente limitado a `eth0` confirma o caminho de saída.
+
+### ICMP real externo, com interface Ethernet forçada
+
+```text
+PING 1.1.1.1 (1.1.1.1) from 192.168.1.102 eth0: 56(84) bytes of data.
+64 bytes from 1.1.1.1: icmp_seq=1 ttl=57 time=2.98 ms
+64 bytes from 1.1.1.1: icmp_seq=2 ttl=57 time=3.03 ms
+64 bytes from 1.1.1.1: icmp_seq=3 ttl=57 time=3.24 ms
+64 bytes from 1.1.1.1: icmp_seq=4 ttl=57 time=3.19 ms
+
+4 packets transmitted, 4 received, 0% packet loss
+rtt min/avg/max/mdev = 2.981/3.110/3.240/0.121 ms
+```
+
+**Resultado:** `RTL8153_EXTERNAL_IPV4_REACHABILITY=PASS`, `ETH0_POLICY_DEFAULT_ROUTE=PASS`, `ICMP_PACKET_LOSS=0% (4/4)`, latência média 3.110ms. Trata-se de quatro pacotes ICMP em ~3 segundos, **não** medição de throughput ou prova de estabilidade longitudinal. A velocidade Ethernet 1000 Mb/s reportada anteriormente é negociação física de link. O driver r8152 v1.10.11 está funcional na amostra, mas não há experimento A/B controlado separando a melhoria de driver da mudança de carregador USB-C/PD registrada historicamente.
+
+**Próxima fase mínima:** teste curto de continuidade da ligação com pings baixos via eth0 e contadores de rede antes/depois, sem reiniciar, trocar alimentação, forçar suspend ou alterar sysfs. `EXP27_BOOT=PASS`; `RTL8153_USB_BIND=PASS`; `ETH0_GIGABIT_LINK=PASS`; `ETH0_IPV4=PASS`; `ETH0_EXTERNAL_ICMP=PASS`; `USB_PD_LONG_TERM_STABILITY=PENDING`; `EXP27_BENCHMARK=PENDING`; `FLASH_READY=false`.
