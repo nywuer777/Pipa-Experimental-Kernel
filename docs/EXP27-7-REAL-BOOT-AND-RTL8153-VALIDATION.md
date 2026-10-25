@@ -85,3 +85,23 @@ O painel também enumerou outras interfaces: `wlan0 CARRIER=0`, `dummy0 CARRIER=
 **Ainda não verificado:** DHCP/IP em `eth0`, rota de saída via Ethernet, tráfego real, desempenho, link após suspensão/retomada, estabilidade longa, comportamento USB-C/PD e touchscreen/mouse funcional nesta sessão. Em evidência histórica, EXP25A já apresentou Ethernet estável após troca de carregador, portanto o sucesso atual **não prova sozinho que v1.10.11 resolveu falha de alimentação ou superou v1.09.9**.
 
 **Próximo teste seguro pelo Termux:** consulta somente leitura a `ip -4 addr show dev eth0`, `ip route` e counters de `/sys/class/net/eth0/statistics/rx_bytes` / `tx_bytes` em dois instantes sem gerar tráfego. Não trocar cabo/hub, carregador, fazer reset USB nem boot. `ETH_IP_VALIDATED=PENDING`; `ETH_TRAFFIC_VALIDATED=PENDING`; `SUSPEND_STABILITY=PENDING`; `TEMP_BOOT_REPEAT_AUTHORIZED=false`; `FLASH_READY=false`.
+
+
+## Termux real — eth0 com IPv4, link ativo e contadores de tráfego
+
+O operador executou no Termux, em EXP27.1 com driver r8152 associado ao Realtek RTL8153, a leitura `su -c '/system/bin/ip -4 addr show dev eth0; /system/bin/ip -4 route show; cat /sys/class/net/eth0/statistics/rx_bytes; cat /sys/class/net/eth0/statistics/tx_bytes'`. Saída registrada:
+
+```text
+13: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    inet 192.168.1.102/24 brd 192.168.1.255 scope global eth0
+       valid_lft forever preferred_lft forever
+192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.102
+8686471
+2182563
+```
+
+**Confirmações de hardware/rede:** interface Ethernet administrativamente ativa, camada física LOWER_UP, IPv4 `192.168.1.102/24` atribuída, rota local `192.168.1.0/24` disponível, contadores acumulados RX=8.686.471 bytes e TX=2.182.563 bytes. O mecanismo de atribuição do IPv4 (DHCP versus estático) não foi verificado; não afirmar que é DHCP. Não afirmar benchmark nem tráfego em tempo real apenas por valores acumulados.
+
+**Limite do roteamento:** `ip -4 route show` não mostrou rota default na tabela principal; Android pode empregar regras/tabelas de roteamento personalizadas. Não concluir falta de internet sem `ip -4 route show table all` e `ip -4 rule show`, mais tentativa explícita de tráfego vinculada a `eth0`. Teste de conectividade IPv4 real permanece pendente; ping pode ser filtrado na rede. Não usar Wi-Fi móvel como evidência de tráfego Ethernet.
+
+**Estado atualizado:** `RTL8153_USB3=PASS`; `RTL8153_BIND_R8152=PASS`; `ETH_LINK_1000=PASS`; `ETH_IPV4=PASS`; `ETH_RX_TX_COUNTERS_NONZERO=PASS`; `ETH_INTERNET_REACHABILITY=NOT_TESTED`; `ETH_STABILITY_LONG_RUN=NOT_TESTED`; `FLASH_READY=false`.
