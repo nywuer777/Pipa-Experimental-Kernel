@@ -39,7 +39,7 @@ for token in (
     "copyReport.setOnClickListener(v->",
     "stressFg144.setOnClickListener(",
 ): assert token in java,token
-assert "versionCode 310" in gradle and "29.20-lab" in gradle
+assert "versionCode 311" in gradle and "29.21-lab" in gradle
 assert cpp.count('VkQueryPool gpuQueryPool=VK_NULL_HANDLE')==1
 assert "queryInfo.queryCount=2;" not in cpp
 print("EXP29_20_SPLIT_MOTION_WARP_RADIUS3_VS4=PASS; DEVICE_BENCHMARK_PENDING")
