@@ -34,7 +34,7 @@ for token in (
     "const bool synthesized=odd && !holdInsteadOfFG;",
 ): assert token in cpp,token
 for token in (
-    "private CheckBox syncDisplay, fastMotion;",
+    "private CheckBox syncDisplay, fastMotion, identity3d;",
     "syncDisplay.setChecked(false)",
     "final boolean alignWithDisplay=syncDisplay.isChecked();",
     "stressHold144.setOnClickListener(",
