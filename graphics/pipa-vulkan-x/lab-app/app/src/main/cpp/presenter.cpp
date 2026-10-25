@@ -10,6 +10,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <map>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -88,6 +90,65 @@ struct Presenter {
     VkPhysicalDeviceMemoryProperties memory{};
     std::string gpuName;
     bool useBlit=true;
+    bool displayTimingEnabled=false;
+    PFN_vkGetPastPresentationTimingGOOGLE getPastTiming=nullptr;
+    PFN_vkGetRefreshCycleDurationGOOGLE getRefreshDuration=nullptr;
+    uint64_t refreshPeriodNs=0;
+    std::map<uint32_t,uint64_t> reportedActualNs;
+    std::vector<double> presentCallMs;
+    uint32_t timingQueryFailures=0;
+
+    void collectTiming() {
+        if(!displayTimingEnabled || !getPastTiming) return;
+        uint32_t count=0;
+        VkResult q=getPastTiming(device,swap,&count,nullptr);
+        if(q!=VK_SUCCESS) { ++timingQueryFailures;return; }
+        if(count==0) return;
+        std::vector<VkPastPresentationTimingGOOGLE> records(count);
+        q=getPastTiming(device,swap,&count,records.data());
+        if(q!=VK_SUCCESS && q!=VK_INCOMPLETE) { ++timingQueryFailures;return; }
+        for(uint32_t i=0;i<count;++i)
+            if(records[i].actualPresentTime>0)
+                reportedActualNs[records[i].presentID]=records[i].actualPresentTime;
+    }
+    std::string timingSummary() {
+        if(!displayTimingEnabled || !getPastTiming)
+            return " | timing WSI: VK_GOOGLE_display_timing indisponivel";
+        collectTiming();
+        std::string result=" | VK_GOOGLE_display_timing: "+
+            std::to_string(reportedActualNs.size())+" amostras reais reportadas";
+        if(refreshPeriodNs>0)
+            result+=" | ciclo monitor reportado="+
+                std::to_string(double(refreshPeriodNs)/1.e6)+"ms";
+        if(reportedActualNs.size()<2) {
+            result+=" | taxa fisica nao determinada";
+        } else {
+            std::vector<double> intervals;
+            uint32_t previousId=0;
+            uint64_t previousTime=0;
+            for(const auto& pair:reportedActualNs) {
+                if(previousTime>0 && pair.first==previousId+1u &&
+                   pair.second>previousTime)
+                    intervals.push_back(double(pair.second-previousTime)/1.e6);
+                previousId=pair.first;
+                previousTime=pair.second;
+            }
+            if(!intervals.empty()) {
+                std::sort(intervals.begin(),intervals.end());
+                double total=0.0;
+                for(double v:intervals)total+=v;
+                double avg=total/intervals.size();
+                size_t p95=(intervals.size()*95u+99u)/100u-1u;
+                result+=" | intervalos consecutivos n="+std::to_string(intervals.size())+
+                    " media="+std::to_string(avg)+"ms"+
+                    " p95="+std::to_string(intervals[p95])+"ms"+
+                    " cadencia reportada="+std::to_string(1000.0/avg)+"Hz";
+            } else result+=" | sem pares consecutivos validos";
+        }
+        if(timingQueryFailures)
+            result+=" | falhas consultas="+std::to_string(timingQueryFailures);
+        return result;
+    }
     ~Presenter() {
         if(device) vkDeviceWaitIdle(device);
         if(engine) pipa_framegen_vk_destroy(engine);
@@ -208,14 +269,34 @@ struct Presenter {
         qi.queueCount=1;qi.pQueuePriorities=&priority;
         VkPhysicalDeviceFeatures enabled{};
         enabled.shaderStorageImageExtendedFormats=VK_TRUE;
-        const char* deviceExts[]={VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        uint32_t extCount=0;
+        check(vkEnumerateDeviceExtensionProperties(physical,nullptr,&extCount,nullptr),
+              "Enumerate device extension count");
+        std::vector<VkExtensionProperties> extensions(extCount);
+        check(vkEnumerateDeviceExtensionProperties(physical,nullptr,&extCount,
+              extensions.data()),"Enumerate device extensions");
+        for(const auto& ext:extensions) {
+            if(std::strcmp(ext.extensionName,VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME)==0)
+                displayTimingEnabled=true;
+        }
+        std::vector<const char*> deviceExts{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        if(displayTimingEnabled)
+            deviceExts.push_back(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
         VkDeviceCreateInfo di{};
         di.sType=VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         di.queueCreateInfoCount=1;di.pQueueCreateInfos=&qi;
-        di.enabledExtensionCount=1;di.ppEnabledExtensionNames=deviceExts;
+        di.enabledExtensionCount=static_cast<uint32_t>(deviceExts.size());
+        di.ppEnabledExtensionNames=deviceExts.data();
         di.pEnabledFeatures=&enabled;
         check(vkCreateDevice(physical,&di,nullptr,&device),"vkCreateDevice swapchain");
         vkGetDeviceQueue(device,family,0,&queue);
+        if(displayTimingEnabled) {
+            getPastTiming=reinterpret_cast<PFN_vkGetPastPresentationTimingGOOGLE>(
+                vkGetDeviceProcAddr(device,"vkGetPastPresentationTimingGOOGLE"));
+            getRefreshDuration=reinterpret_cast<PFN_vkGetRefreshCycleDurationGOOGLE>(
+                vkGetDeviceProcAddr(device,"vkGetRefreshCycleDurationGOOGLE"));
+            if(!getPastTiming || !getRefreshDuration) displayTimingEnabled=false;
+        }
 
         VkSurfaceCapabilitiesKHR caps{};
         check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical,surface,&caps),
@@ -284,6 +365,11 @@ struct Presenter {
         sci.presentMode=VK_PRESENT_MODE_FIFO_KHR;
         sci.clipped=VK_TRUE;
         check(vkCreateSwapchainKHR(device,&sci,nullptr,&swap),"vkCreateSwapchainKHR");
+        if(displayTimingEnabled) {
+            VkRefreshCycleDurationGOOGLE cycle{};
+            if(getRefreshDuration(device,swap,&cycle)==VK_SUCCESS)
+                refreshPeriodNs=cycle.refreshDuration;
+        }
         uint32_t actual=0;
         check(vkGetSwapchainImagesKHR(device,swap,&actual,nullptr),"Swapchain image count");
         swapImages.resize(actual);
@@ -489,12 +575,29 @@ struct Presenter {
             present.swapchainCount=1;
             present.pSwapchains=&swap;
             present.pImageIndices=&index;
+            VkPresentTimeGOOGLE presentStamp{};
+            VkPresentTimesInfoGOOGLE presentTiming{};
+            if(displayTimingEnabled) {
+                presentStamp.presentID=uint32_t(frame+1);
+                // A nonzero desired timestamp would affect scheduling; use ID-only.
+                presentStamp.desiredPresentTime=0;
+                presentTiming.sType=VK_STRUCTURE_TYPE_PRESENT_TIMES_INFO_GOOGLE;
+                presentTiming.swapchainCount=1;
+                presentTiming.pTimes=&presentStamp;
+                present.pNext=&presentTiming;
+            }
+            const auto submitTime=std::chrono::steady_clock::now();
             VkResult pr=vkQueuePresentKHR(queue,&present);
+            const auto completeTime=std::chrono::steady_clock::now();
+            presentCallMs.push_back(
+                std::chrono::duration<double,std::milli>(completeTime-submitTime).count());
             if(pr==VK_ERROR_OUT_OF_DATE_KHR)break;
             expect(pr==VK_SUCCESS || pr==VK_SUBOPTIMAL_KHR,"vkQueuePresentKHR failed");
             ++queued;
+            if((frame%8)==7) collectTiming();
         }
         check(vkQueueWaitIdle(queue),"Wait present queue idle");
+        collectTiming();
         return queued;
     }
 };
@@ -537,7 +640,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms"+
-          " | NAO sao FPS fisicos exibidos.";
+          p.timingSummary()+
+          " | chamadas/s NAO sao FPS fisicos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
         result=std::string("EXP29.12 Vulkan presenter: ")+e.what();
     }
