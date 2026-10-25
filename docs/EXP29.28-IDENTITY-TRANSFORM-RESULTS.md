@@ -46,3 +46,14 @@ At high battery, the guard preserved 615/720 generated slots under the heavier m
 The next hardware comparison should use the same transform and scene first, then repeat with only IDENTITY changed; keep the four stress passes, mode, and run duration identical, reverse run order on a second pair, and log device temperature if available. Compare paired GPU distributions, CPU late starts, selected pacing period, and WSI interval distribution together. The 31729–31732 session was at 93–94% battery but still charging; temperature stability was not recorded.
 
 The screenshot heading still says EXP29.25 and is stale experiment text. Present calls and driver-reported WSI timestamps do not prove physical scanout, displayed FPS, or touch-to-photon latency. No kernel change or flash was part of these experiments.
+
+
+## Fixed-request pacing captures (31734–31735; 19:57; battery 92%)
+
+Both captures used IDENTITY-on, the fixed 144 Hz request period (6.944444 ms), no WSI_SYNC, no Motion FAST, and no GPU Guard. The HOLD capture had 720 real plus 720 repeated frames, 0/1,440 CPU late starts, WSI mean 6.956923 ms, reported cadence 143.741718 Hz, and 0/522 intervals above 1.5 cycles. It returned VK_SUBOPTIMAL_KHR on all 1,440 presents.
+
+The normal FrameGen capture had 720 real plus 720 interpolated frames, 0 repeats, and 318/1,440 CPU late starts; all 318 were classified before sleep, with 0 new after sleep and a maximum late sequence of 310. The GPU pair guard was disabled. GPU generated+blit mean/p95 were 6.148960/6.246562 ms. WSI consecutive intervals averaged 6.976017 ms, with 1/364 above 1.5 cycles and reported cadence approximately 143.4 Hz. All 1,440 presents returned VK_SUBOPTIMAL_KHR, consistent with IDENTITY-on.
+
+This adds evidence that fixed-request pacing can accumulate CPU deadline lateness during FrameGen even while the sampled WSI intervals remain mostly regular; it does not establish that the lateness caused visible cadence loss. The HOLD result has a different workload, so it is only a control. The next isolating comparison is FrameGen with identical settings and IDENTITY-on, changing only WSI_SYNC; then repeat in reverse order. Keep GPU Guard disabled for this scheduler comparison.
+
+The 31734–31735 capture adds no code change. The EXP29.28 APK remains the applicable binary for reproducing this comparison.
