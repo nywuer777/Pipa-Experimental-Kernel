@@ -59,7 +59,7 @@ void main() {
         ivec2 displacement=ivec2(-2*edge+2*(int(lane)%count),
                                  -2*edge+2*(int(lane)/count));
         score=candidateError(origin,end,displacement);
-        len2=dot(displacement,displacement);
+        len2=displacement.x*displacement.x+displacement.y*displacement.y;
     }
     scores[lane]=score;
     lengths[lane]=len2;
@@ -88,7 +88,7 @@ void main() {
         ivec2 offset=center+ivec2(int(lane%3u)-1,int(lane/3u)-1);
         if(all(lessThanEqual(abs(offset),ivec2(radius)))) {
             score=candidateError(origin,end,offset);
-            len2=dot(offset,offset);
+            len2=offset.x*offset.x+offset.y*offset.y;
         }
     }
     scores[lane]=score;
