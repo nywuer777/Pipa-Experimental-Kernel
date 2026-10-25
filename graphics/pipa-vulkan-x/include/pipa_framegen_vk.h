@@ -42,6 +42,18 @@ int pipa_framegen_vk_record(PipaFramegenVk* engine, VkCommandBuffer cmd,
                             uint32_t width, uint32_t height,
                             float phase, uint32_t search_radius,
                             float error_cutoff);
+// Optional pass profiling: query_pool must have 3 available indices starting
+// at first_query. T0=before Motion; T1=after Motion; T2=after interpolation.
+// Caller resets the queries before execution. Timestamps are written inside
+// the same compute command buffer; no waiting/submitting done by this API.
+// With VK_NULL_HANDLE, this records identically to pipa_framegen_vk_record.
+int pipa_framegen_vk_record_profiled(PipaFramegenVk* engine, VkCommandBuffer cmd,
+                                     const PipaFramegenVkImages* images,
+                                     uint32_t width, uint32_t height,
+                                     float phase, uint32_t search_radius,
+                                     float error_cutoff, VkQueryPool query_pool,
+                                     uint32_t first_query);
+
 #ifdef __cplusplus
 }
 #endif
