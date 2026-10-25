@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.10 source contract. Native/SPIR-V/on-device tests are separate."""
+"""EXP29.11 source contract. Native/SPIR-V/on-device tests are separate."""
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 lab = (root / "lab-app/app/src/main/cpp/lab.cpp").read_text()
@@ -12,8 +12,9 @@ sparse = (root / "shaders/pipa_motion_sparse.comp").read_text()
 for token in (
     "jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions,jint motionVariant",
     "motionVariant==2",
-    "motionVariant>=0 && motionVariant<=3",
-    "motionVariant==2 || motionVariant==3",
+    "motionVariant>=0 && motionVariant<=4",
+    "motionVariant==2 || motionVariant==3 || motionVariant==4",
+    "PIPA_FRAMEGEN_VK_WARP_16X16",
     "PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE",
     "pipa_framegen_vk_create_ex(",
     "pipa_framegen_vk_record_profiled(",
@@ -23,6 +24,7 @@ for token in (
     "timestampBits=props[i].timestampValidBits",
     "VK_QUERY_RESULT_64_BIT|VK_QUERY_RESULT_WAIT_BIT",
     "if(sample>0)",
+    "jboolean tiledWarp",
 ):
     assert token in lab, token
 for token in (
@@ -33,6 +35,7 @@ for token in (
     "vkCmdDispatch(cmd,(tx+7)/8,(ty+7)/8,1);",
     "pipa_framegen_vk_record_profiled(",
     "vkCmdWriteTimestamp(",
+    "vkCmdDispatch(cmd,(width+15)/16,(height+15)/16,1);",
 ):
     assert token in engine, token
 assert "PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE" in header
@@ -49,7 +52,13 @@ for token in (
     "pipa_motion_parallel.comp.spv",
     "pipa_motion_sparse.comp.spv",
     "enableControls(false)",
-    "EXP29.10",
+    "EXP29.11",
+    "runTest(9,4,1280,720,true,false)",
+    "runTest(9,3,640,360,true,true)",
+    "runTest(9,3,1280,720,true,true)",
+    "runTest(9,4,1280,720,true,true)",
+    "pipa_interpolate_tiled.comp.spv",
+    "pipa_motion_sparse32.comp.spv",
     "pipa_interpolate_adaptive.comp.spv",
     "runTest(9,3,640,360,true)",
     "runTest(9,3,1280,720,true)",
@@ -66,6 +75,6 @@ for token in (
 assert "shared vec3 previousSample[16]" in sparse
 assert "const int STEP=4;" in sparse
 assert "if(lane<16u)" in sparse
-assert "versionCode 300" in gradle
-assert "versionName '29.10-lab'" in gradle
-print("EXP29_10_ADAPTIVE_WARP_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
+assert "versionCode 301" in gradle
+assert "versionName '29.11-lab'" in gradle
+print("EXP29_11_TILED_WARP_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
