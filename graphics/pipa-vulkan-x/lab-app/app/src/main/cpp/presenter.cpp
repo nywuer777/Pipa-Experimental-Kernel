@@ -196,6 +196,45 @@ struct Presenter {
     std::vector<double> realGpuMs;
     std::vector<double> generatedGpuMs;
     uint32_t gpuTimingReadFailures=0;
+    // CPU measurements are deliberately separated from GPU timestamps and
+    // driver WSI presentation times. Each metric has a different clock path.
+    std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
+    uint32_t inheritedLateOnePeriod=0, timerOversleepOnePeriod=0;
+    uint32_t lateBurstCurrent=0, lateBurstLongest=0;
+    bool refreshAligned=false;
+    uint64_t selectedPacingPeriodNs=0;
+
+    static std::string cpuDistribution(const std::vector<double>& values,
+                                       const char* name) {
+        if(values.empty())return std::string(" | ")+name+" indisponivel";
+        std::vector<double> sorted=values;
+        std::sort(sorted.begin(),sorted.end());
+        const size_t p95=(sorted.size()*95u+99u)/100u-1u;
+        const size_t p99=(sorted.size()*99u+99u)/100u-1u;
+        double sum=0;
+        for(double v:sorted)sum+=v;
+        return std::string(" | ")+name+" media="+
+               std::to_string(sum/sorted.size())+"ms p95="+
+               std::to_string(sorted[p95])+"ms p99="+
+               std::to_string(sorted[p99])+"ms max="+
+               std::to_string(sorted.back())+"ms";
+    }
+
+    std::string cpuPacingSummary() const {
+        const size_t n=wakeLateMs.size();
+        return std::string(" | CPU pacing=")+(refreshAligned?"WSI_SYNC":"FIXED_REQUEST")+
+          " periodo="+std::to_string(double(selectedPacingPeriodNs)/1.e6)+"ms"+
+          " | inicios >1 periodo="+std::to_string(deadlineMisses)+
+          "/"+std::to_string(n)+
+          " | atraso herdado antes sleep="+std::to_string(inheritedLateOnePeriod)+
+          " | atraso novo apos sleep="+std::to_string(timerOversleepOnePeriod)+
+          " | maior sequencia atrasada="+std::to_string(lateBurstLongest)+
+          cpuDistribution(wakeLateMs,"CPU wake lateness")+
+          cpuDistribution(fenceWaitMs,"CPU fence wait")+
+          cpuDistribution(acquireWaitMs,"CPU acquire wait")+
+          cpuDistribution(submitCallMs,"CPU submit call");
+    }
+
 
     // These GPU timestamps bracket scene compute, FG, image blit and
     // image-layout transitions; they do NOT measure compositor/scanout time.
@@ -667,24 +706,49 @@ struct Presenter {
         check(vkQueueSubmit(queue,1,&submit,fence),"Submit upload");
         check(vkWaitForFences(device,1,&fence,VK_TRUE,10000000000ULL),"Wait upload fence");
     }
-    int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG) {
+    int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,bool alignWithDisplay) {
         const PipaFramegenVkImages images={
           tex[0].view,tex[1].view,tex[2].view,tex[3].view,tex[2].image
         };
         int queued=0;
         const auto start=std::chrono::steady_clock::now();
-        const auto interval=std::chrono::nanoseconds(1000000000LL/targetHz);
+        const uint64_t nominalNs=1000000000ULL/uint64_t(targetHz);
+        // WSI reports a *measured* cycle (~6.96ms on this 144Hz panel)
+        // rather than ideal 1/144s (6.944ms). Use it only when near the
+        // requested 144Hz mode. Never turn a 60/120 request into 144Hz.
+        refreshAligned=alignWithDisplay && targetHz==144 &&
+           refreshPeriodNs>nominalNs*97u/100u &&
+           refreshPeriodNs<nominalNs*103u/100u;
+        selectedPacingPeriodNs=refreshAligned?refreshPeriodNs:nominalNs;
+        const auto interval=std::chrono::nanoseconds(selectedPacingPeriodNs);
         for(int frame=0;frame<requested && !g_stop.load();++frame) {
             auto deadline=start+interval*frame;
+            const auto beforeSleep=std::chrono::steady_clock::now();
+            const bool inheritedLate=beforeSleep>deadline+interval;
+            if(inheritedLate)++inheritedLateOnePeriod;
             std::this_thread::sleep_until(deadline);
-            if(std::chrono::steady_clock::now()>deadline+interval)
+            const auto afterWake=std::chrono::steady_clock::now();
+            const bool late=afterWake>deadline+interval;
+            if(late) {
                 ++deadlineMisses;
+                if(!inheritedLate)++timerOversleepOnePeriod;
+                ++lateBurstCurrent;
+                lateBurstLongest=std::max(lateBurstLongest,lateBurstCurrent);
+            } else lateBurstCurrent=0;
+            wakeLateMs.push_back(std::max(0.0,
+                 std::chrono::duration<double,std::milli>(afterWake-deadline).count()));
+            const auto beforeFence=std::chrono::steady_clock::now();
             check(vkWaitForFences(device,1,&fence,VK_TRUE,10000000000ULL),
                   "Wait frame fence");
+            fenceWaitMs.push_back(std::chrono::duration<double,std::milli>(
+                 std::chrono::steady_clock::now()-beforeFence).count());
             harvestGpuTimestamps();
             uint32_t index=0;
+            const auto beforeAcquire=std::chrono::steady_clock::now();
             VkResult acquiredResult=vkAcquireNextImageKHR(device,swap,UINT64_MAX,
                                                          acquired,VK_NULL_HANDLE,&index);
+            acquireWaitMs.push_back(std::chrono::duration<double,std::milli>(
+                 std::chrono::steady_clock::now()-beforeAcquire).count());
             if(acquiredResult==VK_ERROR_OUT_OF_DATE_KHR)break;
             expect(acquiredResult==VK_SUCCESS || acquiredResult==VK_SUBOPTIMAL_KHR,
                    "Acquire swapchain image failed");
@@ -779,7 +843,10 @@ struct Presenter {
             submit.pCommandBuffers=&command;
             submit.signalSemaphoreCount=1;
             submit.pSignalSemaphores=&rendered[index];
+            const auto beforeSubmit=std::chrono::steady_clock::now();
             check(vkQueueSubmit(queue,1,&submit,fence),"Submit present frame");
+            submitCallMs.push_back(std::chrono::duration<double,std::milli>(
+                 std::chrono::steady_clock::now()-beforeSubmit).count());
             VkPresentInfoKHR present{};
             present.sType=VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
             present.waitSemaphoreCount=1;
@@ -830,7 +897,7 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
-    jboolean holdInsteadOfFGMode) {
+    jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode) {
     bool expected=false;
     if(!g_inUse.compare_exchange_strong(expected,true))
         return env->NewStringUTF("Uma sessão Vulkan já está ativa.");
@@ -849,7 +916,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         auto t0=std::chrono::steady_clock::now();
         p.init(env,surface,motion,warp,scene,continuous);
         auto t1=std::chrono::steady_clock::now();
-        int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG);
+        int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
+                         alignWithDisplayMode==JNI_TRUE);
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -870,10 +938,10 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms"+
-          p.gpuTimingSummary()+p.timingSummary()+
+          p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.18 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.19 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
