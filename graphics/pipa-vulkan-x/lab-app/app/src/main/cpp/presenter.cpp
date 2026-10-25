@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <dlfcn.h>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -23,6 +24,10 @@ std::atomic<bool> g_inUse{false};
 constexpr uint32_t kWidth=1280, kHeight=720;
 // EXP29.26 diagnostic load: repeat the identical source scene only while the GPU Guard is active.
 constexpr uint32_t kGpuBudgetValidationSceneRepeatPasses=4u;
+constexpr char kPipaTraceLayerName[]="VK_LAYER_PIPA_present_trace";
+constexpr char kPipaTraceLayerLibrary[]="libVkLayer_PIPA_present_trace.so";
+using PipaTraceResetFn=void (*)();
+using PipaTraceGetStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*,uint64_t*);
 
 void check(VkResult r, const char* label) {
     if(r!=VK_SUCCESS) throw std::runtime_error(std::string(label)+
@@ -212,6 +217,10 @@ struct Presenter {
     // despite zero CPU late periods. Aggregate a *completed* original+FG pair
     // before making a conservative, three-strike decision. No single-frame
     // interpolation budget threshold is inferred from a WSI monitor cycle.
+    void* traceLayerLibrary=nullptr;
+    PipaTraceResetFn traceLayerReset=nullptr;
+    PipaTraceGetStatsFn traceLayerGetStats=nullptr;
+    bool traceLayerAvailable=false, traceLayerActive=false;
     bool gpuBudgetRequested=false, gpuBudgetEnabled=false;
     double gpuBudgetMs=0.0, lastPairGpuMs=0.0;
     double pendingPairRealGpuMs=0.0;
@@ -220,6 +229,16 @@ struct Presenter {
     uint32_t gpuBudgetHoldCountdown=0, gpuBudgetOverrunStreak=0;
     uint32_t gpuBudgetGovernorTrips=0, gpuBudgetMissingPairs=0;
     std::vector<double> gpuPairMs;
+    std::string traceLayerSummary() const {
+        if(!traceLayerAvailable)return " | VK_LAYER_PIPA available=0 active=0";
+        if(!traceLayerActive || traceLayerGetStats==nullptr)
+            return " | VK_LAYER_PIPA available=1 active=0";
+        uint64_t calls=0,success=0,suboptimal=0,errors=0;
+        traceLayerGetStats(&calls,&success,&suboptimal,&errors);
+        return " | VK_LAYER_PIPA available=1 active=1 presents="+
+            std::to_string(calls)+" success="+std::to_string(success)+
+            " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors);
+    }
     // CPU measurements are deliberately separated from GPU timestamps and
     // driver WSI presentation times. Each metric has a different clock path.
     std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
@@ -461,6 +480,7 @@ struct Presenter {
         if(surface && instance)vkDestroySurfaceKHR(instance,surface,nullptr);
         if(instance)vkDestroyInstance(instance,nullptr);
         if(window)ANativeWindow_release(window);
+        if(traceLayerLibrary)dlclose(traceLayerLibrary);
     }
     uint32_t selectMemory(uint32_t allowed,VkMemoryPropertyFlags flags) const {
         for(uint32_t i=0;i<memory.memoryTypeCount;++i) {
@@ -516,7 +536,43 @@ struct Presenter {
         ci.sType=VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         ci.pApplicationInfo=&app;
         ci.enabledExtensionCount=2;ci.ppEnabledExtensionNames=instanceExts;
-        check(vkCreateInstance(&ci,nullptr,&instance),"vkCreateInstance");
+        traceLayerLibrary=dlopen(kPipaTraceLayerLibrary,RTLD_NOW|RTLD_LOCAL);
+        if(traceLayerLibrary!=nullptr) {
+            traceLayerReset=reinterpret_cast<PipaTraceResetFn>(
+                dlsym(traceLayerLibrary,"pipa_vk_layer_reset_stats"));
+            traceLayerGetStats=reinterpret_cast<PipaTraceGetStatsFn>(
+                dlsym(traceLayerLibrary,"pipa_vk_layer_get_stats"));
+            if(traceLayerReset!=nullptr)traceLayerReset();
+        }
+        uint32_t layerCount=0;
+        VkResult layerEnum=vkEnumerateInstanceLayerProperties(&layerCount,nullptr);
+        if(layerEnum==VK_SUCCESS && layerCount>0) {
+            std::vector<VkLayerProperties> layerProperties(layerCount);
+            layerEnum=vkEnumerateInstanceLayerProperties(&layerCount,layerProperties.data());
+            if(layerEnum==VK_SUCCESS || layerEnum==VK_INCOMPLETE) {
+                for(const auto& property:layerProperties) {
+                    if(std::strcmp(property.layerName,kPipaTraceLayerName)==0) {
+                        traceLayerAvailable=true;
+                        break;
+                    }
+                }
+            }
+        }
+        traceLayerActive=traceLayerAvailable && traceLayerLibrary!=nullptr &&
+                         traceLayerReset!=nullptr && traceLayerGetStats!=nullptr;
+        const char* enabledLayers[]={kPipaTraceLayerName};
+        if(traceLayerActive) {
+            ci.enabledLayerCount=1;
+            ci.ppEnabledLayerNames=enabledLayers;
+        }
+        VkResult instanceResult=vkCreateInstance(&ci,nullptr,&instance);
+        if(instanceResult!=VK_SUCCESS && traceLayerActive) {
+            traceLayerActive=false;
+            ci.enabledLayerCount=0;
+            ci.ppEnabledLayerNames=nullptr;
+            instanceResult=vkCreateInstance(&ci,nullptr,&instance);
+        }
+        check(instanceResult,"vkCreateInstance");
         VkAndroidSurfaceCreateInfoKHR androidSurface{};
         androidSurface.sType=VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
         androidSurface.window=window;
@@ -1120,6 +1176,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms"+
           p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
+          p.traceLayerSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
         result=std::string("EXP29.24 Vulkan presenter: ")+e.what();
