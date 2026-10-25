@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.25: completed GPU pair budget, three-strike fallback, no frame inflation."""
+"""EXP29.26: paired GPU budget, three-strike fallback and guarded stress path."""
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 native=(root/"lab-app/app/src/main/cpp/presenter.cpp").read_text()
@@ -10,6 +10,11 @@ for tok in (
     "gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&",
     "gpuQueryPool!=VK_NULL_HANDLE;",
     "gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;",
+    "constexpr uint32_t kGpuBudgetValidationSceneRepeatPasses=4u;",
+    "if(gpuBudgetEnabled) {",
+    "for(uint32_t stressPass=0;",
+    "passes stress cena=",
+
     "pendingPairRealGpuMs=ms;",
     "pendingPairRealAvailable=true;",
     "if(!sampleValid || !pendingPairRealAvailable)",
@@ -52,7 +57,7 @@ for tok in (
     "scene3dFg.setOnClickListener(",
 ): assert tok in ui,tok
 assert "realGpuMs.back()+ms" not in native
-assert "versionCode 315" in gradle and "29.25-lab" in gradle
+assert "versionCode 316" in gradle and "29.26-governor-overload" in gradle
 
 # Pure deterministic policy model (not Android device timing).
 def control(pair_costs, limit=11.83):
@@ -83,4 +88,8 @@ overload=control([12.5]*10)
 assert overload[:8]==["real","fg","real","fg","real","fg","real","hold"]
 assert overload.count("hold")==2 and overload.count("fg")==8
 assert overload.count("real")==10
-print("EXP29_25_TWO_PERIOD_GPU_GOVERNOR_SOURCE=PASS; HARDWARE_AB_PENDING")
+overload_720=control([12.5]*720)
+assert overload_720.count("fg")==540
+assert overload_720.count("hold")==180
+assert overload_720.count("real")==720
+print("EXP29_26_GUARDED_OVERLOAD_SOURCE=PASS; HARDWARE_TRIP_PENDING")

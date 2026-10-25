@@ -21,6 +21,8 @@ namespace {
 std::atomic<bool> g_stop{false};
 std::atomic<bool> g_inUse{false};
 constexpr uint32_t kWidth=1280, kHeight=720;
+// EXP29.26 diagnostic load: repeat the identical source scene only while the GPU Guard is active.
+constexpr uint32_t kGpuBudgetValidationSceneRepeatPasses=4u;
 
 void check(VkResult r, const char* label) {
     if(r!=VK_SUCCESS) throw std::runtime_error(std::string(label)+
@@ -888,8 +890,17 @@ struct Presenter {
             const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;
             int source=continuous?0:((frame%4)==2?1:0);
             Texture& texSource=tex[synthesized?3:source];
-            if(continuous && !odd)
-                recordSourceScene(command,uint32_t(frame/2));
+            if(continuous && !odd) {
+                const uint32_t sourcePair=uint32_t(frame/2);
+                recordSourceScene(command,sourcePair);
+                if(gpuBudgetEnabled) {
+                    // Diagnostic-only extra compute work. It renders the same
+                    // pair again, leaving the visible geometry and final images unchanged.
+                    for(uint32_t stressPass=0;
+                        stressPass<kGpuBudgetValidationSceneRepeatPasses;++stressPass)
+                        recordSourceScene(command,sourcePair);
+                }
+            }
             if(synthesized) {
                 // Reusing motionField between generated frames requires a read-to-
                 // write dependency after the preceding warp sampled the field.
@@ -1086,6 +1097,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
           " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
           " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
+          " passes stress cena="+std::to_string(p.gpuBudgetEnabled?
+              kGpuBudgetValidationSceneRepeatPasses:0u)+
           " teto="+std::to_string(p.gpuBudgetMs)+"ms"+
           " probes pares="+std::to_string(p.gpuBudgetProbeFrames)+
           " acima teto par="+std::to_string(p.gpuBudgetOverruns)+
