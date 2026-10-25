@@ -32,7 +32,7 @@ for token in (
     "vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,",
 ): assert token in engine,token
 for token in (
-    "private CheckBox syncDisplay, fastMotion;",
+    "private CheckBox syncDisplay, fastMotion, identity3d;",
     "fastMotion.setChecked(false);",
     "fastMotion.isChecked()?3:4;",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
