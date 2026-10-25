@@ -1,46 +1,58 @@
 #!/usr/bin/env python3
-"""EXP29.6 timestamp source-level invariants (hardware timings need device tests)."""
+"""EXP29.7 source contract. Native/SPIR-V/on-device tests are separate."""
 from pathlib import Path
-root=Path(__file__).resolve().parents[1]
-lab=(root/"lab-app/app/src/main/cpp/lab.cpp").read_text()
-engine=(root/"src/pipa_framegen_vk.cpp").read_text()
-header=(root/"include/pipa_framegen_vk.h").read_text()
-java=(root/"lab-app/app/src/main/java/dev/pipa/framegen/lab/MainActivity.java").read_text()
-gradle=(root/"lab-app/app/build.gradle").read_text()
-
-for token in ("jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions",
-              "repetitions==1 || repetitions==9 || repetitions==33",
-              "const uint32_t timedSamples=uint32_t(repetitions==1 ? 1 : repetitions-1)",
-              "timestampBits=props[i].timestampValidBits",
-              "props.limits.timestampPeriod",
-              "VkQueryPool timestampQueries",
-              "vkCmdResetQueryPool(",
-              "qi.queryCount=timedSamples*3u",
-              "VK_QUERY_RESULT_64_BIT|VK_QUERY_RESULT_WAIT_BIT",
-              "vkGetQueryPoolResults(",
-              "vkDestroyQueryPool(",
-              "if(sample>0)",
-              "between.srcAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT",
-              "between.dstAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT",
-              "const bool measure=repetitions==1 || sample>0",
-              "const uint64_t mask=lab.timestampBits>=64 ? UINT64_MAX",
-              "pipa_framegen_vk_record_profiled(",
-              "std::sort(numbers.begin(),numbers.end())"):
-    assert token in lab,token
-for token in ("pipa_framegen_vk_record_profiled(",
-              "vkCmdWriteTimestamp(",
-              "firstQuery+1u", "firstQuery+2u",
-              "VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT"):
-    assert token in engine,token
-assert "pipa_framegen_vk_record_profiled(" in header
-for token in ("runTest(1,false,256,128)",
-              "runTest(33,false,256,128)",
-              "runTest(33,true,256,128)",
-              "runTest(9,true,640,360)",
-              "pipa_motion_fast.comp.spv",
-              "enableControls(false)",
-              "EXP29.6"):
-    assert token in java,token
-assert "versionCode 296" in gradle
-assert "versionName '29.6-lab'" in gradle
-print("EXP29_6_SPLIT_GPU_TIMESTAMPS_AND_FAST_BENCH_CONTRACT=PASS")
+root = Path(__file__).resolve().parents[1]
+lab = (root / "lab-app/app/src/main/cpp/lab.cpp").read_text()
+engine = (root / "src/pipa_framegen_vk.cpp").read_text()
+header = (root / "include/pipa_framegen_vk.h").read_text()
+java = (root / "lab-app/app/src/main/java/dev/pipa/framegen/lab/MainActivity.java").read_text()
+gradle = (root / "lab-app/app/build.gradle").read_text()
+shader = (root / "shaders/pipa_motion_parallel.comp").read_text()
+for token in (
+    "jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions,jint motionVariant",
+    "motionVariant==2",
+    "PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE",
+    "pipa_framegen_vk_create_ex(",
+    "pipa_framegen_vk_record_profiled(",
+    "qi.queryCount=timedSamples*3u",
+    "vkGetQueryPoolResults(",
+    "vkDestroyQueryPool(",
+    "timestampBits=props[i].timestampValidBits",
+    "VK_QUERY_RESULT_64_BIT|VK_QUERY_RESULT_WAIT_BIT",
+    "if(sample>0)",
+):
+    assert token in lab, token
+for token in (
+    "pipa_framegen_vk_create_ex(",
+    "pipa_framegen_vk_create(",
+    "PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE",
+    "vkCmdDispatch(cmd,tx,ty,1);",
+    "vkCmdDispatch(cmd,(tx+7)/8,(ty+7)/8,1);",
+    "pipa_framegen_vk_record_profiled(",
+    "vkCmdWriteTimestamp(",
+):
+    assert token in engine, token
+assert "PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE" in header
+for token in (
+    "runTest(1,0,256,128)",
+    "runTest(33,0,256,128)",
+    "runTest(33,1,256,128)",
+    "runTest(9,1,640,360)",
+    "runTest(33,2,256,128)",
+    "runTest(9,2,640,360)",
+    "pipa_motion_parallel.comp.spv",
+    "enableControls(false)",
+    "EXP29.7",
+):
+    assert token in java, token
+for token in (
+    "gl_WorkGroupID.xy",
+    "gl_LocalInvocationIndex",
+    "shared vec3 previousSample[64]",
+    "barrier();",
+    "candidateError(",
+):
+    assert token in shader, token
+assert "versionCode 297" in gradle
+assert "versionName '29.7-lab'" in gradle
+print("EXP29_7_PARALLEL_VULKAN_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
