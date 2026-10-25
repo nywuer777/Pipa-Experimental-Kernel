@@ -13,8 +13,8 @@ sparse = (root / "shaders/pipa_motion_sparse.comp").read_text()
 legacy = (root / "shaders/pipa_motion.comp").read_text()
 fast = (root / "shaders/pipa_motion_fast.comp").read_text()
 
-# CRITICAL: both mode 2 and mode 3 have gl_WorkGroupID.xy tile addressing.
-assert re.search(r"flags\s*=\s*\(motionVariant==2\s*\|\|\s*motionVariant==3\)", lab)
+# CRITICAL: all three workgroup-per-tile modes must select matching motion dispatch.
+assert "motionVariant==2 || motionVariant==3 || motionVariant==4" in lab
 assert "if(e->motionGroupPerTile)" in engine
 assert "vkCmdDispatch(cmd,tx,ty,1);" in engine
 assert "vkCmdDispatch(cmd,(tx+7)/8,(ty+7)/8,1);" in engine
