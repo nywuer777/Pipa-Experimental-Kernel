@@ -26,7 +26,7 @@ public final class MainActivity extends Activity {
 
     private TextView status;
     private ImageView result;
-    private Button run, benchmark;
+    private Button run, benchmark, fastButton, largeButton;
     private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions);
     private native String nativeReport();
 
@@ -41,7 +41,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.5", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.6", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -56,6 +56,14 @@ public final class MainActivity extends Activity {
         benchmark.setAllCaps(false);
         benchmark.setText("Benchmark GPU (1 aquecimento + 32 amostras)");
         base.addView(benchmark,new LinearLayout.LayoutParams(-1,dp(52)));
+        fastButton=new Button(this);
+        fastButton.setAllCaps(false);
+        fastButton.setText("Benchmark FAST 256×128 (32 amostras)");
+        base.addView(fastButton,new LinearLayout.LayoutParams(-1,dp(52)));
+        largeButton=new Button(this);
+        largeButton.setAllCaps(false);
+        largeButton.setText("Benchmark FAST 640×360 (8 amostras)");
+        base.addView(largeButton,new LinearLayout.LayoutParams(-1,dp(52)));
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
@@ -72,9 +80,11 @@ public final class MainActivity extends Activity {
         result.setScaleType(ImageView.ScaleType.FIT_CENTER);
         result.setBackgroundColor(0xff242428);
         generated.addView(result,new LinearLayout.LayoutParams(-1,dp(160)));
-        base.addView(label("GPU: timestamps Vulkan abrangem as duas passagens Compute, incluindo barreira entre elas. CPU: submissão+fence e inicialização JNI são métricas separadas. Medição offscreen de 256x128; não há FPS de jogo nem swapchain.",12,0xff9999a5));
-        run.setOnClickListener(v->runTest(1));
-        benchmark.setOnClickListener(v->runTest(33));
+        base.addView(label("GPU: timestamps individuais de Motion, Warp+barreira e total. Comparação legado vs FAST; medições offscreen, não FPS físicos. Os painéis A/B exibem a referência 256×128.",12,0xff9999a5));
+        run.setOnClickListener(v->runTest(1,false,256,128));
+        benchmark.setOnClickListener(v->runTest(33,false,256,128));
+        fastButton.setOnClickListener(v->runTest(33,true,256,128));
+        largeButton.setOnClickListener(v->runTest(9,true,640,360));
         setContentView(outer);
     }
 
@@ -91,13 +101,15 @@ public final class MainActivity extends Activity {
         image.setImageBitmap(asBitmap(data));
         column.addView(image,new LinearLayout.LayoutParams(-1,dp(105)));
     }
-    private Bitmap asBitmap(int[] argb) {
-        Bitmap bmp=Bitmap.createBitmap(W,H,Bitmap.Config.ARGB_8888);
-        bmp.setPixels(argb,0,W,0,0,W,H);
+    private Bitmap asBitmap(int[] argb) { return asBitmap(argb,W,H); }
+    private Bitmap asBitmap(int[] argb,int width,int height) {
+        Bitmap bmp=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+        bmp.setPixels(argb,0,width,0,0,width,height);
         return bmp;
     }
-    private static int sample(int x,int y) {
-        x=Math.max(0,Math.min(W-1,x));
+    private static int sample(int x,int y,int width,int height) {
+        x=Math.max(0,Math.min(width-1,x));
+        y=Math.max(0,Math.min(height-1,y));
         int coarse=((x/16+y/16)&1)==0?32:46;
         int texture=(x*17+y*23+(x*y)%29)&63;
         int r=Math.min(255,coarse+texture*2);
@@ -105,9 +117,12 @@ public final class MainActivity extends Activity {
         int b=Math.min(255,coarse+texture/2);
         return Color.argb(255,r,g,b);
     }
-    private static int[] buildFrame(int shift) {
-        int[] frame=new int[W*H];
-        for(int y=0;y<H;y++)for(int x=0;x<W;x++)frame[y*W+x]=sample(x-shift,y);
+    private static int sample(int x,int y) { return sample(x,y,W,H); }
+    private static int[] buildFrame(int shift) { return buildFrame(shift,W,H); }
+    private static int[] buildFrame(int shift,int width,int height) {
+        int[] frame=new int[width*height];
+        for(int y=0;y<height;y++)for(int x=0;x<width;x++)
+            frame[y*width+x]=sample(x-shift,y,width,height);
         return frame;
     }
     private static int dp(float dp) { return (int)(dp*android.content.res.Resources.getSystem().getDisplayMetrics().density+0.5f); }
@@ -125,63 +140,70 @@ public final class MainActivity extends Activity {
             return out.toByteArray();
         }
     }
-    private static String accuracy(int[] gpu) {
-        // Known ideal midpoint: frame B is frame A shifted exactly +2 px.
-        long gpuError=0, naiveError=0, samples=0;
-        for(int y=20;y<H-20;y++)for(int x=20;x<W-20;x++) {
-            int index=y*W+x;
-            int want=sample(x-1,y);
-            int past=PREVIOUS[index],now=CURRENT[index];
+    private static String accuracy(int[] gpu,int[] previous,int[] current,
+                                   int width,int height) {
+        long gpuError=0,naiveError=0,samples=0;
+        for(int y=20;y<height-20;y++)for(int x=20;x<width-20;x++) {
+            int i=y*width+x, want=sample(x-1,y,width,height);
             for(int shift:new int[]{0,8,16}) {
                 int expected=(want>>>shift)&255;
-                int actual=(gpu[index]>>>shift)&255;
-                int naive=(((past>>>shift)&255)+((now>>>shift)&255)+1)/2;
+                int actual=(gpu[i]>>>shift)&255;
+                int naive=(((previous[i]>>>shift)&255)+
+                           ((current[i]>>>shift)&255)+1)/2;
                 gpuError+=Math.abs(actual-expected);
                 naiveError+=Math.abs(naive-expected);
                 samples++;
             }
         }
-        double maeGpu=gpuError/(double)Math.max(samples,1);
-        double maeNaive=naiveError/(double)Math.max(samples,1);
         return String.format(Locale.US,
-          "Erro medio vs. frame ideal: GPU=%.2f / blend simples=%.2f (menor e melhor).",
-          maeGpu,maeNaive);
+            "MAE: GPU=%.2f / blend=%.2f (menor melhor)",
+            gpuError/(double)Math.max(samples,1),
+            naiveError/(double)Math.max(samples,1));
+    }
+    private void enableControls(boolean enabled) {
+        run.setEnabled(enabled); benchmark.setEnabled(enabled);
+        fastButton.setEnabled(enabled); largeButton.setEnabled(enabled);
     }
 
-    private void runTest(int repetitions) {
-        run.setEnabled(false);
-        benchmark.setEnabled(false);
-        status.setText(repetitions==1 ?
-            "Executando uma interpolação Vulkan..." :
-            "Medindo 32 interpolações Vulkan após aquecimento...");
+    private void runTest(int repetitions,boolean fast,int width,int height) {
+        enableControls(false);
+        final String label=(fast?"FAST":"LEGACY")+" "+width+"×"+height;
+        status.setText("GPU: preparando "+label+" ("+repetitions+" passagens)...");
         new Thread(()->{
             try {
-                byte[] motion=shader("pipa_motion.comp.spv");
+                byte[] motion=shader(fast?"pipa_motion_fast.comp.spv":"pipa_motion.comp.spv");
                 byte[] interp=shader("pipa_interpolate.comp.spv");
+                int[] previous=width==W && height==H ?
+                    PREVIOUS : buildFrame(0,width,height);
+                int[] current=width==W && height==H ?
+                    CURRENT : buildFrame(2,width,height);
                 long start=SystemClock.elapsedRealtimeNanos();
-                int[] pixels=nativeGenerate(PREVIOUS,CURRENT,W,H,motion,interp,repetitions);
+                int[] pixels=nativeGenerate(previous,current,width,height,
+                                            motion,interp,repetitions);
                 double totalMs=(SystemClock.elapsedRealtimeNanos()-start)/1000000.0;
                 String report=nativeReport();
-                final String score=pixels!=null && pixels.length==W*H ? accuracy(pixels) : "";
+                final String quality=pixels!=null && pixels.length==width*height ?
+                      accuracy(pixels,previous,current,width,height) : "";
                 runOnUiThread(()->{
-                    if(pixels!=null && pixels.length==W*H) {
-                        result.setImageBitmap(asBitmap(pixels));
-                        status.setText("GPU: execução concluída. "+report+
-                            "\nTempo total JNI+Vulkan: "+String.format(Locale.US,"%.2f ms",totalMs)+
-                            ". "+score+" Não implica ganho de FPS na apresentação.");
+                    if(pixels!=null && pixels.length==width*height) {
+                        result.setImageBitmap(asBitmap(pixels,width,height));
+                        status.setText(label+" — GPU: execução concluída\n"+report+
+                            "\nJNI + Vulkan total: "+String.format(Locale.US,"%.2f ms",totalMs)+
+                            "\n"+quality+
+                            "\nSem swapchain e sem medição de FPS apresentados.");
                     } else {
-                        status.setText("Falha no teste: "+report);
+                        status.setText(label+" — falha no teste: "+report);
                     }
-                    run.setEnabled(true);
-                    benchmark.setEnabled(true);
+                    enableControls(true);
                 });
-            } catch (Throwable t) {
+            } catch(Throwable t) {
                 runOnUiThread(()->{
-                    status.setText("Falha: "+t.getClass().getSimpleName()+": "+t.getMessage());
-                    run.setEnabled(true);
-                    benchmark.setEnabled(true);
+                    status.setText(label+" — falha: "+t.getClass().getSimpleName()+
+                                   ": "+t.getMessage());
+                    enableControls(true);
                 });
             }
-        },"pipa-vk-lab").start();
+        },"pipa-framegen-benchmark").start();
     }
+
 }
