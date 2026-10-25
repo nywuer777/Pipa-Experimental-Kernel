@@ -224,9 +224,9 @@ Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
     JNIEnv* env,jobject,jintArray past,jintArray now,jint width,jint height,
     jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions,jint motionVariant) {
     try {
-        ensure(past && now && width>0 && height>0 && width<=1024 && height<=1024,
+        ensure(past && now && width>0 && height>0 && width<=1920 && height<=1080,
                "Dimensoes/arrays invalidos");
-        ensure(motionVariant>=0 && motionVariant<=2,"Unknown motion variant");
+        ensure(motionVariant>=0 && motionVariant<=3,"Unknown motion variant");
         ensure(repetitions==1 || repetitions==9 || repetitions==33,
                "Repeticoes validas: 1, 9 (1+8) ou 33 (1+32)");
         const size_t count=size_t(width)*size_t(height);
