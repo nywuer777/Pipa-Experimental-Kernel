@@ -118,3 +118,11 @@ O usuário confirmou o acesso TLS Wi-Fi em `adb-6665d3e6-i745L2._adb-tls-connect
 ## EXP26.1: RTL8153 enumerado e Ethernet com carrier
 
 Coleta em EXP25A: hub USB 05e3:0625 no caminho 2-1, adaptador 0bda:8153 em 2-1.1, ambos a 5000 Mb/s no barramento USB. Symlink 2-1.1:1.0 no driver r8152; eth0 criada com UP e LOWER_UP. Dmesg indica eth0 carrier on aos 2212.286s. DHCP, IP, rota e estabilidade temporal permanecem pendentes. Não modificar USB nem partições. FLASH_READY=false.
+
+## EXP26.1 — ADB TLS inacessivel enquanto hub RTL8153 conectado
+
+O usuario relatou que, com o hub e Ethernet RTL8153 conectados, o ADB Wi-Fi nao esta acessivel. Nao há medicao de `adb devices`, mDNS ou tela de Wi-Fi apos o evento, portanto **causa da perda de ADB nao comprovada**: o Android pode alterar o default route, o Wi-Fi pode desconectar ou a sessao ADB TLS pode deixar de anunciar endpoint. A associacao temporal nao prova que a Ethernet desativou fisicamente o Wi-Fi.
+
+O hardware USB host e Realtek estao comprovados pela leitura imediatamente anterior: hub 05e3:0625 a 5000Mb/s, RTL8153 0bda:8153 a 5000Mb/s, driver r8152 associado, eth0 UP/LOWER_UP, carrier on. IP, DHCP e estabilidade ainda nao medidos.
+
+Plano SEM interromper Ethernet: manter hub, RTL8153 e mouse conectados, não reiniciar; verificar no Android pelo toque se o Wi-Fi permanece associado, se Depuracao sem fio esta ligada e o endpoint atual; no Windows executar somente `adb devices -l` e `adb mdns services`, conectando somente ao endereco/porta **atual** publicado pela tela ou mDNS. Se o ADB continuar indisponivel, usar terminal local existente (Termux) com root para ler `ip -4 addr show dev eth0`, rotas e `/sys/class/net/eth0/{carrier,operstate,speed,duplex}` sem executar reset, `ifconfig up/down`, `adb tcpip` ou troca do USB. O teste principal pode continuar via terminal local. Nenhuma escrita em sysfs/particoes. `FLASH_READY=false`.
