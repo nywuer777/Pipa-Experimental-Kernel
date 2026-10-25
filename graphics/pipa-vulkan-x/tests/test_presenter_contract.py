@@ -36,6 +36,6 @@ for token in ("SurfaceView","SurfaceHolder.Callback",
 assert "new Intent(this,PresenterActivity.class)" in main
 assert 'android:name=".PresenterActivity"' in manifest
 assert "presenter.cpp" in cmake and "${ANDROID_LIBRARY}" in cmake
-assert "versionCode 309" in gradle and "29.19-lab" in gradle
+assert "versionCode 310" in gradle and "29.20-lab" in gradle
 assert "input latency" not in java.lower()
 print("EXP29_13_SWAPCHAIN_PRESENTER_SOURCE_CONTRACT=PASS; DEVICE_VULKAN_PRESENT=UNTESTED")
