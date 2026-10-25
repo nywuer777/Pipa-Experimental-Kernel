@@ -9,8 +9,8 @@ android {
         applicationId 'dev.pipa.framegen.lab'
         minSdk 29
         targetSdk 34
-        versionCode 303
-        versionName '29.13-lab'
+        versionCode 304
+        versionName '29.14-lab'
         ndk {
             abiFilters 'arm64-v8a'
         }
