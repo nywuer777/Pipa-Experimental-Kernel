@@ -1,0 +1,73 @@
+name: Pipa EXP27.3 - Recovery readiness and artifact integrity (NO BOOT)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp27-3-recovery-readiness.yml"
+      - "tools/exp27-3-release-gate.py"
+      - "tests/test_exp27_3_release_gate.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: pipa-exp27-3-recovery-readiness
+  cancel-in-progress: false
+
+jobs:
+  offline_gate:
+    name: EXP27.3 artifact gate (offline only, boot always prohibited)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test fail-closed gate behavior with synthetic fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p test_exp27_3_release_gate.py -v
+
+      - name: Download pinned EXP25A, EXP27.1 and EXP27.2 evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p comparison/base comparison/new comparison/audit
+          gh run download 39190015939 -R "$GITHUB_REPOSITORY" \
+            -n pipa-exp25a-touch-irq-clang21-1 -D comparison/base
+          gh run download 40152429269 -R "$GITHUB_REPOSITORY" \
+            -n pipa-exp27-r8152-v11011-clang21-3 -D comparison/new
+          gh run download 40153757336 -R "$GITHUB_REPOSITORY" \
+            -n exp27-2-artifact-audit-1 -D comparison/audit
+          test -s comparison/base/exp06-work/out/arch/arm64/boot/Image
+          test -s comparison/new/exp06-work/out/arch/arm64/boot/Image
+          test -s comparison/audit/exp27-2-audit-report.json
+
+      - name: Verify exact Image SHA, config, DT, touch and driver source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp27-3-release-gate.py \
+            --baseline comparison/base \
+            --candidate comparison/new \
+            --audit comparison/audit/exp27-2-audit-report.json \
+            --report exp27-3-readiness.json | tee exp27-3-readiness.log
+          grep -Fq 'EXP27_3_STATIC_GATE=STATIC_PASS' exp27-3-readiness.log
+          grep -Fq 'TEMP_BOOT_AUTHORIZED=false; FLASH_READY=false' exp27-3-readiness.log
+          echo 'EXP27_3_OFFLINE_ONLY=YES; DEVICE_BOOT_TESTED=NO; FLASH_READY=false'
+
+      - name: Publish gate metadata only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp27-3-recovery-readiness-${{ github.run_number }}
+          path: |
+            exp27-3-readiness.json
+            exp27-3-readiness.log
+          if-no-files-found: warn
+          retention-days: 14
