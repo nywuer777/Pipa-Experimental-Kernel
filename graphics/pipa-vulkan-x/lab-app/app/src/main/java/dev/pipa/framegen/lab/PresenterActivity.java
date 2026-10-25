@@ -8,6 +8,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.io.ByteArrayOutputStream;
@@ -17,11 +18,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class PresenterActivity extends Activity implements SurfaceHolder.Callback {
     static { System.loadLibrary("pipa_lab"); }
     private native String nativePresent(Surface surface, byte[] motion, byte[] warp,
-                                        byte[] scene, int targetHz, int frames, boolean continuous, boolean holdInsteadOfFG);
+                                        byte[] scene, int targetHz, int frames, boolean continuous, boolean holdInsteadOfFG,
+                                        boolean alignWithDisplay);
     private native void nativeStop();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile boolean validSurface = false;
     private SurfaceView surfaceView;
+    private CheckBox syncDisplay;
     private TextView status;
     private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144, v2Hold144, v2Fg144, stressHold144, stressFg144;
 
@@ -31,10 +34,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.18 - GPU TIMING 10S", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.19 - CPU PACING", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Vulkan FIFO 720p | V2 corrigida | 10s HOLD vs FrameGen | GPU timestamps",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | 144Hz fixo vs periodo do monitor | GPU+CPU+WSI",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",14,0xffeeeeee);
         root.addView(status);
         LinearLayout controls = new LinearLayout(this);
@@ -77,10 +80,16 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         stressControls.addView(stressHold144,new LinearLayout.LayoutParams(0,dp(48),1));
         stressControls.addView(stressFg144,new LinearLayout.LayoutParams(0,dp(48),1));
         root.addView(stressControls,new LinearLayout.LayoutParams(-1,dp(52)));
+        syncDisplay=new CheckBox(this);
+        syncDisplay.setText("SYNC experimental: usar periodo Vulkan WSI do monitor (144 Hz)");
+        syncDisplay.setTextColor(0xffdde4ee);
+        syncDisplay.setTextSize(12);
+        syncDisplay.setChecked(false); // inherited FIXED_REQUEST is the control.
+        root.addView(syncDisplay,new LinearLayout.LayoutParams(-1,dp(40)));
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("A V2 corrigida foi validada visualmente no tablet. Os perfis STRESS solicitam 10s e coletam tempos GPU de originais e gerados. A versão V2 substitui o ruído fino e elimina a região crescente de x=0. Compare V2 HOLD e V2 FrameGen com a cena procedural antiga e DIAG sólido. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Todos os modos seguem via VkSwapchainKHR; controles anteriores mantidos. "
+        root.addView(text("A V2 corrigida foi validada visualmente. FIXED reproduz o teste anterior; SYNC usa o ciclo WSI quando compatível. O atraso de CPU nao e contagem de quadros perdidos. Os perfis STRESS solicitam 10s e coletam tempos GPU de originais e gerados. A versão V2 substitui o ruído fino e elimina a região crescente de x=0. Compare V2 HOLD e V2 FrameGen com a cena procedural antiga e DIAG sólido. Vermelho/verde são cantos superiores, azul/amarelo inferiores em coordenadas da textura. Todos os modos seguem via VkSwapchainKHR; controles anteriores mantidos. "
             +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
@@ -130,6 +139,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         v2Fg144.setEnabled(enabled && validSurface);
         stressHold144.setEnabled(enabled && validSurface);
         stressFg144.setEnabled(enabled && validSurface);
+        if(syncDisplay!=null)syncDisplay.setEnabled(enabled && validSurface);
     }
     private byte[] load(String filename) throws Exception {
         try(InputStream in=getAssets().open(filename); ByteArrayOutputStream out=new ByteArrayOutputStream()) {
@@ -153,11 +163,13 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                        boolean v2,boolean stress) {
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
-        status.setText((stress?"STRESS 10s ":"TESTE CURTO ")+
+        status.setText((alignWithDisplay?"SYNC WSI ":"FIXED 144 ")+
+              (stress?"STRESS 10s ":"TESTE CURTO ")+
               (v2?"CENA V2 ":diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
               (holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
               " Hz | tela "+displayHz()+" Hz | criando Vulkan...");
         final Surface surface=surfaceView.getHolder().getSurface();
+        final boolean alignWithDisplay=syncDisplay!=null && syncDisplay.isChecked();
         new Thread(()->{
             String result;
             try {
@@ -166,7 +178,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                 byte[] scene=continuous?load(v2?"pipa_scene_v2.comp.spv":
                     diagnostic?"pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"):null;
                 result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,
-                                     continuous,holdInsteadOfFG);
+                                     continuous,holdInsteadOfFG,alignWithDisplay);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
             }
