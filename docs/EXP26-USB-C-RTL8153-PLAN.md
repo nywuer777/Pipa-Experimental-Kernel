@@ -97,3 +97,11 @@ Esse baseline device/sink é esperado para Android conectado ao PC. Mesmo que 3.
 Fontes ABI: https://kernel.googlesource.com/pub/scm/linux/kernel/git/cip/linux-cip/+/refs/tags/v4.19.97/Documentation/ABI/testing/sysfs-class-typec e https://github.com/torvalds/linux/blob/master/Documentation/ABI/testing/sysfs-class-power.
 
 Próximo gate: leitura passiva de tipos/correntes máximas e estado gadget/PMIC, eventualmente amostragem temporal sem provocação, depois validar Android touch e ADB Wi-Fi como controle alternativo antes de mudar fisicamente PC para hub/RTL8153. EXP26_CODE_CHANGES=NONE; FLASH_READY=false.
+
+## EXP26.1 — ADB TLS Wi-Fi auto-reconectado, conexao TCP direta recusada
+
+Teste de conectividade reportado pelo usuario: `adb connect 192.168.1.65:35185` falhou com erro Windows 10061 (conexao ativamente recusada). Em seguida, `adb devices -l` listou dois dispositivos em estado `device`: USB serial `6665d3e6` (transport_id 19) e ADB TLS Wi-Fi `adb-6665d3e6-i745L2._adb-tls-connect._tcp` (transport_id 20). `adb -s 192.168.1.65:35185 get-state` falhou com `device not found`.
+
+Interpretação: a tentativa direta no endpoint IP:porta nao foi estabelecida, mas existe **aparente reconexao automatica TLS via identificador mDNS**; nao inferir falha de Wi-Fi nem deduzir que IP/porta antigo ainda esteja disponivel. Validar `adb -s adb-6665d3e6-i745L2._adb-tls-connect._tcp get-state` e identidade (`ro.product.device=pipa`, `ro.boot.slot_suffix=_b`, `sys.boot_completed=1`, `/proc/version` do EXP25A, `boot_id=c9c5a5af-c470-4e39-9adf-9f8f8c57e809`) antes de considerar trocar fisicamente cabo USB por hub/RTL8153.
+
+Nenhum comando de reconnect/restart/reset USB ou troca de cabeamento necessarios no momento; preservar USB conectado ao PC ate verificacao do canal Wi-Fi. `FLASH_READY=false`.
