@@ -126,3 +126,13 @@ O usuario relatou que, com o hub e Ethernet RTL8153 conectados, o ADB Wi-Fi nao 
 O hardware USB host e Realtek estao comprovados pela leitura imediatamente anterior: hub 05e3:0625 a 5000Mb/s, RTL8153 0bda:8153 a 5000Mb/s, driver r8152 associado, eth0 UP/LOWER_UP, carrier on. IP, DHCP e estabilidade ainda nao medidos.
 
 Plano SEM interromper Ethernet: manter hub, RTL8153 e mouse conectados, não reiniciar; verificar no Android pelo toque se o Wi-Fi permanece associado, se Depuracao sem fio esta ligada e o endpoint atual; no Windows executar somente `adb devices -l` e `adb mdns services`, conectando somente ao endereco/porta **atual** publicado pela tela ou mDNS. Se o ADB continuar indisponivel, usar terminal local existente (Termux) com root para ler `ip -4 addr show dev eth0`, rotas e `/sys/class/net/eth0/{carrier,operstate,speed,duplex}` sem executar reset, `ifconfig up/down`, `adb tcpip` ou troca do USB. O teste principal pode continuar via terminal local. Nenhuma escrita em sysfs/particoes. `FLASH_READY=false`.
+
+## EXP26.2 — Termux KernelSU e Ethernet 1Gb/s com IPv4
+
+Coleta local feita diretamente no Termux do Xiaomi Pad 6, usando `su -c`, confirmou `uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0` e `command -v su` retornou `/data/data/com.termux/files/usr/bin/su`. Assim, acesso de diagnostico local com root funciona sem ADB Wi-Fi.
+
+Resultado em `eth0`: `<BROADCAST,MULTICAST,UP,LOWER_UP>`, estado `UP`, `inet 192.168.1.102/24` broadcast `192.168.1.255`, `valid_lft forever preferred_lft forever`; `/sys/class/net/eth0/carrier=1`, `/sys/class/net/eth0/speed=1000` Mb/s (Ethernet). Adaptador USB `2-1.1`: `idVendor=0bda`, `idProduct=8153`; associacao r8152 e USB 5000 Mb/s ja comprovada em coleta anterior.
+
+Conclusao: Ethernet Gigabit negociada, interface ativa e endereco IPv4 atribuido em EXP25A. Nao presumir que IPv4 tenha sido obtido via DHCP so pela linha `inet`; rota default, DNS, conectividade gateway/WAN e estabilidade nao foram testados. Nao confundir taxa Ethernet 1000Mb/s com bus USB 5000Mb/s.
+
+Proximo gate read-only direto no Termux com hub e dongle mantidos: estado de `/sys/bus/usb/devices/2-1.1` e rede, rota `ip -4 route`, rx/tx e erros; sequencia 12 amostras a cada 5s (60s) para detectar oscilacao carrier/speed/ethernets/erros; nao alternar USB power ou fazer unbind/rebind. EXP26.2 LINK_IPV4=PASS; ROUTE_AND_STABILITY=PENDING; FLASH_READY=false.
