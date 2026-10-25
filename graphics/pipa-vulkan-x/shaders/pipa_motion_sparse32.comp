@@ -1,0 +1,115 @@
+#version 450
+// EXP29.11: sparse-sample motion with 32 candidate lanes, only 16 image samples/tile.
+// One thread per candidate instead of one thread looping over all candidates.
+// The same 16x16, 2-pixel sampling and coarse+refine search as EXP29.6 FAST.
+layout(local_size_x=8, local_size_y=4, local_size_z=1) in;
+layout(set=0, binding=0, rgba8) uniform readonly image2D previousFrame;
+layout(set=0, binding=1, rgba8) uniform readonly image2D currentFrame;
+layout(set=0, binding=2, rgba16f) uniform writeonly image2D motionField;
+layout(push_constant) uniform Params {
+    ivec2 frameSize;
+    int searchRadius;
+    float phase;
+    float errorCutoff;
+} pc;
+const int TILE=16;
+const int STEP=4;
+const float INVALID_SCORE=1.0e30;
+
+shared vec3 previousSample[16];
+shared float scores[32];
+shared int lengths[32];
+shared ivec2 winner;
+shared float winningScore;
+shared int winningLen;
+
+float candidateError(ivec2 origin, ivec2 end, ivec2 shift) {
+    if(any(lessThan(origin+shift,ivec2(0))) ||
+       any(greaterThan(end+shift,pc.frameSize))) return INVALID_SCORE;
+    float sum=0.0;
+    for(int i=0;i<16;++i) {
+        ivec2 pos=origin+ivec2((i%4)*STEP,(i/4)*STEP);
+        if(any(greaterThanEqual(pos,end))) continue;
+        vec3 b=imageLoad(currentFrame,pos+shift).rgb;
+        vec3 difference=abs(previousSample[i]-b);
+        sum+=difference.r+difference.g+difference.b;
+    }
+    return sum;
+}
+
+void main() {
+    ivec2 tile=ivec2(gl_WorkGroupID.xy);
+    ivec2 field=(pc.frameSize+ivec2(TILE-1))/TILE;
+    if(any(greaterThanEqual(tile,field))) return;
+
+    uint lane=gl_LocalInvocationIndex;
+    ivec2 origin=tile*TILE;
+    ivec2 end=min(origin+ivec2(TILE),pc.frameSize);
+    if(lane<16u) {
+        ivec2 samplePosition=origin+ivec2(int(lane%4u)*STEP,int(lane/4u)*STEP);
+        previousSample[lane]=all(lessThan(samplePosition,end)) ?
+            imageLoad(previousFrame,samplePosition).rgb : vec3(0.0);
+    }
+    barrier();
+
+    int radius=clamp(pc.searchRadius,0,4);
+    int edge=radius/2;
+    int count=edge*2+1;
+    float score=INVALID_SCORE;
+    int len2=999999;
+    if(int(lane)<count*count) {
+        ivec2 displacement=ivec2(-2*edge+2*(int(lane)%count),
+                                 -2*edge+2*(int(lane)/count));
+        score=candidateError(origin,end,displacement);
+        len2=displacement.x*displacement.x+displacement.y*displacement.y;
+    }
+    scores[lane]=score;
+    lengths[lane]=len2;
+    barrier();
+
+    if(lane==0u) {
+        winningScore=INVALID_SCORE;
+        winningLen=999999;
+        winner=ivec2(0);
+        for(int i=0;i<count*count;++i) {
+            if(scores[i]<winningScore ||
+              (scores[i]==winningScore && lengths[i]<winningLen)) {
+                winningScore=scores[i];
+                winningLen=lengths[i];
+                winner=ivec2(-2*edge+2*(i%count),-2*edge+2*(i/count));
+            }
+        }
+    }
+    barrier();
+
+    // All 9 neighboring candidates use the SAME coarse winner.
+    ivec2 center=winner;
+    score=INVALID_SCORE;
+    len2=999999;
+    if(lane<9u) {
+        ivec2 offset=center+ivec2(int(lane%3u)-1,int(lane/3u)-1);
+        if(all(lessThanEqual(abs(offset),ivec2(radius)))) {
+            score=candidateError(origin,end,offset);
+            len2=offset.x*offset.x+offset.y*offset.y;
+        }
+    }
+    scores[lane]=score;
+    lengths[lane]=len2;
+    barrier();
+
+    if(lane==0u) {
+        for(int i=0;i<9;++i) {
+            if(scores[i]<winningScore ||
+              (scores[i]==winningScore && lengths[i]<winningLen)) {
+                winningScore=scores[i];
+                winningLen=lengths[i];
+                winner=center+ivec2(i%3-1,i/3-1);
+            }
+        }
+        int validSamples=0;
+        for(int y=origin.y;y<end.y;y+=STEP)
+            for(int x=origin.x;x<end.x;x+=STEP) ++validSamples;
+        float normalizedError=winningScore/max(1.0,3.0*float(validSamples));
+        imageStore(motionField,tile,vec4(vec2(winner),normalizedError,1.0));
+    }
+}
