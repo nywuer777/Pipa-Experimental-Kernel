@@ -16,6 +16,9 @@ assert "registerQueue(device, *queue, state);" in LAYER
 assert "ci.enabledLayerCount=1;" in PRESENTER
 assert "traceLayerSummary()" in PRESENTER
 assert "VK_LAYER_PIPA available=" in PRESENTER
+assert "present.pResults=&perSwapchainResult;" in PRESENTER
+assert "querySurfaceAfterSuboptimal()" in PRESENTER
+assert "surfaceDiagnosticSummary()" in PRESENTER
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
 print("EXP29.27 explicit Vulkan layer contract: PASS")
