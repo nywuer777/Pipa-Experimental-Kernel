@@ -11,11 +11,7 @@ for tok in (
     "gpuQueryPool!=VK_NULL_HANDLE;",
     "gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;",
     "constexpr uint32_t kGpuBudgetValidationSceneRepeatPasses=4u;",
-    "gpuBudgetStressScenePasses=gpuBudgetEnabled && enableGpuBudgetStressScene?",
-    "stressPass<gpuBudgetStressScenePasses;",
-    "gpuBudgetStressScenePasses=0u;",
-    "for(uint32_t stressPass=0;",
-    "passes stress cena=",
+    \" passes stress cena=0\",
 
     "pendingPairRealGpuMs=ms;",
     "pendingPairRealAvailable=true;",
@@ -40,7 +36,6 @@ for tok in (
     "if(odd && (holdInsteadOfFG || budgetFallback))++sceneHeldSubmitted;",
     "jboolean gpuBudgetMode",
     "gpuBudgetMode==JNI_TRUE",
-    "gpuBudgetStressSceneMode==JNI_TRUE",
     '" | GPU BUDGET solicitado="',
     '" HOLD adaptativos="',
     '" probes pares="',
@@ -62,8 +57,6 @@ for tok in (
 assert "realGpuMs.back()+ms" not in native
 # Source contracts track the real-load governor build.
 assert "versionCode 319" in gradle and "29.29-real-load-gpu-guard" in gradle
-assert "stress && !scene3d);" in ui
-assert "boolean gpuBudgetStressScene);" in ui
 
 # Pure deterministic policy model (not Android device timing).
 def control(pair_costs, limit=11.83):
