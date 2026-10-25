@@ -24,6 +24,16 @@ typedef struct PipaFramegenVkImages {
     VkImage motion_image;
 } PipaFramegenVkImages;
 
+// One workgroup per 16x16 tile. Requires pipa_motion_parallel.comp
+// and its gl_WorkGroupID.xy addressing; do not enable with the legacy shaders.
+#define PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE 0x1u
+
+// Optional create API: flags=0 preserves legacy FAST and EXHAUSTIVE dispatch.
+int pipa_framegen_vk_create_ex(VkPhysicalDevice gpu, VkDevice device,
+                               const uint32_t* motion_spv, size_t motion_bytes,
+                               const uint32_t* interpolate_spv, size_t interpolate_bytes,
+                               uint32_t flags, PipaFramegenVk** out);
+
 // Shader words must be 4-byte-aligned valid SPIR-V; *_bytes multiples of 4.
 // 0=ok, -1=invalid args, -2=unsupported storage image formats, -3=Vulkan failure.
 int pipa_framegen_vk_create(VkPhysicalDevice gpu, VkDevice device,
