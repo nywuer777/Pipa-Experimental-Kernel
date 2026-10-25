@@ -57,3 +57,24 @@ Pacote de ferramentas produzido: **`pipa-exp27-5-windows-safe-audit-1`**, artifa
 https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40156271942/artifacts/12584119676
 
 Extrair em Downloads (ZIP) e copiar `tools\exp27-5-recovery-inventory.py` para `C:\platform-tools\exp27-5-recovery-inventory.py`. Não alterar arquivos EXP27.4 já validados; executar primeiro o modo **offline padrão** sem `--observe-android`. Após receber a saída do Windows, avaliar se vale coleta ADB opcional, mantendo `FLASH_READY=false`.
+
+
+## Homologação material no Windows — EXP27.5 auditoria independente PASS
+
+**Evidência fornecida pelo operador (PowerShell, Python 3.15.0):**
+
+```text
+EXP27.5_OFFLINE_INDEPENDENT_CHECK=PASS
+BOOT_V3_HEADERS_AND_RAMDISK=PASS
+CANDIDATE_IMAGE_CI_BYTE_MATCH=PASS
+EXP27.4_CANDIDATE_SHA256=df9eb41441770035849e95a6e54ccc110357d5c171a06758cc2df60a192a01d7
+EXP27.5_ANDROID_READONLY=NOT_REQUESTED
+PHYSICAL_RECOVERY=PENDING
+TEMP_BOOT_AUTHORIZED=false; FLASH_READY=false
+```
+
+O operador executou `py -3 "C:\platform-tools\exp27-5-recovery-inventory.py"` usando os arquivos previamente pinados. **Gate local de auditoria independente PASS**: parser reconstruiu os componentes Boot V3 stock/candidato, verificou hashes pinados do controle stock e candidato, conteúdo byte-a-byte da ramdisk, invariantes do header exceto o campo kernel_size, Image incorporada com bytes idênticos ao ZIP CI EXP27.1 e integridade dos marcadores de proveniência da compilação. Nenhum ADB foi solicitado ou executado no modo padrão; nenhuma partição, periférico ou alimentação foi modificada por esse script.
+
+**Escopo da evidência:** baseado em logs gerados no computador do usuário e compartilhados nesta conversa, não em acesso direto deste auditor aos arquivos locais. Isso encerra as verificações de **integridade offline**, não os gates de recuperação física, estabilidade USB/PD, touchscreen, prova de inicialização EXP27 nem teste funcional do driver RTL8153.
+
+**Status atualizado:** `EXP27_5_REAL_WINDOWS_INDEPENDENT_AUDIT=PASS`; `EXP27_5_ANDROID_READONLY=NOT_REQUESTED`; `PHYSICAL_RECOVERY=PENDING`; `EXP27_RUNTIME_BOOT=NOT_TESTED`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`.
