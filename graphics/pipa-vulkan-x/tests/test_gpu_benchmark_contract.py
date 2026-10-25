@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.7 source contract. Native/SPIR-V/on-device tests are separate."""
+"""EXP29.8 source contract. Native/SPIR-V/on-device tests are separate."""
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 lab = (root / "lab-app/app/src/main/cpp/lab.cpp").read_text()
@@ -8,9 +8,11 @@ header = (root / "include/pipa_framegen_vk.h").read_text()
 java = (root / "lab-app/app/src/main/java/dev/pipa/framegen/lab/MainActivity.java").read_text()
 gradle = (root / "lab-app/app/build.gradle").read_text()
 shader = (root / "shaders/pipa_motion_parallel.comp").read_text()
+sparse = (root / "shaders/pipa_motion_sparse.comp").read_text()
 for token in (
     "jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions,jint motionVariant",
     "motionVariant==2",
+    "motionVariant>=0 && motionVariant<=3",
     "PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE",
     "pipa_framegen_vk_create_ex(",
     "pipa_framegen_vk_record_profiled(",
@@ -40,9 +42,13 @@ for token in (
     "runTest(9,1,640,360)",
     "runTest(33,2,256,128)",
     "runTest(9,2,640,360)",
+    "runTest(9,3,640,360)",
+    "runTest(9,2,1280,720)",
+    "runTest(9,3,1280,720)",
     "pipa_motion_parallel.comp.spv",
+    "pipa_motion_sparse.comp.spv",
     "enableControls(false)",
-    "EXP29.7",
+    "EXP29.8",
 ):
     assert token in java, token
 for token in (
@@ -53,6 +59,9 @@ for token in (
     "candidateError(",
 ):
     assert token in shader, token
-assert "versionCode 297" in gradle
-assert "versionName '29.7-lab'" in gradle
-print("EXP29_7_PARALLEL_VULKAN_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
+assert "shared vec3 previousSample[16]" in sparse
+assert "const int STEP=4;" in sparse
+assert "if(lane<16u)" in sparse
+assert "versionCode 298" in gradle
+assert "versionName '29.8-lab'" in gradle
+print("EXP29_8_SPARSE_VULKAN_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
