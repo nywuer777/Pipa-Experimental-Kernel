@@ -23,7 +23,7 @@ for token in (
  "else ++sceneRealSubmitted;",
  "jboolean holdInsteadOfFGMode",
  "const bool holdInsteadOfFG=continuous && holdInsteadOfFGMode==JNI_TRUE;",
- "p.run(targetHz,frames,continuous,holdInsteadOfFG)",
+ "p.run(targetHz,frames,continuous,holdInsteadOfFG,",
  "std::to_string(p.sceneHeldSubmitted)",
  "VK_GOOGLE_display_timing",
 ): assert token in native,token
@@ -36,8 +36,8 @@ for token in (
  "hold144.setEnabled(enabled && validSurface);",
  "result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,",
 ): assert token in ui,token
-assert "versionCode 308" in gradle
-assert "versionName '29.18-lab'" in gradle
+assert "versionCode 309" in gradle
+assert "versionName '29.19-lab'" in gradle
 
 for hold in (False,True):
  for frame in range(240):
