@@ -42,7 +42,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.8", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.9", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -75,14 +75,14 @@ public final class MainActivity extends Activity {
         parallel720.setText("Benchmark PARALLEL 1280×720 (8 amostras)");
         sparse720=new Button(this);
         sparse720.setAllCaps(false);
-        sparse720.setText("SPARSE 1280×720 (8)");
+        sparse720.setText("SPARSE FIX 1280×720 (8)");
         run.setText("Interpolar");
         benchmark.setText("LEGACY 256×128 (32)");
         fastButton.setText("FAST 256×128 (32)");
         parallelSmall.setText("PARALLEL 256×128 (32)");
         largeButton.setText("FAST 640×360 (8)");
         parallelLarge.setText("PARALLEL 640×360 (8)");
-        sparseLarge.setText("SPARSE 640×360 (8)");
+        sparseLarge.setText("SPARSE FIX 640×360 (8)");
         parallel720.setText("PARALLEL 1280×720 (8)");
         controlRow(base,run,benchmark);
         controlRow(base,fastButton,parallelSmall);
@@ -198,7 +198,7 @@ public final class MainActivity extends Activity {
             }
         }
         return String.format(Locale.US,
-            "MAE: GPU=%.2f / blend=%.2f (menor melhor)",
+            (gpuError <= samples ? "QUALIDADE OK | " : "QUALIDADE FALHOU | ") + "MAE: GPU=%.2f / blend=%.2f (menor melhor)",
             gpuError/(double)Math.max(samples,1),
             naiveError/(double)Math.max(samples,1));
     }
