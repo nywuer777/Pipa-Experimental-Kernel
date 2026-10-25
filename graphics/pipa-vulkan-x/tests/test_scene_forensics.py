@@ -26,7 +26,7 @@ for tok in (
  "diagHold144.setOnClickListener(v->start(144,true,true,true))",
  "diagFg144.setOnClickListener(v->start(144,true,false,true))",
  '"pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"',
- "nativePresent(surface,motion,warp,scene,hz,240,continuous,holdInsteadOfFG)",
+ "result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,",
  "FONTE=DIAGNOSTICA quadrantes solidos; sem ruido",
 ): assert tok in ui,tok
 for tok in (
