@@ -1179,7 +1179,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           p.traceLayerSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.24 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.27 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
