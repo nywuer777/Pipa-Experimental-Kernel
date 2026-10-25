@@ -441,3 +441,12 @@ O usuário executou no Termux, dentro do **kernel EXP27.1 realmente inicializado
 **EVIDÊNCIA MATERIAL POSITIVA:** adaptador Realtek RTL8153 enumerado como dispositivo USB3 de 5000 Mb/s, vinculado ao driver r8152 v1.10.11 compilado em EXP27, com interface Ethernet eth0 criada e link físico negociado a 1000 Mb/s. `RTL8153_ENUMERATION=PASS`, `R8152_BIND=PASS`, `ETH_LINK_1000=PASS`. Não afirmar ainda atribuição de endereço IP, rota, transferência real, desempenho, integridade após suspend ou superioridade do driver novo versus antigo; hipótese de fornecimento USB-C/PD continua aberta. Detalhes completos e cautelas em `docs/EXP27-7-REAL-BOOT-AND-RTL8153-VALIDATION.md`, commit `75f151e467cdb442d3c64a79e12b04b61ef1a91a`.
 
 Próximo teste simples via Termux **sem alterar configuração**: conferir `ip -4 addr show dev eth0`, `ip route`, estatísticas rx_bytes/tx_bytes. **Não reiniciar, não desconectar/reconectar hub, não trocar carregador nem usar Fastboot.** `ETH_IP=PENDING`, `ETH_TRAFFIC=PENDING`, `EXP27_STABILITY=PENDING`, `FLASH_READY=false`.
+
+
+## EXP27.7 — Internet real via Ethernet: IPv4 e ping 4/4 PASS
+
+Termux/root em runtime EXP27 (driver `r8152` v1.10.11 ligado ao Realtek RTL8153 `0bda:8153` e interface `eth0` com link 1000 Mb/s): `ip -4 route show table all` mostrou `default via 192.168.1.254 dev eth0 table eth0 proto static` e rota local `192.168.1.0/24`. As regras `ip -4 rule show` usam policy routing Android (fwmark, UID, tabela eth0). O teste real `ping -I eth0 -c 4 -W 2 1.1.1.1` foi respondido `4 transmitted, 4 received, 0% packet loss`, endereço de origem `192.168.1.102`, `rtt min/avg/max/mdev=2.981/3.110/3.240/0.121 ms`. **ETH0_EXTERNAL_IPV4_CONNECTIVITY=PASS**; destino fora da LAN atingido pela interface Ethernet forçada.
+
+A ausência de default na tabela principal observada anteriormente não era ausência de rota Ethernet — default existe na tabela Android `eth0`. A medição de latência ICMP não representa transferência de 1 Gbps; essa taxa foi link físico negociado. Ainda pendentes benchmark e estabilidade após horas/suspend, sem atribuir a v1.10.11 a solução de qualquer problema de PD. Evidências em `docs/EXP27-7-REAL-BOOT-AND-RTL8153-VALIDATION.md`, commit `de1af8a746c4a469d1af3c01f5822277ec77258d`.
+
+**Gates:** `EXP27_RUNTIME_BOOT=PASS`; `RTL8153_USB3_ENUM=PASS`; `R8152_BIND=PASS`; `ETH0_LINK_1000=PASS`; `ETH0_IPV4=PASS`; `ETH0_EXTERNAL_ICMP=PASS`; `LONG_DURATION=NOT_TESTED`; `FLASH_READY=false`. Não reiniciar/desconectar hub/carregador nem gravar boot.
