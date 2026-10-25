@@ -27,6 +27,7 @@ public final class MainActivity extends Activity {
     private TextView status;
     private ImageView result;
     private Button run, benchmark, fastButton, largeButton, parallelSmall, parallelLarge;
+    private Button sparseLarge, parallel720, sparse720;
     private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions, int motionVariant);
     private native String nativeReport();
 
@@ -41,7 +42,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.7", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.8", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -72,6 +73,18 @@ public final class MainActivity extends Activity {
         parallelLarge.setAllCaps(false);
         parallelLarge.setText("Benchmark PARALLEL 640×360 (8 amostras)");
         base.addView(parallelLarge,new LinearLayout.LayoutParams(-1,dp(52)));
+        sparseLarge=new Button(this);
+        sparseLarge.setAllCaps(false);
+        sparseLarge.setText("Benchmark SPARSE 640×360 (8 amostras)");
+        base.addView(sparseLarge,new LinearLayout.LayoutParams(-1,dp(52)));
+        parallel720=new Button(this);
+        parallel720.setAllCaps(false);
+        parallel720.setText("Benchmark PARALLEL 1280×720 (8 amostras)");
+        base.addView(parallel720,new LinearLayout.LayoutParams(-1,dp(52)));
+        sparse720=new Button(this);
+        sparse720.setAllCaps(false);
+        sparse720.setText("Benchmark SPARSE 1280×720 (8 amostras)");
+        base.addView(sparse720,new LinearLayout.LayoutParams(-1,dp(52)));
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
@@ -88,13 +101,16 @@ public final class MainActivity extends Activity {
         result.setScaleType(ImageView.ScaleType.FIT_CENTER);
         result.setBackgroundColor(0xff242428);
         generated.addView(result,new LinearLayout.LayoutParams(-1,dp(160)));
-        base.addView(label("GPU: timestamps individuais de Motion, Warp+barreira e total. Comparação legado vs FAST; medições offscreen, não FPS físicos. Os painéis A/B exibem a referência 256×128.",12,0xff9999a5));
+        base.addView(label("GPU: timestamps de Motion, Warp e Total. PARALLEL (amostragem de 2px) versus SPARSE (4px). Testes offscreen: não são FPS exibidos. A/B mostram apenas a referência 256×128.",12,0xff9999a5));
         run.setOnClickListener(v->runTest(1,0,256,128));
         benchmark.setOnClickListener(v->runTest(33,0,256,128));
         fastButton.setOnClickListener(v->runTest(33,1,256,128));
         largeButton.setOnClickListener(v->runTest(9,1,640,360));
         parallelSmall.setOnClickListener(v->runTest(33,2,256,128));
         parallelLarge.setOnClickListener(v->runTest(9,2,640,360));
+        sparseLarge.setOnClickListener(v->runTest(9,3,640,360));
+        parallel720.setOnClickListener(v->runTest(9,2,1280,720));
+        sparse720.setOnClickListener(v->runTest(9,3,1280,720));
         setContentView(outer);
     }
 
@@ -174,16 +190,19 @@ public final class MainActivity extends Activity {
         run.setEnabled(enabled); benchmark.setEnabled(enabled);
         fastButton.setEnabled(enabled); largeButton.setEnabled(enabled);
         parallelSmall.setEnabled(enabled); parallelLarge.setEnabled(enabled);
+        sparseLarge.setEnabled(enabled); parallel720.setEnabled(enabled);
+        sparse720.setEnabled(enabled);
     }
 
     private void runTest(int repetitions,int motionVariant,int width,int height) {
         enableControls(false);
-        final String label=(motionVariant==2?"PARALLEL":motionVariant==1?"FAST":"LEGACY")+
+        final String label=(motionVariant==3?"SPARSE":motionVariant==2?"PARALLEL":motionVariant==1?"FAST":"LEGACY")+
             " "+width+"×"+height;
         status.setText("GPU: preparando "+label+" ("+repetitions+" passagens)...");
         new Thread(()->{
             try {
-                byte[] motion=shader(motionVariant==2?"pipa_motion_parallel.comp.spv":
+                byte[] motion=shader(motionVariant==3?"pipa_motion_sparse.comp.spv":
+                    motionVariant==2?"pipa_motion_parallel.comp.spv":
                     motionVariant==1?"pipa_motion_fast.comp.spv":"pipa_motion.comp.spv");
                 byte[] interp=shader("pipa_interpolate.comp.spv");
                 int[] previous=width==W && height==H ?
