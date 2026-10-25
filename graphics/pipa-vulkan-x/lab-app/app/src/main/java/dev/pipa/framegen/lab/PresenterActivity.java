@@ -1,6 +1,9 @@
 package dev.pipa.framegen.lab;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -25,6 +28,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     private volatile boolean validSurface = false;
     private SurfaceView surfaceView;
     private CheckBox syncDisplay;
+    private Button copyReport;
     private TextView status;
     private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144, v2Hold144, v2Fg144, stressHold144, stressFg144;
 
@@ -38,7 +42,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
         root.addView(text("Vulkan FIFO 720p | 144Hz fixo vs periodo do monitor | GPU+CPU+WSI",13,0xffbbbbc2));
-        status = text("Superfície não inicializada.",14,0xffeeeeee);
+        status = text("Superfície não inicializada.",12,0xffeeeeee);
         root.addView(status);
         LinearLayout controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.HORIZONTAL);
@@ -85,7 +89,12 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         syncDisplay.setTextColor(0xffdde4ee);
         syncDisplay.setTextSize(12);
         syncDisplay.setChecked(false); // inherited FIXED_REQUEST is the control.
-        root.addView(syncDisplay,new LinearLayout.LayoutParams(-1,dp(40)));
+        LinearLayout timingControls=new LinearLayout(this);
+        timingControls.setOrientation(LinearLayout.HORIZONTAL);
+        timingControls.addView(syncDisplay,new LinearLayout.LayoutParams(0,dp(44),3));
+        copyReport=button("Copiar relatório");
+        timingControls.addView(copyReport,new LinearLayout.LayoutParams(0,dp(44),1));
+        root.addView(timingControls,new LinearLayout.LayoutParams(-1,dp(48)));
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
@@ -106,6 +115,11 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         stressHold144.setOnClickListener(v->start(144,true,true,false,true,true));
         stressFg144.setOnClickListener(v->start(144,true,false,false,true,true));
         stop.setOnClickListener(v->nativeStop());
+        copyReport.setOnClickListener(v->{
+            ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+            if(clipboard!=null)clipboard.setPrimaryClip(
+                ClipData.newPlainText("Pipa EXP29.19 Vulkan Timing",status.getText()));
+        });
         toggle(true);
     }
     private int dp(int value) {
