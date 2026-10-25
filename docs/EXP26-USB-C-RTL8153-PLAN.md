@@ -340,3 +340,9 @@ Decisao do usuario: testar atualizacao do driver r8152 primeiro; caso persista i
 **Estado honesto**: workflow criado/validado estruturalmente; build NAO disparado, compilacao e compatibilidade v1.10.11 no kernel E404 NAO comprovadas, nenhum dispositivo testado e nenhuma alteracao na EXP25A rodando. Se falhar compilacao, avaliar interfaces de API, usar backport seletivo em vez de forcar checkout de fonte mais recente. Se compilar, ainda falta homologacao offline de ABI, efeitos de PD/USB e gate de boot temporario com plano de recovery antes de qualquer teste; nao flashar automaticamente.
 
 **Segunda fase condicional**: somente apos teste A/B significativo, examinar USB-C/PD: eventos CC/PD, papel host/sink, contratacao de tensao/corrente, controle de VBUS e power budget do hub, resets do xHCI/DWC3, quirks LPM, logs; nenhum ajuste de reguladores, limites de corrente, protecao ou perfil PD ate isolamento causal com fonte confiavel. `FLASH_READY=false`.
+
+### EXP27 workflow disparado (execucao real)
+
+Workflow isolado `.github/workflows/exp27-r8152-compat-build.yml` foi refeito/validado estruturalmente e alterado para disparar em push de sua propria configuracao, mantendo opcao manual. Commit de disparo `f1fa9e33bc40f71bd139ee42dd66690ef60eb85d`. A API de Actions confirmou **run ID 40151729288**, name `Pipa EXP27 - r8152 v1.10.11 isolated compatibility build (NO FLASH)`, `event=push`, `status=in_progress` no momento da consulta. URL: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40151729288 . O job ainda nao chegou ao passo de compilacao quando consultado, logo NAO afirmar sucesso da v1.10.11, nem aprovar uso no tablet.
+
+A atualizacao e somente para staging no runner; o dispositivo pipa ainda esta usando EXP25A e r8152 v1.09.9 sem qualquer mudanca operacional. Nao enviar artefatos para flash, nao alterar PD/hub/typec power ao vivo, nao reproduzir falha com fonte instavel. `FLASH_READY=false`.
