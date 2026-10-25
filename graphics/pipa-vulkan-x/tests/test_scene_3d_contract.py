@@ -39,6 +39,6 @@ for name in (
     "cpuPacingSummary()",
     "gpuTimingSummary()",
 ): assert name in native,name
-assert "versionCode 314" in build
-assert "29.24-lab" in build
+assert "versionCode 315" in build
+assert "29.25-lab" in build
 print("EXP29_21_3D_PERSPECTIVE_OCCLUSION_SOURCE_CONTRACT=PASS; HARDWARE_3D_PENDING")
