@@ -75,6 +75,6 @@ for token in (
 assert "shared vec3 previousSample[16]" in sparse
 assert "const int STEP=4;" in sparse
 assert "if(lane<16u)" in sparse
-assert "versionCode 312" in gradle
-assert "versionName '29.22-lab'" in gradle
+assert "versionCode 313" in gradle
+assert "versionName '29.23-lab'" in gradle
 print("EXP29_11_TILED_WARP_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
