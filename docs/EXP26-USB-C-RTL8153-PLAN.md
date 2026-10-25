@@ -237,3 +237,8 @@ Rodin log `r8152 1-1.1:1.0 Direct firmware load rtl_nic/rtl8153b-2.fw failed -2`
 Rodin `usb2` root hub presente runtime_status=suspended; `2-1`/`2-1.1` ausentes. A capacidade xHCI USB3 nao equivale a periferico negociando SuperSpeed. Em pipa RTL8153 originalmente USB 5000Mb/s (2-1.1) mas desaparece durante falha. Control A/B difere na negociacao USB2 vs USB3; o driver Ethernet `r8152 v1.09.9` (pipa) vs `v1.12.13` (rodin) pode afetar operacao apos o bind, mas nao e uma causa comprovada da falta de enumeracao do dispositivo USB.
 
 Proximo plano: monitorar passivamente eventos de `usb 2-`, `xhci`, e `dwc3` no pipa quando ocorrer falha natural, registrar primeiro se o adaptador some ou se interface persiste, sem resets, unbind, alteracoes de power/control, quedas induzidas ou flashing. `FLASH_READY=false`.
+
+
+## EXP26.8 — Hub USB2 ausente e hub SuperSpeed suspenso
+
+Coleta Termux root no pipa, mesma sessão EXP25A: `1-1=AUSENTE`, `2-1=PRESENTE`, `/sys/bus/usb/devices/2-1/power/runtime_status=suspended`, `2-1.1=AUSENTE`. O histórico filtrado de `dmesg` mostra os últimos vínculos do RTL8153 em ~2209–2212s e mensagens de entrada mouse/teclado em ~3460s; não mostra causa posterior de remoção. A ausência do hub USB2 é nova relativamente à coleta anterior, e não permite atribuir a falha apenas a `r8152`. O estado suspended, isoladamente, é compatível com runtime PM normal. Confirmar funcionamento atual de mouse/teclado e coletar snapshot de `usb1`, `usb2`, `1-1`, `2-1` e estado Type-C sem induzir novas quedas. Preservar a EXP25A; nenhuma escrita em sysfs; `FLASH_READY=false`.
