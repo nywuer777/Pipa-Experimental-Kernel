@@ -432,3 +432,12 @@ Operador executou **fastboot boot temporário** do candidato Boot V3 EXP27.4 aud
 `/sys/bus/usb/drivers` lista `r8152`, logo driver registrado. `/sys/class/net` ainda não lista eth/usb NIC; entretanto nenhuma enumeração VID:PID 0bda:8153 foi medida na sessão e o USB-C pode estar ocupado por ADB USB com PC; NÃO chamar isso de regressão RTL8153, muito menos link funcional. Próximo experimento é física do RTL8153, binding r8152, link/carrier e rede, **sem novo boot/flash**. O hub, power delivery e recuperação física após falha são questões pendentes; não desconectar USB-C sem ADB Wi-Fi ou terminal local/controle alternativo operacional. Detalhes em `docs/EXP27-7-REAL-BOOT-AND-RTL8153-VALIDATION.md`.
 
 `RTL8153_ENUMERATION=NOT_TESTED`; `RTL8153_DRIVER_BIND=NOT_TESTED`; `ETH_LINK=NOT_TESTED`; `TOUCH_UI=NOT_TESTED`; `PHYSICAL_RECOVERY=PENDING`; `FLASH_READY=false`.
+
+
+## EXP27.7 — REAL RTL8153 COM GIGABIT: PASS via Termux
+
+O usuário executou no Termux, dentro do **kernel EXP27.1 realmente inicializado** (identidade `runner@runnervmtai0g`, Clang 21, Oct 25 01:59:48 UTC 2026), a observação `su -c` read-only: `R8152_REGISTRADO=SIM`, `RTL8153_ENCONTRADO=SIM`, `USB_DEVICE=2-1`, `VID_PID=0bda:8153`, `USB_SPEED=5000`, `CONFIG=1`, `INTERFACE=2-1:1.0 DRIVER=r8152`, `INTERFACE=eth0`, `CARRIER=1`, `LINK_SPEED=1000`, `DRIVER=r8152`.
+
+**EVIDÊNCIA MATERIAL POSITIVA:** adaptador Realtek RTL8153 enumerado como dispositivo USB3 de 5000 Mb/s, vinculado ao driver r8152 v1.10.11 compilado em EXP27, com interface Ethernet eth0 criada e link físico negociado a 1000 Mb/s. `RTL8153_ENUMERATION=PASS`, `R8152_BIND=PASS`, `ETH_LINK_1000=PASS`. Não afirmar ainda atribuição de endereço IP, rota, transferência real, desempenho, integridade após suspend ou superioridade do driver novo versus antigo; hipótese de fornecimento USB-C/PD continua aberta. Detalhes completos e cautelas em `docs/EXP27-7-REAL-BOOT-AND-RTL8153-VALIDATION.md`, commit `75f151e467cdb442d3c64a79e12b04b61ef1a91a`.
+
+Próximo teste simples via Termux **sem alterar configuração**: conferir `ip -4 addr show dev eth0`, `ip route`, estatísticas rx_bytes/tx_bytes. **Não reiniciar, não desconectar/reconectar hub, não trocar carregador nem usar Fastboot.** `ETH_IP=PENDING`, `ETH_TRAFFIC=PENDING`, `EXP27_STABILITY=PENDING`, `FLASH_READY=false`.
