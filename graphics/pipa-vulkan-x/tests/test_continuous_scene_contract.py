@@ -8,7 +8,8 @@ shader=(p/"shaders/pipa_scene.comp").read_text()
 gradle=(p/"lab-app/app/build.gradle").read_text()
 for token in (
     "recordSourceScene(command,uint32_t(frame/2));",
-    "bool synthesized=(frame%2)==1;",
+    "const bool odd=(frame%2)==1;",
+    "const bool synthesized=odd && !holdInsteadOfFG;",
     "int source=continuous?0:",
     "VkDescriptorSet sceneDescriptors[2]",
     "vkCreateComputePipelines(",
@@ -34,7 +35,7 @@ for token in (
     "animate120=button(", "animate144=button(",
     "start(120,true)", "start(144,true)",
     'load("pipa_scene.comp.spv")',
-    "hz,240,continuous", "framegen", "nativeStop()",
+    "hz,240,continuous,holdInsteadOfFG", "framegen", "nativeStop()",
 ):
     assert token in java, token
 for token in (
