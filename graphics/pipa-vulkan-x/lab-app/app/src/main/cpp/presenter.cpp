@@ -195,7 +195,10 @@ struct Presenter {
     int pendingGpuRole=-1;
     std::vector<double> realGpuMs;
     std::vector<double> generatedGpuMs;
+    std::vector<double> motionGpuMs, warpGpuMs;
     uint32_t gpuTimingReadFailures=0;
+    uint32_t splitTimingFailures=0;
+    int recordedMotionRadius=4;
     // CPU measurements are deliberately separated from GPU timestamps and
     // driver WSI presentation times. Each metric has a different clock path.
     std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
@@ -253,6 +256,24 @@ struct Presenter {
                 else realGpuMs.push_back(ms);
             } else ++gpuTimingReadFailures;
         } else ++gpuTimingReadFailures;
+        if(pendingGpuRole==1) {
+            uint64_t parts[3]{};
+            VkResult split=vkGetQueryPoolResults(device,gpuQueryPool,2,3,
+               sizeof(parts),parts,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT);
+            if(split==VK_SUCCESS) {
+                const uint64_t mask=timestampValidBits<64?
+                    ((uint64_t(1)<<timestampValidBits)-1u):~uint64_t(0);
+                const uint64_t motionTicks=(parts[1]-parts[0])&mask;
+                const uint64_t warpTicks=(parts[2]-parts[1])&mask;
+                const double motionMs=double(motionTicks)*timestampPeriodNs*1.e-6;
+                const double warpMs=double(warpTicks)*timestampPeriodNs*1.e-6;
+                if(std::isfinite(motionMs) && std::isfinite(warpMs) &&
+                   motionMs<10000.0 && warpMs<10000.0) {
+                    motionGpuMs.push_back(motionMs);
+                    warpGpuMs.push_back(warpMs);
+                } else ++splitTimingFailures;
+            } else ++splitTimingFailures;
+        }
         pendingGpuRole=-1;
     }
     std::string gpuTimingSummary() const {
@@ -270,7 +291,11 @@ struct Presenter {
         };
         return summary(realGpuMs,"GPU original+blit")+
                summary(generatedGpuMs,"GPU gerado+blit")+
-               " | falhas GPU query="+std::to_string(gpuTimingReadFailures);
+               summary(motionGpuMs,"GPU Motion")+
+               summary(warpGpuMs,"GPU Warp+barreira")+
+               " | Motion raio="+std::to_string(recordedMotionRadius)+
+               " | falhas GPU query="+std::to_string(gpuTimingReadFailures)+
+               " | falhas GPU split="+std::to_string(splitTimingFailures);
     }
 
 
@@ -611,7 +636,7 @@ struct Presenter {
             VkQueryPoolCreateInfo queryInfo{};
             queryInfo.sType=VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
             queryInfo.queryType=VK_QUERY_TYPE_TIMESTAMP;
-            queryInfo.queryCount=2;
+            queryInfo.queryCount=5;
             // Unsupported GPU query path is optional, never block presentation.
             if(vkCreateQueryPool(device,&queryInfo,nullptr,&gpuQueryPool)!=VK_SUCCESS)
                 gpuQueryPool=VK_NULL_HANDLE;
@@ -706,7 +731,9 @@ struct Presenter {
         check(vkQueueSubmit(queue,1,&submit,fence),"Submit upload");
         check(vkWaitForFences(device,1,&fence,VK_TRUE,10000000000ULL),"Wait upload fence");
     }
-    int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,bool alignWithDisplay) {
+    int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,
+            bool alignWithDisplay,int motionRadius) {
+        recordedMotionRadius=motionRadius;
         const PipaFramegenVkImages images={
           tex[0].view,tex[1].view,tex[2].view,tex[3].view,tex[2].image
         };
@@ -759,7 +786,7 @@ struct Presenter {
             begin.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             check(vkBeginCommandBuffer(command,&begin),"Begin frame");
             if(gpuQueryPool) {
-                vkCmdResetQueryPool(command,gpuQueryPool,0,2);
+                vkCmdResetQueryPool(command,gpuQueryPool,0,5);
                 vkCmdWriteTimestamp(command,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                     gpuQueryPool,0);
             }
@@ -781,8 +808,14 @@ struct Presenter {
                 vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,0,nullptr,
                     1,&motionBarrier);
-                expect(pipa_framegen_vk_record(engine,command,&images,kWidth,kHeight,
-                                               0.5f,4,0.75f)==0,"Record FrameGen failed");
+                // EXP29.20 A/B: radius=4 preserves baseline; radius=3 is an
+                // explicitly selected speed-quality experiment for this scene.
+                const int code=gpuQueryPool?
+                    pipa_framegen_vk_record_profiled(engine,command,&images,kWidth,kHeight,
+                          0.5f,uint32_t(motionRadius),0.75f,gpuQueryPool,2):
+                    pipa_framegen_vk_record(engine,command,&images,kWidth,kHeight,
+                          0.5f,uint32_t(motionRadius),0.75f);
+                expect(code==0,"Record FrameGen failed");
             }
             auto fromLayout=VK_IMAGE_LAYOUT_GENERAL;
             auto sourceBarrier=imageBarrier(texSource.image,fromLayout,
@@ -897,7 +930,7 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
-    jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode) {
+    jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius) {
     bool expected=false;
     if(!g_inUse.compare_exchange_strong(expected,true))
         return env->NewStringUTF("Uma sessão Vulkan já está ativa.");
@@ -906,6 +939,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     try {
         expect(targetHz==60 || targetHz==120 || targetHz==144,"Invalid targetHz");
         expect(frames>0 && frames<=2400,"Invalid frame count");
+        expect(motionRadius==3 || motionRadius==4,"Invalid Motion radius");
         auto motion=shaderBytes(env,motionShader);
         auto warp=shaderBytes(env,warpShader);
         const bool continuous=continuousMode==JNI_TRUE;
@@ -917,7 +951,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         p.init(env,surface,motion,warp,scene,continuous);
         auto t1=std::chrono::steady_clock::now();
         int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
-                         alignWithDisplayMode==JNI_TRUE);
+                         alignWithDisplayMode==JNI_TRUE,int(motionRadius));
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -941,7 +975,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.19 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.20 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
