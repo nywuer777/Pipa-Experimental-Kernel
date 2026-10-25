@@ -641,7 +641,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms"+
           p.timingSummary()+
-          " | chamadas/s NAO sao FPS fisicos; timing WSI e reportado pelo driver.";
+          " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
         result=std::string("EXP29.12 Vulkan presenter: ")+e.what();
     }
