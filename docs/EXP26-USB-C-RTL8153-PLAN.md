@@ -423,3 +423,12 @@ Status: `EXP27_RUNTIME_TEST=NOT_RUN`, `TEMP_BOOT_AUTHORIZED=false`, `FLASH_READY
 CI `EXP27.6` run **40157077359 SUCCESS**, **12/12 testes sintéticos PASS**, comandos ADB restritos a `getprop` e `cat /proc/`, protegido contra múltiplos transportes e troca de boot_id. Pacote Windows `pipa-exp27-6-input-readonly-tools-1`, artifact ID **12585006817**, download: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40157077359/artifacts/12585006817. Instruções para leigos em `docs/EXP27-6-INPUT-RECOVERY-OBSERVATION.md`.
 
 Próximo gate: Windows executar `py -3 C:\platform-tools\exp27-6-input-readonly.py --serial 6665d3e6` após extrair o script do ZIP do CI. Registrar a saída e apenas posteriormente pedir confirmação física de touch/mouse, sem desconectar hub ou USB-C e sem ensaios de recuperação de boot. Estado: `EXP27_6_CI_PASS`, `EXP27_6_REAL_RUNTIME_INPUT_PENDING`, `PHYSICAL_RECOVERY=PENDING`, `TEMP_BOOT_AUTHORIZED=false`, `FLASH_READY=false`.
+
+
+## EXP27.7 — Android executando nova EXP27.1, driver r8152 registrado
+
+Operador executou **fastboot boot temporário** do candidato Boot V3 EXP27.4 auditado, SHA256 `df9eb41441770035849e95a6e54ccc110357d5c171a06758cc2df60a192a01d7`, após getvar product=pipa/current-slot=b/unlocked=yes/is-userspace=no e single serial 6665d3e6. Fastboot transfer/boot = OKAY. Android posterior voltou a ADB USB, `sys.boot_completed=1` e `/proc/version` identificou claramente EXP27 nova `4.19.404R (runner@runnervmtai0g) ... Clang 21.0.0 ... Sun Oct 25 01:59:48 UTC 2026`. boot_id `69d5b0dd-2a6e-4ea7-9eb4-de1644952c81`. **`EXP27_REAL_BOOT=PASS`**.
+
+`/sys/bus/usb/drivers` lista `r8152`, logo driver registrado. `/sys/class/net` ainda não lista eth/usb NIC; entretanto nenhuma enumeração VID:PID 0bda:8153 foi medida na sessão e o USB-C pode estar ocupado por ADB USB com PC; NÃO chamar isso de regressão RTL8153, muito menos link funcional. Próximo experimento é física do RTL8153, binding r8152, link/carrier e rede, **sem novo boot/flash**. O hub, power delivery e recuperação física após falha são questões pendentes; não desconectar USB-C sem ADB Wi-Fi ou terminal local/controle alternativo operacional. Detalhes em `docs/EXP27-7-REAL-BOOT-AND-RTL8153-VALIDATION.md`.
+
+`RTL8153_ENUMERATION=NOT_TESTED`; `RTL8153_DRIVER_BIND=NOT_TESTED`; `ETH_LINK=NOT_TESTED`; `TOUCH_UI=NOT_TESTED`; `PHYSICAL_RECOVERY=PENDING`; `FLASH_READY=false`.
