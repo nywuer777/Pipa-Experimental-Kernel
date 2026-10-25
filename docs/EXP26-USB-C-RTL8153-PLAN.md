@@ -136,3 +136,13 @@ Resultado em `eth0`: `<BROADCAST,MULTICAST,UP,LOWER_UP>`, estado `UP`, `inet 192
 Conclusao: Ethernet Gigabit negociada, interface ativa e endereco IPv4 atribuido em EXP25A. Nao presumir que IPv4 tenha sido obtido via DHCP so pela linha `inet`; rota default, DNS, conectividade gateway/WAN e estabilidade nao foram testados. Nao confundir taxa Ethernet 1000Mb/s com bus USB 5000Mb/s.
 
 Proximo gate read-only direto no Termux com hub e dongle mantidos: estado de `/sys/bus/usb/devices/2-1.1` e rede, rota `ip -4 route`, rx/tx e erros; sequencia 12 amostras a cada 5s (60s) para detectar oscilacao carrier/speed/ethernets/erros; nao alternar USB power ou fazer unbind/rebind. EXP26.2 LINK_IPV4=PASS; ROUTE_AND_STABILITY=PENDING; FLASH_READY=false.
+
+## EXP26 — Relato de falha mecanossensivel por movimentacao do cabo
+
+Observação nova relatada pelo usuario: ao movimentar o cabo ligado ao adaptador Ethernet por meio do hub, a conexao perde o contato e nao restabelece de maneira confiavel ('so conecta quando quer'). Em outros dispositivos, o mesmo adaptador/cabo tem funcionamento estavel mesmo ao movimentar cabos em diferentes posicoes. É uma associacao fisica forte, mas ainda nao localiza o conector afetado: o usuario nao distinguiu se movimento ocorreu no USB-C pipa, porta downstream do hub, dongle USB-A/USB-C ou cabo RJ45.
+
+Dados anteriores na mesma sessao: 05e3:0625 hub + RTL8153 0bda:8153 enumerados a 5000Mb/s, r8152 vinculado, eth0 1000Mb/s carrier=1, IPv4 192.168.1.102/24. Drivers funcionam quando a conexão física permanece estavel; nao há evidência para patch r8152 agora. Log anterior de USB gadget desconectando sob USB-PC e alternancia charging reforca investigacao da porta/typec/power como possivel fator comum, sem comprovar causalidade.
+
+Plano atualizado: interromper testes que provoquem movimento/flexao dos conectores; fazer inspecao visual segura (sem ferramentas metalicas, sem carga sob falha); apoiar cabo e hub para minimizar tracao; diferenciar durante eventual falha natural ou espontanea via Termux **somente leitura** `ls /sys/bus/usb/devices/2-1.1`, status `eth0`, `carrier`, e `dmesg`. Se USB 2-1.1 desaparece: upstream host/energia/hub/conector. Se USB permanece mas eth0 carrier cai: RJ45/link/switch/PHY. A estabilidade em outros dispositivos reduz suspeita do adaptador isolado mas nao exclui tolerancias ou conectores do hub. Priorizar comparacao com hub diferente conhecido bom, sem forcar cabo, com touchscreen como contingencia. Conserto de conector fisico nao deve ser tratado como patch de driver nem bypass de protecoes.
+
+STATUS: USB_ETHERNET_BASIC_OPERATION=PASS; MECHANICAL_SENSITIVITY=REPORTED; AFFECTED_CONNECTOR=UNDETERMINED; RTL8153_DRIVER_PATCH=ON_HOLD; FLASH_READY=false.
