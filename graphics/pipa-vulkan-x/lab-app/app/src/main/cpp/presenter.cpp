@@ -189,6 +189,51 @@ struct Presenter {
     std::map<uint32_t,uint64_t> reportedActualNs;
     std::vector<double> presentCallMs;
     uint32_t timingQueryFailures=0;
+    VkQueryPool gpuQueryPool=VK_NULL_HANDLE;
+    uint32_t timestampValidBits=0;
+    float timestampPeriodNs=0.0f;
+    int pendingGpuRole=-1;
+    std::vector<double> realGpuMs;
+    std::vector<double> generatedGpuMs;
+    uint32_t gpuTimingReadFailures=0;
+
+    // These GPU timestamps bracket scene compute, FG, image blit and
+    // image-layout transitions; they do NOT measure compositor/scanout time.
+    void harvestGpuTimestamps() {
+        if(!gpuQueryPool || pendingGpuRole<0)return;
+        uint64_t values[2]{};
+        VkResult r=vkGetQueryPoolResults(device,gpuQueryPool,0,2,sizeof(values),
+                    values,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT);
+        if(r==VK_SUCCESS) {
+            uint64_t ticks=(values[1]-values[0]);
+            if(timestampValidBits<64)
+                ticks&=((uint64_t(1)<<timestampValidBits)-1u);
+            const double ms=double(ticks)*double(timestampPeriodNs)*1.e-6;
+            if(ms>=0.0 && std::isfinite(ms) && ms<10000.0) {
+                if(pendingGpuRole==1)generatedGpuMs.push_back(ms);
+                else realGpuMs.push_back(ms);
+            } else ++gpuTimingReadFailures;
+        } else ++gpuTimingReadFailures;
+        pendingGpuRole=-1;
+    }
+    std::string gpuTimingSummary() const {
+        if(!gpuQueryPool)return " | GPU timestamps: indisponiveis";
+        auto summary=[](const std::vector<double>& values,const char* prefix) {
+            if(values.empty())return std::string(" | ")+prefix+" sem amostras";
+            std::vector<double> sorted=values;
+            std::sort(sorted.begin(),sorted.end());
+            double total=0;
+            for(double v:sorted)total+=v;
+            const size_t p95=(sorted.size()*95u+99u)/100u-1u;
+            return std::string(" | ")+prefix+" n="+std::to_string(sorted.size())+
+                " media="+std::to_string(total/sorted.size())+
+                "ms p95="+std::to_string(sorted[p95])+"ms";
+        };
+        return summary(realGpuMs,"GPU original+blit")+
+               summary(generatedGpuMs,"GPU gerado+blit")+
+               " | falhas GPU query="+std::to_string(gpuTimingReadFailures);
+    }
+
 
     void collectTiming() {
         if(!displayTimingEnabled || !getPastTiming) return;
@@ -243,6 +288,7 @@ struct Presenter {
     }
     ~Presenter() {
         if(device) vkDeviceWaitIdle(device);
+        if(device && gpuQueryPool)vkDestroyQueryPool(device,gpuQueryPool,nullptr);
         if(engine) pipa_framegen_vk_destroy(engine);
         if(device) {
             if(scenePipeline)vkDestroyPipeline(device,scenePipeline,nullptr);
@@ -355,6 +401,13 @@ struct Presenter {
         VkPhysicalDeviceProperties gpuProps{};
         vkGetPhysicalDeviceProperties(physical,&gpuProps);
         gpuName=gpuProps.deviceName;
+        timestampPeriodNs=gpuProps.limits.timestampPeriod;
+        uint32_t selectedFamilyCount=0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physical,&selectedFamilyCount,nullptr);
+        std::vector<VkQueueFamilyProperties> selectedFamilies(selectedFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(physical,&selectedFamilyCount,
+                                                   selectedFamilies.data());
+        timestampValidBits=selectedFamilies[family].timestampValidBits;
         vkGetPhysicalDeviceMemoryProperties(physical,&memory);
         VkPhysicalDeviceFeatures available{};
         vkGetPhysicalDeviceFeatures(physical,&available);
@@ -490,6 +543,15 @@ struct Presenter {
         fi.sType=VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fi.flags=VK_FENCE_CREATE_SIGNALED_BIT;
         check(vkCreateFence(device,&fi,nullptr,&fence),"vkCreateFence");
+        if(timestampValidBits>0 && timestampPeriodNs>0.0f) {
+            VkQueryPoolCreateInfo queryInfo{};
+            queryInfo.sType=VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            queryInfo.queryType=VK_QUERY_TYPE_TIMESTAMP;
+            queryInfo.queryCount=2;
+            // Unsupported GPU query path is optional, never block presentation.
+            if(vkCreateQueryPool(device,&queryInfo,nullptr,&gpuQueryPool)!=VK_SUCCESS)
+                gpuQueryPool=VK_NULL_HANDLE;
+        }
         VkSemaphoreCreateInfo si{};
         si.sType=VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         check(vkCreateSemaphore(device,&si,nullptr,&acquired),"Create acquire semaphore");
@@ -594,6 +656,7 @@ struct Presenter {
                 ++deadlineMisses;
             check(vkWaitForFences(device,1,&fence,VK_TRUE,10000000000ULL),
                   "Wait frame fence");
+            harvestGpuTimestamps();
             uint32_t index=0;
             VkResult acquiredResult=vkAcquireNextImageKHR(device,swap,UINT64_MAX,
                                                          acquired,VK_NULL_HANDLE,&index);
@@ -606,6 +669,11 @@ struct Presenter {
             begin.sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             begin.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             check(vkBeginCommandBuffer(command,&begin),"Begin frame");
+            if(gpuQueryPool) {
+                vkCmdResetQueryPool(command,gpuQueryPool,0,2);
+                vkCmdWriteTimestamp(command,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                    gpuQueryPool,0);
+            }
             // A/B legacy remains unchanged. Continuous modes regenerate two
             // unique input images per pair; baseline HOLD reuses A on odd slots
             // rather than synthesizing any frame.
@@ -672,6 +740,9 @@ struct Presenter {
                  VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,0,nullptr,1,&back);
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
                  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,0,0,nullptr,0,nullptr,1,&presented);
+            if(gpuQueryPool)
+                vkCmdWriteTimestamp(command,VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                    gpuQueryPool,1);
             check(vkEndCommandBuffer(command),"End frame");
             VkPipelineStageFlags waitStage=VK_PIPELINE_STAGE_TRANSFER_BIT;
             VkSubmitInfo submit{};
@@ -710,12 +781,14 @@ struct Presenter {
             if(pr==VK_ERROR_OUT_OF_DATE_KHR)break;
             expect(pr==VK_SUCCESS || pr==VK_SUBOPTIMAL_KHR,"vkQueuePresentKHR failed");
             ++queued;
+            if(gpuQueryPool)pendingGpuRole=synthesized?1:0;
             if(odd && holdInsteadOfFG)++sceneHeldSubmitted;
             else if(synthesized)++sceneGeneratedSubmitted;
             else ++sceneRealSubmitted;
             if((frame%8)==7) collectTiming();
         }
         check(vkQueueWaitIdle(queue),"Wait present queue idle");
+        harvestGpuTimestamps();
         collectTiming();
         return queued;
     }
@@ -740,7 +813,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     std::string result;
     try {
         expect(targetHz==60 || targetHz==120 || targetHz==144,"Invalid targetHz");
-        expect(frames>0 && frames<=1000,"Invalid frame count");
+        expect(frames>0 && frames<=2400,"Invalid frame count");
         auto motion=shaderBytes(env,motionShader);
         auto warp=shaderBytes(env,warpShader);
         const bool continuous=continuousMode==JNI_TRUE;
@@ -772,10 +845,10 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms"+
-          p.timingSummary()+
+          p.gpuTimingSummary()+p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.16 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.18 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
