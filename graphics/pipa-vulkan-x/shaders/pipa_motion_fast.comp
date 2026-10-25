@@ -48,8 +48,8 @@ void main() {
     // Coarse grid always contains zero for all permitted radii.
     // Odd search bounds do not need to include the last edge: the refinement
     // covers neighboring offsets up to the radius.
-    for(int dy=-radius;dy<=radius;dy+=2) {
-      for(int dx=-radius;dx<=radius;dx+=2) {
+    for(int dy=-radius+(radius%2);dy<=radius;dy+=2) {
+      for(int dx=-radius+(radius%2);dx<=radius;dx+=2) {
         ivec2 offset=ivec2(dx,dy);
         float score=tileCost(origin,end,offset);
         int length2=dx*dx+dy*dy;
