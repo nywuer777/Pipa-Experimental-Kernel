@@ -30,6 +30,7 @@ struct PipaFramegenVk {
     VkPipeline motion=VK_NULL_HANDLE;
     VkPipeline interpolate=VK_NULL_HANDLE;
     bool motionGroupPerTile=false;
+    bool warp16x16=false;
 };
 
 extern "C" void pipa_framegen_vk_destroy(PipaFramegenVk* e) {
@@ -50,7 +51,7 @@ extern "C" int pipa_framegen_vk_create_ex(VkPhysicalDevice gpu,VkDevice device,
     PipaFramegenVk** out) {
     if (!out) return -1;
     *out=nullptr;
-    if (flags & ~PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE) return -1;
+    if (flags & ~(PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE | PIPA_FRAMEGEN_VK_WARP_16X16)) return -1;
     if (!gpu || !device || !motion_spv || !interpolate_spv ||
         motion_bytes<20 || interpolate_bytes<20 ||
         (motion_bytes%4)!=0 || (interpolate_bytes%4)!=0 ||
@@ -62,6 +63,7 @@ extern "C" int pipa_framegen_vk_create_ex(VkPhysicalDevice gpu,VkDevice device,
     if(!e) return -3;
     e->device=device;
     e->motionGroupPerTile=(flags & PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE)!=0;
+    e->warp16x16=(flags & PIPA_FRAMEGEN_VK_WARP_16X16)!=0;
     VkDescriptorSetLayoutBinding bindings[4]{};
     for(uint32_t i=0;i<4;++i) {
         bindings[i].binding=i;
@@ -194,7 +196,10 @@ extern "C" int pipa_framegen_vk_record_profiled(PipaFramegenVk* e,VkCommandBuffe
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,
                          0,nullptr,1,&barrier);
     vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,e->interpolate);
-    vkCmdDispatch(cmd,(width+7)/8,(height+7)/8,1);
+    if(e->warp16x16)
+        vkCmdDispatch(cmd,(width+15)/16,(height+15)/16,1);
+    else
+        vkCmdDispatch(cmd,(width+7)/8,(height+7)/8,1);
     if(queryPool!=VK_NULL_HANDLE)
         vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,queryPool,firstQuery+2u);
     // Output stays GENERAL. App owns output visibility and presentation.
