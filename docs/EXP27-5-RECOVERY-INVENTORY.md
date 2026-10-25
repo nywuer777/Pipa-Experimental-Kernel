@@ -47,3 +47,13 @@ Não confundir a saída `EXP27.5_ANDROID_READONLY=PASS` com prova de funcionalid
 - Saídas: `EXP27_5_OFFLINE=PASS|BLOCKED`; `ANDROID_READONLY=NOT_REQUESTED|PASS|BLOCKED`; `PHYSICAL_RECOVERY=PENDING`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`.
 
 O pacote de ferramentas inclui **apenas código, testes e documentação**. Nenhum kernel, boot image nem backup privado deve ser anexado ao pacote.
+
+
+## Execução CI confirmada e pacote para Windows
+
+A execução GitHub Actions `40156271942` concluiu com **success**. Os **12 testes sintéticos passaram** (incluindo parser de Boot V3, detecção de corrupção no kernel/header/ramdisk, spoofing de JSON, ZIP duplicado, múltiplos transportes ADB e rejeição de serial suspeito). **Nenhuma consulta Android real foi executada** nesse runner; são testes sintéticos.
+
+Pacote de ferramentas produzido: **`pipa-exp27-5-windows-safe-audit-1`**, artifact ID `12584119676`, URL:
+https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40156271942/artifacts/12584119676
+
+Extrair em Downloads (ZIP) e copiar `tools\exp27-5-recovery-inventory.py` para `C:\platform-tools\exp27-5-recovery-inventory.py`. Não alterar arquivos EXP27.4 já validados; executar primeiro o modo **offline padrão** sem `--observe-android`. Após receber a saída do Windows, avaliar se vale coleta ADB opcional, mantendo `FLASH_READY=false`.
