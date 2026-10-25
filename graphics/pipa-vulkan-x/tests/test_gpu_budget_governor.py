@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.26: paired GPU budget, three-strike fallback and guarded stress path."""
+"""EXP29.29: paired GPU budget with explicit, isolated stress load."""
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 native=(root/"lab-app/app/src/main/cpp/presenter.cpp").read_text()
@@ -11,7 +11,9 @@ for tok in (
     "gpuQueryPool!=VK_NULL_HANDLE;",
     "gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;",
     "constexpr uint32_t kGpuBudgetValidationSceneRepeatPasses=4u;",
-    "if(gpuBudgetEnabled) {",
+    "gpuBudgetStressScenePasses=gpuBudgetEnabled && enableGpuBudgetStressScene?",
+    "stressPass<gpuBudgetStressScenePasses;",
+    "gpuBudgetStressScenePasses=0u;",
     "for(uint32_t stressPass=0;",
     "passes stress cena=",
 
@@ -38,6 +40,7 @@ for tok in (
     "if(odd && (holdInsteadOfFG || budgetFallback))++sceneHeldSubmitted;",
     "jboolean gpuBudgetMode",
     "gpuBudgetMode==JNI_TRUE",
+    "gpuBudgetStressSceneMode==JNI_TRUE",
     '" | GPU BUDGET solicitado="',
     '" HOLD adaptativos="',
     '" probes pares="',
@@ -57,8 +60,10 @@ for tok in (
     "scene3dFg.setOnClickListener(",
 ): assert tok in ui,tok
 assert "realGpuMs.back()+ms" not in native
-# Source contracts track the controlled-overload validation build.
-assert "versionCode 316" in gradle and "29.26-governor-overload" in gradle
+# Source contracts track the real-load governor build.
+assert "versionCode 319" in gradle and "29.29-real-load-gpu-guard" in gradle
+assert "stress && !scene3d);" in ui
+assert "boolean gpuBudgetStressScene);" in ui
 
 # Pure deterministic policy model (not Android device timing).
 def control(pair_costs, limit=11.83):
@@ -93,4 +98,4 @@ overload_720=control([12.5]*720)
 assert overload_720.count("fg")==540
 assert overload_720.count("hold")==180
 assert overload_720.count("real")==720
-print("EXP29_26_GUARDED_OVERLOAD_SOURCE=PASS; HARDWARE_TRIP_PENDING")
+print("EXP29_29_REAL_LOAD_GPU_GUARD_SOURCE=PASS; HARDWARE_VALIDATION_PENDING")
