@@ -70,3 +70,6 @@ All three screenshots show **3D 10s HOLD 72→144** in the report, not **3D 10s 
 | 31738 | 6.957863 ms | n=377, mean 6.975343 ms | 143.362128 Hz | 1/377 |
 
 These captures confirm the WSI_SYNC HOLD control only. They do not provide the requested normal FrameGen comparison with **SYNC experimental** checked. For that measurement, run the button **3D 10s FrameGen 72→144**; verify the report says `interpolado=720` (or close) and `cena=continua GPU 2x` before saving the screenshot.
+
+
+Capture 31739 (20:07) repeats the same **3D 10s HOLD 72→144** control with **SYNC experimental: usar período Vulkan WSI do monitor (144 Hz)** and **3D IDENTITY WSI (teste principal)** checked; **Motion FAST experimental: raio 3 (padrão 4)** and **GPU GUARD PAR 85%: HOLD após 3 pares GPU acima do teto** unchecked. Telemetry: 720 real, 0 interpolated, 720 repeated; 0/1,440 CPU late starts; 1,440/1,440 VK_SUBOPTIMAL_KHR; reported cadence 143.475331 Hz; long intervals 1/541. It is another HOLD control and does not contain the requested FrameGen run.
