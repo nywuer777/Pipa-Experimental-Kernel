@@ -16,13 +16,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class PresenterActivity extends Activity implements SurfaceHolder.Callback {
     static { System.loadLibrary("pipa_lab"); }
-    private native String nativePresent(Surface surface, byte[] motion, byte[] warp, int targetHz, int frames);
+    private native String nativePresent(Surface surface, byte[] motion, byte[] warp,
+                                        byte[] scene, int targetHz, int frames, boolean continuous);
     private native void nativeStop();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile boolean validSurface = false;
     private SurfaceView surfaceView;
     private TextView status;
-    private Button start60, start120, start144, stop;
+    private Button start60, start120, start144, stop, animate120, animate144;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -30,10 +31,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.13 - DISPLAY TIMING", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.14 - FRAMEGEN 2X", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Swapchain Vulkan FIFO | 720p | A / interpolado / B | timestamps opcionais",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | fonte GPU animada | 60→120 ou 72→144 | timing WSI",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",14,0xffeeeeee);
         root.addView(status);
         LinearLayout controls = new LinearLayout(this);
@@ -46,16 +47,25 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
             controls.addView(b,new LinearLayout.LayoutParams(0,dp(48),1));
         }
         root.addView(controls,new LinearLayout.LayoutParams(-1,dp(52)));
+        LinearLayout continuousControls=new LinearLayout(this);
+        continuousControls.setOrientation(LinearLayout.HORIZONTAL);
+        animate120=button("2x: 60 reais + 60 gerados = 120 Hz");
+        animate144=button("2x: 72 reais + 72 gerados = 144 Hz");
+        continuousControls.addView(animate120,new LinearLayout.LayoutParams(0,dp(48),1));
+        continuousControls.addView(animate144,new LinearLayout.LayoutParams(0,dp(48),1));
+        root.addView(continuousControls,new LinearLayout.LayoutParams(-1,dp(52)));
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("O app apresenta frames reais e intermediários no seu próprio VkSwapchainKHR. "
+        root.addView(text("Teste 2x usa quadros únicos produzidos em Vulkan Compute (cena própria); controles antigos mantêm A/B estático. "
             +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));
         start144.setOnClickListener(v->start(144));
+        animate120.setOnClickListener(v->start(120,true));
+        animate144.setOnClickListener(v->start(144,true));
         stop.setOnClickListener(v->nativeStop());
         toggle(true);
     }
@@ -81,6 +91,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         start120.setEnabled(enabled && validSurface);
         start144.setEnabled(enabled && validSurface);
         stop.setEnabled(!enabled);
+        animate120.setEnabled(enabled && validSurface);
+        animate144.setEnabled(enabled && validSurface);
     }
     private byte[] load(String filename) throws Exception {
         try(InputStream in=getAssets().open(filename); ByteArrayOutputStream out=new ByteArrayOutputStream()) {
@@ -89,17 +101,20 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
             return out.toByteArray();
         }
     }
-    private void start(int hz) {
+    private void start(int hz) { start(hz,false); }
+    private void start(int hz,boolean continuous) {
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
-        status.setText("Solicitado "+hz+" Hz | frequência atual da tela "+displayHz()+" Hz | iniciando...");
+        status.setText((continuous?"2x GPU ":"A/B ")+hz+
+              " Hz | tela "+displayHz()+" Hz | criando Vulkan...");
         final Surface surface=surfaceView.getHolder().getSurface();
         new Thread(()->{
             String result;
             try {
                 byte[] motion=load("pipa_motion_sparse.comp.spv");
                 byte[] warp=load("pipa_interpolate_tiled.comp.spv");
-                result=nativePresent(surface,motion,warp,hz,240);
+                byte[] scene=continuous?load("pipa_scene.comp.spv"):null;
+                result=nativePresent(surface,motion,warp,scene,hz,240,continuous);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
             }
