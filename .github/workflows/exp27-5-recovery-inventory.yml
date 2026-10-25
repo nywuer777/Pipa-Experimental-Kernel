@@ -1,0 +1,43 @@
+name: Pipa EXP27.5 - Offline forensic Boot V3 and read-only runtime gate (NO BOOT)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp27-5-recovery-inventory.yml"
+      - "tools/exp27-5-recovery-inventory.py"
+      - "tests/test_exp27_5_recovery_inventory.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipa-exp27-5-recovery-inventory
+  cancel-in-progress: false
+
+jobs:
+  safe-audit:
+    name: EXP27.5 synthetic parser + ADB safety tests (no hardware)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate script syntax and run offline/ADB safety fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp27-5-recovery-inventory.py tests/test_exp27_5_recovery_inventory.py
+          python3 -m unittest discover -s tests -p test_exp27_5_recovery_inventory.py -v 2>&1 | tee exp27-5-test-output.txt
+          echo "EXP27_5_SYNTHETIC=PASS; EXP27_5_DEVICE_COMMANDS=NONE; FLASH_READY=false"
+      - name: Publish portable Windows offline audit package (no boot image)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp27-5-windows-safe-audit-${{ github.run_number }}
+          path: |
+            tools/exp27-5-recovery-inventory.py
+            tests/test_exp27_5_recovery_inventory.py
+            docs/EXP27-5-RECOVERY-INVENTORY.md
+            exp27-5-test-output.txt
+          if-no-files-found: error
+          retention-days: 14
