@@ -57,3 +57,16 @@ The normal FrameGen capture had 720 real plus 720 interpolated frames, 0 repeats
 This adds evidence that fixed-request pacing can accumulate CPU deadline lateness during FrameGen even while the sampled WSI intervals remain mostly regular; it does not establish that the lateness caused visible cadence loss. The HOLD result has a different workload, so it is only a control. The next isolating comparison is FrameGen with identical settings and IDENTITY-on, changing only WSI_SYNC; then repeat in reverse order. Keep GPU Guard disabled for this scheduler comparison.
 
 The 31734–31735 capture adds no code change. The EXP29.28 APK remains the applicable binary for reproducing this comparison.
+
+
+## Additional WSI_SYNC control captures (31736–31738; 20:02–20:05)
+
+All three screenshots show **3D 10s HOLD 72→144** in the report, not **3D 10s FrameGen 72→144**: each reports 720 real, 0 interpolated, 720 repeated, with `cena=continua GPU HOLD sem FG`. The checkbox **SYNC experimental: usar período Vulkan WSI do monitor (144 Hz)** is checked; **3D IDENTITY WSI (teste principal)** is checked; **Motion FAST experimental: raio 3 (padrão 4)** and **GPU GUARD PAR 85%: HOLD após 3 pares GPU acima do teto** are unchecked. CPU late starts are zero in all three captures. The app reports all 1,440 presents as VK_SUBOPTIMAL_KHR, with zero trace-layer errors.
+
+| Capture | Reported WSI cycle | WSI interval window | Reported cadence | Long intervals |
+|---|---:|---:|---:|---:|
+| 31736 | 6.957863 ms | n=722, mean 6.956662 ms | 143.741718 Hz | 0/722 |
+| 31737 | 6.956090 ms | n=363, mean 6.976322 ms | 143.420070 Hz | 0/363 |
+| 31738 | 6.957863 ms | n=377, mean 6.975343 ms | 143.362128 Hz | 1/377 |
+
+These captures confirm the WSI_SYNC HOLD control only. They do not provide the requested normal FrameGen comparison with **SYNC experimental** checked. For that measurement, run the button **3D 10s FrameGen 72→144**; verify the report says `interpolado=720` (or close) and `cena=continua GPU 2x` before saving the screenshot.
