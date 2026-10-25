@@ -1,5 +1,5 @@
 name: Pipa EXP29.27 - Explicit Vulkan Present Trace APK (NO FLASH)
-# This job builds the app-scoped layer and verifies its APK artifact.
+# This job builds the app-scoped layer, verifies its APK artifact, and runs the EXP29.27 contract.
 
 on:
   push:
