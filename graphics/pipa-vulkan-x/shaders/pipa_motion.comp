@@ -1,0 +1,60 @@
+#version 450
+
+// EXP29.3: One invocation estimates integer displacement for one 16x16 tile.
+// Inputs are RGBA8 storage images supplied by an owned Vulkan application.
+layout(local_size_x=8, local_size_y=8, local_size_z=1) in;
+layout(set=0, binding=0, rgba8) uniform readonly image2D previousFrame;
+layout(set=0, binding=1, rgba8) uniform readonly image2D currentFrame;
+layout(set=0, binding=2, rgba16f) uniform writeonly image2D motionField;
+layout(push_constant) uniform Params {
+    ivec2 frameSize;
+    int searchRadius;
+    float phase;
+    float errorCutoff;
+} pc;
+
+const int TILE = 16;
+const int SAMPLE_STEP = 2;
+
+void main() {
+    ivec2 tile = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 fieldSize = (pc.frameSize + ivec2(TILE-1)) / TILE;
+    if (any(greaterThanEqual(tile, fieldSize))) return;
+
+    ivec2 origin = tile * TILE;
+    ivec2 end = min(origin + ivec2(TILE), pc.frameSize);
+    int radius = clamp(pc.searchRadius, 0, 4);
+    float best = 1.0e30;
+    int bestLength2 = 999999;
+    ivec2 bestOffset = ivec2(0);
+    int sampleCount = 0;
+    for (int y=origin.y; y<end.y; y+=SAMPLE_STEP)
+      for (int x=origin.x; x<end.x; x+=SAMPLE_STEP)
+        sampleCount++;
+
+    for (int dy=-radius; dy<=radius; ++dy) {
+      for (int dx=-radius; dx<=radius; ++dx) {
+        ivec2 offset=ivec2(dx,dy);
+        if (any(lessThan(origin+offset, ivec2(0))) ||
+            any(greaterThan(end+offset, pc.frameSize))) continue;
+        float sad=0.0;
+        for (int y=origin.y; y<end.y; y+=SAMPLE_STEP) {
+          for (int x=origin.x; x<end.x; x+=SAMPLE_STEP) {
+            vec3 a=imageLoad(previousFrame, ivec2(x,y)).rgb;
+            vec3 b=imageLoad(currentFrame, ivec2(x,y)+offset).rgb;
+            vec3 difference=abs(a-b);
+            sad+=difference.r+difference.g+difference.b;
+          }
+        }
+        int len2=dx*dx+dy*dy;
+        if (sad<best || (sad==best && len2<bestLength2)) {
+          best=sad;
+          bestLength2=len2;
+          bestOffset=offset;
+        }
+      }
+    }
+    // RG: displacement in frame pixels; B: normalized SAD.
+    float normalizedError=best/max(1.0,3.0*float(sampleCount));
+    imageStore(motionField,tile,vec4(vec2(bestOffset),normalizedError,1.0));
+}
