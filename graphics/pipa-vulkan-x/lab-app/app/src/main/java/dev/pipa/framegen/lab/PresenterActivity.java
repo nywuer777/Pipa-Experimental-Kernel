@@ -120,7 +120,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.21: camera perspectiva, esferas em profundidades distintas, oclusao e HUD fixo. Renderizacao 3D analitica via Vulkan Compute, nao e jogo externo. Compare HOLD e FrameGen com mesmo raio e SYNC. Chamadas WSI nao medem FPS opticos.",12,0xff9b9ba7));
+        root.addView(text("EXP29.21: camera perspectiva, esferas em profundidades distintas, oclusao e HUD fixo. Renderizacao 3D analitica via Vulkan Compute, nao e jogo externo. Compare HOLD e FrameGen com mesmo raio e SYNC. Todos os modos via VkSwapchainKHR; chamadas vkQueuePresentKHR não provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));
