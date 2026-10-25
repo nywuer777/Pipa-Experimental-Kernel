@@ -30,10 +30,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.12 - VULKAN PRESENTER", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.13 - DISPLAY TIMING", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Swapchain Vulkan nativa | 720p RGBA8 | teste próprio A / interpolado / B",13,0xffbbbbc2));
+        root.addView(text("Swapchain Vulkan FIFO | 720p | A / interpolado / B | timestamps opcionais",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",14,0xffeeeeee);
         root.addView(status);
         LinearLayout controls = new LinearLayout(this);
@@ -43,14 +43,14 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         start144=button("144 Hz (solicitar)");
         stop=button("Parar");
         for(Button b:new Button[]{start60,start120,start144,stop}) {
-            controls.addView(b,new LinearLayout.LayoutParams(0,50,1));
+            controls.addView(b,new LinearLayout.LayoutParams(0,dp(48),1));
         }
-        root.addView(controls);
+        root.addView(controls,new LinearLayout.LayoutParams(-1,dp(52)));
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
         root.addView(text("O app apresenta frames reais e intermediários no seu próprio VkSwapchainKHR. "
-            +"Frequência solicitada e chamadas vkQueuePresentKHR não medem FPS fisicamente exibidos. "
+            +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
@@ -58,6 +58,13 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         start144.setOnClickListener(v->start(144));
         stop.setOnClickListener(v->nativeStop());
         toggle(true);
+    }
+    private int dp(int value) {
+        return Math.round(value*getResources().getDisplayMetrics().density);
+    }
+    private String displayHz() {
+        if(getDisplay()==null)return "indisponível";
+        return String.format(java.util.Locale.US,"%.2f",getDisplay().getRefreshRate());
     }
     private TextView text(String value,int sp,int color) {
         TextView t=new TextView(this);
@@ -85,7 +92,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     private void start(int hz) {
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
-        status.setText("Iniciando Vulkan e swapchain FIFO; frequência solicitada "+hz+" Hz...");
+        status.setText("Solicitado "+hz+" Hz | frequência atual da tela "+displayHz()+" Hz | iniciando...");
         final Surface surface=surfaceView.getHolder().getSurface();
         new Thread(()->{
             String result;
@@ -99,7 +106,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
             final String finalResult=result;
             running.set(false);
             runOnUiThread(()->{
-                status.setText(finalResult);
+                status.setText(finalResult+"\nTela Android informa "+displayHz()+" Hz.");
                 toggle(true);
             });
         },"pipa-vulkan-presenter").start();
