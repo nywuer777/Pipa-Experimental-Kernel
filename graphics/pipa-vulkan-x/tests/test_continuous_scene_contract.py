@@ -35,7 +35,7 @@ for token in (
     "animate120=button(", "animate144=button(",
     "start(120,true)", "start(144,true)",
     '"pipa_scene.comp.spv"',
-    "hz,240,continuous,holdInsteadOfFG", "framegen", "nativeStop()",
+    "result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,", "framegen", "nativeStop()",
 ):
     assert token in java, token
 for token in (
