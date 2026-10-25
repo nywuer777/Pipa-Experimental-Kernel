@@ -178,3 +178,8 @@ Recorte de `dmesg` mais recente mostra enumerações de mouse 2.4GHz USB ID 32c2
 Próxima leitura segura: listar `1-1`/`1-1.3`/`1-1.4` e `2-1`/`2-1.1`, status Type-C data_role e power_role, partner supports_usb_power_delivery, `/sys/class/power_supply/usb/{online,voltage_now,real_type}` e, se disponíveis, PD properties; capturar `dmesg | grep -Ei 'usb [12]-1|xhci|dwc3|over.current|error -71|r8152' | tail -n 80` sem alterar energia. Perguntar se o carregador está ligado à entrada PD do hub; não forçar desconexões e não fazer unbind, power cycling, USB reset ou patch r8152.
 
 STATUS: HUB_USB3=ACTIVE, USB2_HID_ENUMERATED_IN_LOGS=YES, REALTEK_ENUMERATED=NO, ETH0=ABSENT, USB_SUPPLY_REPORTED=8.589V, VOLTAGE_SOURCE=UNVERIFIED, CAUSE=UNDETERMINED, FLASH_READY=false.
+
+
+## EXP26 — Companion USB2 e USB3 com RTL8153 ausente
+
+Nova coleta Termux: USB2 hub 05e3:0610 em 1-1 a 480Mb/s, mouse 32c2:0066 em 1-1.3, teclado 36ae:fe9c em 1-1.4; USB3 hub 05e3:0625 em 2-1 a 5000Mb/s. RTL8153 em 2-1.1 AUSENTE. Type-C data role host, power role sink, partner USB-PD yes, fonte USB_PD, voltage_now=8613450 microvolts (8,61V na entrada reportada; nao no RTL8153). Perda seletiva de enumeracao de periferico SS, sem identificacao causal de driver ou conector. Evitar movimentacao de cabo e escrita USB/sysfs. FLASH_READY=false.
