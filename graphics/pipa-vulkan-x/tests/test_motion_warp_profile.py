@@ -24,7 +24,7 @@ for token in (
     "expect(motionRadius==3 || motionRadius==4",
     "jboolean alignWithDisplayMode,jint motionRadius",
     "alignWithDisplayMode==JNI_TRUE,int(motionRadius)",
-    "const bool synthesized=odd && !holdInsteadOfFG;",
+    "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
 ): assert token in cpp,token
 for token in (
     "if(queryPool!=VK_NULL_HANDLE)",
@@ -32,14 +32,14 @@ for token in (
     "vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,",
 ): assert token in engine,token
 for token in (
-    "private CheckBox syncDisplay, fastMotion, identity3d;",
+    "private CheckBox syncDisplay, fastMotion, identity3d, gpuBudgetGuard;",
     "fastMotion.setChecked(false);",
     "fastMotion.isChecked()?3:4;",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "copyReport.setOnClickListener(v->",
     "stressFg144.setOnClickListener(",
 ): assert token in java,token
-assert "versionCode 313" in gradle and "29.23-lab" in gradle
+assert "versionCode 314" in gradle and "29.24-lab" in gradle
 assert cpp.count('VkQueryPool gpuQueryPool=VK_NULL_HANDLE')==1
 assert "queryInfo.queryCount=2;" not in cpp
 print("EXP29_20_SPLIT_MOTION_WARP_RADIUS3_VS4=PASS; DEVICE_BENCHMARK_PENDING")
