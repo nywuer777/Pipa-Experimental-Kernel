@@ -1,0 +1,75 @@
+name: Pipa EXP29 - Native Vulkan X Frame Engine (NO FLASH)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "graphics/pipa-vulkan-x/**"
+      - ".github/workflows/exp29-pipa-vulkan-x-frame-engine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipa-exp29-frame-engine
+  cancel-in-progress: false
+
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile and run host C++17 tests with assertions active in Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S graphics/pipa-vulkan-x -B /tmp/pipa-exp29-host -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/pipa-exp29-host --parallel 2
+          ctest --test-dir /tmp/pipa-exp29-host --output-on-failure
+          /tmp/pipa-exp29-host/pipa_frame_engine_tests | tee exp29-test-results.txt
+          echo "EXP29_HOST_FRAME_ENGINE=PASS; GAME_CAP_BYPASS=NOT_IMPLEMENTED; FLASH_READY=false"
+
+      - name: Install Android SDK manager
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned NDK r27c
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "ndk;27.2.12479018"
+          test -s "$ANDROID_HOME/ndk/27.2.12479018/build/cmake/android.toolchain.cmake"
+
+      - name: Build Android arm64 native library without connecting a device
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S graphics/pipa-vulkan-x -B /tmp/pipa-exp29-android \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/27.2.12479018/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 \
+            -DPIPA_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/pipa-exp29-android --parallel 2
+          test -s /tmp/pipa-exp29-android/libpipa_frame_engine.so
+          file /tmp/pipa-exp29-android/libpipa_frame_engine.so | tee exp29-android-filetype.txt
+          grep -Eq 'ELF 64-bit LSB shared object, ARM aarch64' exp29-android-filetype.txt
+          sha256sum /tmp/pipa-exp29-android/libpipa_frame_engine.so | tee exp29-android-sha256.txt
+          mkdir -p exp29-android-output
+          cp /tmp/pipa-exp29-android/libpipa_frame_engine.so exp29-android-output/
+          echo "EXP29_ANDROID_ARM64_NATIVE_LIBRARY=BUILT_UNTESTED_ON_DEVICE"
+          echo "EXP29_SYSTEM_VULKAN_DRIVER=UNCHANGED; FLASH_READY=false"
+
+      - name: Package source and Android arm64 experimental library
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp29-vulkan-x-native-arm64-${{ github.run_number }}
+          path: |
+            graphics/pipa-vulkan-x/**
+            exp29-android-output/libpipa_frame_engine.so
+            exp29-test-results.txt
+            exp29-android-filetype.txt
+            exp29-android-sha256.txt
+          if-no-files-found: error
+          retention-days: 14
