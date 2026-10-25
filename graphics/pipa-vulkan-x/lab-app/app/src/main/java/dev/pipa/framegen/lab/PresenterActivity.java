@@ -59,7 +59,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("O controle HOLD apresenta o mesmo frame duas vezes sem executar interpolação, para isolar artefatos visuais da fonte. O modo 2x mantém FrameGen Vulkan; os testes A/B antigos permanecem. "
+        root.addView(text("O controle HOLD apresenta o mesmo frame duas vezes sem executar interpolação, para isolar artefatos visuais da fonte. O modo 2x mantém FrameGen Vulkan no próprio VkSwapchainKHR; os testes A/B antigos permanecem. "
             +"Chamadas vkQueuePresentKHR não provam FPS exibidos; quando a extensão for suportada, os tempos reais são relatados pelo driver. "
             +"FIFO, compositor e VSync controlam a apresentação. Nenhum driver/kernel é modificado.",12,0xff9b9ba7));
         setContentView(root);
