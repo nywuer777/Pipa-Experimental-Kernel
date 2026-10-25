@@ -333,6 +333,7 @@ struct Presenter {
         };
         return summary(realGpuMs,"GPU original+blit")+
                summary(generatedGpuMs,"GPU gerado+blit")+
+               summary(gpuPairMs,"GPU par real+FG")+
                summary(motionGpuMs,"GPU Motion")+
                summary(warpGpuMs,"GPU Warp+barreira")+
                " | Motion raio="+std::to_string(recordedMotionRadius)+
