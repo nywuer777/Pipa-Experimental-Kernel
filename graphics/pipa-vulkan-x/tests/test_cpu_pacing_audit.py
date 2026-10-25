@@ -44,7 +44,7 @@ for token in (
     "ClipboardManager clipboard=",
 ): assert token in ui,token
 assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
-assert "versionCode 310" in gradle and "29.20-lab" in gradle
+assert "versionCode 311" in gradle and "29.21-lab" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.
