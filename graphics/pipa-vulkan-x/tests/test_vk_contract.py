@@ -10,6 +10,7 @@ expected={
     "pipa_motion_parallel.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
     "pipa_motion_sparse.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
     "pipa_interpolate.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","readonly"),3:("rgba8","writeonly")},
+    "pipa_interpolate_adaptive.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","readonly"),3:("rgba8","writeonly")},
 }
 for name, bindings in expected.items():
     source=(root/"shaders"/name).read_text()
