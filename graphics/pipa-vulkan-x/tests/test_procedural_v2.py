@@ -30,8 +30,8 @@ for token in (
     '"pipa_scene_v2.comp.spv"',
     "FONTE=V2 tileable sem clamp",
 ): assert token in ui,token
-assert "versionCode 314" in gradle
-assert "versionName '29.24-lab'" in gradle
+assert "versionCode 315" in gradle
+assert "versionName '29.25-lab'" in gradle
 
 # The former shader emits the same source x=0 over an expanding prefix.
 # In V2 every x maps to an actual source column, with no duplicated,
