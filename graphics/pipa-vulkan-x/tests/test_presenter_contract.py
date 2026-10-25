@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.12 build-time presenter integration checks; device rendering NOT verified."""
+"""EXP29.13 build-time presenter integration checks; device rendering NOT verified."""
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 lab=root/"lab-app"
@@ -31,11 +31,11 @@ for token in (
 for token in ("SurfaceView","SurfaceHolder.Callback",
               "nativePresent(","nativeStop(","surfaceDestroyed(",
               "pipa_motion_sparse.comp.spv","pipa_interpolate_tiled.comp.spv",
-              "VkSwapchainKHR","não medem FPS fisicamente exibidos"):
+              "VkSwapchainKHR","não provam FPS exibidos"):
     assert token in java,token
 assert "new Intent(this,PresenterActivity.class)" in main
 assert 'android:name=".PresenterActivity"' in manifest
 assert "presenter.cpp" in cmake and "${ANDROID_LIBRARY}" in cmake
 assert "versionCode 303" in gradle and "29.13-lab" in gradle
 assert "input latency" not in java.lower()
-print("EXP29_12_SWAPCHAIN_PRESENTER_SOURCE_CONTRACT=PASS; DEVICE_VULKAN_PRESENT=UNTESTED")
+print("EXP29_13_SWAPCHAIN_PRESENTER_SOURCE_CONTRACT=PASS; DEVICE_VULKAN_PRESENT=UNTESTED")
