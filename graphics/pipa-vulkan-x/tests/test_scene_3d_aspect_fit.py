@@ -34,8 +34,8 @@ for token in (
     "copyReport.setOnClickListener(",
     "fastMotion.setChecked(false);",
 ): assert token in java,token
-assert "versionCode 315" in gradle
-assert "29.25-lab" in gradle
+assert "versionCode 316" in gradle
+assert "29.26-governor-overload" in gradle
 # Reference algebra for source 1280x720; FIT rect always fits and
 # keeps a source-equivalent aspect ratio to within pixel rounding.
 for w,h in ((1280,720),(2844,790),(2048,1280),(1920,1080),(790,2844),(512,512)):

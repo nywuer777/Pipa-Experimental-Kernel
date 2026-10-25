@@ -38,6 +38,6 @@ for tok in (
  "if(continuous && !odd)",
  "recordSourceScene(command,uint32_t(frame/2))",
 ): assert tok in native,tok
-assert "versionCode 315" in gradle
-assert "versionName '29.25-lab'" in gradle
+assert "versionCode 316" in gradle
+assert "versionName '29.26-governor-overload'" in gradle
 print("EXP29_16_FORENSIC_SHADERS_AND_PRESENT_ABI=PASS; DEVICE_VISUAL_DIAG=UNTESTED")
