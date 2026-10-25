@@ -17,7 +17,7 @@ for token in (
     "int localX=x%128;", "int localY=y%128;",
     "imageStore(realImage,p,vec4(clamp(rgb,0.0,1.0),1.0));",
 ): assert token in v2,token
-assert "max(0," not in v2
+assert "int x=max(0," not in v2  # check executable shader, not comments
 assert "grain=" not in v2
 assert "(x*y)%29" not in v2
 assert "max(0,xy.x-2*scene.frameIndex)" in old
