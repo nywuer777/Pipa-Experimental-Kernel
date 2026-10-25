@@ -205,6 +205,12 @@ struct Presenter {
     uint32_t gpuTimingReadFailures=0;
     uint32_t splitTimingFailures=0;
     int recordedMotionRadius=4;
+    // EXP29.24: optional, reversible GPU budget governor. Decisions are based
+    // on completed timestamp queries, never estimates or CPU wall time.
+    bool gpuBudgetRequested=false, gpuBudgetEnabled=false;
+    double gpuBudgetMs=0.0, lastGeneratedGpuMs=0.0;
+    uint32_t gpuBudgetOverruns=0, gpuBudgetHeld=0, gpuBudgetProbeFrames=0;
+    uint32_t gpuBudgetHoldCountdown=0;
     // CPU measurements are deliberately separated from GPU timestamps and
     // driver WSI presentation times. Each metric has a different clock path.
     std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
@@ -258,8 +264,18 @@ struct Presenter {
                 ticks&=((uint64_t(1)<<timestampValidBits)-1u);
             const double ms=double(ticks)*double(timestampPeriodNs)*1.e-6;
             if(ms>=0.0 && std::isfinite(ms) && ms<10000.0) {
-                if(pendingGpuRole==1)generatedGpuMs.push_back(ms);
-                else realGpuMs.push_back(ms);
+                if(pendingGpuRole==1) {
+                    generatedGpuMs.push_back(ms);
+                    if(gpuBudgetEnabled) {
+                        lastGeneratedGpuMs=ms;
+                        ++gpuBudgetProbeFrames;
+                        if(ms>gpuBudgetMs) {
+                            ++gpuBudgetOverruns;
+                            // Hold two upcoming odd slots, then probe again.
+                            gpuBudgetHoldCountdown=2u;
+                        }
+                    }
+                } else realGpuMs.push_back(ms);
             } else ++gpuTimingReadFailures;
         } else ++gpuTimingReadFailures;
         if(pendingGpuRole==1) {
@@ -752,7 +768,8 @@ struct Presenter {
         check(vkWaitForFences(device,1,&fence,VK_TRUE,10000000000ULL),"Wait upload fence");
     }
     int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,
-            bool alignWithDisplay,int motionRadius,bool fit3dAspect) {
+            bool alignWithDisplay,int motionRadius,bool fit3dAspect,
+            bool enableGpuBudget) {
         recordedMotionRadius=motionRadius;
         fitAspect=fit3dAspect;
         const double fitScale=std::min(double(extent.width)/double(kWidth),
@@ -772,6 +789,10 @@ struct Presenter {
            refreshPeriodNs>nominalNs*97u/100u &&
            refreshPeriodNs<nominalNs*103u/100u;
         selectedPacingPeriodNs=refreshAligned?refreshPeriodNs:nominalNs;
+        gpuBudgetRequested=enableGpuBudget;
+        gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&
+                          gpuQueryPool!=VK_NULL_HANDLE;
+        gpuBudgetMs=double(selectedPacingPeriodNs)*0.85e-6;
         const auto interval=std::chrono::nanoseconds(selectedPacingPeriodNs);
         for(int frame=0;frame<requested && !g_stop.load();++frame) {
             auto deadline=start+interval*frame;
@@ -819,7 +840,16 @@ struct Presenter {
             // unique input images per pair; baseline HOLD reuses A on odd slots
             // rather than synthesizing any frame.
             const bool odd=(frame%2)==1;
-            const bool synthesized=odd && !holdInsteadOfFG;
+            // Guard may replace *only* the intermediate synthetic frame with
+            // an intentional repetition of the last real frame. It never
+            // drops, shifts or rewrites the real source frame.
+            const bool budgetFallback=odd && gpuBudgetEnabled &&
+                                      gpuBudgetHoldCountdown>0;
+            if(budgetFallback) {
+                --gpuBudgetHoldCountdown;
+                ++gpuBudgetHeld;
+            }
+            const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;
             int source=continuous?0:((frame%4)==2?1:0);
             Texture& texSource=tex[synthesized?3:source];
             if(continuous && !odd)
@@ -954,7 +984,7 @@ struct Presenter {
             expect(pr==VK_SUCCESS || pr==VK_SUBOPTIMAL_KHR,"vkQueuePresentKHR failed");
             ++queued;
             if(gpuQueryPool)pendingGpuRole=synthesized?1:0;
-            if(odd && holdInsteadOfFG)++sceneHeldSubmitted;
+            if(odd && (holdInsteadOfFG || budgetFallback))++sceneHeldSubmitted;
             else if(synthesized)++sceneGeneratedSubmitted;
             else ++sceneRealSubmitted;
             if((frame%8)==7) collectTiming();
@@ -978,7 +1008,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
     jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius,
-    jboolean fit3dAspectMode,jboolean preferIdentity3dMode) {
+    jboolean fit3dAspectMode,jboolean preferIdentity3dMode,
+    jboolean gpuBudgetMode) {
     bool expected=false;
     if(!g_inUse.compare_exchange_strong(expected,true))
         return env->NewStringUTF("Uma sessão Vulkan já está ativa.");
@@ -1001,7 +1032,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         auto t1=std::chrono::steady_clock::now();
         int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
                          alignWithDisplayMode==JNI_TRUE,int(motionRadius),
-                         fit3dAspectMode==JNI_TRUE);
+                         fit3dAspectMode==JNI_TRUE,
+                         gpuBudgetMode==JNI_TRUE);
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -1016,6 +1048,12 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
               continuous?std::string("continua GPU 2x"):
                          std::string("A/B estatica"))+
           " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
+          " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
+          " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
+          " teto="+std::to_string(p.gpuBudgetMs)+"ms"+
+          " probes FG="+std::to_string(p.gpuBudgetProbeFrames)+
+          " acima teto="+std::to_string(p.gpuBudgetOverruns)+
+          " HOLD adaptativos="+std::to_string(p.gpuBudgetHeld)+
           " | preTransform="+std::to_string(uint32_t(p.chosenTransform))+
           " | currentTransform="+std::to_string(uint32_t(p.currentTransform))+
           " | supportedTransforms="+std::to_string(uint32_t(p.supportedTransforms))+
@@ -1032,7 +1070,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.23 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.24 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
