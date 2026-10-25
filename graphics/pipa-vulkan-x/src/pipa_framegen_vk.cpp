@@ -29,6 +29,7 @@ struct PipaFramegenVk {
     VkPipelineLayout layout=VK_NULL_HANDLE;
     VkPipeline motion=VK_NULL_HANDLE;
     VkPipeline interpolate=VK_NULL_HANDLE;
+    bool motionGroupPerTile=false;
 };
 
 extern "C" void pipa_framegen_vk_destroy(PipaFramegenVk* e) {
@@ -43,11 +44,13 @@ extern "C" void pipa_framegen_vk_destroy(PipaFramegenVk* e) {
     delete e;
 }
 
-extern "C" int pipa_framegen_vk_create(VkPhysicalDevice gpu,VkDevice device,
+extern "C" int pipa_framegen_vk_create_ex(VkPhysicalDevice gpu,VkDevice device,
     const uint32_t* motion_spv,size_t motion_bytes,
-    const uint32_t* interpolate_spv,size_t interpolate_bytes,PipaFramegenVk** out) {
+    const uint32_t* interpolate_spv,size_t interpolate_bytes,uint32_t flags,
+    PipaFramegenVk** out) {
     if (!out) return -1;
     *out=nullptr;
+    if (flags & ~PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE) return -1;
     if (!gpu || !device || !motion_spv || !interpolate_spv ||
         motion_bytes<20 || interpolate_bytes<20 ||
         (motion_bytes%4)!=0 || (interpolate_bytes%4)!=0 ||
@@ -58,6 +61,7 @@ extern "C" int pipa_framegen_vk_create(VkPhysicalDevice gpu,VkDevice device,
     auto* e=new(std::nothrow) PipaFramegenVk();
     if(!e) return -3;
     e->device=device;
+    e->motionGroupPerTile=(flags & PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE)!=0;
     VkDescriptorSetLayoutBinding bindings[4]{};
     for(uint32_t i=0;i<4;++i) {
         bindings[i].binding=i;
@@ -122,6 +126,13 @@ extern "C" int pipa_framegen_vk_create(VkPhysicalDevice gpu,VkDevice device,
     }
     *out=e; return 0;
 }
+extern "C" int pipa_framegen_vk_create(VkPhysicalDevice gpu,VkDevice device,
+    const uint32_t* motion_spv,size_t motion_bytes,
+    const uint32_t* interpolate_spv,size_t interpolate_bytes,
+    PipaFramegenVk** out) {
+    return pipa_framegen_vk_create_ex(gpu,device,motion_spv,motion_bytes,
+                                      interpolate_spv,interpolate_bytes,0,out);
+}
 
 extern "C" int pipa_framegen_vk_record_profiled(PipaFramegenVk* e,VkCommandBuffer cmd,
     const PipaFramegenVkImages* images,uint32_t width,uint32_t height,
@@ -157,7 +168,10 @@ extern "C" int pipa_framegen_vk_record_profiled(PipaFramegenVk* e,VkCommandBuffe
         vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,queryPool,firstQuery);
     vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,e->motion);
     const uint32_t tx=(width+15)/16,ty=(height+15)/16;
-    vkCmdDispatch(cmd,(tx+7)/8,(ty+7)/8,1);
+    if(e->motionGroupPerTile)
+        vkCmdDispatch(cmd,tx,ty,1);
+    else
+        vkCmdDispatch(cmd,(tx+7)/8,(ty+7)/8,1);
 
     if(queryPool!=VK_NULL_HANDLE)
         vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,queryPool,firstQuery+1u);
