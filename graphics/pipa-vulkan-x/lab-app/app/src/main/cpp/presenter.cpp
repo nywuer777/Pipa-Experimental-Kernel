@@ -205,12 +205,17 @@ struct Presenter {
     uint32_t gpuTimingReadFailures=0;
     uint32_t splitTimingFailures=0;
     int recordedMotionRadius=4;
-    // EXP29.24: optional, reversible GPU budget governor. Decisions are based
-    // on completed timestamp queries, never estimates or CPU wall time.
+    // EXP29.25: the FG cadence consists of TWO presentation periods.
+    // The prior single-slot 85% test dropped 480 of 720 interpolated frames
+    // despite zero CPU late periods. Aggregate a *completed* original+FG pair
+    // before making a conservative, three-strike decision. No single-frame
+    // interpolation budget threshold is inferred from a WSI monitor cycle.
     bool gpuBudgetRequested=false, gpuBudgetEnabled=false;
-    double gpuBudgetMs=0.0, lastGeneratedGpuMs=0.0;
+    double gpuBudgetMs=0.0, lastPairGpuMs=0.0;
     uint32_t gpuBudgetOverruns=0, gpuBudgetHeld=0, gpuBudgetProbeFrames=0;
-    uint32_t gpuBudgetHoldCountdown=0;
+    uint32_t gpuBudgetHoldCountdown=0, gpuBudgetOverrunStreak=0;
+    uint32_t gpuBudgetGovernorTrips=0, gpuBudgetMissingPairs=0;
+    std::vector<double> gpuPairMs;
     // CPU measurements are deliberately separated from GPU timestamps and
     // driver WSI presentation times. Each metric has a different clock path.
     std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
@@ -267,12 +272,27 @@ struct Presenter {
                 if(pendingGpuRole==1) {
                     generatedGpuMs.push_back(ms);
                     if(gpuBudgetEnabled) {
-                        lastGeneratedGpuMs=ms;
-                        ++gpuBudgetProbeFrames;
-                        if(ms>gpuBudgetMs) {
-                            ++gpuBudgetOverruns;
-                            // Hold two upcoming odd slots, then probe again.
-                            gpuBudgetHoldCountdown=2u;
+                        // When a pair's original timestamp is unavailable,
+                        // fail open instead of inventing a GPU budget violation.
+                        if(realGpuMs.empty()) {
+                            ++gpuBudgetMissingPairs;
+                            gpuBudgetOverrunStreak=0;
+                        } else {
+                            const double pairMs=realGpuMs.back()+ms;
+                            lastPairGpuMs=pairMs;
+                            gpuPairMs.push_back(pairMs);
+                            ++gpuBudgetProbeFrames;
+                            if(pairMs>gpuBudgetMs) {
+                                ++gpuBudgetOverruns;
+                                ++gpuBudgetOverrunStreak;
+                                if(gpuBudgetOverrunStreak>=3u) {
+                                    // One held synthetic slot per three
+                                    // consecutive overloaded completed pairs.
+                                    gpuBudgetHoldCountdown=1u;
+                                    ++gpuBudgetGovernorTrips;
+                                    gpuBudgetOverrunStreak=0u;
+                                }
+                            } else gpuBudgetOverrunStreak=0u;
                         }
                     }
                 } else realGpuMs.push_back(ms);
@@ -792,7 +812,9 @@ struct Presenter {
         gpuBudgetRequested=enableGpuBudget;
         gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&
                           gpuQueryPool!=VK_NULL_HANDLE;
-        gpuBudgetMs=double(selectedPacingPeriodNs)*0.85e-6;
+        // Two refresh periods contain one genuine frame plus one synthetic.
+        // Reserve 15% margin for other GPU work before shedding FG slots.
+        gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;
         const auto interval=std::chrono::nanoseconds(selectedPacingPeriodNs);
         for(int frame=0;frame<requested && !g_stop.load();++frame) {
             auto deadline=start+interval*frame;
@@ -1051,8 +1073,11 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
           " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
           " teto="+std::to_string(p.gpuBudgetMs)+"ms"+
-          " probes FG="+std::to_string(p.gpuBudgetProbeFrames)+
-          " acima teto="+std::to_string(p.gpuBudgetOverruns)+
+          " probes pares="+std::to_string(p.gpuBudgetProbeFrames)+
+          " acima teto par="+std::to_string(p.gpuBudgetOverruns)+
+          " trips 3x="+std::to_string(p.gpuBudgetGovernorTrips)+
+          " pares indisponiveis="+std::to_string(p.gpuBudgetMissingPairs)+
+          " ultimo par="+std::to_string(p.lastPairGpuMs)+"ms"+
           " HOLD adaptativos="+std::to_string(p.gpuBudgetHeld)+
           " | preTransform="+std::to_string(uint32_t(p.chosenTransform))+
           " | currentTransform="+std::to_string(uint32_t(p.currentTransform))+
