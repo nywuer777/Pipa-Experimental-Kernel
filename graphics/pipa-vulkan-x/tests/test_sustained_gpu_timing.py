@@ -29,7 +29,7 @@ for token in (
     "CPU vkQueuePresentKHR p95=",
     'frames<=2400,"Invalid frame count"',
     "NAO sao FPS fisicos exibidos",
-    "const bool synthesized=odd && !holdInsteadOfFG;",
+    "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
 ):
     assert token in cpp,token
 for token in (
