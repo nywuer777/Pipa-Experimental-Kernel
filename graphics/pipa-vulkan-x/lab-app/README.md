@@ -14,7 +14,7 @@ These are not physical presentation times and not 60-to-120 FPS claims. There is
 
 ## Build using GitHub Actions
 
-Open [Pipa EXP29.4 - FrameGen Vulkan Lab APK](../../../../actions/workflows/exp29.4-vulkan-lab-apk.yml) in the repository. Download artifact named `pipa-exp29-4-vulkan-lab-<run_number>` from a successful run. It includes `app-debug.apk`, shader SPIR-V blobs, the SHA-256 report and build logs.
+Open [Pipa EXP29.4 - FrameGen Vulkan Lab APK](../../../actions/workflows/exp29.4-vulkan-lab-apk.yml) in the repository. Download artifact named `pipa-exp29-4-vulkan-lab-<run_number>` from a successful run. It includes `app-debug.apk`, shader SPIR-V blobs, the SHA-256 report and build logs.
 
 The build pipeline pins:
 - Android Gradle Plugin 8.13.2, Gradle 8.13, API 35 compileSdk, targetSdk 34, minSdk 29.
