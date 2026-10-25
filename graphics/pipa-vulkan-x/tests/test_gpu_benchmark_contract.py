@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.9 source contract. Native/SPIR-V/on-device tests are separate."""
+"""EXP29.10 source contract. Native/SPIR-V/on-device tests are separate."""
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 lab = (root / "lab-app/app/src/main/cpp/lab.cpp").read_text()
@@ -49,7 +49,10 @@ for token in (
     "pipa_motion_parallel.comp.spv",
     "pipa_motion_sparse.comp.spv",
     "enableControls(false)",
-    "EXP29.9",
+    "EXP29.10",
+    "pipa_interpolate_adaptive.comp.spv",
+    "runTest(9,3,640,360,true)",
+    "runTest(9,3,1280,720,true)",
 ):
     assert token in java, token
 for token in (
@@ -63,6 +66,6 @@ for token in (
 assert "shared vec3 previousSample[16]" in sparse
 assert "const int STEP=4;" in sparse
 assert "if(lane<16u)" in sparse
-assert "versionCode 299" in gradle
-assert "versionName '29.9-lab'" in gradle
-print("EXP29_9_CORRECT_SPARSE_DISPATCH_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
+assert "versionCode 300" in gradle
+assert "versionName '29.10-lab'" in gradle
+print("EXP29_10_ADAPTIVE_WARP_CONTRACT=PASS; DEVICE_TIMING=UNTESTED")
