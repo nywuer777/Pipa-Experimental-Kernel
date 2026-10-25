@@ -213,3 +213,11 @@ Rodin dmesg: `r8152-cfgselector` de idVendor 0bda idProduct 8153 (bcdDevice 31.f
 Rodin `/sys/class/power_supply/usb/voltage_now=8337` com USB_PD, que NAO deve ser comparado numericamente aos `8613450` reportados pelo pipa sem verificar a unidade efetivamente implementada pelo vendor. Valor 8337 pode ser fornecido em mV por firmware/vendor divergente da ABI microvolts; nao afirmar 0,008V nem 8,337V categoricamente. Nenhum indica tensao downstream do Realtek.
 
 Proxima verificacao recomendada: analisar logs especificos do USB SuperSpeed com coleta somente leitura em ambos, sem induzir queda. Se for permitido e houver hardware externo, ensaio opcional de RTL8153 via adaptador/hub **USB2-only** conhecido bom no pipa em sessao segura, para comparar estabilidade ao caminho de 480 Mb/s, sem alterar kernel nem forcar conexoes fisicas. Evitar escrita sysfs/reset/flash. `FLASH_READY=false`.
+
+## EXP26.5 — Plano de leitura USB3 sem reset em rodin
+
+Partindo da coleta EXP26.4, verificar **somente leitura** no rodin a topologia dos caminhos `usb1`, `usb2`, `1-1`, `1-1.1`, `2-1`, `2-1.1` e atributos `speed`, `authorized`, `bConfigurationValue`, `power/runtime_status`; procurar logs de `usb 2-`, `xhci-mtk`, `r8152`, `SuperSpeed`, erros de enumeracao e resets. O objetivo e distinguir: (a) hub downstream realmente operando apenas em USB2; (b) tentativa de enumeracao no companion SuperSpeed com falha; (c) evento de energia/runtime PM. `usb2 speed=20000` descreve capacidade do root hub e NAO implica link SuperSpeed de periferico.
+
+Sem evidencias novas, o criterio seguro continua: nenhuma escrita em sysfs, reconfiguracao de PD, desmontagem, alteracao de firmware, reset USB, reinicio do pipa ou flash. Caso dispositivo padrao nao reporte logs SuperSpeed, isso nao prova inexistencia do evento — nao intensificar log via configuracao dinamica sem backup.
+
+Separar do teste com pipa: quando realizar em sessao futura, nao forcar a falha movendo cabos; comparar estabilidade e enumeracao sob uso normal. A causa fisica/eletrica segue indeterminada e patch de `r8152` permanece suspenso. `FLASH_READY=false`.
