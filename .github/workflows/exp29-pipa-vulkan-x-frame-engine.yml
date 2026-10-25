@@ -22,6 +22,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Compile and validate EXP29.3 Vulkan 1.1 compute shaders
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y glslang-tools spirv-tools
+          mkdir -p exp29-shaders
+          for f in graphics/pipa-vulkan-x/shaders/*.comp; do
+            out="exp29-shaders/$(basename "$f").spv"
+            glslangValidator -V --target-env vulkan1.1 -S comp "$f" -o "$out"
+            spirv-val --target-env vulkan1.1 "$out"
+          done
+          python3 graphics/pipa-vulkan-x/tests/test_vk_contract.py
+          sha256sum exp29-shaders/*.spv | tee exp29-shader-sha256.txt
+          echo "EXP29_3_SHADER_SPIRV_VALIDATION=PASS"
+
       - name: Compile and run host C++17 tests with assertions active in Release
         shell: bash
         run: |
@@ -52,14 +68,19 @@ jobs:
           cmake -S graphics/pipa-vulkan-x -B /tmp/pipa-exp29-android \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/27.2.12479018/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-29 \
-            -DPIPA_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release
+            -DPIPA_BUILD_TESTS=OFF -DPIPA_ENABLE_VULKAN=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build /tmp/pipa-exp29-android --parallel 2
           test -s /tmp/pipa-exp29-android/libpipa_frame_engine.so
+          test -s /tmp/pipa-exp29-android/libpipa_framegen_vk.so
           file /tmp/pipa-exp29-android/libpipa_frame_engine.so | tee exp29-android-filetype.txt
           grep -Eq 'ELF 64-bit LSB shared object, ARM aarch64' exp29-android-filetype.txt
           sha256sum /tmp/pipa-exp29-android/libpipa_frame_engine.so | tee exp29-android-sha256.txt
           mkdir -p exp29-android-output
           cp /tmp/pipa-exp29-android/libpipa_frame_engine.so exp29-android-output/
+          cp /tmp/pipa-exp29-android/libpipa_framegen_vk.so exp29-android-output/
+          file /tmp/pipa-exp29-android/libpipa_framegen_vk.so | tee exp29-vk-android-filetype.txt
+          grep -Eq 'ELF 64-bit LSB shared object, ARM aarch64' exp29-vk-android-filetype.txt
+          sha256sum /tmp/pipa-exp29-android/libpipa_framegen_vk.so | tee exp29-vk-android-sha256.txt
           echo "EXP29_ANDROID_ARM64_NATIVE_LIBRARY=BUILT_UNTESTED_ON_DEVICE"
           echo "EXP29_SYSTEM_VULKAN_DRIVER=UNCHANGED; FLASH_READY=false"
 
@@ -70,6 +91,11 @@ jobs:
           path: |
             graphics/pipa-vulkan-x/**
             exp29-android-output/libpipa_frame_engine.so
+            exp29-android-output/libpipa_framegen_vk.so
+            exp29-shaders/*.spv
+            exp29-shader-sha256.txt
+            exp29-vk-android-filetype.txt
+            exp29-vk-android-sha256.txt
             exp29-test-results.txt
             exp29-android-filetype.txt
             exp29-android-sha256.txt
