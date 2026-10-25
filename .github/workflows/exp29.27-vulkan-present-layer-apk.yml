@@ -1,24 +1,24 @@
-name: Pipa EXP29.27 - Explicit Vulkan Present Trace APK (NO FLASH)
-# This job builds the app-scoped layer, verifies its APK artifact, and runs the EXP29.27 contract.
+name: Pipa EXP29.28 - Explicit Vulkan Present Trace APK (NO FLASH)
+# This job builds the app-scoped layer, verifies its APK artifact, and runs the EXP29.28 contract.
 
 on:
   push:
-    branches: [exp29.27-vulkan-present-layer]
+    branches: [exp29.28-vulkan-present-layer]
     paths:
       - "graphics/pipa-vulkan-x/**"
-      - ".github/workflows/exp29.27-vulkan-present-layer-apk.yml"
+      - ".github/workflows/exp29.28-vulkan-present-layer-apk.yml"
   pull_request:
     branches: [main]
     paths:
       - "graphics/pipa-vulkan-x/**"
-      - ".github/workflows/exp29.27-vulkan-present-layer-apk.yml"
+      - ".github/workflows/exp29.28-vulkan-present-layer-apk.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: pipa-exp29-27-${{ github.ref }}
+  group: pipa-exp29-28-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -40,7 +40,7 @@ jobs:
             spirv-val --target-env vulkan1.1 "$output"
           done
           python3 graphics/pipa-vulkan-x/tests/test_vulkan_layer_contract.py
-          sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.27-shader-sha256.txt
+          sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.28-shader-sha256.txt
 
       - name: Android SDK setup
         uses: android-actions/setup-android@v3
@@ -66,19 +66,19 @@ jobs:
       - name: Assemble and verify lab APK
         run: |
           set -euo pipefail
-          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app :app:assembleDebug 2>&1 | tee exp29.27-gradle-build.log
+          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app :app:assembleDebug 2>&1 | tee exp29.28-gradle-build.log
           APK="graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          sha256sum "$APK" | tee exp29.27-apk-sha256.txt
-          echo "EXP29_27_EXPLICIT_LAYER_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.27-status.txt
-          echo "NO_KERNEL_FLASH=true" | tee -a exp29.27-status.txt
+          sha256sum "$APK" | tee exp29.28-apk-sha256.txt
+          echo "EXP29_27_SUBOPTIMAL_WSI_PROBE_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.28-status.txt
+          echo "NO_KERNEL_FLASH=true" | tee -a exp29.28-status.txt
 
       - name: Publish APK and build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pipa-exp29-27-vulkan-present-layer-${{ github.run_number }}
+          name: pipa-exp29-28-vulkan-present-layer-${{ github.run_number }}
           path: |
             graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk
             graphics/pipa-vulkan-x/lab-app/gradlew
@@ -86,9 +86,9 @@ jobs:
             graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.jar
             graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.properties
             graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*
-            exp29.27-shader-sha256.txt
-            exp29.27-apk-sha256.txt
-            exp29.27-gradle-build.log
-            exp29.27-status.txt
+            exp29.28-shader-sha256.txt
+            exp29.28-apk-sha256.txt
+            exp29.28-gradle-build.log
+            exp29.28-status.txt
           if-no-files-found: warn
           retention-days: 14
