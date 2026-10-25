@@ -93,7 +93,7 @@ struct Presenter {
     VkPipeline scenePipeline=VK_NULL_HANDLE;
     VkDescriptorPool sceneDescriptorPool=VK_NULL_HANDLE;
     VkDescriptorSet sceneDescriptors[2]={VK_NULL_HANDLE,VK_NULL_HANDLE};
-    uint32_t sceneRealSubmitted=0,sceneGeneratedSubmitted=0,deadlineMisses=0;
+    uint32_t sceneRealSubmitted=0,sceneGeneratedSubmitted=0,sceneHeldSubmitted=0,deadlineMisses=0;
     void createScenePipeline(const std::vector<uint32_t>& spv) {
         VkDescriptorSetLayoutBinding binding{};
         binding.binding=0;binding.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -578,7 +578,7 @@ struct Presenter {
         check(vkQueueSubmit(queue,1,&submit,fence),"Submit upload");
         check(vkWaitForFences(device,1,&fence,VK_TRUE,10000000000ULL),"Wait upload fence");
     }
-    int run(int targetHz,int requested,bool continuous) {
+    int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG) {
         const PipaFramegenVkImages images={
           tex[0].view,tex[1].view,tex[2].view,tex[3].view,tex[2].image
         };
@@ -604,12 +604,14 @@ struct Presenter {
             begin.sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             begin.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             check(vkBeginCommandBuffer(command,&begin),"Begin frame");
-            // Continuous: real[t], interpolated[t+0.5], real[t+1], ...
-            // The legacy A/B oscillation is retained in noncontinuous mode.
-            bool synthesized=(frame%2)==1;
+            // A/B legacy remains unchanged. Continuous modes regenerate two
+            // unique input images per pair; baseline HOLD reuses A on odd slots
+            // rather than synthesizing any frame.
+            const bool odd=(frame%2)==1;
+            const bool synthesized=odd && !holdInsteadOfFG;
             int source=continuous?0:((frame%4)==2?1:0);
             Texture& texSource=tex[synthesized?3:source];
-            if(continuous && !synthesized)
+            if(continuous && !odd)
                 recordSourceScene(command,uint32_t(frame/2));
             if(synthesized) {
                 // Reusing motionField between generated frames requires a read-to-
@@ -706,7 +708,8 @@ struct Presenter {
             if(pr==VK_ERROR_OUT_OF_DATE_KHR)break;
             expect(pr==VK_SUCCESS || pr==VK_SUBOPTIMAL_KHR,"vkQueuePresentKHR failed");
             ++queued;
-            if(synthesized)++sceneGeneratedSubmitted;
+            if(odd && holdInsteadOfFG)++sceneHeldSubmitted;
+            else if(synthesized)++sceneGeneratedSubmitted;
             else ++sceneRealSubmitted;
             if((frame%8)==7) collectTiming();
         }
@@ -726,7 +729,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativeStop(JNIEnv*,jobject) {
 extern "C" JNIEXPORT jstring JNICALL
 Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
-    jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode) {
+    jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
+    jboolean holdInsteadOfFGMode) {
     bool expected=false;
     if(!g_inUse.compare_exchange_strong(expected,true))
         return env->NewStringUTF("Uma sessão Vulkan já está ativa.");
@@ -738,13 +742,14 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         auto motion=shaderBytes(env,motionShader);
         auto warp=shaderBytes(env,warpShader);
         const bool continuous=continuousMode==JNI_TRUE;
+        const bool holdInsteadOfFG=continuous && holdInsteadOfFGMode==JNI_TRUE;
         std::vector<uint32_t> scene;
         if(continuous) scene=shaderBytes(env,sceneShader);
         Presenter p;
         auto t0=std::chrono::steady_clock::now();
         p.init(env,surface,motion,warp,scene,continuous);
         auto t1=std::chrono::steady_clock::now();
-        int queued=p.run(targetHz,frames,continuous);
+        int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG);
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -753,8 +758,11 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           std::to_string(p.extent.width)+"x"+std::to_string(p.extent.height)+
           " | Aceitos por vkQueuePresentKHR: "+std::to_string(queued)+
           " (real="+std::to_string(p.sceneRealSubmitted)+
-          ", interpolado="+std::to_string(p.sceneGeneratedSubmitted)+")"+
-          " | cena="+(continuous?std::string("continua GPU 2x"):std::string("A/B estatica"))+
+          ", interpolado="+std::to_string(p.sceneGeneratedSubmitted)+
+          ", repetido="+std::to_string(p.sceneHeldSubmitted)+")"+
+          " | cena="+(holdInsteadOfFG?std::string("continua GPU HOLD sem FG"):
+              continuous?std::string("continua GPU 2x"):
+                         std::string("A/B estatica"))+
           " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
@@ -762,7 +770,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.14 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.15 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
