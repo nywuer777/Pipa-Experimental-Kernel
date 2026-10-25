@@ -181,6 +181,7 @@ struct Presenter {
     VkPhysicalDeviceMemoryProperties memory{};
     std::string gpuName;
     bool useBlit=true;
+    VkSurfaceTransformFlagBitsKHR chosenTransform=VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     bool displayTimingEnabled=false;
     PFN_vkGetPastPresentationTimingGOOGLE getPastTiming=nullptr;
     PFN_vkGetRefreshCycleDurationGOOGLE getRefreshDuration=nullptr;
@@ -452,6 +453,7 @@ struct Presenter {
         sci.imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         sci.imageSharingMode=VK_SHARING_MODE_EXCLUSIVE;
         sci.preTransform=caps.currentTransform;
+        chosenTransform=sci.preTransform;
         sci.compositeAlpha=(caps.supportedCompositeAlpha&VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) ?
             VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR : VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
         if(!(caps.supportedCompositeAlpha&sci.compositeAlpha)) {
@@ -764,13 +766,16 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
               continuous?std::string("continua GPU 2x"):
                          std::string("A/B estatica"))+
           " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
+          " | preTransform="+std::to_string(uint32_t(p.chosenTransform))+
+          " | blit="+std::to_string(p.useBlit?1:0)+
+          " | swapFormat="+std::to_string(int(p.swapFormat))+
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms"+
           p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.15 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.16 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
