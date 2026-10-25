@@ -1,6 +1,10 @@
 name: Pipa EXP27 - r8152 v1.10.11 isolated compatibility build (NO FLASH)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exp27-r8152-compat-build.yml"
   workflow_dispatch:
 
 permissions:
