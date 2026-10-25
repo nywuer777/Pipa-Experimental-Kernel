@@ -78,3 +78,38 @@ O operador executou `py -3 "C:\platform-tools\exp27-5-recovery-inventory.py"` us
 **Escopo da evidência:** baseado em logs gerados no computador do usuário e compartilhados nesta conversa, não em acesso direto deste auditor aos arquivos locais. Isso encerra as verificações de **integridade offline**, não os gates de recuperação física, estabilidade USB/PD, touchscreen, prova de inicialização EXP27 nem teste funcional do driver RTL8153.
 
 **Status atualizado:** `EXP27_5_REAL_WINDOWS_INDEPENDENT_AUDIT=PASS`; `EXP27_5_ANDROID_READONLY=NOT_REQUESTED`; `PHYSICAL_RECOVERY=PENDING`; `EXP27_RUNTIME_BOOT=NOT_TESTED`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`.
+
+
+## Observação ADB real no Windows — EXP25A confirmada
+
+Evidência fornecida pelo operador, PowerShell no Windows com ADB conectado via USB `6665d3e6` (lista `adb devices -l`: apenas uma entrada `device product:pipa model:23043RP34G device:pipa transport_id:1`). O ADB daemon no Windows foi iniciado normalmente; isso, por si só, não representa reinicialização do tablet.
+
+Após concluir com sucesso a auditoria offline independente, o operador executou:
+
+```powershell
+py -3 "C:\platform-tools\exp27-5-recovery-inventory.py" --observe-android --serial 6665d3e6
+```
+
+Saída documentada:
+
+```text
+EXP27.5_OFFLINE_INDEPENDENT_CHECK=PASS
+BOOT_V3_HEADERS_AND_RAMDISK=PASS
+CANDIDATE_IMAGE_CI_BYTE_MATCH=PASS
+EXP27.4_CANDIDATE_SHA256=df9eb41441770035849e95a6e54ccc110357d5c171a06758cc2df60a192a01d7
+EXP27.5_ANDROID_READONLY=PASS
+ADB_TRANSPORT=USB
+PRODUCT=pipa
+SLOT=_b
+BOOT_COMPLETED=1
+KERNEL_IDENTITY=EXP25A_RECOGNIZED
+BOOT_ID_SHORT_DIGEST=1346989d2e904e1b
+TOUCHSCREEN_FUNCTIONAL=NOT_TESTED
+USB_PD_STABLE=NOT_TESTED
+PHYSICAL_RECOVERY=PENDING
+TEMP_BOOT_AUTHORIZED=false; FLASH_READY=false
+```
+
+**Interpretação:** identidade de kernel classificada como EXP25A com base no fingerprint de `/proc/version` implementado na ferramenta; isso NÃO implica que EXP27.1/EXP27.4 tenha sido executada em Android. Conexão USB ADB e boot Android funcional observados naquele instante, mas isso não comprova touchscreen funcional, sobrevivência a suspensão, USB-PD estável, funcionamento Ethernet, controle alternativo nem recuperação pós-falha de boot. Não alterar hub/PD, não usar `fastboot boot`, reboot ou flash.
+
+**Estado:** `EXP27_5_OFFLINE=PASS`; `EXP27_5_ANDROID_READONLY=PASS`; `RUNTIME_IDENTIFIED=EXP25A`; `PHYSICAL_RECOVERY=PENDING`; `EXP27_RUNTIME_TEST=NOT_RUN`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`.
