@@ -29,7 +29,8 @@ public final class MainActivity extends Activity {
     private Button run, benchmark, fastButton, largeButton, parallelSmall, parallelLarge;
     private Button sparseLarge, parallel720, sparse720;
     private Button adaptive360, adaptive720;
-    private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions, int motionVariant);
+    private Button sparse32Adaptive720, tiled360, tiled720, sparse32Tiled720;
+    private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions, int motionVariant, boolean tiledWarp);
     private native String nativeReport();
 
     @Override public void onCreate(Bundle state) {
@@ -43,7 +44,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.10", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.11", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -96,6 +97,20 @@ public final class MainActivity extends Activity {
         adaptive720.setAllCaps(false);
         adaptive720.setText("SPARSE+ADAPTIVE 1280×720 (8)");
         controlRow(base,adaptive360,adaptive720);
+        sparse32Adaptive720=new Button(this);
+        sparse32Adaptive720.setAllCaps(false);
+        sparse32Adaptive720.setText("SPARSE32+ADAPTIVE 720p");
+        tiled360=new Button(this);
+        tiled360.setAllCaps(false);
+        tiled360.setText("SPARSE+TILED 360p");
+        tiled720=new Button(this);
+        tiled720.setAllCaps(false);
+        tiled720.setText("SPARSE+TILED 720p");
+        sparse32Tiled720=new Button(this);
+        sparse32Tiled720.setAllCaps(false);
+        sparse32Tiled720.setText("SPARSE32+TILED 720p");
+        controlRow(base,sparse32Adaptive720,tiled360);
+        controlRow(base,tiled720,sparse32Tiled720);
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
@@ -112,7 +127,7 @@ public final class MainActivity extends Activity {
         result.setScaleType(ImageView.ScaleType.FIT_CENTER);
         result.setBackgroundColor(0xff242428);
         generated.addView(result,new LinearLayout.LayoutParams(-1,dp(160)));
-        base.addView(label("GPU timestamps: Motion, Warp, Total. SPARSE com Warp original versus ADAPTIVE; demais algoritmos mantidos. Benchmarks offscreen e sintéticos, não FPS apresentados.",12,0xff9999a5));
+        base.addView(label("GPU: Motion / Warp / Total. EXP29.11 testa SPARSE32 e TILED contra SPARSE+ADAPTIVE. Offscreen, sem FPS físicos; qualidade sintética não representa jogos.",12,0xff9999a5));
         run.setOnClickListener(v->runTest(1,0,256,128));
         benchmark.setOnClickListener(v->runTest(33,0,256,128));
         fastButton.setOnClickListener(v->runTest(33,1,256,128));
@@ -124,6 +139,10 @@ public final class MainActivity extends Activity {
         sparse720.setOnClickListener(v->runTest(9,3,1280,720));
         adaptive360.setOnClickListener(v->runTest(9,3,640,360,true));
         adaptive720.setOnClickListener(v->runTest(9,3,1280,720,true));
+        sparse32Adaptive720.setOnClickListener(v->runTest(9,4,1280,720,true,false));
+        tiled360.setOnClickListener(v->runTest(9,3,640,360,true,true));
+        tiled720.setOnClickListener(v->runTest(9,3,1280,720,true,true));
+        sparse32Tiled720.setOnClickListener(v->runTest(9,4,1280,720,true,true));
         setContentView(outer);
     }
 
@@ -219,6 +238,8 @@ public final class MainActivity extends Activity {
         sparseLarge.setEnabled(enabled); parallel720.setEnabled(enabled);
         sparse720.setEnabled(enabled);
         adaptive360.setEnabled(enabled); adaptive720.setEnabled(enabled);
+        sparse32Adaptive720.setEnabled(enabled); tiled360.setEnabled(enabled);
+        tiled720.setEnabled(enabled); sparse32Tiled720.setEnabled(enabled);
     }
 
     private void runTest(int repetitions,int motionVariant,int width,int height) {
@@ -226,24 +247,29 @@ public final class MainActivity extends Activity {
     }
     private void runTest(int repetitions,int motionVariant,int width,int height,
                          boolean adaptiveWarp) {
+        runTest(repetitions,motionVariant,width,height,adaptiveWarp,false);
+    }
+    private void runTest(int repetitions,int motionVariant,int width,int height,
+                         boolean adaptiveWarp,boolean tiledWarp) {
         enableControls(false);
-        final String label=(motionVariant==3?"SPARSE":motionVariant==2?"PARALLEL":motionVariant==1?"FAST":"LEGACY")+
-            (adaptiveWarp?"+ADAPTIVE":"")+" "+width+"×"+height;
+        final String label=(motionVariant==4?"SPARSE32":motionVariant==3?"SPARSE":motionVariant==2?"PARALLEL":motionVariant==1?"FAST":"LEGACY")+
+            (tiledWarp?"+TILED":adaptiveWarp?"+ADAPTIVE":"")+" "+width+"×"+height;
         status.setText("GPU: preparando "+label+" ("+repetitions+" passagens)...");
         new Thread(()->{
             try {
-                byte[] motion=shader(motionVariant==3?"pipa_motion_sparse.comp.spv":
+                byte[] motion=shader(motionVariant==4?"pipa_motion_sparse32.comp.spv":
+                    motionVariant==3?"pipa_motion_sparse.comp.spv":
                     motionVariant==2?"pipa_motion_parallel.comp.spv":
                     motionVariant==1?"pipa_motion_fast.comp.spv":"pipa_motion.comp.spv");
-                byte[] interp=shader(adaptiveWarp ?
-                    "pipa_interpolate_adaptive.comp.spv":"pipa_interpolate.comp.spv");
+                byte[] interp=shader(tiledWarp?"pipa_interpolate_tiled.comp.spv":
+                    adaptiveWarp?"pipa_interpolate_adaptive.comp.spv":"pipa_interpolate.comp.spv");
                 int[] previous=width==W && height==H ?
                     PREVIOUS : buildFrame(0,width,height);
                 int[] current=width==W && height==H ?
                     CURRENT : buildFrame(2,width,height);
                 long start=SystemClock.elapsedRealtimeNanos();
                 int[] pixels=nativeGenerate(previous,current,width,height,
-                                            motion,interp,repetitions,motionVariant);
+                                            motion,interp,repetitions,motionVariant,tiledWarp);
                 double totalMs=(SystemClock.elapsedRealtimeNanos()-start)/1000000.0;
                 String report=nativeReport();
                 final String quality=pixels!=null && pixels.length==width*height ?
