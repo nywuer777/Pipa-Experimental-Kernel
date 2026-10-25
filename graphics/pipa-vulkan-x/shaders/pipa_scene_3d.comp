@@ -1,0 +1,92 @@
+#version 450
+// EXP29.21: analytic 3D scene renderer. Ray/plane and ray/sphere depth tests;
+// moving perspective camera and occluding objects, not a rasterized game.
+// Same SPIR-V descriptor/push ABI as pipa_scene_v2.comp for source replay.
+layout(local_size_x=16,local_size_y=16,local_size_z=1) in;
+layout(set=0,binding=0,rgba8) uniform writeonly image2D realImage;
+layout(push_constant) uniform SceneParams {
+    ivec2 dimensions;
+    int frameIndex;
+    int reserved;
+} scene;
+const float farT=140.0;
+const vec3 sun=vec3(-0.44,0.82,-0.35);
+
+float sphereHit(vec3 ro,vec3 rd,vec3 center,float radius) {
+    vec3 q=ro-center;
+    float b=dot(q,rd);
+    float c=dot(q,q)-radius*radius;
+    float d=b*b-c;
+    if(d<0.0) return farT;
+    float root=sqrt(d);
+    float t=-b-root;
+    return t>0.02?t:(-b+root>0.02?-b+root:farT);
+}
+
+void main() {
+    ivec2 pix=ivec2(gl_GlobalInvocationID.xy);
+    if(any(greaterThanEqual(pix,scene.dimensions)))return;
+    vec2 resolution=vec2(scene.dimensions);
+    vec2 uv=((vec2(pix)+vec2(0.5))/resolution)*2.0-1.0;
+    uv.x*=resolution.x/resolution.y;
+
+    float time=float(scene.frameIndex)*0.025;
+    // Independent camera translation + look direction create genuine parallax
+    // in perspective, not a shifted 2D image.
+    vec3 camera=vec3(0.30*sin(time*0.35),1.18,-4.8+0.18*sin(time*0.31));
+    vec3 focus=vec3(0.0,0.42,3.2);
+    vec3 forward=normalize(focus-camera);
+    vec3 right=normalize(cross(forward,vec3(0.0,1.0,0.0)));
+    vec3 up=cross(right,forward);
+    vec3 ray=normalize(forward*1.25 + uv.x*right + uv.y*up);
+
+    vec3 color=mix(vec3(0.025,0.058,0.095),vec3(0.15,0.25,0.34),
+                   clamp(0.5+uv.y*0.48,0.0,1.0));
+    float nearest=farT;
+
+    // Ground plane at y=-0.8: convergent world-space perspective grid.
+    if(ray.y < -0.0001) {
+        float plane=(-0.8-camera.y)/ray.y;
+        if(plane>0.0 && plane<farT) {
+            nearest=plane;
+            vec3 ground=camera+ray*plane;
+            vec2 cell=abs(fract(ground.xz/0.7+0.5)-0.5);
+            float edge=min(cell.x,cell.y);
+            float grid=1.0-smoothstep(0.015,0.035,edge);
+            float fade=1.0/(1.0+0.018*plane*plane);
+            color=mix(vec3(0.12,0.16,0.21),
+                      vec3(0.17,0.37,0.49),grid*fade);
+        }
+    }
+
+    // Three physically distinct depths, moving in opposite directions.
+    vec3 c0=vec3(-0.98+0.28*sin(time*0.65),0.05,2.25);
+    vec3 c1=vec3(0.55+0.42*sin(time*0.55+0.7),0.11,3.85);
+    vec3 c2=vec3(0.10-0.34*sin(time*0.42+1.3),0.57,5.70);
+    float t0=sphereHit(camera,ray,c0,0.84);
+    float t1=sphereHit(camera,ray,c1,1.02);
+    float t2=sphereHit(camera,ray,c2,1.16);
+    float chosen=min(t0,min(t1,t2));
+    if(chosen<nearest) {
+        vec3 center=t0<=t1 && t0<=t2?c0:(t1<=t2?c1:c2);
+        vec3 base=t0<=t1 && t0<=t2?vec3(0.05,0.84,0.86):
+                  (t1<=t2?vec3(0.95,0.33,0.45):vec3(0.94,0.78,0.15));
+        vec3 world=camera+chosen*ray;
+        vec3 normal=normalize(world-center);
+        float lambert=max(0.0,dot(normal,normalize(sun)));
+        float diffuse=0.24+lambert*0.68;
+        float rim=pow(clamp(1.0+dot(normal,ray),0.0,1.0),2.0);
+        color=base*diffuse+vec3(0.14,0.20,0.25)*rim;
+        // High-contrast latitudinal markings expose warp ghosting and
+        // foreground/background disocclusion during camera translation.
+        if(abs(normal.y)<0.085)color=mix(color,vec3(0.98),0.23);
+    }
+    // HUD reference is purposely in image coordinates: it should remain
+    // stable while the 3D world moves and is a deliberate FG stressor.
+    vec2 coords=vec2(pix)/resolution;
+    if(abs(coords.x-0.5)<0.0012 && abs(coords.y-0.5)<0.018)
+        color=mix(color,vec3(1.0),0.75);
+    if(abs(coords.y-0.5)<0.0018 && abs(coords.x-0.5)<0.009)
+        color=mix(color,vec3(1.0),0.75);
+    imageStore(realImage,pix,vec4(clamp(color,0.0,1.0),1.0));
+}
