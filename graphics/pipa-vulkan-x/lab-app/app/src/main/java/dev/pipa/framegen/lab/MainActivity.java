@@ -28,6 +28,7 @@ public final class MainActivity extends Activity {
     private ImageView result;
     private Button run, benchmark, fastButton, largeButton, parallelSmall, parallelLarge;
     private Button sparseLarge, parallel720, sparse720;
+    private Button adaptive360, adaptive720;
     private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions, int motionVariant);
     private native String nativeReport();
 
@@ -42,7 +43,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.9", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.10", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -88,6 +89,13 @@ public final class MainActivity extends Activity {
         controlRow(base,fastButton,parallelSmall);
         controlRow(base,largeButton,parallelLarge,sparseLarge);
         controlRow(base,parallel720,sparse720);
+        adaptive360=new Button(this);
+        adaptive360.setAllCaps(false);
+        adaptive360.setText("SPARSE+ADAPTIVE 640×360 (8)");
+        adaptive720=new Button(this);
+        adaptive720.setAllCaps(false);
+        adaptive720.setText("SPARSE+ADAPTIVE 1280×720 (8)");
+        controlRow(base,adaptive360,adaptive720);
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
@@ -104,7 +112,7 @@ public final class MainActivity extends Activity {
         result.setScaleType(ImageView.ScaleType.FIT_CENTER);
         result.setBackgroundColor(0xff242428);
         generated.addView(result,new LinearLayout.LayoutParams(-1,dp(160)));
-        base.addView(label("GPU: timestamps de Motion, Warp e Total. PARALLEL (amostragem de 2px) versus SPARSE (4px). Testes offscreen: não são FPS exibidos. A/B mostram apenas a referência 256×128.",12,0xff9999a5));
+        base.addView(label("GPU timestamps: Motion, Warp, Total. SPARSE com Warp original versus ADAPTIVE; demais algoritmos mantidos. Benchmarks offscreen e sintéticos, não FPS apresentados.",12,0xff9999a5));
         run.setOnClickListener(v->runTest(1,0,256,128));
         benchmark.setOnClickListener(v->runTest(33,0,256,128));
         fastButton.setOnClickListener(v->runTest(33,1,256,128));
@@ -114,6 +122,8 @@ public final class MainActivity extends Activity {
         sparseLarge.setOnClickListener(v->runTest(9,3,640,360));
         parallel720.setOnClickListener(v->runTest(9,2,1280,720));
         sparse720.setOnClickListener(v->runTest(9,3,1280,720));
+        adaptive360.setOnClickListener(v->runTest(9,3,640,360,true));
+        adaptive720.setOnClickListener(v->runTest(9,3,1280,720,true));
         setContentView(outer);
     }
 
@@ -208,19 +218,25 @@ public final class MainActivity extends Activity {
         parallelSmall.setEnabled(enabled); parallelLarge.setEnabled(enabled);
         sparseLarge.setEnabled(enabled); parallel720.setEnabled(enabled);
         sparse720.setEnabled(enabled);
+        adaptive360.setEnabled(enabled); adaptive720.setEnabled(enabled);
     }
 
     private void runTest(int repetitions,int motionVariant,int width,int height) {
+        runTest(repetitions,motionVariant,width,height,false);
+    }
+    private void runTest(int repetitions,int motionVariant,int width,int height,
+                         boolean adaptiveWarp) {
         enableControls(false);
         final String label=(motionVariant==3?"SPARSE":motionVariant==2?"PARALLEL":motionVariant==1?"FAST":"LEGACY")+
-            " "+width+"×"+height;
+            (adaptiveWarp?"+ADAPTIVE":"")+" "+width+"×"+height;
         status.setText("GPU: preparando "+label+" ("+repetitions+" passagens)...");
         new Thread(()->{
             try {
                 byte[] motion=shader(motionVariant==3?"pipa_motion_sparse.comp.spv":
                     motionVariant==2?"pipa_motion_parallel.comp.spv":
                     motionVariant==1?"pipa_motion_fast.comp.spv":"pipa_motion.comp.spv");
-                byte[] interp=shader("pipa_interpolate.comp.spv");
+                byte[] interp=shader(adaptiveWarp ?
+                    "pipa_interpolate_adaptive.comp.spv":"pipa_interpolate.comp.spv");
                 int[] previous=width==W && height==H ?
                     PREVIOUS : buildFrame(0,width,height);
                 int[] current=width==W && height==H ?
