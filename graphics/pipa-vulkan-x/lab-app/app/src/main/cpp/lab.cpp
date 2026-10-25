@@ -35,6 +35,9 @@ struct Lab {
     VkQueue queue=VK_NULL_HANDLE;
     VkCommandPool commandPool=VK_NULL_HANDLE;
     VkFence fence=VK_NULL_HANDLE;
+    VkQueryPool timestampQueries=VK_NULL_HANDLE;
+    uint32_t timestampBits=0;
+    double timestampPeriodNs=0.0;
     VkBuffer staging=VK_NULL_HANDLE;
     VkDeviceMemory stagingMemory=VK_NULL_HANDLE;
     Image images[4]{};
@@ -46,6 +49,7 @@ struct Lab {
         if(device) vkDeviceWaitIdle(device);
         if(engine) pipa_framegen_vk_destroy(engine);
         if(device) {
+            if(timestampQueries) vkDestroyQueryPool(device,timestampQueries,nullptr);
             if(fence) vkDestroyFence(device,fence,nullptr);
             if(commandPool) vkDestroyCommandPool(device,commandPool,nullptr);
             if(staging) vkDestroyBuffer(device,staging,nullptr);
@@ -87,7 +91,10 @@ struct Lab {
             vkGetPhysicalDeviceQueueFamilyProperties(deviceCandidate,&families,props.data());
             for(uint32_t i=0;i<families;++i) {
                 if(props[i].queueCount && (props[i].queueFlags&VK_QUEUE_COMPUTE_BIT)) {
-                    physical=deviceCandidate; family=i; break;
+                    physical=deviceCandidate;
+                    family=i;
+                    timestampBits=props[i].timestampValidBits;
+                    break;
                 }
             }
             if(physical) break;
@@ -96,6 +103,7 @@ struct Lab {
         VkPhysicalDeviceProperties props{};
         vkGetPhysicalDeviceProperties(physical,&props);
         gpuName=props.deviceName;
+        timestampPeriodNs=static_cast<double>(props.limits.timestampPeriod);
         vkGetPhysicalDeviceMemoryProperties(physical,&mem);
         const float priority=1.f;
         VkDeviceQueueCreateInfo queueInfo{};
@@ -214,10 +222,12 @@ void rgbaFromArgb(const std::vector<jint>& argb,uint8_t* dest) {
 extern "C" JNIEXPORT jintArray JNICALL
 Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
     JNIEnv* env,jobject,jintArray past,jintArray now,jint width,jint height,
-    jbyteArray motionShader,jbyteArray interpolateShader) {
+    jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions) {
     try {
         ensure(past && now && width>0 && height>0 && width<=1024 && height<=1024,
                "Dimensoes/arrays invalidos");
+        ensure(repetitions==1 || repetitions==33,
+               "Repeticoes validas: 1 (teste simples) ou 33 (1 warmup + 32 medidas)");
         const size_t count=size_t(width)*size_t(height);
         ensure(size_t(env->GetArrayLength(past))==count &&
                size_t(env->GetArrayLength(now))==count,"Tamanhos ARGB incorretos");
@@ -257,6 +267,16 @@ Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
         begin.sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         begin.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         require(vkBeginCommandBuffer(cmd,&begin),"vkBeginCommandBuffer");
+        const bool canTimestamp = lab.timestampBits>0 && lab.timestampPeriodNs>0.0;
+        const uint32_t timedSamples=repetitions==33 ? 32u : 1u;
+        if(canTimestamp) {
+            VkQueryPoolCreateInfo qi{};
+            qi.sType=VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            qi.queryType=VK_QUERY_TYPE_TIMESTAMP;
+            qi.queryCount=timedSamples*2u;
+            if(vkCreateQueryPool(lab.device,&qi,nullptr,&lab.timestampQueries)==VK_SUCCESS)
+                vkCmdResetQueryPool(cmd,lab.timestampQueries,0,qi.queryCount);
+        }
         VkImageMemoryBarrier barriers[4]{};
         for(int i=0;i<4;++i) {
             if(i<2) barriers[i]=transition(lab.images[i].image,
@@ -287,9 +307,30 @@ Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
         const PipaFramegenVkImages inputs{
             lab.images[0].view,lab.images[1].view,lab.images[2].view,
             lab.images[3].view,lab.images[2].image};
-        const int recorded=pipa_framegen_vk_record(lab.engine,cmd,&inputs,w,h,
-                                                    0.5f,4,0.75f);
-        ensure(recorded==0,"Falha ao gravar dispatch de interpolacao");
+        for(int sample=0;sample<repetitions;++sample) {
+            // Reuse the initialized pipelines/images. Warmup is not included in stats.
+            // Barriers make repeat writes to flow/output visible and ordered.
+            if(sample>0) {
+                VkMemoryBarrier between{};
+                between.sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                between.srcAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT;
+                between.dstAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT;
+                vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                     0,1,&between,0,nullptr,0,nullptr);
+            }
+            const bool measure=repetitions==1 || sample>0;
+            const uint32_t queryBase=uint32_t(repetitions==1 ? 0 : sample-1)*2u;
+            if(measure && lab.timestampQueries)
+                vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                    lab.timestampQueries,queryBase);
+            const int recorded=pipa_framegen_vk_record(lab.engine,cmd,&inputs,w,h,
+                                                        0.5f,4,0.75f);
+            ensure(recorded==0,"Falha ao gravar dispatch de interpolacao");
+            if(measure && lab.timestampQueries)
+                vkCmdWriteTimestamp(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                                    lab.timestampQueries,queryBase+1u);
+        }
         VkImageMemoryBarrier outputBarrier=transition(lab.images[3].image,
             VK_IMAGE_LAYOUT_GENERAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT);
@@ -321,6 +362,34 @@ Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
                 "vkWaitForFences timeout/erro");
         const auto t1=std::chrono::steady_clock::now();
         double wallMs=std::chrono::duration<double,std::milli>(t1-t0).count();
+        std::string gpuTime=" | GPU timestamps: indisponiveis";
+        if(lab.timestampQueries) {
+            std::vector<uint64_t> ticks(size_t(timedSamples)*2u,0);
+            VkResult q=vkGetQueryPoolResults(lab.device,lab.timestampQueries,0,
+                    timedSamples*2u,ticks.size()*sizeof(uint64_t),ticks.data(),
+                    sizeof(uint64_t),VK_QUERY_RESULT_64_BIT|VK_QUERY_RESULT_WAIT_BIT);
+            if(q==VK_SUCCESS) {
+                std::vector<double> milliseconds;
+                milliseconds.reserve(timedSamples);
+                const uint64_t mask=lab.timestampBits>=64 ? UINT64_MAX :
+                                   (uint64_t(1)<<lab.timestampBits)-1u;
+                for(uint32_t i=0;i<timedSamples;++i) {
+                    const uint64_t delta=(ticks[size_t(i)*2u+1u]-
+                                          ticks[size_t(i)*2u])&mask;
+                    milliseconds.push_back(double(delta)*lab.timestampPeriodNs/1.0e6);
+                }
+                std::sort(milliseconds.begin(),milliseconds.end());
+                double sum=0;
+                for(double value:milliseconds) sum+=value;
+                const size_t p95=(milliseconds.size()*95u+99u)/100u-1u;
+                gpuTime=" | GPU Compute (timestamps, n="+std::to_string(timedSamples)+
+                        "): media="+std::to_string(sum/milliseconds.size())+
+                        " ms, p50="+std::to_string(milliseconds[milliseconds.size()/2u])+
+                        " ms, p95="+std::to_string(milliseconds[p95])+" ms";
+            } else {
+                gpuTime=" | GPU timestamps: erro "+std::to_string(int(q));
+            }
+        }
         require(vkMapMemory(lab.device,lab.stagingMemory,0,nbytes*3,0,&mapped),"vkMapMemory read");
         const uint8_t* rgba=static_cast<const uint8_t*>(mapped)+nbytes*2;
         std::vector<jint> pixels(count);
@@ -333,8 +402,9 @@ Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
         jintArray result=env->NewIntArray(jsize(count));
         ensure(result!=nullptr,"Sem memoria para resultado JNI");
         env->SetIntArrayRegion(result,0,jsize(count),pixels.data());
-        set_report(lab.gpuName+" | submissao+espera "+
-                   std::to_string(wallMs)+" ms (wall-clock)");
+        set_report(lab.gpuName+" | "+std::to_string(repetitions)+
+                   " passagens | submissao+espera="+
+                   std::to_string(wallMs)+" ms (CPU wall-clock)"+gpuTime);
         return result;
     } catch(const std::exception& ex) {
         set_report(std::string("ERROR: ")+ex.what());
