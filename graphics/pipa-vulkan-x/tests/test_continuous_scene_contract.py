@@ -45,8 +45,8 @@ for token in (
     "imageStore(realImage,xy,vec4(rgb,1.0));",
 ):
     assert token in shader, token
-assert "versionCode 306" in gradle
-assert "versionName '29.16-lab'" in gradle
+assert "versionCode 307" in gradle
+assert "versionName '29.17-lab'" in gradle
 for frames in (120,240):
     produced=[]
     for frame in range(frames):
