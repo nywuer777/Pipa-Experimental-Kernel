@@ -407,3 +407,10 @@ GitHub Actions run [40156271942](https://github.com/nywuer777/Pipa-Experimental-
 Operador confirmou no PowerShell que `py -3 C:\platform-tools\exp27-5-recovery-inventory.py` retornou `EXP27.5_OFFLINE_INDEPENDENT_CHECK=PASS`, `BOOT_V3_HEADERS_AND_RAMDISK=PASS` e `CANDIDATE_IMAGE_CI_BYTE_MATCH=PASS`. Hash EXP27.4 revalidado: `df9eb41441770035849e95a6e54ccc110357d5c171a06758cc2df60a192a01d7` (32.411.648 bytes). A auditoria é independente do empacotador e usa o ZIP CI EXP27.1; a observação Android **não** foi solicitada. Detalhes em `docs/EXP27-5-RECOVERY-INVENTORY.md`, commit `ca721eaca73a0fd8b566ee2077af9e445c86c394`.
 
 Gates presentes: `EXP27_5_REAL_WINDOWS_INDEPENDENT_AUDIT=PASS`; `ANDROID_READONLY=NOT_REQUESTED`; `PHYSICAL_RECOVERY=PENDING`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`. Preservar sessão EXP25A, alimentação estável, hub e controle do tablet. **Sem fastboot/reboot/flash**.
+
+
+### EXP27.5 — Windows ADB read-only PASS; EXP25A runtime identificado
+
+Operador confirmou via `adb devices -l` apenas um transporte USB `6665d3e6 device product:pipa model:23043RP34G device:pipa`. Executou depois `py -3 C:\platform-tools\exp27-5-recovery-inventory.py --observe-android --serial 6665d3e6`, obtendo simultaneamente `EXP27.5_OFFLINE_INDEPENDENT_CHECK=PASS`, `EXP27.5_ANDROID_READONLY=PASS`, `ADB_TRANSPORT=USB`, `PRODUCT=pipa`, `SLOT=_b`, `BOOT_COMPLETED=1`, `KERNEL_IDENTITY=EXP25A_RECOGNIZED`, `BOOT_ID_SHORT_DIGEST=1346989d2e904e1b`. Os campos de funcionalidade `TOUCHSCREEN_FUNCTIONAL=NOT_TESTED`, `USB_PD_STABLE=NOT_TESTED` e `PHYSICAL_RECOVERY=PENDING` permanecem explicitamente sem homologação. Fonte completa e limites em `docs/EXP27-5-RECOVERY-INVENTORY.md`, commit `56ba3d73720c568a18afb225934b8d6bc9f3323b`.
+
+Status: `EXP27_RUNTIME_TEST=NOT_RUN`, `TEMP_BOOT_AUTHORIZED=false`, `FLASH_READY=false`. Não reiniciar nem desconectar USB-C/hub/energia.
