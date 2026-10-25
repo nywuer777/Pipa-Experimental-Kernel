@@ -221,6 +221,15 @@ struct Presenter {
     PipaTraceResetFn traceLayerReset=nullptr;
     PipaTraceGetStatsFn traceLayerGetStats=nullptr;
     bool traceLayerAvailable=false, traceLayerActive=false;
+    uint32_t topLevelSuboptimal=0, perSwapchainSuboptimal=0, presentResultMismatches=0;
+    VkResult lastTopLevelPresentResult=VK_SUCCESS;
+    VkResult lastPerSwapchainPresentResult=VK_SUCCESS;
+    bool surfaceCapsQueriedAfterSuboptimal=false;
+    bool surfaceCapsAvailableAfterSuboptimal=false;
+    uint32_t surfaceCapsQueryFailures=0;
+    VkExtent2D surfaceCurrentExtentAfterSuboptimal{};
+    VkSurfaceTransformFlagBitsKHR surfaceCurrentTransformAfterSuboptimal=
+        VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     bool gpuBudgetRequested=false, gpuBudgetEnabled=false;
     double gpuBudgetMs=0.0, lastPairGpuMs=0.0;
     double pendingPairRealGpuMs=0.0;
@@ -239,6 +248,36 @@ struct Presenter {
             std::to_string(calls)+" success="+std::to_string(success)+
             " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors);
     }
+    void querySurfaceAfterSuboptimal() {
+        if(surfaceCapsQueriedAfterSuboptimal)return;
+        surfaceCapsQueriedAfterSuboptimal=true;
+        VkSurfaceCapabilitiesKHR caps{};
+        VkResult result=vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical,surface,&caps);
+        if(result!=VK_SUCCESS) {
+            ++surfaceCapsQueryFailures;
+            return;
+        }
+        surfaceCapsAvailableAfterSuboptimal=true;
+        surfaceCurrentExtentAfterSuboptimal=caps.currentExtent;
+        surfaceCurrentTransformAfterSuboptimal=caps.currentTransform;
+    }
+    std::string surfaceDiagnosticSummary() const {
+        if(!surfaceCapsQueriedAfterSuboptimal)
+            return " | WSI suboptimal diagnostic: none";
+        return " | WSI topSuboptimal="+std::to_string(topLevelSuboptimal)+
+            " perSwapchainSuboptimal="+std::to_string(perSwapchainSuboptimal)+
+            " resultMismatch="+std::to_string(presentResultMismatches)+
+            " lastTop="+std::to_string(int(lastTopLevelPresentResult))+
+            " lastPerSwapchain="+std::to_string(int(lastPerSwapchainPresentResult))+
+            " surfaceCapsAfterSuboptimal="+
+            std::to_string(surfaceCapsAvailableAfterSuboptimal?1:0)+
+            " currentExtent="+std::to_string(surfaceCurrentExtentAfterSuboptimal.width)+
+            "x"+std::to_string(surfaceCurrentExtentAfterSuboptimal.height)+
+            " currentTransform="+std::to_string(uint32_t(surfaceCurrentTransformAfterSuboptimal))+
+            " selectedPreTransform="+std::to_string(uint32_t(chosenTransform))+
+            " queryFailures="+std::to_string(surfaceCapsQueryFailures);
+    }
+
     // CPU measurements are deliberately separated from GPU timestamps and
     // driver WSI presentation times. Each metric has a different clock path.
     std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
@@ -1067,6 +1106,8 @@ struct Presenter {
             present.swapchainCount=1;
             present.pSwapchains=&swap;
             present.pImageIndices=&index;
+            VkResult perSwapchainResult=VK_NOT_READY;
+            present.pResults=&perSwapchainResult;
             VkPresentTimeGOOGLE presentStamp{};
             VkPresentTimesInfoGOOGLE presentTiming{};
             if(displayTimingEnabled) {
@@ -1080,6 +1121,14 @@ struct Presenter {
             }
             const auto submitTime=std::chrono::steady_clock::now();
             VkResult pr=vkQueuePresentKHR(queue,&present);
+            lastTopLevelPresentResult=pr;
+            lastPerSwapchainPresentResult=perSwapchainResult;
+            if(pr!=perSwapchainResult)++presentResultMismatches;
+            if(pr==VK_SUBOPTIMAL_KHR) {
+                ++topLevelSuboptimal;
+                if(perSwapchainResult==VK_SUBOPTIMAL_KHR)++perSwapchainSuboptimal;
+                querySurfaceAfterSuboptimal();
+            }
             const auto completeTime=std::chrono::steady_clock::now();
             presentCallMs.push_back(
                 std::chrono::duration<double,std::milli>(completeTime-submitTime).count());
@@ -1176,6 +1225,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms"+
           p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
+          p.surfaceDiagnosticSummary()+
           p.traceLayerSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
