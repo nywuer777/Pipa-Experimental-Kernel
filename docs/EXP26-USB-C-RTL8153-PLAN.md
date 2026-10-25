@@ -253,3 +253,11 @@ Leitura: ambos root hubs enumerados e autorizados, hub SuperSpeed 05e3:0625 ante
 ## EXP26.10 — Diagnostico passivo de USB e registros de entrada
 
 Plano a partir da coleta EXP26.9: identificar periféricos USB presentes enumerando `/sys/bus/usb/devices/*` sem supor numeros de caminho; ler `/proc/bus/input/devices` para ver quais entradas de mouse/teclado continuam registradas; checar a árvore `usb1`, `usb2`, hub `1-1`/`2-1`, Realtek `0bda:8153` e estado de runtime PM; avaliar log filtrado por USB/xHCI/dwc3, sem provocar desconexões. Este diagnóstico permite distinguir ausência atual de dispositivos da mera presença de entradas históricas no dmesg, mas não determina a causa sem eventos contemporâneos. Não modificar `power/control`, não resetar portas/controlador, não movimentar conectores nem reiniciar o tablet EXP25A temporário. `FLASH_READY=false`.
+
+## EXP26.10 — USB2 hub retorna; repetidas enumeracoes HID em ~50 s
+
+Nova coleta Termux KSU no Xiaomi Pad 6: `1-1 05e3:0610 speed=480`, `1-1.3 mouse 32c2:0066 speed=12`, `1-1.4 teclado 36ae:fe9c speed=12`, `2-1 05e3:0625 speed=5000`, root hubs `usb1 speed=480` e `usb2 speed=10000`. `2-1.1` nao enumerado, RTL8153 ausente. Runtime PM: usb1=active, usb2=suspended, 1-1=active, 2-1=suspended. `/proc/bus/input/devices` contem mouse e teclado, mas isso sozinho nao verifica atividade fisica atual.
+
+`dmesg` indica enumeracoes repetidas do par mouse/teclado com novos caminhos `input`: ~5833.78/5834.34s; ~5863.22/5863.74s; ~5870.97/5872.06s; ~5883.80/5884.38s, no mesmo boot. Esse padrao e consistente com reenumeracao/reinicio parcial do caminho USB2 em intervalos curtos, mas o grep usado capturou linhas `input` e nao mostra o motivo de cada ocorrencia. Sem informacao de movimentacao do cabo, nao classificar como espontaneo nem culpar r8152 ou LPM.
+
+Proximo teste somente leitura, mantendo conexoes sem mover: amostragem curta de `/sys/bus/usb/devices/{1-1,1-1.3,1-1.4,2-1,2-1.1}` e dos respectivos `devnum`, `speed` e estados de runtime para identificar churn, seguida de logs filtrados por hub, usb e xhci em intervalo pertinente. Nao alterar registros, autorizar, suspensao, VBUS/PD ou controlador. EXP25A temporario preservado, FLASH_READY=false.
