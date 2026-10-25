@@ -184,6 +184,10 @@ struct Presenter {
     bool fitAspect=false;
     uint32_t fitWidth=0,fitHeight=0;
     VkSurfaceTransformFlagBitsKHR chosenTransform=VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    VkSurfaceTransformFlagBitsKHR currentTransform=VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    VkSurfaceTransformFlagsKHR supportedTransforms=0;
+    bool requestedIdentity3d=false;
+    bool identity3dAccepted=false;
     bool displayTimingEnabled=false;
     PFN_vkGetPastPresentationTimingGOOGLE getPastTiming=nullptr;
     PFN_vkGetRefreshCycleDurationGOOGLE getRefreshDuration=nullptr;
@@ -447,7 +451,8 @@ struct Presenter {
     }
     void init(JNIEnv* env,jobject surfaceObject,
               const std::vector<uint32_t>& motion,const std::vector<uint32_t>& warp,
-              const std::vector<uint32_t>& scene,bool continuous) {
+              const std::vector<uint32_t>& scene,bool continuous,
+              bool preferIdentityFor3D) {
         window=ANativeWindow_fromSurface(env,surfaceObject);
         expect(window!=nullptr,"No ANativeWindow from Android Surface");
         const char* instanceExts[]={VK_KHR_SURFACE_EXTENSION_NAME,VK_KHR_ANDROID_SURFACE_EXTENSION_NAME};
@@ -544,6 +549,9 @@ struct Presenter {
         VkSurfaceCapabilitiesKHR caps{};
         check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical,surface,&caps),
               "Surface capabilities");
+        currentTransform=caps.currentTransform;
+        supportedTransforms=caps.supportedTransforms;
+        requestedIdentity3d=preferIdentityFor3D;
         expect((caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)!=0,
                "Swapchain does not support TRANSFER_DST (graphics path required)");
         if(caps.currentExtent.width!=UINT32_MAX) {
@@ -596,8 +604,18 @@ struct Presenter {
         sci.imageArrayLayers=1;
         sci.imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         sci.imageSharingMode=VK_SHARING_MODE_EXCLUSIVE;
-        sci.preTransform=caps.currentTransform;
+        // EXP29.23: the EXP29.22 16:9 rectangle was letterboxed in
+        // 2844x790 swapchain coordinates but appeared as horizontal bars on
+        // the Android screen. currentTransform=ROTATE_90 (bit 2) means the
+        // current path has an explicit surface orientation to consider.
+        // Compare IDENTITY presentation with the historical CURRENT path;
+        // enable only when advertised in supportedTransforms.
+        const bool canIdentity=(caps.supportedTransforms &
+            VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)!=0;
+        sci.preTransform=(preferIdentityFor3D && canIdentity)?
+            VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR:caps.currentTransform;
         chosenTransform=sci.preTransform;
+        identity3dAccepted=preferIdentityFor3D && canIdentity;
         sci.compositeAlpha=(caps.supportedCompositeAlpha&VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) ?
             VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR : VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
         if(!(caps.supportedCompositeAlpha&sci.compositeAlpha)) {
@@ -960,7 +978,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
     jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius,
-    jboolean fit3dAspectMode) {
+    jboolean fit3dAspectMode,jboolean preferIdentity3dMode) {
     bool expected=false;
     if(!g_inUse.compare_exchange_strong(expected,true))
         return env->NewStringUTF("Uma sessão Vulkan já está ativa.");
@@ -978,7 +996,8 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         if(continuous) scene=shaderBytes(env,sceneShader);
         Presenter p;
         auto t0=std::chrono::steady_clock::now();
-        p.init(env,surface,motion,warp,scene,continuous);
+        p.init(env,surface,motion,warp,scene,continuous,
+               fit3dAspectMode==JNI_TRUE && preferIdentity3dMode==JNI_TRUE);
         auto t1=std::chrono::steady_clock::now();
         int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
                          alignWithDisplayMode==JNI_TRUE,int(motionRadius),
@@ -998,6 +1017,10 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
                          std::string("A/B estatica"))+
           " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
           " | preTransform="+std::to_string(uint32_t(p.chosenTransform))+
+          " | currentTransform="+std::to_string(uint32_t(p.currentTransform))+
+          " | supportedTransforms="+std::to_string(uint32_t(p.supportedTransforms))+
+          " | IDENTITY solicitada="+std::to_string(p.requestedIdentity3d?1:0)+
+          " | IDENTITY ativa="+std::to_string(p.identity3dAccepted?1:0)+
           " | blit="+std::to_string(p.useBlit?1:0)+
           " | FIT 16:9="+std::to_string(p.fitAspect?1:0)+
           " | viewport destino="+std::to_string(p.fitAspect?p.fitWidth:p.extent.width)+
@@ -1009,7 +1032,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
     } catch(const std::exception& e) {
-        result=std::string("EXP29.22 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.23 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());
