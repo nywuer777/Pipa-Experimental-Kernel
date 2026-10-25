@@ -87,6 +87,97 @@ struct Presenter {
     VkDeviceMemory stagingMemory=VK_NULL_HANDLE;
     Texture tex[4]{};
     PipaFramegenVk* engine=nullptr;
+
+    VkDescriptorSetLayout sceneSetLayout=VK_NULL_HANDLE;
+    VkPipelineLayout scenePipelineLayout=VK_NULL_HANDLE;
+    VkPipeline scenePipeline=VK_NULL_HANDLE;
+    VkDescriptorPool sceneDescriptorPool=VK_NULL_HANDLE;
+    VkDescriptorSet sceneDescriptors[2]={VK_NULL_HANDLE,VK_NULL_HANDLE};
+    uint32_t sceneRealSubmitted=0,sceneGeneratedSubmitted=0,deadlineMisses=0;
+    void createScenePipeline(const std::vector<uint32_t>& spv) {
+        VkDescriptorSetLayoutBinding binding{};
+        binding.binding=0;binding.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        binding.descriptorCount=1;binding.stageFlags=VK_SHADER_STAGE_COMPUTE_BIT;
+        VkDescriptorSetLayoutCreateInfo dl{};
+        dl.sType=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        dl.bindingCount=1;dl.pBindings=&binding;
+        check(vkCreateDescriptorSetLayout(device,&dl,nullptr,&sceneSetLayout),"Scene set layout");
+        VkPushConstantRange push{};
+        push.stageFlags=VK_SHADER_STAGE_COMPUTE_BIT;push.size=16;
+        VkPipelineLayoutCreateInfo pl{};
+        pl.sType=VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pl.setLayoutCount=1;pl.pSetLayouts=&sceneSetLayout;
+        pl.pushConstantRangeCount=1;pl.pPushConstantRanges=&push;
+        check(vkCreatePipelineLayout(device,&pl,nullptr,&scenePipelineLayout),"Scene layout");
+        VkShaderModuleCreateInfo sm{};
+        sm.sType=VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        sm.codeSize=spv.size()*sizeof(uint32_t);sm.pCode=spv.data();
+        VkShaderModule shader=VK_NULL_HANDLE;
+        check(vkCreateShaderModule(device,&sm,nullptr,&shader),"Scene module");
+        VkComputePipelineCreateInfo pi{};
+        pi.sType=VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        pi.layout=scenePipelineLayout;
+        pi.stage.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        pi.stage.stage=VK_SHADER_STAGE_COMPUTE_BIT;
+        pi.stage.module=shader;pi.stage.pName="main";
+        VkResult result=vkCreateComputePipelines(device,VK_NULL_HANDLE,1,&pi,
+                                                   nullptr,&scenePipeline);
+        vkDestroyShaderModule(device,shader,nullptr);
+        check(result,"Scene pipeline");
+        VkDescriptorPoolSize ps{};
+        ps.type=VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;ps.descriptorCount=2;
+        VkDescriptorPoolCreateInfo pc{};
+        pc.sType=VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        pc.maxSets=2;pc.poolSizeCount=1;pc.pPoolSizes=&ps;
+        check(vkCreateDescriptorPool(device,&pc,nullptr,&sceneDescriptorPool),"Scene pool");
+        VkDescriptorSetLayout layouts[]={sceneSetLayout,sceneSetLayout};
+        VkDescriptorSetAllocateInfo ai{};
+        ai.sType=VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        ai.descriptorPool=sceneDescriptorPool;
+        ai.descriptorSetCount=2;ai.pSetLayouts=layouts;
+        check(vkAllocateDescriptorSets(device,&ai,sceneDescriptors),"Scene sets");
+        VkDescriptorImageInfo infos[2]{};
+        VkWriteDescriptorSet writes[2]{};
+        for(int i=0;i<2;++i) {
+            infos[i].imageView=tex[i].view;
+            infos[i].imageLayout=VK_IMAGE_LAYOUT_GENERAL;
+            writes[i].sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[i].dstSet=sceneDescriptors[i];writes[i].descriptorCount=1;
+            writes[i].descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            writes[i].pImageInfo=&infos[i];
+        }
+        vkUpdateDescriptorSets(device,2,writes,0,nullptr);
+    }
+    void recordSourceScene(VkCommandBuffer cmd,uint32_t pairIndex) {
+        expect(scenePipeline!=VK_NULL_HANDLE,"Scene pipeline unavailable");
+        VkImageMemoryBarrier start[2]{};
+        for(int i=0;i<2;++i)
+            start[i]=imageBarrier(tex[i].image,VK_IMAGE_LAYOUT_GENERAL,
+                     VK_IMAGE_LAYOUT_GENERAL,
+                     VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_TRANSFER_READ_BIT,
+                     VK_ACCESS_SHADER_WRITE_BIT);
+        vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT|
+             VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+             0,0,nullptr,0,nullptr,2,start);
+        vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,scenePipeline);
+        struct Params {int32_t w,h,id,pad;};
+        for(int i=0;i<2;++i) {
+            Params push{int32_t(kWidth),int32_t(kHeight),int32_t(pairIndex+i),0};
+            vkCmdBindDescriptorSets(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,
+                 scenePipelineLayout,0,1,&sceneDescriptors[i],0,nullptr);
+            vkCmdPushConstants(cmd,scenePipelineLayout,VK_SHADER_STAGE_COMPUTE_BIT,
+                               0,sizeof(push),&push);
+            vkCmdDispatch(cmd,(kWidth+15)/16,(kHeight+15)/16,1);
+        }
+        VkImageMemoryBarrier ready[2]{};
+        for(int i=0;i<2;++i)
+            ready[i]=imageBarrier(tex[i].image,VK_IMAGE_LAYOUT_GENERAL,
+                     VK_IMAGE_LAYOUT_GENERAL,VK_ACCESS_SHADER_WRITE_BIT,
+                     VK_ACCESS_SHADER_READ_BIT);
+        vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,0,nullptr,2,ready);
+    }
+
     VkPhysicalDeviceMemoryProperties memory{};
     std::string gpuName;
     bool useBlit=true;
@@ -153,6 +244,12 @@ struct Presenter {
         if(device) vkDeviceWaitIdle(device);
         if(engine) pipa_framegen_vk_destroy(engine);
         if(device) {
+            if(scenePipeline)vkDestroyPipeline(device,scenePipeline,nullptr);
+            if(sceneDescriptorPool)vkDestroyDescriptorPool(device,sceneDescriptorPool,nullptr);
+            if(scenePipelineLayout)vkDestroyPipelineLayout(device,scenePipelineLayout,nullptr);
+            if(sceneSetLayout)vkDestroyDescriptorSetLayout(device,sceneSetLayout,nullptr);
+        }
+        if(device) {
             for(auto semaphore:rendered)if(semaphore)vkDestroySemaphore(device,semaphore,nullptr);
             if(acquired)vkDestroySemaphore(device,acquired,nullptr);
             if(fence)vkDestroyFence(device,fence,nullptr);
@@ -211,7 +308,8 @@ struct Presenter {
         check(vkCreateImageView(device,&view,nullptr,&out.view),"vkCreateImageView");
     }
     void init(JNIEnv* env,jobject surfaceObject,
-              const std::vector<uint32_t>& motion,const std::vector<uint32_t>& warp) {
+              const std::vector<uint32_t>& motion,const std::vector<uint32_t>& warp,
+              const std::vector<uint32_t>& scene,bool continuous) {
         window=ANativeWindow_fromSurface(env,surfaceObject);
         expect(window!=nullptr,"No ANativeWindow from Android Surface");
         const char* instanceExts[]={VK_KHR_SURFACE_EXTENSION_NAME,VK_KHR_ANDROID_SURFACE_EXTENSION_NAME};
@@ -411,6 +509,7 @@ struct Presenter {
               PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE|PIPA_FRAMEGEN_VK_WARP_16X16,
               &engine);
         expect(code==0,"pipa_framegen_vk_create_ex failed");
+        if(continuous)createScenePipeline(scene);
 
         const VkDeviceSize one=VkDeviceSize(kWidth)*kHeight*4;
         VkBufferCreateInfo bi{};
