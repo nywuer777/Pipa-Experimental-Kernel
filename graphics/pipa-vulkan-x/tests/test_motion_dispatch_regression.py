@@ -51,7 +51,7 @@ for y in range(16,328,32):
                 for yy in range(y,y+16,4):
                     for xx in range(x,x+16,4):
                         old=pixel(xx,yy)
-                        now=pixel(xx+dx-2,yy)
+                        now=pixel(xx+dx-2,yy+dy)
                         cost+=sum(abs(a-b) for a,b in zip(old,now))
                 scores.append((cost,dx*dx+dy*dy,dx,dy))
         best=min(scores)
