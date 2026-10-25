@@ -27,6 +27,8 @@ typedef struct PipaFramegenVkImages {
 // One workgroup per 16x16 tile. Requires pipa_motion_parallel.comp
 // and its gl_WorkGroupID.xy addressing; do not enable with the legacy shaders.
 #define PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE 0x1u
+// Interpolation shader uses 16x16 local size, one workgroup per tile.
+#define PIPA_FRAMEGEN_VK_WARP_16X16 0x2u
 
 // Optional create API: flags=0 preserves legacy FAST and EXHAUSTIVE dispatch.
 int pipa_framegen_vk_create_ex(VkPhysicalDevice gpu, VkDevice device,
