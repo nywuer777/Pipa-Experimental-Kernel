@@ -7,6 +7,7 @@ root=pathlib.Path(__file__).resolve().parents[1]
 expected={
     "pipa_motion.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
     "pipa_motion_fast.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
+    "pipa_motion_parallel.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","writeonly")},
     "pipa_interpolate.comp":{0:("rgba8","readonly"),1:("rgba8","readonly"),2:("rgba16f","readonly"),3:("rgba8","writeonly")},
 }
 for name, bindings in expected.items():
