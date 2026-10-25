@@ -16,7 +16,7 @@ presenter.cpp added four diagnostic scene recomputes whenever the GPU Guard was 
 
 - The standard 3D FrameGen path now measures the actual real-plus-generated pair without adding four hidden scene passes.
 - The stress-pass count is carried explicitly into the native presenter and reported as passes stress cena=0 for the standard 3D test.
-- The optional stress-pass mechanism remains gated by an explicit stress-mode argument.
+- The four-pass diagnostic injection is removed from the FrameGen run path; the telemetry reports `passes stress cena=0`.
 - The visible controls, scene geometry, Vulkan identity transform, and swapchain behavior are unchanged.
 - Android version is 29.29-real-load-gpu-guard (versionCode 319).
 
