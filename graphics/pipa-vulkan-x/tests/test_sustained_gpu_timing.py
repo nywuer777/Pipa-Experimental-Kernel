@@ -14,7 +14,7 @@ for token in (
     "timestampPeriodNs=gpuProps.limits.timestampPeriod;",
     "vkCreateQueryPool(device,&queryInfo,nullptr,&gpuQueryPool)",
     "vkDestroyQueryPool(device,gpuQueryPool,nullptr)",
-    "vkCmdResetQueryPool(command,gpuQueryPool,0,2);",
+    "vkCmdResetQueryPool(command,gpuQueryPool,0,5);",
     "vkCmdWriteTimestamp(command,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,",
     "vkCmdWriteTimestamp(command,VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,",
     "harvestGpuTimestamps();",
