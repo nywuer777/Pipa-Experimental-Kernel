@@ -53,7 +53,7 @@ def control(measured_times, limit=5.90):
         ms=measured_times[idx];idx+=1
         if ms>limit:cooldown=2
     return active
-assert control([6.1,5.7,5.4])==[
+assert control([6.1,5.7,5.4,5.3])==[
  "real","fg","real","hold","real","hold","real","fg",
  "real","fg","real","fg"
 ]
