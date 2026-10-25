@@ -34,7 +34,7 @@ for tok in (
  "std::to_string(uint32_t(p.chosenTransform))",
  "std::to_string(p.useBlit?1:0)",
  "std::to_string(int(p.swapFormat))",
- "const bool synthesized=odd && !holdInsteadOfFG;",
+ "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
  "if(continuous && !odd)",
  "recordSourceScene(command,uint32_t(frame/2))",
 ): assert tok in native,tok
