@@ -21,7 +21,7 @@ assert "int x=max(0," not in v2  # check executable shader, not comments
 assert "grain=" not in v2
 assert "(x*y)%29" not in v2
 assert "max(0,xy.x-2*scene.frameIndex)" in old
-assert "recordSourceScene(command,uint32_t(frame/2))" in native
+assert "recordSourceScene(command,sourcePair)" in native
 assert "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;" in native
 for token in (
     "v2Hold144=button(", "v2Fg144=button(",

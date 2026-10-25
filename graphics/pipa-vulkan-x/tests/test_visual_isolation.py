@@ -16,7 +16,7 @@ for token in (
  "int source=continuous?0:((frame%4)==2?1:0);",
  "Texture& texSource=tex[synthesized?3:source];",
  "if(continuous && !odd)",
- "recordSourceScene(command,uint32_t(frame/2))",
+ "recordSourceScene(command,sourcePair)",
  "if(synthesized) {",
  "if(odd && (holdInsteadOfFG || budgetFallback))++sceneHeldSubmitted;",
  "else if(synthesized)++sceneGeneratedSubmitted;",

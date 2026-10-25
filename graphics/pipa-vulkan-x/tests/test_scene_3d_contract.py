@@ -33,7 +33,7 @@ for name in (
     "copyReport.setOnClickListener(v->",
 ): assert name in java,name
 for name in (
-    "recordSourceScene(command,uint32_t(frame/2))",
+    "recordSourceScene(command,sourcePair)",
     "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
     "pipa_framegen_vk_record_profiled(",
     "cpuPacingSummary()",
