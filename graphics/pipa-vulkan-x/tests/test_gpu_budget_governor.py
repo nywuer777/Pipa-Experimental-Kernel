@@ -57,6 +57,7 @@ for tok in (
     "scene3dFg.setOnClickListener(",
 ): assert tok in ui,tok
 assert "realGpuMs.back()+ms" not in native
+# Pin this source contract to the controlled-overload validation build.
 assert "versionCode 316" in gradle and "29.26-governor-overload" in gradle
 
 # Pure deterministic policy model (not Android device timing).
