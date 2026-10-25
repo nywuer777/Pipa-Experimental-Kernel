@@ -34,3 +34,15 @@ Interpretação:
 Para a EXP27.7, a **observação do operador** precisa confirmar separadamente se toque e movimento do mouse realmente respondem, e se existe caminho de controle após desconectar a **única porta USB-C**, que hoje é usada por hub/ADB e periféricos. Não induzir a situação arriscada só para comprovar esta fase. A prova histórica `fastboot boot` EXP25A não garante recuperação de um kernel que falhe antes do ADB nem que periféricos funcionem após trocar cabo.
 
 **EXP27_5_OFFLINE=PASS; EXP27_5_ADB_USB_READONLY=PASS; EXP27_6_CI_SYNTHETIC=PENDING; EXP27_6_REAL_INPUT_INVENTORY=PENDING; PHYSICAL_RECOVERY=PENDING; TEMP_BOOT_AUTHORIZED=false; FLASH_READY=false.**
+
+
+## Certificação CI e pacote Windows
+
+O workflow [EXP27.6 run 40157077359](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40157077359) terminou com **success**: **12/12 testes sintéticos PASS**, compilação da sintaxe Python PASS, whitelist de leitura ADB PASS e `EXP27_6_DEVICE_COMMANDS_EXECUTED=NONE` no CI. Os testes usaram fixtures e mocks; **nenhuma consulta ao tablet real ocorreu durante a execução de Actions**.
+
+Pacote para executar no computador do operador: `pipa-exp27-6-input-readonly-tools-1`, artifact ID **12585006817**. URL de download (GitHub autenticado):
+https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40157077359/artifacts/12585006817
+
+Extrair ZIP, copiar `tools/exp27-6-input-readonly.py` para `C:\platform-tools\exp27-6-input-readonly.py` e executar comando de leitura na seção anterior. Logs/artefato contêm somente código, testes e instruções; **nenhum boot.img, backup ou dado privado do tablet**.
+
+**Estado:** `EXP27_6_CI_SYNTHETIC=PASS`; `EXP27_6_REAL_INPUT_INVENTORY=PENDING_WINDOWS`; `TOUCHSCREEN_FUNCTIONAL=NOT_TESTED`; `MOUSE_FUNCTIONAL=NOT_TESTED`; `PHYSICAL_RECOVERY=PENDING`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`.
