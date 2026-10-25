@@ -34,11 +34,11 @@ for name in (
 ): assert name in java,name
 for name in (
     "recordSourceScene(command,uint32_t(frame/2))",
-    "const bool synthesized=odd && !holdInsteadOfFG;",
+    "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
     "pipa_framegen_vk_record_profiled(",
     "cpuPacingSummary()",
     "gpuTimingSummary()",
 ): assert name in native,name
-assert "versionCode 313" in build
-assert "29.23-lab" in build
+assert "versionCode 314" in build
+assert "29.24-lab" in build
 print("EXP29_21_3D_PERSPECTIVE_OCCLUSION_SOURCE_CONTRACT=PASS; HARDWARE_3D_PENDING")
