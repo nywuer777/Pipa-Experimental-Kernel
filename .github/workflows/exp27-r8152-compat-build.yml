@@ -113,6 +113,22 @@ jobs:
           grep -Fq 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' exp27-r8152.c
           grep -Fq 'module_usb_driver(rtl8152_driver)' exp27-r8152.c
           cp exp27-r8152.c "$TARGET"
+          # E404 (Linux 4.19) has dev_set_mac_address(netdev, sockaddr)
+          # Linux 5.4 passes an additional extack; remove it only in this ABI call.
+          python3 - "$TARGET" <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path(sys.argv[1])
+          s = p.read_text()
+          before = "dev_set_mac_address (tp->netdev, &sa, NULL);"
+          after = "dev_set_mac_address (tp->netdev, &sa);"
+          assert s.count(before) == 1, "unexpected dev_set_mac_address ABI site"
+          assert s.count(after) == 0, "ABI site already modified"
+          p.write_text(s.replace(before, after, 1))
+          print("EXP27_COMPAT_419=dev_set_mac_address_two_args")
+          PY
+          grep -Fq 'dev_set_mac_address (tp->netdev, &sa);' "$TARGET"
+          ! grep -Fq 'dev_set_mac_address (tp->netdev, &sa, NULL);' "$TARGET"
           git -C "$WORKDIR/kernel" diff --check
           git -C "$WORKDIR/kernel" diff --stat -- drivers/net/usb/r8152.c | tee exp27-r8152-diffstat.txt
           echo 'R8152_TARGET=v1.10.11' | tee -a exp27-r8152-stage-gate.txt
