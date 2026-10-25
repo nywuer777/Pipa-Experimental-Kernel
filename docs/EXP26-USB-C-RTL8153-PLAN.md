@@ -191,3 +191,11 @@ Usuário confirmou explicitamente que há um carregador conectado à entrada USB
 Com hub USB2/USB3 enumerado e dongle RTL8153 ausente em 2-1.1, não culpar automaticamente o carregador: hipóteses incluem perda de sinal SS, conector/folga, proteção por corrente de downstream ou diferenças na política Type-C/PD do tablet. O mesmo hub e dongle são estáveis no outro dispositivo ao movimentar cabo; **ainda não foi esclarecido se o mesmo carregador PD também estava conectado nesse controle A/B**. Este é o próximo detalhe comparativo mais importante.
 
 Não provocar perda mecânica nem remover PD enquanto mouse/hub possam ser necessários para operar o tablet; sem unbind/reset/port-power/fastboot ou flash. Comprovado: driver r8152 e eth0 com carrier funcionam quando dongle é enumerado. `FLASH_READY=false`.
+
+## EXP26 — Controle A/B confirmou PD ligado também no outro dispositivo
+
+O usuario confirmou que, no controle cruzado feito com **o mesmo hub e adaptador Ethernet em outro dispositivo**, **o carregador permanecia conectado à entrada USB-C PD do hub**. Nesse controle o usuário movimentou os cabos repetidamente e a conexão Ethernet não caiu. No Xiaomi Pad 6, cabo/adaptador movimentado causa perda seletiva de enumeração do RTL8153, enquanto os hubs companion 05e3:0610/0625 e HID continuam enumerados no snapshot obtido após falha.
+
+Essa comparação reduz a hipótese de defeito isolado no adaptador/hub/carregador ou do simples uso de pass-through PD como causa, mas não demonstra porta USB-C danificada: podem diferir características mecânicas, margens USB3/PHY, comportamento CC/PD, potência do dispositivo e controle por porta do hub quando ligado ao pipa. No pipa `voltage_now` da fonte USB foi aproximadamente 8,61 V e o parceiro reportou PD=yes, sem prova da tensão downstream.
+
+**Próximas ações conservadoras:** não provocar quedas por movimentação, nem forçar cabos/tensões ou resetar portas. Registrar eventos durante falha espontânea pelo Termux; documentar fotos/inspeção visual não invasiva da porta com dispositivo desligado quando apropriado; ensaio com outro hub/conector conhecido bom ou assistência técnica para inspecionar porta USB-C se a falha continuar. Não criar patch de r8152 nem liberar flash com essa evidência. `FLASH_READY=false`.
