@@ -10,7 +10,11 @@ for tok in (
     "gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&",
     "gpuQueryPool!=VK_NULL_HANDLE;",
     "gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;",
-    "const double pairMs=realGpuMs.back()+ms;",
+    "pendingPairRealGpuMs=ms;",
+    "pendingPairRealAvailable=true;",
+    "if(!sampleValid || !pendingPairRealAvailable)",
+    "pendingPairRealAvailable=false;",
+    "const double pairMs=pendingPairRealGpuMs+ms;",
     "gpuPairMs.push_back(pairMs);",
     "++gpuBudgetProbeFrames;",
     "if(pairMs>gpuBudgetMs) {",
@@ -47,6 +51,7 @@ for tok in (
     "scene3dHold.setOnClickListener(",
     "scene3dFg.setOnClickListener(",
 ): assert tok in ui,tok
+assert "realGpuMs.back()+ms" not in native
 assert "versionCode 315" in gradle and "29.25-lab" in gradle
 
 # Pure deterministic policy model (not Android device timing).

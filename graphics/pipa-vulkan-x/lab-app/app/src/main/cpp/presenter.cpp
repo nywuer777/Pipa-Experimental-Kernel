@@ -212,6 +212,8 @@ struct Presenter {
     // interpolation budget threshold is inferred from a WSI monitor cycle.
     bool gpuBudgetRequested=false, gpuBudgetEnabled=false;
     double gpuBudgetMs=0.0, lastPairGpuMs=0.0;
+    double pendingPairRealGpuMs=0.0;
+    bool pendingPairRealAvailable=false;
     uint32_t gpuBudgetOverruns=0, gpuBudgetHeld=0, gpuBudgetProbeFrames=0;
     uint32_t gpuBudgetHoldCountdown=0, gpuBudgetOverrunStreak=0;
     uint32_t gpuBudgetGovernorTrips=0, gpuBudgetMissingPairs=0;
@@ -260,45 +262,56 @@ struct Presenter {
     // image-layout transitions; they do NOT measure compositor/scanout time.
     void harvestGpuTimestamps() {
         if(!gpuQueryPool || pendingGpuRole<0)return;
+        const int role=pendingGpuRole;
+        // Every new original starts a fresh pair. A failed query must never
+        // reuse a successful timestamp from a previous pair.
+        if(role==0 && gpuBudgetEnabled)pendingPairRealAvailable=false;
         uint64_t values[2]{};
         VkResult r=vkGetQueryPoolResults(device,gpuQueryPool,0,2,sizeof(values),
                     values,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT);
+        bool sampleValid=false;
+        double ms=0.0;
         if(r==VK_SUCCESS) {
             uint64_t ticks=(values[1]-values[0]);
             if(timestampValidBits<64)
                 ticks&=((uint64_t(1)<<timestampValidBits)-1u);
-            const double ms=double(ticks)*double(timestampPeriodNs)*1.e-6;
+            ms=double(ticks)*double(timestampPeriodNs)*1.e-6;
             if(ms>=0.0 && std::isfinite(ms) && ms<10000.0) {
-                if(pendingGpuRole==1) {
-                    generatedGpuMs.push_back(ms);
+                sampleValid=true;
+                if(role==1) generatedGpuMs.push_back(ms);
+                else {
+                    realGpuMs.push_back(ms);
                     if(gpuBudgetEnabled) {
-                        // When a pair's original timestamp is unavailable,
-                        // fail open instead of inventing a GPU budget violation.
-                        if(realGpuMs.empty()) {
-                            ++gpuBudgetMissingPairs;
-                            gpuBudgetOverrunStreak=0;
-                        } else {
-                            const double pairMs=realGpuMs.back()+ms;
-                            lastPairGpuMs=pairMs;
-                            gpuPairMs.push_back(pairMs);
-                            ++gpuBudgetProbeFrames;
-                            if(pairMs>gpuBudgetMs) {
-                                ++gpuBudgetOverruns;
-                                ++gpuBudgetOverrunStreak;
-                                if(gpuBudgetOverrunStreak>=3u) {
-                                    // One held synthetic slot per three
-                                    // consecutive overloaded completed pairs.
-                                    gpuBudgetHoldCountdown=1u;
-                                    ++gpuBudgetGovernorTrips;
-                                    gpuBudgetOverrunStreak=0u;
-                                }
-                            } else gpuBudgetOverrunStreak=0u;
-                        }
+                        pendingPairRealGpuMs=ms;
+                        pendingPairRealAvailable=true;
                     }
-                } else realGpuMs.push_back(ms);
+                }
             } else ++gpuTimingReadFailures;
         } else ++gpuTimingReadFailures;
-        if(pendingGpuRole==1) {
+        if(gpuBudgetEnabled && role==1) {
+            if(!sampleValid || !pendingPairRealAvailable) {
+                ++gpuBudgetMissingPairs;
+                gpuBudgetOverrunStreak=0;
+            } else {
+                const double pairMs=pendingPairRealGpuMs+ms;
+                lastPairGpuMs=pairMs;
+                gpuPairMs.push_back(pairMs);
+                ++gpuBudgetProbeFrames;
+                if(pairMs>gpuBudgetMs) {
+                    ++gpuBudgetOverruns;
+                    ++gpuBudgetOverrunStreak;
+                    if(gpuBudgetOverrunStreak>=3u) {
+                        // One held synthetic slot per three
+                        // consecutive overloaded completed pairs.
+                        gpuBudgetHoldCountdown=1u;
+                        ++gpuBudgetGovernorTrips;
+                        gpuBudgetOverrunStreak=0u;
+                    }
+                } else gpuBudgetOverrunStreak=0u;
+            }
+            pendingPairRealAvailable=false;
+        }
+        if(role==1) {
             uint64_t parts[3]{};
             VkResult split=vkGetQueryPoolResults(device,gpuQueryPool,2,3,
                sizeof(parts),parts,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT);
