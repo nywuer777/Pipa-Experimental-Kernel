@@ -166,3 +166,15 @@ Conclusão limitada: este evento é **perda da enumeração do adaptador USB**, 
 Próxima coleta **somente leitura e sem manipular cabo**: fotografar estado lógico e consultar `/sys/bus/usb/devices/2-1/{authorized,bConfigurationValue,product,manufacturer,speed}` e, se existir, `/sys/bus/usb/devices/2-1.1` ou paths irmãos; consultar `dmesg | tail -n 150` e filtrar `usb|xhci|dwc3|r8152|eth0|vbus|over-current|under-voltage|ep?roto|error -71|port` para evitar perder erros do host não chamados disconnect. Não escrever sysfs, unbind/rebind, reset hub/host, mudar tensão, repetir stress físico ou flash. Se quiser comparação A/B de portas, fazer apenas em sessão física segura futura com respaldo touch e controle local.
 
 STATUS: HUB_ENUMERATED_DURING_FAILURE=YES; RTL8153_ENUMERATED_DURING_FAILURE=NO; ETH0_PRESENT=NO; ROOT_CAUSE=UNDETERMINED; RTL8153_DRIVER_PATCH=ON_HOLD; FLASH_READY=false.
+
+## EXP26: hub permanece em SuperSpeed e HID enumerado, RTL8153 ausente; VBUS 8,59 V
+
+Nova coleta Termux root durante ausência do RTL8153: hub SuperSpeed `/sys/bus/usb/devices/2-1` continua presente, idVendor=05e3, idProduct=0625, speed=5000, authorized=1, bConfigurationValue=1. `2-1.1=AUSENTE`. Relatório anterior já havia mostrado `ETH0=AUSENTE`. Isso comprova falha de enumeração downstream do hub em vez de mero link carrier=0; ainda sem causalidade determinada.
+
+Fonte `/sys/class/power_supply/usb`: online=1, present=1, voltage_now=8588922 (interpretação ABI microvolts, ~8,589 V **na entrada de alimentação reportada pela classe USB**, diferente da leitura anterior ~4,916 V com PC conectado), typec_mode='Source attached (high current)'. Estes números são de cenários elétricos diferentes; a classe USB não mede diretamente a tensão das portas downstream do hub. Não inferir sobretensão ou defeito: pode refletir acordo de carga próximo de 9V se existir carregador/PD pass-through. Obter identidade da fonte, papel Type-C e status PD antes de julgar o valor.
+
+Recorte de `dmesg` mais recente mostra enumerações de mouse 2.4GHz USB ID 32c2:0066 por `/usb1/1-1/1-1.3/` e teclado SDCINNOVATION Gaming Keyboard 36ae:fe9c por `/usb1/1-1/1-1.4/` aos 3460s. Os periféricos são enumerados no barramento USB 2.0 associado ao hub, enquanto hub 05e3:0625 continua visível na árvore USB 3 SuperSpeed. Não há no trecho filtrado mensagem contemporânea que explique a queda seletiva do RTL8153, porém o filtro `tail -n 250` do ring buffer e regex não garantem captura exaustiva.
+
+Próxima leitura segura: listar `1-1`/`1-1.3`/`1-1.4` e `2-1`/`2-1.1`, status Type-C data_role e power_role, partner supports_usb_power_delivery, `/sys/class/power_supply/usb/{online,voltage_now,real_type}` e, se disponíveis, PD properties; capturar `dmesg | grep -Ei 'usb [12]-1|xhci|dwc3|over.current|error -71|r8152' | tail -n 80` sem alterar energia. Perguntar se o carregador está ligado à entrada PD do hub; não forçar desconexões e não fazer unbind, power cycling, USB reset ou patch r8152.
+
+STATUS: HUB_USB3=ACTIVE, USB2_HID_ENUMERATED_IN_LOGS=YES, REALTEK_ENUMERATED=NO, ETH0=ABSENT, USB_SUPPLY_REPORTED=8.589V, VOLTAGE_SOURCE=UNVERIFIED, CAUSE=UNDETERMINED, FLASH_READY=false.
