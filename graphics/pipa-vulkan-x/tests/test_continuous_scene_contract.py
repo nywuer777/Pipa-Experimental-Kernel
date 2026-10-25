@@ -9,7 +9,7 @@ gradle=(p/"lab-app/app/build.gradle").read_text()
 for token in (
     "recordSourceScene(command,uint32_t(frame/2));",
     "const bool odd=(frame%2)==1;",
-    "const bool synthesized=odd && !holdInsteadOfFG;",
+    "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
     "int source=continuous?0:",
     "VkDescriptorSet sceneDescriptors[2]",
     "vkCreateComputePipelines(",
