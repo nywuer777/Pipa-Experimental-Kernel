@@ -32,8 +32,10 @@ jobs:
           /tmp/pipa-exp29-host/pipa_frame_engine_tests | tee exp29-test-results.txt
           echo "EXP29_HOST_FRAME_ENGINE=PASS; GAME_CAP_BYPASS=NOT_IMPLEMENTED; FLASH_READY=false"
 
-      - name: Install Android SDK manager
+      - name: Install Android SDK manager (no obsolete tools package)
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install pinned NDK r27c
         shell: bash
