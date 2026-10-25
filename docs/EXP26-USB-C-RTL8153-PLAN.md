@@ -414,3 +414,12 @@ Gates presentes: `EXP27_5_REAL_WINDOWS_INDEPENDENT_AUDIT=PASS`; `ANDROID_READONL
 Operador confirmou via `adb devices -l` apenas um transporte USB `6665d3e6 device product:pipa model:23043RP34G device:pipa`. Executou depois `py -3 C:\platform-tools\exp27-5-recovery-inventory.py --observe-android --serial 6665d3e6`, obtendo simultaneamente `EXP27.5_OFFLINE_INDEPENDENT_CHECK=PASS`, `EXP27.5_ANDROID_READONLY=PASS`, `ADB_TRANSPORT=USB`, `PRODUCT=pipa`, `SLOT=_b`, `BOOT_COMPLETED=1`, `KERNEL_IDENTITY=EXP25A_RECOGNIZED`, `BOOT_ID_SHORT_DIGEST=1346989d2e904e1b`. Os campos de funcionalidade `TOUCHSCREEN_FUNCTIONAL=NOT_TESTED`, `USB_PD_STABLE=NOT_TESTED` e `PHYSICAL_RECOVERY=PENDING` permanecem explicitamente sem homologação. Fonte completa e limites em `docs/EXP27-5-RECOVERY-INVENTORY.md`, commit `56ba3d73720c568a18afb225934b8d6bc9f3323b`.
 
 Status: `EXP27_RUNTIME_TEST=NOT_RUN`, `TEMP_BOOT_AUTHORIZED=false`, `FLASH_READY=false`. Não reiniciar nem desconectar USB-C/hub/energia.
+
+
+## EXP27.6 — Inventário passivo de touchscreen/USB HID e IRQ Novatek
+
+**O operador ainda não confirmou fisicamente se touchscreen e mouse respondem** à pergunta feita no fim da EXP27.5. Os resultados EXP27.5 em Android (EXP25A kernel ativo, USB ADB único, slot _b, boot concluído) não são prova de periféricos funcionais. Para continuar sem colocar o tablet em risco, foi criado `tools/exp27-6-input-readonly.py`, com enumeração somente leitura de `/proc/bus/input/devices` e snapshot da IRQ Novatek em `/proc/interrupts`, validação de EXP25A e consistência de boot_id. A leitura **não executa toques**, não prova resposta da UI, não mede delta IRQ e não acessa root nem muda USB-C/PD.
+
+CI `EXP27.6` run **40157077359 SUCCESS**, **12/12 testes sintéticos PASS**, comandos ADB restritos a `getprop` e `cat /proc/`, protegido contra múltiplos transportes e troca de boot_id. Pacote Windows `pipa-exp27-6-input-readonly-tools-1`, artifact ID **12585006817**, download: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40157077359/artifacts/12585006817. Instruções para leigos em `docs/EXP27-6-INPUT-RECOVERY-OBSERVATION.md`.
+
+Próximo gate: Windows executar `py -3 C:\platform-tools\exp27-6-input-readonly.py --serial 6665d3e6` após extrair o script do ZIP do CI. Registrar a saída e apenas posteriormente pedir confirmação física de touch/mouse, sem desconectar hub ou USB-C e sem ensaios de recuperação de boot. Estado: `EXP27_6_CI_PASS`, `EXP27_6_REAL_RUNTIME_INPUT_PENDING`, `PHYSICAL_RECOVERY=PENDING`, `TEMP_BOOT_AUTHORIZED=false`, `FLASH_READY=false`.
