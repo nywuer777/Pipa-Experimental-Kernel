@@ -1,0 +1,79 @@
+#version 450
+// EXP29.6: coarse-to-fine bounded motion search.
+// 16x16 tiles. 2-pixel coarse candidates, then a 3x3 local refinement.
+// Never changes the developer-owned Vulkan image/swapchain contract.
+layout(local_size_x=8, local_size_y=8, local_size_z=1) in;
+layout(set=0, binding=0, rgba8) uniform readonly image2D previousFrame;
+layout(set=0, binding=1, rgba8) uniform readonly image2D currentFrame;
+layout(set=0, binding=2, rgba16f) uniform writeonly image2D motionField;
+layout(push_constant) uniform Params {
+    ivec2 frameSize;
+    int searchRadius;
+    float phase;
+    float errorCutoff;
+} pc;
+
+const int TILE=16;
+const int SAMPLE_STEP=2;
+
+float tileCost(ivec2 origin, ivec2 end, ivec2 shift) {
+    if(any(lessThan(origin+shift,ivec2(0))) ||
+       any(greaterThan(end+shift,pc.frameSize))) return 1.0e30;
+    float sad=0.0;
+    for(int y=origin.y;y<end.y;y+=SAMPLE_STEP) {
+        for(int x=origin.x;x<end.x;x+=SAMPLE_STEP) {
+            vec3 a=imageLoad(previousFrame,ivec2(x,y)).rgb;
+            vec3 b=imageLoad(currentFrame,ivec2(x,y)+shift).rgb;
+            vec3 d=abs(a-b);
+            sad+=d.r+d.g+d.b;
+        }
+    }
+    return sad;
+}
+
+void main() {
+    ivec2 tile=ivec2(gl_GlobalInvocationID.xy);
+    ivec2 fieldSize=(pc.frameSize+ivec2(TILE-1))/TILE;
+    if(any(greaterThanEqual(tile,fieldSize))) return;
+    ivec2 origin=tile*TILE;
+    ivec2 end=min(origin+ivec2(TILE),pc.frameSize);
+    int radius=clamp(pc.searchRadius,0,4);
+    float best=1.0e30;
+    int bestLength2=999999;
+    ivec2 bestOffset=ivec2(0);
+    int samples=0;
+    for(int y=origin.y;y<end.y;y+=SAMPLE_STEP)
+      for(int x=origin.x;x<end.x;x+=SAMPLE_STEP) ++samples;
+
+    // Coarse grid always contains zero for all permitted radii.
+    // Odd search bounds do not need to include the last edge: the refinement
+    // covers neighboring offsets up to the radius.
+    for(int dy=-radius;dy<=radius;dy+=2) {
+      for(int dx=-radius;dx<=radius;dx+=2) {
+        ivec2 offset=ivec2(dx,dy);
+        float score=tileCost(origin,end,offset);
+        int length2=dx*dx+dy*dy;
+        if(score<best || (score==best && length2<bestLength2)) {
+            best=score;
+            bestLength2=length2;
+            bestOffset=offset;
+        }
+      }
+    }
+    ivec2 center=bestOffset;
+    for(int dy=-1;dy<=1;++dy) {
+      for(int dx=-1;dx<=1;++dx) {
+        ivec2 offset=center+ivec2(dx,dy);
+        if(any(greaterThan(abs(offset),ivec2(radius)))) continue;
+        float score=tileCost(origin,end,offset);
+        int length2=dot(offset,offset);
+        if(score<best || (score==best && length2<bestLength2)) {
+            best=score;
+            bestLength2=length2;
+            bestOffset=offset;
+        }
+      }
+    }
+    float normalizedError=best/max(1.0,3.0*float(samples));
+    imageStore(motionField,tile,vec4(vec2(bestOffset),normalizedError,1.0));
+}
