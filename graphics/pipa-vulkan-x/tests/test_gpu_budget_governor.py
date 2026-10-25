@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.29: paired GPU budget with explicit, isolated stress load."""
+"""EXP29.29: paired GPU budget on real FrameGen workload."""
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 native=(root/"lab-app/app/src/main/cpp/presenter.cpp").read_text()
@@ -10,8 +10,7 @@ for tok in (
     "gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&",
     "gpuQueryPool!=VK_NULL_HANDLE;",
     "gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;",
-    "constexpr uint32_t kGpuBudgetValidationSceneRepeatPasses=4u;",
-    \" passes stress cena=0\",
+    '" passes stress cena=0"',
 
     "pendingPairRealGpuMs=ms;",
     "pendingPairRealAvailable=true;",
