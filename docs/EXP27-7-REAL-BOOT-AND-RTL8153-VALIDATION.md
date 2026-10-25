@@ -137,3 +137,44 @@ rtt min/avg/max/mdev = 2.981/3.110/3.240/0.121 ms
 **Resultado:** `RTL8153_EXTERNAL_IPV4_REACHABILITY=PASS`, `ETH0_POLICY_DEFAULT_ROUTE=PASS`, `ICMP_PACKET_LOSS=0% (4/4)`, latência média 3.110ms. Trata-se de quatro pacotes ICMP em ~3 segundos, **não** medição de throughput ou prova de estabilidade longitudinal. A velocidade Ethernet 1000 Mb/s reportada anteriormente é negociação física de link. O driver r8152 v1.10.11 está funcional na amostra, mas não há experimento A/B controlado separando a melhoria de driver da mudança de carregador USB-C/PD registrada historicamente.
 
 **Próxima fase mínima:** teste curto de continuidade da ligação com pings baixos via eth0 e contadores de rede antes/depois, sem reiniciar, trocar alimentação, forçar suspend ou alterar sysfs. `EXP27_BOOT=PASS`; `RTL8153_USB_BIND=PASS`; `ETH0_GIGABIT_LINK=PASS`; `ETH0_IPV4=PASS`; `ETH0_EXTERNAL_ICMP=PASS`; `USB_PD_LONG_TERM_STABILITY=PENDING`; `EXP27_BENCHMARK=PENDING`; `FLASH_READY=false`.
+
+
+## EXP27.7 — Teste contínuo curto (20 ICMP + contadores de erros): PASS
+
+O operador executou no Termux root, com EXP27 ativo e `eth0` vinculada ao Realtek RTL8153 via `r8152`:
+
+```sh
+for f in rx_errors tx_errors rx_dropped tx_dropped; do
+  cat /sys/class/net/eth0/statistics/$f
+done
+ping -I eth0 -c 20 -i 1 -W 2 1.1.1.1
+for f in rx_errors tx_errors rx_dropped tx_dropped; do
+  cat /sys/class/net/eth0/statistics/$f
+done
+```
+
+**Evidência fornecida pelo operador:**
+
+```text
+ERROS ANTES:
+rx_errors=0
+tx_errors=0
+rx_dropped=0
+tx_dropped=0
+
+PING 1.1.1.1 from 192.168.1.102 eth0:
+20 packets transmitted, 20 received, 0% packet loss, time 19020ms
+rtt min/avg/max/mdev = 2.846/3.362/4.235/0.332 ms
+
+ERROS DEPOIS:
+rx_errors=0
+tx_errors=0
+rx_dropped=0
+tx_dropped=0
+```
+
+A saída individual trouxe todos os `icmp_seq=1..20`, nenhum ausente. Conclusão: **`ETH0_SHORT_CONTINUITY_20_PINGS=PASS`**, **`ETH0_RX_TX_ERRORS_DROPS_DELTA_ZERO=PASS`**. Resultado limitado a ~19 s, sem eventos de suspensão/retomada, troca de USB/PD ou desligamento. Contadores de erros zero antes/depois não demonstram desempenho de 1 Gbps nem estabilidade por dias, apenas ausência de erros visíveis nestes contadores ao longo da amostra.
+
+**Marco atingido: funcionalidade básica EXP27.1 + RTL8153 / r8152 v1.10.11 HOMOLOGADA EM HARDWARE**, incluindo boot temporário Android, USB3 5000 Mb/s, driver bind, `eth0` 1000 Mb/s, IPv4, política de rota, internet ICMP 4/4 e teste de continuidade 20/20 sem perdas ou erros/drops.
+
+**Pendentes (independentes deste marco):** throughput LAN medido com endpoint dedicado, estabilidade longa, controle/touch após suspend, confiabilidade USB-C/PD/reconexão, A/B driver antigo/novo controlado e recuperação operacional. Não gravar em partição e não induzir falhas agora. `FLASH_READY=false`.
