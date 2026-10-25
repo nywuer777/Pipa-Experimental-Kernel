@@ -1,6 +1,7 @@
 package dev.pipa.framegen.lab;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -44,7 +45,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.11", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.12", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -111,6 +112,13 @@ public final class MainActivity extends Activity {
         sparse32Tiled720.setText("SPARSE32+TILED 720p");
         controlRow(base,sparse32Adaptive720,tiled360);
         controlRow(base,tiled720,sparse32Tiled720);
+        Button presenterButton=new Button(this);
+        presenterButton.setText("Abrir Vulkan Presenter — Frames reais + gerados");
+        presenterButton.setTextSize(12);
+        presenterButton.setAllCaps(false);
+        base.addView(presenterButton,new LinearLayout.LayoutParams(-1,dp(46)));
+        presenterButton.setOnClickListener(v->
+            startActivity(new Intent(this,PresenterActivity.class)));
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
