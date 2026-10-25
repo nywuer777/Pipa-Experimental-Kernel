@@ -222,10 +222,11 @@ void rgbaFromArgb(const std::vector<jint>& argb,uint8_t* dest) {
 extern "C" JNIEXPORT jintArray JNICALL
 Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
     JNIEnv* env,jobject,jintArray past,jintArray now,jint width,jint height,
-    jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions) {
+    jbyteArray motionShader,jbyteArray interpolateShader,jint repetitions,jint motionVariant) {
     try {
         ensure(past && now && width>0 && height>0 && width<=1024 && height<=1024,
                "Dimensoes/arrays invalidos");
+        ensure(motionVariant>=0 && motionVariant<=2,"Unknown motion variant");
         ensure(repetitions==1 || repetitions==9 || repetitions==33,
                "Repeticoes validas: 1, 9 (1+8) ou 33 (1+32)");
         const size_t count=size_t(width)*size_t(height);
@@ -252,8 +253,10 @@ Java_dev_pipa_framegen_lab_MainActivity_nativeGenerate(
         rgbaFromArgb(previous,data);
         rgbaFromArgb(current,data+nbytes);
         vkUnmapMemory(lab.device,lab.stagingMemory);
-        const int create=pipa_framegen_vk_create(lab.physical,lab.device,
-            motion.data(),motion.size()*4,interp.data(),interp.size()*4,&lab.engine);
+        const uint32_t flags=motionVariant==2 ?
+            PIPA_FRAMEGEN_VK_MOTION_GROUP_PER_TILE : 0u;
+        const int create=pipa_framegen_vk_create_ex(lab.physical,lab.device,
+            motion.data(),motion.size()*4,interp.data(),interp.size()*4,flags,&lab.engine);
         ensure(create==0,("Nao foi possivel criar pipeline FrameGen Vulkan (ret="+std::to_string(create)+")").c_str());
 
         VkCommandBufferAllocateInfo alloc{};
