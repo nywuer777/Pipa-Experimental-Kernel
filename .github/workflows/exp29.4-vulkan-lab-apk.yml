@@ -34,6 +34,7 @@ jobs:
             spirv-val --target-env vulkan1.1 "$output"
           done
           python3 graphics/pipa-vulkan-x/tests/test_vk_contract.py
+          python3 graphics/pipa-vulkan-x/tests/test_lab_contract.py
           sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.4-shader-sha256.txt
 
       - name: Android SDK setup
