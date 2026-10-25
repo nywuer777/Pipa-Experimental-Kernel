@@ -163,13 +163,13 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                        boolean v2,boolean stress) {
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
+        final boolean alignWithDisplay=syncDisplay.isChecked();
         status.setText((alignWithDisplay?"SYNC WSI ":"FIXED 144 ")+
               (stress?"STRESS 10s ":"TESTE CURTO ")+
               (v2?"CENA V2 ":diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
               (holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
               " Hz | tela "+displayHz()+" Hz | criando Vulkan...");
         final Surface surface=surfaceView.getHolder().getSurface();
-        final boolean alignWithDisplay=syncDisplay!=null && syncDisplay.isChecked();
         new Thread(()->{
             String result;
             try {
