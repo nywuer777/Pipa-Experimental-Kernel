@@ -1,12 +1,12 @@
-name: Pipa EXP29.28 - Explicit Vulkan Present Trace APK (NO FLASH)
+name: Pipa EXP29.28 - Vulkan Suboptimal WSI Probe APK (NO FLASH)
 # This job builds the app-scoped layer, verifies its APK artifact, and runs the EXP29.28 contract.
 
 on:
   push:
-    branches: [exp29.28-vulkan-present-layer]
+    branches: [exp29.27-vulkan-present-layer]
     paths:
       - "graphics/pipa-vulkan-x/**"
-      - ".github/workflows/exp29.28-vulkan-present-layer-apk.yml"
+      - ".github/workflows/exp29.27-vulkan-present-layer-apk.yml"
   pull_request:
     branches: [main]
     paths:
@@ -71,14 +71,14 @@ jobs:
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           sha256sum "$APK" | tee exp29.28-apk-sha256.txt
-          echo "EXP29_27_SUBOPTIMAL_WSI_PROBE_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.28-status.txt
+          echo "EXP29_28_SUBOPTIMAL_WSI_PROBE_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.28-status.txt
           echo "NO_KERNEL_FLASH=true" | tee -a exp29.28-status.txt
 
       - name: Publish APK and build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pipa-exp29-28-vulkan-present-layer-${{ github.run_number }}
+          name: pipa-exp29-28-suboptimal-wsi-probe-${{ github.run_number }}
           path: |
             graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk
             graphics/pipa-vulkan-x/lab-app/gradlew
