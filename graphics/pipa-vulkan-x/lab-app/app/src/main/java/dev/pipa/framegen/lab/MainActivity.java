@@ -26,8 +26,8 @@ public final class MainActivity extends Activity {
 
     private TextView status;
     private ImageView result;
-    private Button run, benchmark, fastButton, largeButton;
-    private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions);
+    private Button run, benchmark, fastButton, largeButton, parallelSmall, parallelLarge;
+    private native int[] nativeGenerate(int[] a, int[] b, int width, int height, byte[] motion, byte[] interp, int repetitions, int motionVariant);
     private native String nativeReport();
 
     @Override public void onCreate(Bundle state) {
@@ -41,7 +41,7 @@ public final class MainActivity extends Activity {
         base.setOrientation(LinearLayout.VERTICAL);
         base.setPadding(dp(24),dp(14),dp(24),dp(22));
         outer.addView(base);
-        TextView title = label("PIPA FRAMEGEN  /  EXP29.6", 23, Color.WHITE);
+        TextView title = label("PIPA FRAMEGEN  /  EXP29.7", 23, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         base.addView(title);
         base.addView(label("Vulkan Compute • teste offscreen • Adreno 650 / Android ARM64",13,0xffaaaaaf));
@@ -64,6 +64,14 @@ public final class MainActivity extends Activity {
         largeButton.setAllCaps(false);
         largeButton.setText("Benchmark FAST 640×360 (8 amostras)");
         base.addView(largeButton,new LinearLayout.LayoutParams(-1,dp(52)));
+        parallelSmall=new Button(this);
+        parallelSmall.setAllCaps(false);
+        parallelSmall.setText("Benchmark PARALLEL 256×128 (32 amostras)");
+        base.addView(parallelSmall,new LinearLayout.LayoutParams(-1,dp(52)));
+        parallelLarge=new Button(this);
+        parallelLarge.setAllCaps(false);
+        parallelLarge.setText("Benchmark PARALLEL 640×360 (8 amostras)");
+        base.addView(parallelLarge,new LinearLayout.LayoutParams(-1,dp(52)));
         LinearLayout pictures=new LinearLayout(this);
         pictures.setOrientation(LinearLayout.HORIZONTAL);
         pictures.setPadding(0,dp(12),0,0);
@@ -81,10 +89,12 @@ public final class MainActivity extends Activity {
         result.setBackgroundColor(0xff242428);
         generated.addView(result,new LinearLayout.LayoutParams(-1,dp(160)));
         base.addView(label("GPU: timestamps individuais de Motion, Warp+barreira e total. Comparação legado vs FAST; medições offscreen, não FPS físicos. Os painéis A/B exibem a referência 256×128.",12,0xff9999a5));
-        run.setOnClickListener(v->runTest(1,false,256,128));
-        benchmark.setOnClickListener(v->runTest(33,false,256,128));
-        fastButton.setOnClickListener(v->runTest(33,true,256,128));
-        largeButton.setOnClickListener(v->runTest(9,true,640,360));
+        run.setOnClickListener(v->runTest(1,0,256,128));
+        benchmark.setOnClickListener(v->runTest(33,0,256,128));
+        fastButton.setOnClickListener(v->runTest(33,1,256,128));
+        largeButton.setOnClickListener(v->runTest(9,1,640,360));
+        parallelSmall.setOnClickListener(v->runTest(33,2,256,128));
+        parallelLarge.setOnClickListener(v->runTest(9,2,640,360));
         setContentView(outer);
     }
 
@@ -163,15 +173,18 @@ public final class MainActivity extends Activity {
     private void enableControls(boolean enabled) {
         run.setEnabled(enabled); benchmark.setEnabled(enabled);
         fastButton.setEnabled(enabled); largeButton.setEnabled(enabled);
+        parallelSmall.setEnabled(enabled); parallelLarge.setEnabled(enabled);
     }
 
-    private void runTest(int repetitions,boolean fast,int width,int height) {
+    private void runTest(int repetitions,int motionVariant,int width,int height) {
         enableControls(false);
-        final String label=(fast?"FAST":"LEGACY")+" "+width+"×"+height;
+        final String label=(motionVariant==2?"PARALLEL":motionVariant==1?"FAST":"LEGACY")+
+            " "+width+"×"+height;
         status.setText("GPU: preparando "+label+" ("+repetitions+" passagens)...");
         new Thread(()->{
             try {
-                byte[] motion=shader(fast?"pipa_motion_fast.comp.spv":"pipa_motion.comp.spv");
+                byte[] motion=shader(motionVariant==2?"pipa_motion_parallel.comp.spv":
+                    motionVariant==1?"pipa_motion_fast.comp.spv":"pipa_motion.comp.spv");
                 byte[] interp=shader("pipa_interpolate.comp.spv");
                 int[] previous=width==W && height==H ?
                     PREVIOUS : buildFrame(0,width,height);
@@ -179,7 +192,7 @@ public final class MainActivity extends Activity {
                     CURRENT : buildFrame(2,width,height);
                 long start=SystemClock.elapsedRealtimeNanos();
                 int[] pixels=nativeGenerate(previous,current,width,height,
-                                            motion,interp,repetitions);
+                                            motion,interp,repetitions,motionVariant);
                 double totalMs=(SystemClock.elapsedRealtimeNanos()-start)/1000000.0;
                 String report=nativeReport();
                 final String quality=pixels!=null && pixels.length==width*height ?
