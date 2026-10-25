@@ -28,14 +28,14 @@ for token in (
 for token in (
  "identity3d.setChecked(true);",
  "scene3d && identity3d.isChecked();",
- "boolean preferIdentity3d);",
- "scene3d,preferIdentity3d);",
+ "boolean preferIdentity3d, boolean gpuBudgetGuard);",
+ "scene3d,preferIdentity3d,adaptiveGuard);",
  "scene3dHold.setOnClickListener(",
  "scene3dFg.setOnClickListener(",
  "Motion FAST",
  "SYNC experimental",
 ): assert token in j,token
-assert "versionCode 313" in gradle and "29.23-lab" in gradle
+assert "versionCode 314" in gradle and "29.24-lab" in gradle
 # The fallback to currentTransform is mandatory on a surface that does
 # not support identity. Do not attempt unsupported swapchain transforms.
 assert "sci.preTransform=caps.currentTransform;" not in c
