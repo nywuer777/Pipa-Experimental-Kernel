@@ -400,3 +400,10 @@ Modo padrão **100% offline**, sem ADB, com um comando `py -3 C:\platform-tools\
 GitHub Actions run [40156271942](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40156271942) concluiu **success**, testes sintéticos **12/12 PASS**; source-only ZIP do Windows `pipa-exp27-5-windows-safe-audit-1`, artifact ID `12584119676`: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/40156271942/artifacts/12584119676 . Documentação `docs/EXP27-5-RECOVERY-INVENTORY.md`.
 
 **Gates:** `EXP27_5_CI_SYNTHETIC=PASS`, `EXP27_5_REAL_WINDOWS_INDEPENDENT_AUDIT=PENDING`, `EXP27_5_ANDROID_READONLY=NOT_REQUESTED`, `PHYSICAL_RECOVERY=PENDING`, `EXP27_RUNTIME_BOOT=NOT_TESTED`, `TEMP_BOOT_AUTHORIZED=false`, `FLASH_READY=false`. Preservar EXP25A e alimentação USB-C funcional. Nenhum boot/flash/reconnect foi realizado.
+
+
+### Resultado Windows EXP27.5 — auditoria independente PASS
+
+Operador confirmou no PowerShell que `py -3 C:\platform-tools\exp27-5-recovery-inventory.py` retornou `EXP27.5_OFFLINE_INDEPENDENT_CHECK=PASS`, `BOOT_V3_HEADERS_AND_RAMDISK=PASS` e `CANDIDATE_IMAGE_CI_BYTE_MATCH=PASS`. Hash EXP27.4 revalidado: `df9eb41441770035849e95a6e54ccc110357d5c171a06758cc2df60a192a01d7` (32.411.648 bytes). A auditoria é independente do empacotador e usa o ZIP CI EXP27.1; a observação Android **não** foi solicitada. Detalhes em `docs/EXP27-5-RECOVERY-INVENTORY.md`, commit `ca721eaca73a0fd8b566ee2077af9e445c86c394`.
+
+Gates presentes: `EXP27_5_REAL_WINDOWS_INDEPENDENT_AUDIT=PASS`; `ANDROID_READONLY=NOT_REQUESTED`; `PHYSICAL_RECOVERY=PENDING`; `TEMP_BOOT_AUTHORIZED=false`; `FLASH_READY=false`. Preservar sessão EXP25A, alimentação estável, hub e controle do tablet. **Sem fastboot/reboot/flash**.
