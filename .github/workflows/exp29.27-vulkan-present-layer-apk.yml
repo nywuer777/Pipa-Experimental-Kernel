@@ -1,5 +1,5 @@
-name: Pipa EXP29.29 - Real-Load GPU Guard APK (NO FLASH)
-# Builds EXP29.29 and verifies the real-load GPU Guard source contract.
+name: Pipa EXP29.30 - WSI-Sync Default APK (NO FLASH)
+# Builds EXP29.30 and verifies WSI timing and CPU pacing source contracts.
 
 on:
   push:
@@ -11,14 +11,14 @@ on:
     branches: [main]
     paths:
       - "graphics/pipa-vulkan-x/**"
-      - ".github/workflows/exp29.29-vulkan-present-layer-apk.yml"
+      - ".github/workflows/exp29.30-vulkan-present-layer-apk.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: pipa-exp29-29-${{ github.ref }}
+  group: pipa-exp29-30-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -41,7 +41,9 @@ jobs:
           done
           python3 graphics/pipa-vulkan-x/tests/test_vulkan_layer_contract.py
           python3 graphics/pipa-vulkan-x/tests/test_gpu_budget_governor.py
-          sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.29-shader-sha256.txt
+          python3 graphics/pipa-vulkan-x/tests/test_cpu_pacing_audit.py
+          python3 graphics/pipa-vulkan-x/tests/test_display_timing_contract.py
+          sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.30-shader-sha256.txt
 
       - name: Android SDK setup
         uses: android-actions/setup-android@v3
@@ -67,19 +69,19 @@ jobs:
       - name: Assemble and verify lab APK
         run: |
           set -euo pipefail
-          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app :app:assembleDebug 2>&1 | tee exp29.29-gradle-build.log
+          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app :app:assembleDebug 2>&1 | tee exp29.30-gradle-build.log
           APK="graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          sha256sum "$APK" | tee exp29.29-apk-sha256.txt
-          echo "EXP29_29_REAL_LOAD_GPU_GUARD_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.29-status.txt
-          echo "NO_KERNEL_FLASH=true" | tee -a exp29.29-status.txt
+          sha256sum "$APK" | tee exp29.30-apk-sha256.txt
+          echo "EXP29_30_WSI_SYNC_DEFAULT_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.30-status.txt
+          echo "NO_KERNEL_FLASH=true" | tee -a exp29.30-status.txt
 
       - name: Publish APK and build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pipa-exp29-29-real-load-gpu-guard-${{ github.run_number }}
+          name: pipa-exp29-30-wsi-sync-default-${{ github.run_number }}
           path: |
             graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk
             graphics/pipa-vulkan-x/lab-app/gradlew
@@ -87,9 +89,9 @@ jobs:
             graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.jar
             graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.properties
             graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*
-            exp29.29-shader-sha256.txt
-            exp29.29-apk-sha256.txt
-            exp29.29-gradle-build.log
-            exp29.29-status.txt
+            exp29.30-shader-sha256.txt
+            exp29.30-apk-sha256.txt
+            exp29.30-gradle-build.log
+            exp29.30-status.txt
           if-no-files-found: warn
           retention-days: 14
