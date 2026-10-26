@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <dlfcn.h>
+#include <functional>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -916,7 +917,7 @@ struct Presenter {
     }
     int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,
             bool alignWithDisplay,int motionRadius,bool fit3dAspect,
-            bool enableGpuBudget) {
+            bool enableGpuBudget,const std::function<void(int)>& progress) {
         recordedMotionRadius=motionRadius;
         fitAspect=fit3dAspect;
         const double fitScale=std::min(double(extent.width)/double(kWidth),
@@ -943,6 +944,7 @@ struct Presenter {
         // Reserve 15% margin for other GPU work before shedding FG slots.
         gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;
         const auto interval=std::chrono::nanoseconds(selectedPacingPeriodNs);
+        if(progress)progress(0);
         for(int frame=0;frame<requested && !g_stop.load();++frame) {
             auto deadline=start+interval*frame;
             const auto beforeSleep=std::chrono::steady_clock::now();
@@ -1149,6 +1151,7 @@ struct Presenter {
             else if(synthesized)++sceneGeneratedSubmitted;
             else ++sceneRealSubmitted;
             if((frame%8)==7) collectTiming();
+            if(progress && (frame+1)%120==0)progress(frame+1);
         }
         check(vkQueueWaitIdle(queue),"Wait present queue idle");
         harvestGpuTimestamps();
@@ -1166,7 +1169,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativeStop(JNIEnv*,jobject) {
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
-    JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
+    JNIEnv* env,jobject activity,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
     jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius,
     jboolean fit3dAspectMode,jboolean preferIdentity3dMode,
@@ -1177,6 +1180,20 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     g_stop.store(false);
     std::string result;
     try {
+        jclass activityClass=env->GetObjectClass(activity);
+        expect(activityClass!=nullptr,"Get PresenterActivity class failed");
+        jmethodID diagnosticMethod=env->GetMethodID(activityClass,"nativeDiagnostic",
+                                                     "(Ljava/lang/String;)V");
+        expect(diagnosticMethod!=nullptr,"Find nativeDiagnostic callback failed");
+        auto diagnostic=[&](const std::string& stage) {
+            jstring value=env->NewStringUTF(stage.c_str());
+            if(value) {
+                env->CallVoidMethod(activity,diagnosticMethod,value);
+                env->DeleteLocalRef(value);
+            }
+            if(env->ExceptionCheck())env->ExceptionClear();
+        };
+        diagnostic("NATIVE_ENTER");
         expect(targetHz==60 || targetHz==120 || targetHz==144,"Invalid targetHz");
         expect(frames>0 && frames<=2400,"Invalid frame count");
         expect(motionRadius==3 || motionRadius==4,"Invalid Motion radius");
@@ -1188,13 +1205,18 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         if(continuous) scene=shaderBytes(env,sceneShader);
         Presenter p;
         auto t0=std::chrono::steady_clock::now();
+        diagnostic("NATIVE_INIT_BEGIN");
         p.init(env,surface,motion,warp,scene,continuous,
                fit3dAspectMode==JNI_TRUE && preferIdentity3dMode==JNI_TRUE);
         auto t1=std::chrono::steady_clock::now();
+        diagnostic("NATIVE_INIT_DONE");
         int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
                          alignWithDisplayMode==JNI_TRUE,int(motionRadius),
                          fit3dAspectMode==JNI_TRUE,
-                         gpuBudgetMode==JNI_TRUE);
+                         gpuBudgetMode==JNI_TRUE,[&](int frame) {
+                             diagnostic("NATIVE_FRAME="+std::to_string(frame));
+                         });
+        diagnostic("NATIVE_RUN_DONE queued="+std::to_string(queued));
         // run() drains the queue; release now so the opt-in layer can report
         // a complete create/destroy lifecycle before the summary is formed.
         p.releaseSwapchainForProbe();

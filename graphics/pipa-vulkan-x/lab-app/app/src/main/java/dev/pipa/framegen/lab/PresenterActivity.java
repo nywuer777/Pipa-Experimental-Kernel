@@ -188,6 +188,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
             out.getFD().sync();
         } catch(Exception ignored) { }
     }
+    private void nativeDiagnostic(String stage) { logDiagnostic(stage); }
     private String readDiagnostic() {
         try {
             byte[] bytes=java.nio.file.Files.readAllBytes(diagnosticFile().toPath());
