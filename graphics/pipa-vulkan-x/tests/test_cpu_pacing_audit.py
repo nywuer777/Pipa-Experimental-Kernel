@@ -29,7 +29,9 @@ for token in (
     "maior sequencia atrasada=",
     "p.run(targetHz,frames,continuous,holdInsteadOfFG,",
     "jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode",
-    "p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()",
+    "result+=p.gpuTimingSummary();",
+    "result+=p.cpuPacingSummary();",
+    "result+=p.timingSummary();",
     "VK_GOOGLE_display_timing",
     "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
 ): assert token in cpp,token

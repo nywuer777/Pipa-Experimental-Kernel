@@ -23,7 +23,9 @@ for token in (
     "fit3dAspectMode==JNI_TRUE",
     '" | FIT 16:9="',
     '" | viewport destino="',
-    "p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()",
+    "result+=p.gpuTimingSummary();",
+    "result+=p.cpuPacingSummary();",
+    "result+=p.timingSummary();",
 ): assert token in native,token
 for token in (
     "EXP29.25 - PAIR BUDGET GOVERNOR",
