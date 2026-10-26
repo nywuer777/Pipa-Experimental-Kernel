@@ -105,7 +105,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         syncDisplay.setText("SYNC experimental: usar periodo Vulkan WSI do monitor (144 Hz)");
         syncDisplay.setTextColor(0xffdde4ee);
         syncDisplay.setTextSize(12);
-        syncDisplay.setChecked(false); // inherited FIXED_REQUEST is the control.
+        syncDisplay.setChecked(true); // EXP29.30: prefer the measured WSI period at 144 Hz.
         LinearLayout timingControls=new LinearLayout(this);
         timingControls.setOrientation(LinearLayout.HORIZONTAL);
         timingControls.addView(syncDisplay,new LinearLayout.LayoutParams(0,dp(44),3));
