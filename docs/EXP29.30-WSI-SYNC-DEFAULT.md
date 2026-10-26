@@ -21,6 +21,7 @@ Make **SYNC experimental: usar período Vulkan WSI do monitor (144 Hz)** checked
 ## Device validation
 
 On the Xiaomi Pad 6, use **3D 10s FrameGen 72→144**, keep **GPU GUARD PAR 85%** off, **Motion FAST experimental** off, and **3D IDENTITY WSI** on. Compare one run with **SYNC experimental** checked and one unchecked; repeat in reverse order. Confirm the report says `CPU pacing=WSI_SYNC` when checked and `FIXED_REQUEST` when unchecked. Compare late starts, WSI interval tails, reported cadence, and GPU generated+blit cost. This remains app-only; no kernel flash.
+
 ## Xiaomi Pad 6 A/B (31746–31747; 21:36; battery 69%)
 
 Both captures used **3D 10s FrameGen 72→144**, **GPU GUARD PAR 85%** off, **Motion FAST experimental** off (radius 4), and **3D IDENTITY WSI** on. Only **SYNC experimental** changed.
@@ -32,4 +33,19 @@ Both captures used **3D 10s FrameGen 72→144**, **GPU GUARD PAR 85%** off, **Mo
 
 Both runs have similar reported WSI cadence and one long interval each. WSI_SYNC reduced the CPU late-start count from 7 to 0 in this paired run without reducing the number of generated frames. This supports the EXP29.30 default for CPU pacing; it does not show a change in physical scanout rate or prove lower touch-to-photon latency. Generated+blit mean/p95 was 5.853205/6.248125 ms with WSI_SYNC and 6.141542/6.233698 ms with FIXED_REQUEST; these are GPU timestamps, not scanout measurements.
 
-Decision: retain WSI_SYNC as the default candidate for 144 Hz. The A/B validates the scheduler counter on this run; leave the option available for controlled comparisons. EXP29.30 remains the current APK; no code change is indicated by these captures.
+## Xiaomi Pad 6 A/B follow-up (31749–31750; 22:09–22:10; battery 55%)
+
+Both screenshots show **3D 10s FrameGen 72→144**, **GPU GUARD PAR 85%** off, **Motion FAST experimental** off (radius 4), and **3D IDENTITY WSI** on. Each reports 1,440 accepted presents (720 real, 720 interpolated, 0 repeated). The screenshots are timestamped with SYNC on at 22:09 (31749), then off at 22:10 (31750); this is the same visible run order as the prior pair, not the requested off-then-on order.
+
+| Capture | SYNC experimental | CPU pacing | WSI cadence and intervals | Generated+blit |
+|---|---|---|---|---|
+| 31749 | On | WSI_SYNC 6.957795 ms; 0/1,440 starts over one period | 143.460312 Hz; mean 6.970569 ms; long 1/410 | mean 5.772421 ms; p95 6.210208 ms |
+| 31750 | Off | FIXED_REQUEST 6.944444 ms; 3/1,440 starts over one period, all inherited before sleep; max streak 2 | 143.326707 Hz; mean 6.977067 ms; long 1/361 | mean 6.134894 ms; p95 6.465937 ms |
+
+This pair again shows the same direction in the CPU pacing counter (0 vs. 3 late starts), with 720 generated frames in both runs and similar reported WSI cadence. It adds evidence for the WSI_SYNC default, but the order was not reversed, so it does not control for run order. The GPU measurements are separate runs and do not establish a causal performance difference.
+
+### Separate WSI transform diagnostic
+
+Both captures report `topSuboptimal=1440`, `perSwapchainSuboptimal=1440`, `resultMismatch=0`, and `errors=0`. They also report `IDENTITY ativa=1`, `currentTransform=2`, `selectedPreTransform=1`, and surface extent 2844×646. This is a distinct WSI status diagnostic; it is not evidence that SYNC caused the result, and it does not indicate a Vulkan present error. Investigate why the app receives SUBOPTIMAL on every present while the identity transform is active before drawing further conclusions about swapchain status.
+
+Decision: retain WSI_SYNC as the default candidate for 144 Hz. The pacing counter has shown 0 late starts with WSI_SYNC in both reported pairs versus 7 and 3 with FIXED_REQUEST, while generated-frame counts and sampled WSI tails remain comparable. Keep the option available. The latest captures require no APK code change; EXP29.30 remains the current APK. No kernel flash.
