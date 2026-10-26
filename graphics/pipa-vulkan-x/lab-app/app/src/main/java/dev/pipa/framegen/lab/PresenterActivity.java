@@ -5,6 +5,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.Surface;
@@ -21,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class PresenterActivity extends Activity implements SurfaceHolder.Callback {
     static { System.loadLibrary("pipa_lab"); }
@@ -30,6 +32,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                                         boolean preferIdentity3d, boolean gpuBudgetGuard);
     private native void nativeStop();
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicInteger peakThermalStatus = new AtomicInteger(PowerManager.THERMAL_STATUS_NONE);
+    private PowerManager powerManager;
+    private final PowerManager.OnThermalStatusChangedListener thermalStatusListener =
+        value -> peakThermalStatus.accumulateAndGet(value, Math::max);
     private volatile boolean validSurface = false;
     private SurfaceView surfaceView;
     private CheckBox syncDisplay, fastMotion, identity3d, gpuBudgetGuard;
@@ -43,7 +49,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.39 - WSI OBSERVED SPAN", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.40 - THERMAL TRACE", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
         root.addView(text("Vulkan FIFO 720p | WSI SYNC | testes 3D de 10s e 60s",13,0xffbbbbc2));
@@ -146,8 +152,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.39: escolha explicitamente 3D 10s ou 3D 60s. O relatório informa a janela temporal coberta pelos timestamps WSI. Compare HOLD e FrameGen com o mesmo raio e SYNC. IDENTITY e FIT 16:9 preservados. Cena 3D analitica Vulkan Compute, nao e jogo externo. Chamadas vkQueuePresentKHR nao provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
+        root.addView(text("EXP29.40: relatório inclui estado térmico Android no início, pico e fim do teste. Escolha 3D 10s ou 3D 60s; janela WSI, geometria, cena e controles preservados. Cena analítica Vulkan Compute, não é jogo externo. Timestamps WSI são reportados pelo driver e não medem fótons.",12,0xff9b9ba7));
         setContentView(root);
+        powerManager=(PowerManager)getSystemService(Context.POWER_SERVICE);
+        if(powerManager!=null)powerManager.addThermalStatusListener(thermalStatusListener);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));
         start144.setOnClickListener(v->start(144));
@@ -180,6 +188,22 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     private String displayHz() {
         if(getDisplay()==null)return "indisponível";
         return String.format(java.util.Locale.US,"%.2f",getDisplay().getRefreshRate());
+    }
+    private int currentThermalStatus() {
+        return powerManager==null?PowerManager.THERMAL_STATUS_NONE:
+               powerManager.getCurrentThermalStatus();
+    }
+    private static String thermalName(int status) {
+        switch(status) {
+            case PowerManager.THERMAL_STATUS_NONE:return "NONE";
+            case PowerManager.THERMAL_STATUS_LIGHT:return "LIGHT";
+            case PowerManager.THERMAL_STATUS_MODERATE:return "MODERATE";
+            case PowerManager.THERMAL_STATUS_SEVERE:return "SEVERE";
+            case PowerManager.THERMAL_STATUS_CRITICAL:return "CRITICAL";
+            case PowerManager.THERMAL_STATUS_EMERGENCY:return "EMERGENCY";
+            case PowerManager.THERMAL_STATUS_SHUTDOWN:return "SHUTDOWN";
+            default:return "UNKNOWN_"+status;
+        }
     }
     private TextView text(String value,int sp,int color) {
         TextView t=new TextView(this);
@@ -266,6 +290,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         final boolean preferIdentity3d=scene3d && identity3d.isChecked();
         final boolean adaptiveGuard=scene3d && continuous && !holdInsteadOfFG &&
                                     gpuBudgetGuard.isChecked();
+        final int thermalStart=currentThermalStatus();
+        peakThermalStatus.set(thermalStart);
         logDiagnostic("RUN_START hz="+hz+" continuous="+continuous+" hold="+
             holdInsteadOfFG+" stress="+stress+" scene3d="+scene3d+" sync="+
             alignWithDisplay+" guard="+adaptiveGuard+" frames="+requestedFrames);
@@ -293,6 +319,9 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
                 logDiagnostic("RUN_EXCEPTION "+result);
             }
+            final int thermalEnd=currentThermalStatus();
+            peakThermalStatus.accumulateAndGet(thermalEnd,Math::max);
+            final int thermalPeak=peakThermalStatus.get();
             logDiagnostic("RUN_END "+result);
             final String finalResult=result+(scene3d?
                 " | FONTE=3D raycast perspectiva e oclusao":
@@ -300,7 +329,9 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                 " | FONTE=V2 tileable sem clamp":
                 diagnostic?" | FONTE=DIAGNOSTICA quadrantes solidos; sem ruido":
                 " | FONTE=PROCEDURAL antiga")+
-                " | alvo="+(requestedFrames/hz)+"s presentsSolicitados="+requestedFrames;
+                " | alvo="+(requestedFrames/hz)+"s presentsSolicitados="+requestedFrames+
+                " | thermal Android início="+thermalName(thermalStart)+
+                " pico="+thermalName(thermalPeak)+" fim="+thermalName(thermalEnd);
             running.set(false);
             runOnUiThread(()->{
                 status.setText(finalResult+"\nTela Android informa "+displayHz()+" Hz.");
@@ -335,5 +366,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     @Override protected void onStop() {
         logDiagnostic("ACTIVITY_STOP running="+running.get());
         super.onStop();
+    }
+
+    @Override protected void onDestroy() {
+        if(powerManager!=null)powerManager.removeThermalStatusListener(thermalStatusListener);
+        super.onDestroy();
     }
 }

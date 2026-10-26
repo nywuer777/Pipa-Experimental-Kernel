@@ -46,9 +46,12 @@ for token in (
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "copyReport.setOnClickListener(v->",
     "ClipboardManager clipboard=",
+    "thermal Android início=",
+    "addThermalStatusListener(thermalStatusListener)",
+    "peakThermalStatus.accumulateAndGet(value, Math::max)",
 ): assert token in ui,token
 assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
-assert "versionCode 329" in gradle and "29.39-wsi-observed-span" in gradle
+assert "versionCode 330" in gradle and "29.40-thermal-trace" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.

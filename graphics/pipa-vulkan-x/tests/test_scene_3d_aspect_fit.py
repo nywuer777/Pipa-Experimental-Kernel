@@ -28,7 +28,7 @@ for token in (
     "result+=p.timingSummary();",
 ): assert token in native,token
 for token in (
-    "EXP29.39 - WSI OBSERVED SPAN",
+    "EXP29.40 - THERMAL TRACE",
     "boolean alignWithDisplay, int motionRadius, boolean fit3dAspect,",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "scene3dHold.setOnClickListener(",
