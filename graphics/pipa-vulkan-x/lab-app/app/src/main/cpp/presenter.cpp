@@ -1203,6 +1203,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         const bool holdInsteadOfFG=continuous && holdInsteadOfFGMode==JNI_TRUE;
         std::vector<uint32_t> scene;
         if(continuous) scene=shaderBytes(env,sceneShader);
+        {
         Presenter p;
         auto t0=std::chrono::steady_clock::now();
         diagnostic("NATIVE_INIT_BEGIN");
@@ -1219,7 +1220,9 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         diagnostic("NATIVE_RUN_DONE queued="+std::to_string(queued));
         // run() drains the queue; release now so the opt-in layer can report
         // a complete create/destroy lifecycle before the summary is formed.
+        diagnostic("NATIVE_SWAPCHAIN_DESTROY_BEGIN");
         p.releaseSwapchainForProbe();
+        diagnostic("NATIVE_SWAPCHAIN_DESTROY_DONE");
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -1261,6 +1264,11 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           p.surfaceDiagnosticSummary()+
           p.traceLayerSummary()+
           " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
+        diagnostic("NATIVE_SUMMARY_DONE");
+        diagnostic("NATIVE_CLEANUP_BEGIN");
+        }
+        diagnostic("NATIVE_CLEANUP_DONE");
+        diagnostic("NATIVE_RETURN_PREP");
     } catch(const std::exception& e) {
         result=std::string("EXP29.27 Vulkan presenter: ")+e.what();
     }

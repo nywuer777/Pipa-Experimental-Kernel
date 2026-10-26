@@ -55,7 +55,7 @@ for tok in (
 ): assert tok in ui,tok
 assert "realGpuMs.back()+ms" not in native
 # Source contracts track the real-load governor build.
-assert "versionCode 323" in gradle and "29.33-native-progress" in gradle
+assert "versionCode 324" in gradle and "29.34-native-cleanup" in gradle
 
 # Pure deterministic policy model (not Android device timing).
 def control(pair_costs, limit=11.83):
