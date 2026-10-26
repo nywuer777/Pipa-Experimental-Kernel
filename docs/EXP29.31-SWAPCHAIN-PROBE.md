@@ -28,3 +28,11 @@ The exact image count and lifetime counts are driver/window lifecycle dependent;
 This probe proves only that the layer can observe the controlled app's swapchain lifecycle. It does not read pixels, synthesize frames inside the layer, load into unrelated apps, replace a Vulkan driver, or modify the kernel. The next gate is to acquire a safe, app-owned source image and validate a read-only copy with correct Vulkan synchronization before a layer-owned compute pass is attempted.
 
 No kernel flash. Hardware execution remains pending until the APK is run on device.
+
+
+## Build artifact
+
+- GitHub Actions run #64: source contracts passed, APK assembly succeeded, and `apksigner verify --verbose` succeeded.
+- Android version: `29.31-swapchain-probe` (`versionCode 321`).
+- APK SHA-256: `f57e8e34846299819ef8a218e6ffd664b740920b460582c5f023427e75614119`.
+- Built for arm64-v8a; standalone lab APK only; not tested on device yet.
