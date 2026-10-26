@@ -23,3 +23,15 @@ presenter.cpp added four diagnostic scene recomputes whenever the GPU Guard was 
 ## Device validation
 
 Install this APK and run **3D 10s FrameGen 72→144** with **GPU GUARD PAR 85%: HOLD após 3 pares GPU acima do teto** enabled, keeping **SYNC experimental** off and the other two checkboxes as in 31740. Confirm the report shows passes stress cena=0, then compare generated/repeated counts, CPU late starts, pair GPU timings, and WSI intervals with the guard unchecked. Repeat in reverse order. This is an app-only experiment; it does not modify or flash the kernel.
+## Xiaomi Pad 6 validation (31743–31744; 21:25–21:26)
+
+Both EXP29.29 runs used **3D 10s FrameGen 72→144**, **SYNC experimental** off, **Motion FAST experimental** off (radius 4), and **3D IDENTITY WSI** on. Only **GPU GUARD PAR 85%** changed.
+
+| Capture | GPU Guard | Frames | GPU pair and fallback | CPU pacing | WSI cadence |
+|---|---|---|---|---|---|
+| 31743 | On | 720 real, 719 interpolated, 1 repeated | 3/719 pairs over 11.805555 ms; 1 trip and 1 HOLD; mean 7.238309 ms, p95 7.763646 ms | 0/1,440 starts over one period | 143.423138 Hz; 1/380 long intervals |
+| 31744 | Off | 720 real, 720 interpolated, 0 repeated | Guard inactive; no pair samples | 1/1,440 starts over one period, inherited before sleep | 143.349042 Hz; 1/361 long intervals |
+
+Both runs show `passes stress cena=0`, confirming the EXP29.29 fix on device. Generated+blit mean/p95 was 6.102681/6.272708 ms with Guard on and 6.136133/6.229323 ms with Guard off. The WSI cadence differs by about 0.074 Hz; each capture has one sampled interval above 1.5 cycles. The Guard's single hold did not produce a measurable presentation-regularity improvement. This reverse-order hardware pair also fails to reproduce the 31740 CPU-lateness anomaly: both runs had zero or one late start.
+
+Decision: EXP29.29 is hardware-validated for the intended pair-budget behavior. Keep **GPU GUARD PAR 85%** off in the normal reference profile; retain it as an optional experiment. This result closes the GPU Guard comparison. The next implementation stage should move to the presentation pacing path rather than retune the Guard on these near-identical results.
