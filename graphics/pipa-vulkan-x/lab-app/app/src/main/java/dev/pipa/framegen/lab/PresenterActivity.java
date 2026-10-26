@@ -356,6 +356,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     @Override protected void onDestroy() {
         logDiagnostic("ACTIVITY_DESTROY changingConfig="+isChangingConfigurations()+
             " finishing="+isFinishing()+" running="+running.get());
+        if(powerManager!=null)powerManager.removeThermalStatusListener(thermalStatusListener);
         nativeStop();
         super.onDestroy();
     }
@@ -366,10 +367,5 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     @Override protected void onStop() {
         logDiagnostic("ACTIVITY_STOP running="+running.get());
         super.onStop();
-    }
-
-    @Override protected void onDestroy() {
-        if(powerManager!=null)powerManager.removeThermalStatusListener(thermalStatusListener);
-        super.onDestroy();
     }
 }
