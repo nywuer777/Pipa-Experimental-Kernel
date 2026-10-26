@@ -40,7 +40,9 @@ for tok in (
     '" probes pares="',
     '" trips 3x="',
     'summary(gpuPairMs,"GPU par real+FG")',
-    "p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()",
+    "result+=p.gpuTimingSummary();",
+    "result+=p.cpuPacingSummary();",
+    "result+=p.timingSummary();",
 ): assert tok in native,tok
 for tok in (
     "private CheckBox syncDisplay, fastMotion, identity3d, gpuBudgetGuard;",
