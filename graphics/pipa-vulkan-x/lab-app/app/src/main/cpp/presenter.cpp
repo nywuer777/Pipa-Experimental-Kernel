@@ -424,7 +424,7 @@ struct Presenter {
 
 
     void collectTiming() {
-        if(!displayTimingEnabled || !getPastTiming) return;
+        if(!swap || !displayTimingEnabled || !getPastTiming) return;
         uint32_t count=0;
         VkResult q=getPastTiming(device,swap,&count,nullptr);
         if(q!=VK_SUCCESS) { ++timingQueryFailures;return; }
@@ -1259,11 +1259,19 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | swapFormat="+std::to_string(int(p.swapFormat))+
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
-          " | inicializacao="+std::to_string(initializeMs)+" ms"+
-          p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
-          p.surfaceDiagnosticSummary()+
-          p.traceLayerSummary()+
-          " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
+          " | inicializacao="+std::to_string(initializeMs)+" ms";
+        diagnostic("NATIVE_SUMMARY_BASE_DONE");
+        result+=p.gpuTimingSummary();
+        diagnostic("NATIVE_GPU_SUMMARY_DONE");
+        result+=p.cpuPacingSummary();
+        diagnostic("NATIVE_CPU_SUMMARY_DONE");
+        result+=p.timingSummary();
+        diagnostic("NATIVE_WSI_SUMMARY_DONE");
+        result+=p.surfaceDiagnosticSummary();
+        diagnostic("NATIVE_SURFACE_SUMMARY_DONE");
+        result+=p.traceLayerSummary();
+        diagnostic("NATIVE_LAYER_SUMMARY_DONE");
+        result+=" | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
         diagnostic("NATIVE_SUMMARY_DONE");
         diagnostic("NATIVE_CLEANUP_BEGIN");
         }
