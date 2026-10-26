@@ -454,6 +454,12 @@ struct Presenter {
         if(reportedActualNs.size()<2) {
             result+=" | taxa fisica nao determinada";
         } else {
+            const auto& first= *reportedActualNs.begin();
+            const auto& last = *reportedActualNs.rbegin();
+            if(last.second>=first.second)
+                result+=" | janela WSI observada IDs="+std::to_string(first.first)+
+                    ".."+std::to_string(last.first)+" duracao="+
+                    std::to_string(double(last.second-first.second)/1.e9)+"s";
             std::vector<double> intervals;
             uint32_t previousId=0;
             uint64_t previousTime=0;

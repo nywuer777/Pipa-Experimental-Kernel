@@ -1,5 +1,5 @@
-name: Pipa EXP29.38 - Explicit 60s APK (NO FLASH)
-# Builds EXP29.38 and verifies layer swapchain lifecycle and pacing source contracts.
+name: Pipa EXP29.39 - Explicit 60s APK (NO FLASH)
+# Builds EXP29.39 and verifies layer swapchain lifecycle and pacing source contracts.
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
           python3 graphics/pipa-vulkan-x/tests/test_gpu_budget_governor.py
           python3 graphics/pipa-vulkan-x/tests/test_cpu_pacing_audit.py
           python3 graphics/pipa-vulkan-x/tests/test_display_timing_contract.py
-          sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.38-shader-sha256.txt
+          sha256sum graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*.spv | tee exp29.39-shader-sha256.txt
 
       - name: Android SDK setup
         uses: android-actions/setup-android@v3
@@ -69,19 +69,19 @@ jobs:
       - name: Assemble and verify lab APK
         run: |
           set -euo pipefail
-          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app :app:assembleDebug 2>&1 | tee exp29.38-gradle-build.log
+          gradle --no-daemon --project-dir graphics/pipa-vulkan-x/lab-app :app:assembleDebug 2>&1 | tee exp29.39-gradle-build.log
           APK="graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          sha256sum "$APK" | tee exp29.38-apk-sha256.txt
-          echo "EXP29_38_CPU_PACING_LABEL_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.38-status.txt
-          echo "NO_KERNEL_FLASH=true" | tee -a exp29.38-status.txt
+          sha256sum "$APK" | tee exp29.39-apk-sha256.txt
+          echo "EXP29_39_WSI_OBSERVED_SPAN_APK_BUILT_UNTESTED_ON_DEVICE=PASS" | tee exp29.39-status.txt
+          echo "NO_KERNEL_FLASH=true" | tee -a exp29.39-status.txt
 
       - name: Publish APK and build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pipa-exp29-38-cpu-pacing-label-${{ github.run_number }}
+          name: pipa-exp29-39-wsi-observed-span-${{ github.run_number }}
           path: |
             graphics/pipa-vulkan-x/lab-app/app/build/outputs/apk/debug/app-debug.apk
             graphics/pipa-vulkan-x/lab-app/gradlew
@@ -89,9 +89,9 @@ jobs:
             graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.jar
             graphics/pipa-vulkan-x/lab-app/gradle/wrapper/gradle-wrapper.properties
             graphics/pipa-vulkan-x/lab-app/app/src/main/assets/*
-            exp29.38-shader-sha256.txt
-            exp29.38-apk-sha256.txt
-            exp29.38-gradle-build.log
-            exp29.38-status.txt
+            exp29.39-shader-sha256.txt
+            exp29.39-apk-sha256.txt
+            exp29.39-gradle-build.log
+            exp29.39-status.txt
           if-no-files-found: warn
           retention-days: 14
