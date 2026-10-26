@@ -44,7 +44,7 @@ for token in (
     "ClipboardManager clipboard=",
 ): assert token in ui,token
 assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
-assert "versionCode 320" in gradle and "29.30-wsi-sync-default" in gradle
+assert "versionCode 321" in gradle and "29.31-swapchain-probe" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.
@@ -55,4 +55,4 @@ drift=(reported-fixed)*1440/1e6
 assert drift>20,drift
 assert (reported*1440/1e9)>(fixed*1440/1e9)
 # No physical missed-presentation claim is made by these purely CPU timers.
-print(f"EXP29_30_PACING_CONTRACT=PASS; FIXED_vs_WSI_10S_DRIFT_MS={drift:.3f}; DEVICE_STRESS=UNTESTED")
+print(f"EXP29_31_PACING_CONTRACT=PASS; FIXED_vs_WSI_10S_DRIFT_MS={drift:.3f}; DEVICE_STRESS=UNTESTED")

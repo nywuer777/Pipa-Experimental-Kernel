@@ -27,6 +27,7 @@ constexpr char kPipaTraceLayerName[]="VK_LAYER_PIPA_present_trace";
 constexpr char kPipaTraceLayerLibrary[]="libVkLayer_PIPA_present_trace.so";
 using PipaTraceResetFn=void (*)();
 using PipaTraceGetStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*,uint64_t*);
+using PipaTraceGetSwapchainStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*);
 
 void check(VkResult r, const char* label) {
     if(r!=VK_SUCCESS) throw std::runtime_error(std::string(label)+
@@ -219,6 +220,7 @@ struct Presenter {
     void* traceLayerLibrary=nullptr;
     PipaTraceResetFn traceLayerReset=nullptr;
     PipaTraceGetStatsFn traceLayerGetStats=nullptr;
+    PipaTraceGetSwapchainStatsFn traceLayerGetSwapchainStats=nullptr;
     bool traceLayerAvailable=false, traceLayerActive=false;
     uint32_t topLevelSuboptimal=0, perSwapchainSuboptimal=0, presentResultMismatches=0;
     VkResult lastTopLevelPresentResult=VK_SUCCESS;
@@ -243,9 +245,15 @@ struct Presenter {
             return " | VK_LAYER_PIPA available=1 active=0";
         uint64_t calls=0,success=0,suboptimal=0,errors=0;
         traceLayerGetStats(&calls,&success,&suboptimal,&errors);
+        uint64_t creates=0,destroys=0,images=0;
+        if(traceLayerGetSwapchainStats!=nullptr)
+            traceLayerGetSwapchainStats(&creates,&destroys,&images);
         return " | VK_LAYER_PIPA available=1 active=1 presents="+
             std::to_string(calls)+" success="+std::to_string(success)+
-            " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors);
+            " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors)+
+            " swapchains created="+std::to_string(creates)+
+            " destroyed="+std::to_string(destroys)+
+            " images="+std::to_string(images);
     }
     void querySurfaceAfterSuboptimal() {
         if(surfaceCapsQueriedAfterSuboptimal)return;
@@ -520,6 +528,12 @@ struct Presenter {
         if(window)ANativeWindow_release(window);
         if(traceLayerLibrary)dlclose(traceLayerLibrary);
     }
+    void releaseSwapchainForProbe() {
+        if(device && swap) {
+            vkDestroySwapchainKHR(device,swap,nullptr);
+            swap=VK_NULL_HANDLE;
+        }
+    }
     uint32_t selectMemory(uint32_t allowed,VkMemoryPropertyFlags flags) const {
         for(uint32_t i=0;i<memory.memoryTypeCount;++i) {
             if((allowed & (1u<<i)) &&
@@ -580,6 +594,8 @@ struct Presenter {
                 dlsym(traceLayerLibrary,"pipa_vk_layer_reset_stats"));
             traceLayerGetStats=reinterpret_cast<PipaTraceGetStatsFn>(
                 dlsym(traceLayerLibrary,"pipa_vk_layer_get_stats"));
+            traceLayerGetSwapchainStats=reinterpret_cast<PipaTraceGetSwapchainStatsFn>(
+                dlsym(traceLayerLibrary,"pipa_vk_layer_get_swapchain_stats"));
             if(traceLayerReset!=nullptr)traceLayerReset();
         }
         uint32_t layerCount=0;
@@ -597,7 +613,8 @@ struct Presenter {
             }
         }
         traceLayerActive=traceLayerAvailable && traceLayerLibrary!=nullptr &&
-                         traceLayerReset!=nullptr && traceLayerGetStats!=nullptr;
+                         traceLayerReset!=nullptr && traceLayerGetStats!=nullptr &&
+                         traceLayerGetSwapchainStats!=nullptr;
         const char* enabledLayers[]={kPipaTraceLayerName};
         if(traceLayerActive) {
             ci.enabledLayerCount=1;
@@ -1178,6 +1195,9 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
                          alignWithDisplayMode==JNI_TRUE,int(motionRadius),
                          fit3dAspectMode==JNI_TRUE,
                          gpuBudgetMode==JNI_TRUE);
+        // run() drains the queue; release now so the opt-in layer can report
+        // a complete create/destroy lifecycle before the summary is formed.
+        p.releaseSwapchainForProbe();
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();

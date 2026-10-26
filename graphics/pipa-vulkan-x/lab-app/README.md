@@ -47,6 +47,8 @@ The app can fail cleanly when Vulkan is unavailable, RGBA16F storage-image forma
 
 ## Engineering limitations / next gates
 
+EXP29.31 adds an app-scoped Vulkan layer probe for swapchain creation, image count, destruction, and present results. It does not access swapchain pixels or generate frames in the layer; this is the lifecycle gate before a separate read-only image-copy experiment.
+
 - Native Vulkan image transfers/command submission are implemented, but actual Adreno execution **must** be verified from a device log and displayed image, not from successful compilation.
 - Vulkan work is done **offscreen**; Android UI displays the returned bitmap. It is not an Android game swapchain implementation.
 - Source QA must distinguish compilation, SPIR-V validation, on-device successful dispatch, image quality, and physical presentation frame rate.

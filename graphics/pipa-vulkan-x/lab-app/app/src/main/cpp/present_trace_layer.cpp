@@ -23,6 +23,9 @@ struct DeviceState {
     PFN_vkGetDeviceQueue nextGetDeviceQueue = nullptr;
     PFN_vkGetDeviceQueue2 nextGetDeviceQueue2 = nullptr;
     PFN_vkQueuePresentKHR nextQueuePresent = nullptr;
+    PFN_vkCreateSwapchainKHR nextCreateSwapchain = nullptr;
+    PFN_vkDestroySwapchainKHR nextDestroySwapchain = nullptr;
+    PFN_vkGetSwapchainImagesKHR nextGetSwapchainImages = nullptr;
     std::vector<void*> queueKeys;
 };
 
@@ -34,6 +37,9 @@ std::atomic<uint64_t> g_presentCalls{0};
 std::atomic<uint64_t> g_presentSuccess{0};
 std::atomic<uint64_t> g_presentSuboptimal{0};
 std::atomic<uint64_t> g_presentErrors{0};
+std::atomic<uint64_t> g_swapchainCreates{0};
+std::atomic<uint64_t> g_swapchainDestroys{0};
+std::atomic<uint64_t> g_swapchainImages{0};
 
 template <typename Handle>
 void* dispatchKey(Handle handle) {
@@ -71,7 +77,7 @@ bool layerProperty(VkLayerProperties* property) {
     std::strncpy(property->layerName, kLayerName, sizeof(property->layerName) - 1);
     property->specVersion = VK_API_VERSION_1_1;
     property->implementationVersion = 1;
-    std::strncpy(property->description, "Pipa opt-in vkQueuePresentKHR trace",
+    std::strncpy(property->description, "Pipa opt-in Vulkan swapchain and present trace",
                  sizeof(property->description) - 1);
     return true;
 }
@@ -221,10 +227,58 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(
             nextGdpa(*device, "vkGetDeviceQueue2"));
         state.nextQueuePresent = reinterpret_cast<PFN_vkQueuePresentKHR>(
             nextGdpa(*device, "vkQueuePresentKHR"));
+        state.nextCreateSwapchain = reinterpret_cast<PFN_vkCreateSwapchainKHR>(
+            nextGdpa(*device, "vkCreateSwapchainKHR"));
+        state.nextDestroySwapchain = reinterpret_cast<PFN_vkDestroySwapchainKHR>(
+            nextGdpa(*device, "vkDestroySwapchainKHR"));
+        state.nextGetSwapchainImages = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(
+            nextGdpa(*device, "vkGetSwapchainImagesKHR"));
         std::lock_guard<std::mutex> lock(g_stateMutex);
         g_devices[dispatchKey(*device)] = state;
     }
     return result;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
+    VkDevice device, const VkSwapchainCreateInfoKHR* createInfo,
+    const VkAllocationCallbacks* allocator, VkSwapchainKHR* swapchain) {
+    PFN_vkCreateSwapchainKHR nextCreate = nullptr;
+    PFN_vkGetSwapchainImagesKHR nextGetImages = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_stateMutex);
+        auto it = g_devices.find(dispatchKey(device));
+        if (it != g_devices.end()) {
+            nextCreate = it->second.nextCreateSwapchain;
+            nextGetImages = it->second.nextGetSwapchainImages;
+        }
+    }
+    if (nextCreate == nullptr) return VK_ERROR_INITIALIZATION_FAILED;
+    const VkResult result = nextCreate(device, createInfo, allocator, swapchain);
+    if (result == VK_SUCCESS && swapchain != nullptr &&
+        *swapchain != VK_NULL_HANDLE) {
+        g_swapchainCreates.fetch_add(1, std::memory_order_relaxed);
+        if (nextGetImages != nullptr) {
+            uint32_t count = 0;
+            const VkResult imageResult = nextGetImages(device, *swapchain, &count, nullptr);
+            if ((imageResult == VK_SUCCESS || imageResult == VK_INCOMPLETE) && count > 0)
+                g_swapchainImages.fetch_add(count, std::memory_order_relaxed);
+        }
+    }
+    return result;
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroySwapchainKHR(
+    VkDevice device, VkSwapchainKHR swapchain,
+    const VkAllocationCallbacks* allocator) {
+    PFN_vkDestroySwapchainKHR nextDestroy = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_stateMutex);
+        auto it = g_devices.find(dispatchKey(device));
+        if (it != g_devices.end()) nextDestroy = it->second.nextDestroySwapchain;
+    }
+    if (nextDestroy == nullptr) return;
+    nextDestroy(device, swapchain, allocator);
+    g_swapchainDestroys.fetch_add(1, std::memory_order_relaxed);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetDeviceQueue(
@@ -313,6 +367,12 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetDeviceProcAddr(
     if (std::strcmp(name, "vkQueuePresentKHR") == 0) {
         return reinterpret_cast<PFN_vkVoidFunction>(vkQueuePresentKHR);
     }
+    if (std::strcmp(name, "vkCreateSwapchainKHR") == 0) {
+        return reinterpret_cast<PFN_vkVoidFunction>(vkCreateSwapchainKHR);
+    }
+    if (std::strcmp(name, "vkDestroySwapchainKHR") == 0) {
+        return reinterpret_cast<PFN_vkVoidFunction>(vkDestroySwapchainKHR);
+    }
     PFN_vkGetDeviceProcAddr nextGdpa = nullptr;
     {
         std::lock_guard<std::mutex> lock(g_stateMutex);
@@ -357,6 +417,16 @@ void pipa_vk_layer_reset_stats() {
     g_presentSuccess.store(0, std::memory_order_relaxed);
     g_presentSuboptimal.store(0, std::memory_order_relaxed);
     g_presentErrors.store(0, std::memory_order_relaxed);
+    g_swapchainCreates.store(0, std::memory_order_relaxed);
+    g_swapchainDestroys.store(0, std::memory_order_relaxed);
+    g_swapchainImages.store(0, std::memory_order_relaxed);
+}
+
+void pipa_vk_layer_get_swapchain_stats(uint64_t* creates, uint64_t* destroys,
+                                       uint64_t* images) {
+    if (creates != nullptr) *creates = g_swapchainCreates.load(std::memory_order_relaxed);
+    if (destroys != nullptr) *destroys = g_swapchainDestroys.load(std::memory_order_relaxed);
+    if (images != nullptr) *images = g_swapchainImages.load(std::memory_order_relaxed);
 }
 
 void pipa_vk_layer_get_stats(uint64_t* calls, uint64_t* success,
