@@ -27,7 +27,7 @@ assert "querySurfaceAfterSuboptimal()" in PRESENTER
 assert "surfaceDiagnosticSummary()" in PRESENTER
 GRADLE = (ROOT / "lab-app/app/build.gradle").read_text()
 assert "versionCode 325" in GRADLE
-assert "29.35-wsi-lifetime-fix" in GRADLE
+assert "29.36-sustained-60s" in GRADLE
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
 print("EXP29.31 explicit Vulkan swapchain probe contract: PASS")

@@ -27,7 +27,7 @@ for token in (
     "cobertura WSI=", "intervalos >1.5 ciclos=",
     "p50=", "p95=", "p99=", "max=",
     "CPU vkQueuePresentKHR p95=",
-    'frames<=2400,"Invalid frame count"',
+    'frames<=9000,"Invalid frame count"',
     "NAO sao FPS fisicos exibidos",
     "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
 ):

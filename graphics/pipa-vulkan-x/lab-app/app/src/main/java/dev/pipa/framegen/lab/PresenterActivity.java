@@ -43,10 +43,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.25 - PAIR BUDGET GOVERNOR", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.36 - SUSTAINED TEST", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Vulkan FIFO 720p | WSI SYNC | GPU 2-frame budget guard (85%)",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | WSI SYNC | teste sustentado de 60s",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",12,0xffeeeeee);
         root.addView(status);
         LinearLayout legacyControls=new LinearLayout(this);
@@ -139,7 +139,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.25: GPU GUARD compara original+FG com 85% de DOIS ciclos de tela; tres pares consecutivos acima do teto ativam um HOLD, depois retesta. O teste com 85% de um ciclo foi rejeitado por reduzir 2/3 dos quadros gerados. IDENTITY e FIT 16:9 preservados. camera perspectiva, esferas em profundidades distintas, oclusao e HUD fixo. Renderizacao 3D analitica via Vulkan Compute, nao e jogo externo. Compare HOLD e FrameGen com mesmo raio e SYNC. Todos os modos via VkSwapchainKHR; chamadas vkQueuePresentKHR não provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
+        root.addView(text("EXP29.36: teste sustentado de 60s por toque longo nos botoes 3D; toque curto mantem 10s. Compare HOLD e FrameGen com o mesmo raio e SYNC. IDENTITY e FIT 16:9 preservados. Cena 3D analitica Vulkan Compute, nao e jogo externo. Chamadas vkQueuePresentKHR nao provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));
@@ -155,6 +155,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         stressFg144.setOnClickListener(v->start(144,true,false,false,true,true));
         scene3dHold.setOnClickListener(v->start(144,true,true,false,false,true,true));
         scene3dFg.setOnClickListener(v->start(144,true,false,false,false,true,true));
+        scene3dHold.setOnLongClickListener(v->{start(144,true,true,false,false,true,true,8640);return true;});
+        scene3dFg.setOnLongClickListener(v->{start(144,true,false,false,false,true,true,8640);return true;});
         stop.setOnClickListener(v->nativeStop());
         copyReport.setOnClickListener(v->{
             ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
@@ -242,6 +244,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     }
     private void start(int hz,boolean continuous,boolean holdInsteadOfFG,boolean diagnostic,
                        boolean v2,boolean stress,boolean scene3d) {
+        start(hz,continuous,holdInsteadOfFG,diagnostic,v2,stress,scene3d,stress?1440:240);
+    }
+    private void start(int hz,boolean continuous,boolean holdInsteadOfFG,boolean diagnostic,
+                       boolean v2,boolean stress,boolean scene3d,int requestedFrames) {
         if(!validSurface || !running.compareAndSet(false,true))return;
         toggle(false);
         final boolean alignWithDisplay=syncDisplay.isChecked();
@@ -251,12 +257,12 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                                     gpuBudgetGuard.isChecked();
         logDiagnostic("RUN_START hz="+hz+" continuous="+continuous+" hold="+
             holdInsteadOfFG+" stress="+stress+" scene3d="+scene3d+" sync="+
-            alignWithDisplay+" guard="+adaptiveGuard);
+            alignWithDisplay+" guard="+adaptiveGuard+" frames="+requestedFrames);
         status.setText("MOTION raio="+motionRadius+" "+
               (scene3d?(preferIdentity3d?"WSI IDENTITY ":"WSI CURRENT "):"")+
               (adaptiveGuard?"GPU GUARD PAR 85% ":"GPU FIXO ")+
               (alignWithDisplay?"SYNC WSI ":"FIXED 144 ")+
-              (stress?"STRESS 10s ":"TESTE CURTO ")+
+              (requestedFrames>=8640?"SUSTENTADO 60s ":stress?"STRESS 10s ":"TESTE CURTO ")+
               (scene3d?"CENA 3D ":v2?"CENA V2 ":diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
               (holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
               " Hz | tela "+displayHz()+" Hz | criando Vulkan...");
@@ -269,7 +275,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                 byte[] scene=continuous?load(scene3d?"pipa_scene_3d.comp.spv":
                     v2?"pipa_scene_v2.comp.spv":
                     diagnostic?"pipa_scene_diagnostic.comp.spv":"pipa_scene.comp.spv"):null;
-                result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,
+                result=nativePresent(surface,motion,warp,scene,hz,requestedFrames,
                                      continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,
                                      scene3d,preferIdentity3d,adaptiveGuard);
             } catch(Throwable ex) {

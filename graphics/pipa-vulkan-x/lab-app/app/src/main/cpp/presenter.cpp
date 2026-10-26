@@ -1195,7 +1195,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         };
         diagnostic("NATIVE_ENTER");
         expect(targetHz==60 || targetHz==120 || targetHz==144,"Invalid targetHz");
-        expect(frames>0 && frames<=2400,"Invalid frame count");
+        expect(frames>0 && frames<=9000,"Invalid frame count");
         expect(motionRadius==3 || motionRadius==4,"Invalid Motion radius");
         auto motion=shaderBytes(env,motionShader);
         auto warp=shaderBytes(env,warpShader);
