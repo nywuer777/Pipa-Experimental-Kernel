@@ -35,7 +35,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
     private CheckBox syncDisplay, fastMotion, identity3d, gpuBudgetGuard;
     private Button copyReport;
     private TextView status;
-    private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144, v2Hold144, v2Fg144, stressHold144, stressFg144, scene3dHold, scene3dFg;
+    private Button start60, start120, start144, stop, animate120, animate144, hold144, diagHold144, diagFg144, v2Hold144, v2Fg144, stressHold144, stressFg144, scene3dHold, scene3dFg, scene3dHold60, scene3dFg60;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -43,10 +43,10 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.36 - SUSTAINED TEST", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.37 - EXPLICIT DURATION", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Vulkan FIFO 720p | WSI SYNC | teste sustentado de 60s",13,0xffbbbbc2));
+        root.addView(text("Vulkan FIFO 720p | WSI SYNC | testes 3D de 10s e 60s",13,0xffbbbbc2));
         status = text("Superfície não inicializada.",12,0xffeeeeee);
         root.addView(status);
         LinearLayout legacyControls=new LinearLayout(this);
@@ -104,6 +104,13 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         scene3dControls.addView(scene3dHold,new LinearLayout.LayoutParams(0,dp(48),1));
         scene3dControls.addView(scene3dFg,new LinearLayout.LayoutParams(0,dp(48),1));
         root.addView(scene3dControls,new LinearLayout.LayoutParams(-1,dp(52)));
+        LinearLayout scene3dLongControls=new LinearLayout(this);
+        scene3dLongControls.setOrientation(LinearLayout.HORIZONTAL);
+        scene3dHold60=button("3D 60s HOLD 72→144");
+        scene3dFg60=button("3D 60s FrameGen 72→144");
+        scene3dLongControls.addView(scene3dHold60,new LinearLayout.LayoutParams(0,dp(48),1));
+        scene3dLongControls.addView(scene3dFg60,new LinearLayout.LayoutParams(0,dp(48),1));
+        root.addView(scene3dLongControls,new LinearLayout.LayoutParams(-1,dp(52)));
         syncDisplay=new CheckBox(this);
         syncDisplay.setText("SYNC experimental: usar periodo Vulkan WSI do monitor (144 Hz)");
         syncDisplay.setTextColor(0xffdde4ee);
@@ -139,7 +146,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.36: teste sustentado de 60s por toque longo nos botoes 3D; toque curto mantem 10s. Compare HOLD e FrameGen com o mesmo raio e SYNC. IDENTITY e FIT 16:9 preservados. Cena 3D analitica Vulkan Compute, nao e jogo externo. Chamadas vkQueuePresentKHR nao provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
+        root.addView(text("EXP29.37: escolha explicitamente 3D 10s ou 3D 60s. O relatório informa presents solicitados e aceitos. Compare HOLD e FrameGen com o mesmo raio e SYNC. IDENTITY e FIT 16:9 preservados. Cena 3D analitica Vulkan Compute, nao e jogo externo. Chamadas vkQueuePresentKHR nao provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));
@@ -157,6 +164,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         scene3dFg.setOnClickListener(v->start(144,true,false,false,false,true,true));
         scene3dHold.setOnLongClickListener(v->{start(144,true,true,false,false,true,true,8640);return true;});
         scene3dFg.setOnLongClickListener(v->{start(144,true,false,false,false,true,true,8640);return true;});
+        scene3dHold60.setOnClickListener(v->start(144,true,true,false,false,true,true,8640));
+        scene3dFg60.setOnClickListener(v->start(144,true,false,false,false,true,true,8640));
         stop.setOnClickListener(v->nativeStop());
         copyReport.setOnClickListener(v->{
             ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
@@ -215,6 +224,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         stressFg144.setEnabled(enabled && validSurface);
         scene3dHold.setEnabled(enabled && validSurface);
         scene3dFg.setEnabled(enabled && validSurface);
+        scene3dHold60.setEnabled(enabled && validSurface);
+        scene3dFg60.setEnabled(enabled && validSurface);
         if(syncDisplay!=null)syncDisplay.setEnabled(enabled && validSurface);
         if(fastMotion!=null)fastMotion.setEnabled(enabled && validSurface);
         if(identity3d!=null)identity3d.setEnabled(enabled && validSurface);
@@ -262,7 +273,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
               (scene3d?(preferIdentity3d?"WSI IDENTITY ":"WSI CURRENT "):"")+
               (adaptiveGuard?"GPU GUARD PAR 85% ":"GPU FIXO ")+
               (alignWithDisplay?"SYNC WSI ":"FIXED 144 ")+
-              (requestedFrames>=8640?"SUSTENTADO 60s ":stress?"STRESS 10s ":"TESTE CURTO ")+
+              (requestedFrames>=8640?"TESTE 60s ":stress?"TESTE 10s ":"TESTE CURTO ")+
               (scene3d?"CENA 3D ":v2?"CENA V2 ":diagnostic?"CENA DIAG ":"CENA ORIGINAL ")+
               (holdInsteadOfFG?"HOLD GPU ":continuous?"2x GPU ":"A/B ")+hz+
               " Hz | tela "+displayHz()+" Hz | criando Vulkan...");
@@ -288,7 +299,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                 v2?
                 " | FONTE=V2 tileable sem clamp":
                 diagnostic?" | FONTE=DIAGNOSTICA quadrantes solidos; sem ruido":
-                " | FONTE=PROCEDURAL antiga");
+                " | FONTE=PROCEDURAL antiga")+
+                " | alvo="+(requestedFrames/hz)+"s presentsSolicitados="+requestedFrames;
             running.set(false);
             runOnUiThread(()->{
                 status.setText(finalResult+"\nTela Android informa "+displayHz()+" Hz.");

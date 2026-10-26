@@ -28,11 +28,13 @@ for token in (
     "result+=p.timingSummary();",
 ): assert token in native,token
 for token in (
-    "EXP29.36 - SUSTAINED TEST",
+    "EXP29.37 - EXPLICIT DURATION",
     "boolean alignWithDisplay, int motionRadius, boolean fit3dAspect,",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "scene3dHold.setOnClickListener(",
     "scene3dFg.setOnClickListener(",
+    "scene3dHold60.setOnClickListener(",
+    "scene3dFg60.setOnClickListener(",
     "copyReport.setOnClickListener(",
     "fastMotion.setChecked(false);",
 ): assert token in java,token
