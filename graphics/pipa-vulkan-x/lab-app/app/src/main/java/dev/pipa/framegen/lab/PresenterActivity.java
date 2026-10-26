@@ -16,7 +16,10 @@ import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class PresenterActivity extends Activity implements SurfaceHolder.Callback {
@@ -155,8 +158,8 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         stop.setOnClickListener(v->nativeStop());
         copyReport.setOnClickListener(v->{
             ClipboardManager clipboard=(ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
-            if(clipboard!=null)clipboard.setPrimaryClip(
-                ClipData.newPlainText("Pipa EXP29.25 Vulkan Timing",status.getText()));
+            if(clipboard!=null)clipboard.setPrimaryClip(ClipData.newPlainText(
+                "Pipa EXP29.32 diagnóstico",readDiagnostic()));
         });
         toggle(true);
     }
@@ -176,6 +179,22 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         Button b=new Button(this);
         b.setText(label);b.setAllCaps(false);b.setSingleLine(true);b.setTextSize(11);
         return b;
+    }
+    private File diagnosticFile() { return new File(getFilesDir(),"pipa-diagnostic.txt"); }
+    private synchronized void logDiagnostic(String event) {
+        String line=java.time.Instant.now().toString()+" "+event+"\n";
+        try(FileOutputStream out=new FileOutputStream(diagnosticFile(),true)) {
+            out.write(line.getBytes(StandardCharsets.UTF_8));
+            out.getFD().sync();
+        } catch(Exception ignored) { }
+    }
+    private String readDiagnostic() {
+        try {
+            byte[] bytes=java.nio.file.Files.readAllBytes(diagnosticFile().toPath());
+            return new String(bytes,StandardCharsets.UTF_8);
+        } catch(Exception ignored) {
+            return status==null?"Sem diagnóstico gravado.":status.getText().toString();
+        }
     }
     private void toggle(boolean enabled) {
         start60.setEnabled(enabled && validSurface);
@@ -229,6 +248,9 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         final boolean preferIdentity3d=scene3d && identity3d.isChecked();
         final boolean adaptiveGuard=scene3d && continuous && !holdInsteadOfFG &&
                                     gpuBudgetGuard.isChecked();
+        logDiagnostic("RUN_START hz="+hz+" continuous="+continuous+" hold="+
+            holdInsteadOfFG+" stress="+stress+" scene3d="+scene3d+" sync="+
+            alignWithDisplay+" guard="+adaptiveGuard);
         status.setText("MOTION raio="+motionRadius+" "+
               (scene3d?(preferIdentity3d?"WSI IDENTITY ":"WSI CURRENT "):"")+
               (adaptiveGuard?"GPU GUARD PAR 85% ":"GPU FIXO ")+
@@ -251,7 +273,9 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
                                      scene3d,preferIdentity3d,adaptiveGuard);
             } catch(Throwable ex) {
                 result="Falha: "+ex.getClass().getSimpleName()+": "+ex.getMessage();
+                logDiagnostic("RUN_EXCEPTION "+result);
             }
+            logDiagnostic("RUN_END "+result);
             final String finalResult=result+(scene3d?
                 " | FONTE=3D raycast perspectiva e oclusao":
                 v2?
@@ -274,12 +298,23 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         if(w>0 && height>0) validSurface=true;
     }
     @Override public void surfaceDestroyed(SurfaceHolder holder) {
+        logDiagnostic("SURFACE_DESTROYED running="+running.get());
         validSurface=false;
         nativeStop();
         toggle(false);
     }
     @Override protected void onDestroy() {
+        logDiagnostic("ACTIVITY_DESTROY changingConfig="+isChangingConfigurations()+
+            " finishing="+isFinishing()+" running="+running.get());
         nativeStop();
         super.onDestroy();
+    }
+    @Override protected void onPause() {
+        logDiagnostic("ACTIVITY_PAUSE running="+running.get());
+        super.onPause();
+    }
+    @Override protected void onStop() {
+        logDiagnostic("ACTIVITY_STOP running="+running.get());
+        super.onStop();
     }
 }
