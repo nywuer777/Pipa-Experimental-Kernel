@@ -43,7 +43,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.37 - EXPLICIT DURATION", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.38 - CPU PACING LABEL", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
         root.addView(text("Vulkan FIFO 720p | WSI SYNC | testes 3D de 10s e 60s",13,0xffbbbbc2));
@@ -146,7 +146,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.37: escolha explicitamente 3D 10s ou 3D 60s. O relatório informa presents solicitados e aceitos. Compare HOLD e FrameGen com o mesmo raio e SYNC. IDENTITY e FIT 16:9 preservados. Cena 3D analitica Vulkan Compute, nao e jogo externo. Chamadas vkQueuePresentKHR nao provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
+        root.addView(text("EXP29.38: escolha explicitamente 3D 10s ou 3D 60s. O relatório separa inícios CPU atrasados de presents WSI aceitos. Compare HOLD e FrameGen com o mesmo raio e SYNC. IDENTITY e FIT 16:9 preservados. Cena 3D analitica Vulkan Compute, nao e jogo externo. Chamadas vkQueuePresentKHR nao provam FPS exibidos; timestamps WSI sao reportados pelo driver e nao medem photons.",12,0xff9b9ba7));
         setContentView(root);
         start60.setOnClickListener(v->start(60));
         start120.setOnClickListener(v->start(120));

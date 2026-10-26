@@ -314,11 +314,12 @@ struct Presenter {
         const size_t n=wakeLateMs.size();
         return std::string(" | CPU pacing=")+(refreshAligned?"WSI_SYNC":"FIXED_REQUEST")+
           " periodo="+std::to_string(double(selectedPacingPeriodNs)/1.e6)+"ms"+
-          " | inicios >1 periodo="+std::to_string(deadlineMisses)+
+          " | inicios CPU >1 periodo="+std::to_string(deadlineMisses)+
           "/"+std::to_string(n)+
           " | atraso herdado antes sleep="+std::to_string(inheritedLateOnePeriod)+
           " | atraso novo apos sleep="+std::to_string(timerOversleepOnePeriod)+
           " | maior sequencia atrasada="+std::to_string(lateBurstLongest)+
+          " | criterio atraso=CPU retomou apos deadline+1 periodo; nao e present perdido"+
           cpuDistribution(wakeLateMs,"CPU wake lateness")+
           cpuDistribution(fenceWaitMs,"CPU fence wait")+
           cpuDistribution(acquireWaitMs,"CPU acquire wait")+
@@ -1236,7 +1237,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | cena="+(holdInsteadOfFG?std::string("continua GPU HOLD sem FG"):
               continuous?std::string("continua GPU 2x"):
                          std::string("A/B estatica"))+
-          " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
+          " | inicios CPU atrasados >1 periodo="+std::to_string(p.deadlineMisses)+
           " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
           " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
           " passes stress cena=0"+

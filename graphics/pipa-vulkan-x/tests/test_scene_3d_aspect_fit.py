@@ -28,7 +28,7 @@ for token in (
     "result+=p.timingSummary();",
 ): assert token in native,token
 for token in (
-    "EXP29.37 - EXPLICIT DURATION",
+    "EXP29.38 - CPU PACING LABEL",
     "boolean alignWithDisplay, int motionRadius, boolean fit3dAspect,",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "scene3dHold.setOnClickListener(",
