@@ -49,3 +49,10 @@ This pair again shows the same direction in the CPU pacing counter (0 vs. 3 late
 Both captures report `topSuboptimal=1440`, `perSwapchainSuboptimal=1440`, `resultMismatch=0`, and `errors=0`. They also report `IDENTITY ativa=1`, `currentTransform=2`, `selectedPreTransform=1`, and surface extent 2844×646. This is a distinct WSI status diagnostic; it is not evidence that SYNC caused the result, and it does not indicate a Vulkan present error. Investigate why the app receives SUBOPTIMAL on every present while the identity transform is active before drawing further conclusions about swapchain status.
 
 Decision: retain WSI_SYNC as the default candidate for 144 Hz. The pacing counter has shown 0 late starts with WSI_SYNC in both reported pairs versus 7 and 3 with FIXED_REQUEST, while generated-frame counts and sampled WSI tails remain comparable. Keep the option available. The latest captures require no APK code change; EXP29.30 remains the current APK. No kernel flash.
+
+
+## Follow-up source inspection
+
+The presenter calls `querySurfaceAfterSuboptimal()` when the top-level present result is SUBOPTIMAL, but the function is guarded by `surfaceCapsQueriedAfterSuboptimal` and returns after the first successful or failed query. The 1,440 SUBOPTIMAL results therefore do not cause 1,440 surface-capability queries. The present loop counts the results and continues; it exits on OUT_OF_DATE or another error. No pacing or render-path code change is justified by these captures alone.
+
+Next isolating device comparison: retain **SYNC experimental** checked in both runs, keep the scene and other controls fixed, and compare **3D IDENTITY WSI** checked versus unchecked. Record whether `selectedPreTransform` follows identity or `currentTransform`, the top-level/per-swapchain SUBOPTIMAL counts, CPU late starts, and WSI interval tails. This tests the transform/status hypothesis separately from pacing. EXP29.30 remains the APK for this test.
