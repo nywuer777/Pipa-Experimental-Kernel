@@ -9,8 +9,8 @@ android {
         applicationId 'dev.pipa.framegen.lab'
         minSdk 29
         targetSdk 34
-        versionCode 319
-        versionName '29.29-real-load-gpu-guard'
+        versionCode 320
+        versionName '29.30-wsi-sync-default'
         ndk {
             abiFilters 'arm64-v8a'
         }
