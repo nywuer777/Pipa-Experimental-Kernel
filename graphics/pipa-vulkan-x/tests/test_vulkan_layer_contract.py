@@ -26,8 +26,8 @@ assert "present.pResults=&perSwapchainResult;" in PRESENTER
 assert "querySurfaceAfterSuboptimal()" in PRESENTER
 assert "surfaceDiagnosticSummary()" in PRESENTER
 GRADLE = (ROOT / "lab-app/app/build.gradle").read_text()
-assert "versionCode 321" in GRADLE
-assert "29.31-swapchain-probe" in GRADLE
+assert "versionCode 322" in GRADLE
+assert "29.32-crash-diagnostic" in GRADLE
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
 print("EXP29.31 explicit Vulkan swapchain probe contract: PASS")
