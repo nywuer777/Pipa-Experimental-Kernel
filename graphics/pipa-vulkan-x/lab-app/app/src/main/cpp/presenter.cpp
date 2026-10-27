@@ -96,6 +96,10 @@ struct Presenter {
     std::vector<VkImage> swapImages;
     VkBuffer staging=VK_NULL_HANDLE;
     VkDeviceMemory stagingMemory=VK_NULL_HANDLE;
+    VkBuffer readbackBuffer=VK_NULL_HANDLE;
+    VkDeviceMemory readbackMemory=VK_NULL_HANDLE;
+    bool readbackSupported=false,readbackRecorded=false,readbackCaptured=false;
+    uint64_t readbackHash=0;
     Texture tex[4]{};
     PipaFramegenVk* engine=nullptr;
 
@@ -551,6 +555,8 @@ struct Presenter {
             if(pool)vkDestroyCommandPool(device,pool,nullptr);
             if(staging)vkDestroyBuffer(device,staging,nullptr);
             if(stagingMemory)vkFreeMemory(device,stagingMemory,nullptr);
+            if(readbackBuffer)vkDestroyBuffer(device,readbackBuffer,nullptr);
+            if(readbackMemory)vkFreeMemory(device,readbackMemory,nullptr);
             for(auto& x:tex) {
                 if(x.view)vkDestroyImageView(device,x.view,nullptr);
                 if(x.image)vkDestroyImage(device,x.image,nullptr);
@@ -576,6 +582,43 @@ struct Presenter {
                (memory.memoryTypes[i].propertyFlags & flags)==flags)return i;
         }
         throw std::runtime_error("Required Vulkan memory flags unavailable");
+    }
+    void createReadbackBuffer() {
+        if(!readbackSupported)return;
+        VkBufferCreateInfo info{};
+        info.sType=VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        info.size=VkDeviceSize(64)*64*4;
+        info.usage=VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        info.sharingMode=VK_SHARING_MODE_EXCLUSIVE;
+        check(vkCreateBuffer(device,&info,nullptr,&readbackBuffer),
+              "Create one-shot readback buffer");
+        VkMemoryRequirements req{};
+        vkGetBufferMemoryRequirements(device,readbackBuffer,&req);
+        VkMemoryAllocateInfo alloc{};
+        alloc.sType=VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        alloc.allocationSize=req.size;
+        alloc.memoryTypeIndex=selectMemory(req.memoryTypeBits,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        check(vkAllocateMemory(device,&alloc,nullptr,&readbackMemory),
+              "Allocate one-shot readback");
+        check(vkBindBufferMemory(device,readbackBuffer,readbackMemory,0),
+              "Bind one-shot readback");
+    }
+    void finishReadback() {
+        if(!readbackSupported || !readbackRecorded ||
+           readbackBuffer==VK_NULL_HANDLE)return;
+        void* mapped=nullptr;
+        check(vkMapMemory(device,readbackMemory,0,VkDeviceSize(64)*64*4,0,&mapped),
+              "Map one-shot readback");
+        const auto* bytes=static_cast<const uint8_t*>(mapped);
+        uint64_t hash=14695981039346656037ULL;
+        for(size_t i=0;i<size_t(64)*64*4;++i) {
+            hash^=bytes[i];
+            hash*=1099511628211ULL;
+        }
+        vkUnmapMemory(device,readbackMemory);
+        readbackHash=hash;
+        readbackCaptured=true;
     }
     void makeTexture(int index,uint32_t w,uint32_t h,VkFormat format,
                      VkImageUsageFlags extra) {
@@ -757,6 +800,7 @@ struct Presenter {
         requestedIdentity3d=preferIdentityFor3D;
         expect((caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)!=0,
                "Swapchain does not support TRANSFER_DST (graphics path required)");
+        readbackSupported=(caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)!=0;
         if(caps.currentExtent.width!=UINT32_MAX) {
             extent=caps.currentExtent;
         } else {
@@ -838,6 +882,8 @@ struct Presenter {
         sci.presentMode=VK_PRESENT_MODE_FIFO_KHR;
         sci.clipped=VK_TRUE;
         check(vkCreateSwapchainKHR(device,&sci,nullptr,&swap),"vkCreateSwapchainKHR");
+        readbackSupported=transferSrcRequested &&
+                          swapFormat==VK_FORMAT_R8G8B8A8_UNORM;
         if(displayTimingEnabled) {
             VkRefreshCycleDurationGOOGLE cycle{};
             if(getRefreshDuration(device,swap,&cycle)==VK_SUCCESS)
@@ -894,6 +940,7 @@ struct Presenter {
               &engine);
         expect(code==0,"pipa_framegen_vk_create_ex failed");
         if(continuous)createScenePipeline(scene);
+        createReadbackBuffer();
 
         const VkDeviceSize one=VkDeviceSize(kWidth)*kHeight*4;
         VkBufferCreateInfo bi{};
@@ -1133,12 +1180,44 @@ struct Presenter {
                                swapImages[index],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                1,&copy);
             }
+            const bool captureThisFrame=readbackSupported && extent.width>=64 &&
+                extent.height>=64 && frame==requested-1;
+            VkImageLayout presentedOldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            if(captureThisFrame) {
+                VkImageMemoryBarrier toRead=imageBarrier(swapImages[index],
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT);
+                vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,1,&toRead);
+                VkBufferImageCopy region{};
+                region.imageSubresource.aspectMask=VK_IMAGE_ASPECT_COLOR_BIT;
+                region.imageSubresource.layerCount=1;
+                region.imageOffset={int32_t(extent.width/2)-32,
+                                    int32_t(extent.height/2)-32,0};
+                region.imageExtent={64,64,1};
+                vkCmdCopyImageToBuffer(command,swapImages[index],
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,readbackBuffer,1,&region);
+                VkBufferMemoryBarrier toHost{};
+                toHost.sType=VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                toHost.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+                toHost.dstAccessMask=VK_ACCESS_HOST_READ_BIT;
+                toHost.srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+                toHost.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+                toHost.buffer=readbackBuffer;
+                toHost.offset=0;
+                toHost.size=VK_WHOLE_SIZE;
+                vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_HOST_BIT,0,0,nullptr,1,&toHost,0,nullptr);
+                readbackRecorded=true;
+                presentedOldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            }
             auto back=imageBarrier(texSource.image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                    VK_IMAGE_LAYOUT_GENERAL,VK_ACCESS_TRANSFER_READ_BIT,
                                    VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT);
-            auto presented=imageBarrier(swapImages[index],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            auto presented=imageBarrier(swapImages[index],presentedOldLayout,
                                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                     VK_ACCESS_TRANSFER_WRITE_BIT,0);
+                                     captureThisFrame?VK_ACCESS_TRANSFER_READ_BIT:
+                                                      VK_ACCESS_TRANSFER_WRITE_BIT,0);
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
                  VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,0,nullptr,1,&back);
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -1205,6 +1284,7 @@ struct Presenter {
             if(progress && (frame+1)%120==0)progress(frame+1);
         }
         check(vkQueueWaitIdle(queue),"Wait present queue idle");
+        finishReadback();
         harvestGpuTimestamps();
         collectTiming();
         return queued;
@@ -1311,6 +1391,9 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms";
+        result+=" | pixel probe own-swapchain 64x64 captured="+
+            std::to_string(p.readbackCaptured?1:0)+
+            " FNV64="+std::to_string(p.readbackHash);
         diagnostic("NATIVE_SUMMARY_BASE_DONE");
         result+=p.gpuTimingSummary();
         diagnostic("NATIVE_GPU_SUMMARY_DONE");

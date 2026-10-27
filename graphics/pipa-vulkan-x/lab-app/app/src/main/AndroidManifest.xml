@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-feature android:name="android.hardware.vulkan.level" android:version="0" android:required="false" />
     <application
-        android:label="Pipa FrameGen Lab EXP29.44"
+        android:label="Pipa FrameGen Lab EXP29.45"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="false">
         <activity

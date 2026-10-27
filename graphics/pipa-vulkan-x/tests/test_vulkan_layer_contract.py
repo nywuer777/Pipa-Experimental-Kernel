@@ -39,9 +39,11 @@ assert "present.pResults=&perSwapchainResult;" in PRESENTER
 assert "querySurfaceAfterSuboptimal()" in PRESENTER
 assert "surfaceDiagnosticSummary()" in PRESENTER
 GRADLE = (ROOT / "lab-app/app/build.gradle").read_text()
-assert "versionCode 334" in GRADLE
-assert "29.44-transfer-src-swapchain-probe" in GRADLE
+assert "versionCode 335" in GRADLE
+assert "29.45-one-shot-swapchain-readback" in GRADLE
 assert "VK_IMAGE_USAGE_TRANSFER_SRC_BIT" in PRESENTER
+assert "vkCmdCopyImageToBuffer" in PRESENTER
+assert "pixel probe own-swapchain 64x64 captured=" in PRESENTER
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
-print("EXP29.44 conditional TRANSFER_SRC swapchain contract: PASS")
+print("EXP29.45 one-shot swapchain readback contract: PASS")
