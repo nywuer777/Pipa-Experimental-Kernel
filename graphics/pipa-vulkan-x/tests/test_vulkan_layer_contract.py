@@ -39,12 +39,14 @@ assert "present.pResults=&perSwapchainResult;" in PRESENTER
 assert "querySurfaceAfterSuboptimal()" in PRESENTER
 assert "surfaceDiagnosticSummary()" in PRESENTER
 GRADLE = (ROOT / "lab-app/app/build.gradle").read_text()
-assert "versionCode 336" in GRADLE
-assert "29.46-real-generated-pixel-probe" in GRADLE
+assert "versionCode 337" in GRADLE
+assert "29.47-graceful-wsi-stop" in GRADLE
 assert "VK_IMAGE_USAGE_TRANSFER_SRC_BIT" in PRESENTER
 assert "vkCmdCopyImageToBuffer" in PRESENTER
 assert "pixel probe own-swapchain real64x64=" in PRESENTER
 assert '" accepted="+std::to_string(success+suboptimal)' in PRESENTER
+assert 'runTerminationReason="surface_lost"' in PRESENTER
+assert '" | runStatus="+p.runTerminationReason' in PRESENTER
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
-print("EXP29.46 real/generated swapchain probe contract: PASS")
+print("EXP29.47 graceful WSI teardown contract: PASS")

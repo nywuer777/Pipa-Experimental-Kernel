@@ -49,7 +49,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.46 - REAL + GENERATED PROBE", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.47 - GRACEFUL WSI STOP", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
         root.addView(text("Vulkan FIFO 720p | WSI SYNC | testes 3D de 10s e 60s",13,0xffbbbbc2));
@@ -152,7 +152,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.46: compara hashes de regiões 64x64 do último frame real e do interpolado na swapchain própria. Não captura jogos externos nem injeta quadros.",12,0xff9b9ba7));
+        root.addView(text("EXP29.47: encerra testes longos sem erro quando a superfície Vulkan desaparece ou fica obsoleta. A cena e a geometria permanecem iguais.",12,0xff9b9ba7));
         setContentView(root);
         powerManager=(PowerManager)getSystemService(Context.POWER_SERVICE);
         if(powerManager!=null)powerManager.addThermalStatusListener(thermalStatusListener);

@@ -323,6 +323,7 @@ struct Presenter {
     bool previousDeadlineLate=false;
     bool refreshAligned=false;
     uint64_t selectedPacingPeriodNs=0;
+    std::string runTerminationReason="completed";
 
     static std::string cpuDistribution(const std::vector<double>& values,
                                        const char* name) {
@@ -1025,6 +1026,7 @@ struct Presenter {
             bool alignWithDisplay,int motionRadius,bool fit3dAspect,
             bool enableGpuBudget,const std::function<void(int)>& progress) {
         recordedMotionRadius=motionRadius;
+        runTerminationReason="completed";
         fitAspect=fit3dAspect;
         const double fitScale=std::min(double(extent.width)/double(kWidth),
                                        double(extent.height)/double(kHeight));
@@ -1057,6 +1059,10 @@ struct Presenter {
             const bool inheritedLate=beforeSleep>deadline+interval;
             if(inheritedLate)++inheritedLateOnePeriod;
             std::this_thread::sleep_until(deadline);
+            if(g_stop.load(std::memory_order_relaxed)) {
+                runTerminationReason="stop_requested";
+                break;
+            }
             const auto afterWake=std::chrono::steady_clock::now();
             const bool late=afterWake>deadline+interval;
             if(late) {
@@ -1083,7 +1089,14 @@ struct Presenter {
                                                          acquired,VK_NULL_HANDLE,&index);
             acquireWaitMs.push_back(std::chrono::duration<double,std::milli>(
                  std::chrono::steady_clock::now()-beforeAcquire).count());
-            if(acquiredResult==VK_ERROR_OUT_OF_DATE_KHR)break;
+            if(acquiredResult==VK_ERROR_OUT_OF_DATE_KHR) {
+                runTerminationReason="surface_out_of_date";
+                break;
+            }
+            if(acquiredResult==VK_ERROR_SURFACE_LOST_KHR) {
+                runTerminationReason="surface_lost";
+                break;
+            }
             expect(acquiredResult==VK_SUCCESS || acquiredResult==VK_SUBOPTIMAL_KHR,
                    "Acquire swapchain image failed");
             check(vkResetFences(device,1,&fence),"Reset frame fence");
@@ -1290,7 +1303,14 @@ struct Presenter {
             const auto completeTime=std::chrono::steady_clock::now();
             presentCallMs.push_back(
                 std::chrono::duration<double,std::milli>(completeTime-submitTime).count());
-            if(pr==VK_ERROR_OUT_OF_DATE_KHR)break;
+            if(pr==VK_ERROR_OUT_OF_DATE_KHR) {
+                runTerminationReason="surface_out_of_date";
+                break;
+            }
+            if(pr==VK_ERROR_SURFACE_LOST_KHR) {
+                runTerminationReason="surface_lost";
+                break;
+            }
             expect(pr==VK_SUCCESS || pr==VK_SUBOPTIMAL_KHR,"vkQueuePresentKHR failed");
             ++queued;
             if(gpuQueryPool)pendingGpuRole=synthesized?1:0;
@@ -1300,6 +1320,9 @@ struct Presenter {
             if((frame%8)==7) collectTiming();
             if(progress && (frame+1)%120==0)progress(frame+1);
         }
+        if(g_stop.load(std::memory_order_relaxed) && queued<requested &&
+           runTerminationReason=="completed")
+            runTerminationReason="stop_requested";
         check(vkQueueWaitIdle(queue),"Wait present queue idle");
         finishReadback();
         harvestGpuTimestamps();
@@ -1384,6 +1407,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | cena="+(holdInsteadOfFG?std::string("continua GPU HOLD sem FG"):
               continuous?std::string("continua GPU 2x"):
                          std::string("A/B estatica"))+
+          " | runStatus="+p.runTerminationReason+
           " | amostras CPU atrasadas >1 periodo="+std::to_string(p.deadlineMisses)+
           " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
           " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
