@@ -40,6 +40,12 @@ std::atomic<uint64_t> g_presentErrors{0};
 std::atomic<uint64_t> g_swapchainCreates{0};
 std::atomic<uint64_t> g_swapchainDestroys{0};
 std::atomic<uint64_t> g_swapchainImages{0};
+std::atomic<uint32_t> g_lastSwapchainWidth{0};
+std::atomic<uint32_t> g_lastSwapchainHeight{0};
+std::atomic<uint32_t> g_lastSwapchainFormat{0};
+std::atomic<uint32_t> g_lastSwapchainUsage{0};
+std::atomic<uint32_t> g_lastSwapchainPresentMode{0};
+std::atomic<uint32_t> g_lastSwapchainImageCount{0};
 
 template <typename Handle>
 void* dispatchKey(Handle handle) {
@@ -77,7 +83,7 @@ bool layerProperty(VkLayerProperties* property) {
     std::strncpy(property->layerName, kLayerName, sizeof(property->layerName) - 1);
     property->specVersion = VK_API_VERSION_1_1;
     property->implementationVersion = 1;
-    std::strncpy(property->description, "Pipa opt-in Vulkan swapchain and present trace",
+    std::strncpy(property->description, "Pipa opt-in Vulkan swapchain metadata and present trace",
                  sizeof(property->description) - 1);
     return true;
 }
@@ -257,11 +263,26 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
     if (result == VK_SUCCESS && swapchain != nullptr &&
         *swapchain != VK_NULL_HANDLE) {
         g_swapchainCreates.fetch_add(1, std::memory_order_relaxed);
+        if (createInfo != nullptr) {
+            g_lastSwapchainWidth.store(createInfo->imageExtent.width,
+                                       std::memory_order_relaxed);
+            g_lastSwapchainHeight.store(createInfo->imageExtent.height,
+                                        std::memory_order_relaxed);
+            g_lastSwapchainFormat.store(static_cast<uint32_t>(createInfo->imageFormat),
+                                        std::memory_order_relaxed);
+            g_lastSwapchainUsage.store(static_cast<uint32_t>(createInfo->imageUsage),
+                                       std::memory_order_relaxed);
+            g_lastSwapchainPresentMode.store(
+                static_cast<uint32_t>(createInfo->presentMode),
+                std::memory_order_relaxed);
+        }
         if (nextGetImages != nullptr) {
             uint32_t count = 0;
             const VkResult imageResult = nextGetImages(device, *swapchain, &count, nullptr);
-            if ((imageResult == VK_SUCCESS || imageResult == VK_INCOMPLETE) && count > 0)
+            if ((imageResult == VK_SUCCESS || imageResult == VK_INCOMPLETE) && count > 0) {
                 g_swapchainImages.fetch_add(count, std::memory_order_relaxed);
+                g_lastSwapchainImageCount.store(count, std::memory_order_relaxed);
+            }
         }
     }
     return result;
@@ -420,6 +441,12 @@ void pipa_vk_layer_reset_stats() {
     g_swapchainCreates.store(0, std::memory_order_relaxed);
     g_swapchainDestroys.store(0, std::memory_order_relaxed);
     g_swapchainImages.store(0, std::memory_order_relaxed);
+    g_lastSwapchainWidth.store(0, std::memory_order_relaxed);
+    g_lastSwapchainHeight.store(0, std::memory_order_relaxed);
+    g_lastSwapchainFormat.store(0, std::memory_order_relaxed);
+    g_lastSwapchainUsage.store(0, std::memory_order_relaxed);
+    g_lastSwapchainPresentMode.store(0, std::memory_order_relaxed);
+    g_lastSwapchainImageCount.store(0, std::memory_order_relaxed);
 }
 
 void pipa_vk_layer_get_swapchain_stats(uint64_t* creates, uint64_t* destroys,
@@ -427,6 +454,20 @@ void pipa_vk_layer_get_swapchain_stats(uint64_t* creates, uint64_t* destroys,
     if (creates != nullptr) *creates = g_swapchainCreates.load(std::memory_order_relaxed);
     if (destroys != nullptr) *destroys = g_swapchainDestroys.load(std::memory_order_relaxed);
     if (images != nullptr) *images = g_swapchainImages.load(std::memory_order_relaxed);
+}
+
+void pipa_vk_layer_get_last_swapchain_probe(uint32_t* width, uint32_t* height,
+                                            uint32_t* format, uint32_t* usage,
+                                            uint32_t* presentMode,
+                                            uint32_t* imageCount) {
+    if (width != nullptr) *width = g_lastSwapchainWidth.load(std::memory_order_relaxed);
+    if (height != nullptr) *height = g_lastSwapchainHeight.load(std::memory_order_relaxed);
+    if (format != nullptr) *format = g_lastSwapchainFormat.load(std::memory_order_relaxed);
+    if (usage != nullptr) *usage = g_lastSwapchainUsage.load(std::memory_order_relaxed);
+    if (presentMode != nullptr)
+        *presentMode = g_lastSwapchainPresentMode.load(std::memory_order_relaxed);
+    if (imageCount != nullptr)
+        *imageCount = g_lastSwapchainImageCount.load(std::memory_order_relaxed);
 }
 
 void pipa_vk_layer_get_stats(uint64_t* calls, uint64_t* success,

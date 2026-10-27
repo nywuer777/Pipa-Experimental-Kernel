@@ -29,6 +29,8 @@ constexpr char kPipaTraceLayerLibrary[]="libVkLayer_PIPA_present_trace.so";
 using PipaTraceResetFn=void (*)();
 using PipaTraceGetStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*,uint64_t*);
 using PipaTraceGetSwapchainStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*);
+using PipaTraceGetLastSwapchainProbeFn=void (*)(uint32_t*,uint32_t*,uint32_t*,
+                                               uint32_t*,uint32_t*,uint32_t*);
 
 void check(VkResult r, const char* label) {
     if(r!=VK_SUCCESS) throw std::runtime_error(std::string(label)+
@@ -222,6 +224,7 @@ struct Presenter {
     PipaTraceResetFn traceLayerReset=nullptr;
     PipaTraceGetStatsFn traceLayerGetStats=nullptr;
     PipaTraceGetSwapchainStatsFn traceLayerGetSwapchainStats=nullptr;
+    PipaTraceGetLastSwapchainProbeFn traceLayerGetLastSwapchainProbe=nullptr;
     bool traceLayerAvailable=false, traceLayerActive=false;
     uint32_t topLevelSuboptimal=0, perSwapchainSuboptimal=0, presentResultMismatches=0;
     VkResult lastTopLevelPresentResult=VK_SUCCESS;
@@ -249,12 +252,21 @@ struct Presenter {
         uint64_t creates=0,destroys=0,images=0;
         if(traceLayerGetSwapchainStats!=nullptr)
             traceLayerGetSwapchainStats(&creates,&destroys,&images);
+        uint32_t width=0,height=0,format=0,usage=0,presentMode=0,imageCount=0;
+        if(traceLayerGetLastSwapchainProbe!=nullptr)
+            traceLayerGetLastSwapchainProbe(&width,&height,&format,&usage,
+                                            &presentMode,&imageCount);
         return " | VK_LAYER_PIPA available=1 active=1 presents="+
             std::to_string(calls)+" success="+std::to_string(success)+
             " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors)+
             " swapchains created="+std::to_string(creates)+
             " destroyed="+std::to_string(destroys)+
-            " images="+std::to_string(images);
+            " images="+std::to_string(images)+
+            " | layerSwapchain extent="+std::to_string(width)+"x"+
+            std::to_string(height)+" formatVk="+std::to_string(format)+
+            " usageBits="+std::to_string(usage)+
+            " presentModeVk="+std::to_string(presentMode)+
+            " imageCount="+std::to_string(imageCount);
     }
     void querySurfaceAfterSuboptimal() {
         if(surfaceCapsQueriedAfterSuboptimal)return;
@@ -611,6 +623,9 @@ struct Presenter {
                 dlsym(traceLayerLibrary,"pipa_vk_layer_get_stats"));
             traceLayerGetSwapchainStats=reinterpret_cast<PipaTraceGetSwapchainStatsFn>(
                 dlsym(traceLayerLibrary,"pipa_vk_layer_get_swapchain_stats"));
+            traceLayerGetLastSwapchainProbe=
+                reinterpret_cast<PipaTraceGetLastSwapchainProbeFn>(
+                    dlsym(traceLayerLibrary,"pipa_vk_layer_get_last_swapchain_probe"));
             if(traceLayerReset!=nullptr)traceLayerReset();
         }
         uint32_t layerCount=0;
@@ -629,7 +644,8 @@ struct Presenter {
         }
         traceLayerActive=traceLayerAvailable && traceLayerLibrary!=nullptr &&
                          traceLayerReset!=nullptr && traceLayerGetStats!=nullptr &&
-                         traceLayerGetSwapchainStats!=nullptr;
+                         traceLayerGetSwapchainStats!=nullptr &&
+                         traceLayerGetLastSwapchainProbe!=nullptr;
         const char* enabledLayers[]={kPipaTraceLayerName};
         if(traceLayerActive) {
             ci.enabledLayerCount=1;

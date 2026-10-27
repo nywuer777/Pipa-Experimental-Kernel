@@ -49,7 +49,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.41 - CPU LATE EPISODES", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.42 - SWAPCHAIN PROBE", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
         root.addView(text("Vulkan FIFO 720p | WSI SYNC | testes 3D de 10s e 60s",13,0xffbbbbc2));
@@ -152,7 +152,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.41: relatório separa amostras atrasadas de episódios contínuos de pacing. Estado térmico Android NONE significa condição normal reportada pelo sistema. Janela WSI, geometria, cena e controles preservados. Cena analítica Vulkan Compute, não é jogo externo. Timestamps WSI são reportados pelo driver e não medem fótons.",12,0xff9b9ba7));
+        root.addView(text("EXP29.42: a camada registra extent, formato, image usage, present mode e quantidade de imagens da swapchain. É uma sonda de metadados; não lê pixels nem injeta quadros. Métricas de pacing e estado térmico preservados. Cena analítica Vulkan Compute, não é jogo externo.",12,0xff9b9ba7));
         setContentView(root);
         powerManager=(PowerManager)getSystemService(Context.POWER_SERVICE);
         if(powerManager!=null)powerManager.addThermalStatusListener(thermalStatusListener);
