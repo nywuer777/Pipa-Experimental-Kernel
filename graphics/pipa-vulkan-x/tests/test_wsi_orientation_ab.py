@@ -35,7 +35,7 @@ for token in (
  "Motion FAST",
  "SYNC experimental",
 ): assert token in j,token
-assert "versionCode 315" in gradle and "29.25-lab" in gradle
+assert "versionCode 316" in gradle and "29.26-governor-overload" in gradle
 # The fallback to currentTransform is mandatory on a surface that does
 # not support identity. Do not attempt unsupported swapchain transforms.
 assert "sci.preTransform=caps.currentTransform;" not in c

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP29.25: completed GPU pair budget, three-strike fallback, no frame inflation."""
+"""EXP29.29: paired GPU budget on real FrameGen workload."""
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 native=(root/"lab-app/app/src/main/cpp/presenter.cpp").read_text()
@@ -10,7 +10,13 @@ for tok in (
     "gpuBudgetEnabled=enableGpuBudget && continuous && !holdInsteadOfFG &&",
     "gpuQueryPool!=VK_NULL_HANDLE;",
     "gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;",
-    "const double pairMs=realGpuMs.back()+ms;",
+    '" passes stress cena=0"',
+
+    "pendingPairRealGpuMs=ms;",
+    "pendingPairRealAvailable=true;",
+    "if(!sampleValid || !pendingPairRealAvailable)",
+    "pendingPairRealAvailable=false;",
+    "const double pairMs=pendingPairRealGpuMs+ms;",
     "gpuPairMs.push_back(pairMs);",
     "++gpuBudgetProbeFrames;",
     "if(pairMs>gpuBudgetMs) {",
@@ -34,7 +40,9 @@ for tok in (
     '" probes pares="',
     '" trips 3x="',
     'summary(gpuPairMs,"GPU par real+FG")',
-    "p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()",
+    "result+=p.gpuTimingSummary();",
+    "result+=p.cpuPacingSummary();",
+    "result+=p.timingSummary();",
 ): assert tok in native,tok
 for tok in (
     "private CheckBox syncDisplay, fastMotion, identity3d, gpuBudgetGuard;",
@@ -47,7 +55,9 @@ for tok in (
     "scene3dHold.setOnClickListener(",
     "scene3dFg.setOnClickListener(",
 ): assert tok in ui,tok
-assert "versionCode 315" in gradle and "29.25-lab" in gradle
+assert "realGpuMs.back()+ms" not in native
+# Source contracts track the real-load governor build.
+assert "versionCode 337" in gradle and "29.47-graceful-wsi-stop" in gradle
 
 # Pure deterministic policy model (not Android device timing).
 def control(pair_costs, limit=11.83):
@@ -78,4 +88,8 @@ overload=control([12.5]*10)
 assert overload[:8]==["real","fg","real","fg","real","fg","real","hold"]
 assert overload.count("hold")==2 and overload.count("fg")==8
 assert overload.count("real")==10
-print("EXP29_25_TWO_PERIOD_GPU_GOVERNOR_SOURCE=PASS; HARDWARE_AB_PENDING")
+overload_720=control([12.5]*720)
+assert overload_720.count("fg")==540
+assert overload_720.count("hold")==180
+assert overload_720.count("real")==720
+print("EXP29_29_REAL_LOAD_GPU_GUARD_SOURCE=PASS; HARDWARE_VALIDATION_PENDING")

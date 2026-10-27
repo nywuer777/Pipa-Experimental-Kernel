@@ -10,6 +10,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <dlfcn.h>
+#include <functional>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -21,6 +23,15 @@ namespace {
 std::atomic<bool> g_stop{false};
 std::atomic<bool> g_inUse{false};
 constexpr uint32_t kWidth=1280, kHeight=720;
+
+constexpr char kPipaTraceLayerName[]="VK_LAYER_PIPA_present_trace";
+constexpr char kPipaTraceLayerLibrary[]="libVkLayer_PIPA_present_trace.so";
+using PipaTraceResetFn=void (*)();
+using PipaTraceGetStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*,uint64_t*);
+using PipaTraceGetSwapchainStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*);
+using PipaTraceGetLastSwapchainProbeFn=void (*)(uint32_t*,uint32_t*,uint32_t*,
+                                               uint32_t*,uint32_t*,uint32_t*,
+                                               uint32_t*,uint32_t*);
 
 void check(VkResult r, const char* label) {
     if(r!=VK_SUCCESS) throw std::runtime_error(std::string(label)+
@@ -85,6 +96,11 @@ struct Presenter {
     std::vector<VkImage> swapImages;
     VkBuffer staging=VK_NULL_HANDLE;
     VkDeviceMemory stagingMemory=VK_NULL_HANDLE;
+    VkBuffer readbackBuffer=VK_NULL_HANDLE;
+    VkDeviceMemory readbackMemory=VK_NULL_HANDLE;
+    bool readbackSupported=false,readbackRealRecorded=false,readbackGeneratedRecorded=false;
+    bool readbackRealCaptured=false,readbackGeneratedCaptured=false;
+    uint64_t readbackRealHash=0,readbackGeneratedHash=0;
     Texture tex[4]{};
     PipaFramegenVk* engine=nullptr;
 
@@ -210,19 +226,104 @@ struct Presenter {
     // despite zero CPU late periods. Aggregate a *completed* original+FG pair
     // before making a conservative, three-strike decision. No single-frame
     // interpolation budget threshold is inferred from a WSI monitor cycle.
+    void* traceLayerLibrary=nullptr;
+    PipaTraceResetFn traceLayerReset=nullptr;
+    PipaTraceGetStatsFn traceLayerGetStats=nullptr;
+    PipaTraceGetSwapchainStatsFn traceLayerGetSwapchainStats=nullptr;
+    PipaTraceGetLastSwapchainProbeFn traceLayerGetLastSwapchainProbe=nullptr;
+    bool traceLayerAvailable=false, traceLayerActive=false;
+    uint32_t topLevelSuboptimal=0, perSwapchainSuboptimal=0, presentResultMismatches=0;
+    VkResult lastTopLevelPresentResult=VK_SUCCESS;
+    VkResult lastPerSwapchainPresentResult=VK_SUCCESS;
+    bool surfaceCapsQueriedAfterSuboptimal=false;
+    bool surfaceCapsAvailableAfterSuboptimal=false;
+    uint32_t surfaceCapsQueryFailures=0;
+    VkExtent2D surfaceCurrentExtentAfterSuboptimal{};
+    VkSurfaceTransformFlagBitsKHR surfaceCurrentTransformAfterSuboptimal=
+        VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     bool gpuBudgetRequested=false, gpuBudgetEnabled=false;
     double gpuBudgetMs=0.0, lastPairGpuMs=0.0;
+    double pendingPairRealGpuMs=0.0;
+    bool pendingPairRealAvailable=false;
     uint32_t gpuBudgetOverruns=0, gpuBudgetHeld=0, gpuBudgetProbeFrames=0;
     uint32_t gpuBudgetHoldCountdown=0, gpuBudgetOverrunStreak=0;
     uint32_t gpuBudgetGovernorTrips=0, gpuBudgetMissingPairs=0;
     std::vector<double> gpuPairMs;
+    std::string traceLayerSummary() const {
+        if(!traceLayerAvailable)return " | VK_LAYER_PIPA available=0 active=0";
+        if(!traceLayerActive || traceLayerGetStats==nullptr)
+            return " | VK_LAYER_PIPA available=1 active=0";
+        uint64_t calls=0,success=0,suboptimal=0,errors=0;
+        traceLayerGetStats(&calls,&success,&suboptimal,&errors);
+        uint64_t creates=0,destroys=0,images=0;
+        if(traceLayerGetSwapchainStats!=nullptr)
+            traceLayerGetSwapchainStats(&creates,&destroys,&images);
+        uint32_t width=0,height=0,format=0,usage=0,presentMode=0,imageCount=0,
+                 supportedUsage=0,surfaceCapsAvailable=0;
+        if(traceLayerGetLastSwapchainProbe!=nullptr)
+            traceLayerGetLastSwapchainProbe(&width,&height,&format,&usage,
+                                            &presentMode,&imageCount,&supportedUsage,
+                                            &surfaceCapsAvailable);
+        return " | VK_LAYER_PIPA available=1 active=1 presents="+
+            std::to_string(calls)+" accepted="+std::to_string(success+suboptimal)+
+            " success="+std::to_string(success)+
+            " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors)+
+            " swapchains created="+std::to_string(creates)+
+            " destroyed="+std::to_string(destroys)+
+            " images="+std::to_string(images)+
+            " | layerSwapchain extent="+std::to_string(width)+"x"+
+            std::to_string(height)+" formatVk="+std::to_string(format)+
+            " usageBits="+std::to_string(usage)+
+            " presentModeVk="+std::to_string(presentMode)+
+            " imageCount="+std::to_string(imageCount)+
+            " surfaceCapsAvailable="+std::to_string(surfaceCapsAvailable)+
+            " surfaceUsageBits="+std::to_string(supportedUsage)+
+            " supportsTransferSrc="+
+                std::to_string((supportedUsage&VK_IMAGE_USAGE_TRANSFER_SRC_BIT)?1:0)+
+            " supportsSampled="+
+                std::to_string((supportedUsage&VK_IMAGE_USAGE_SAMPLED_BIT)?1:0);
+    }
+    void querySurfaceAfterSuboptimal() {
+        if(surfaceCapsQueriedAfterSuboptimal)return;
+        surfaceCapsQueriedAfterSuboptimal=true;
+        VkSurfaceCapabilitiesKHR caps{};
+        VkResult result=vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical,surface,&caps);
+        if(result!=VK_SUCCESS) {
+            ++surfaceCapsQueryFailures;
+            return;
+        }
+        surfaceCapsAvailableAfterSuboptimal=true;
+        surfaceCurrentExtentAfterSuboptimal=caps.currentExtent;
+        surfaceCurrentTransformAfterSuboptimal=caps.currentTransform;
+    }
+    std::string surfaceDiagnosticSummary() const {
+        if(!surfaceCapsQueriedAfterSuboptimal)
+            return " | WSI suboptimal diagnostic: none";
+        return " | WSI topSuboptimal="+std::to_string(topLevelSuboptimal)+
+            " perSwapchainSuboptimal="+std::to_string(perSwapchainSuboptimal)+
+            " resultMismatch="+std::to_string(presentResultMismatches)+
+            " lastTop="+std::to_string(int(lastTopLevelPresentResult))+
+            " lastPerSwapchain="+std::to_string(int(lastPerSwapchainPresentResult))+
+            " surfaceCapsAfterSuboptimal="+
+            std::to_string(surfaceCapsAvailableAfterSuboptimal?1:0)+
+            " currentExtent="+std::to_string(surfaceCurrentExtentAfterSuboptimal.width)+
+            "x"+std::to_string(surfaceCurrentExtentAfterSuboptimal.height)+
+            " currentTransform="+std::to_string(uint32_t(surfaceCurrentTransformAfterSuboptimal))+
+            " selectedPreTransform="+std::to_string(uint32_t(chosenTransform))+
+            " queryFailures="+std::to_string(surfaceCapsQueryFailures);
+    }
+
     // CPU measurements are deliberately separated from GPU timestamps and
     // driver WSI presentation times. Each metric has a different clock path.
     std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
     uint32_t inheritedLateOnePeriod=0, timerOversleepOnePeriod=0;
     uint32_t lateBurstCurrent=0, lateBurstLongest=0;
+    uint32_t lateEpisodeCount=0;
+    int lateFirstFrame=-1, lateLastFrame=-1;
+    bool previousDeadlineLate=false;
     bool refreshAligned=false;
     uint64_t selectedPacingPeriodNs=0;
+    std::string runTerminationReason="completed";
 
     static std::string cpuDistribution(const std::vector<double>& values,
                                        const char* name) {
@@ -244,11 +345,16 @@ struct Presenter {
         const size_t n=wakeLateMs.size();
         return std::string(" | CPU pacing=")+(refreshAligned?"WSI_SYNC":"FIXED_REQUEST")+
           " periodo="+std::to_string(double(selectedPacingPeriodNs)/1.e6)+"ms"+
-          " | inicios >1 periodo="+std::to_string(deadlineMisses)+
+          " | amostras CPU >1 periodo="+std::to_string(deadlineMisses)+
           "/"+std::to_string(n)+
           " | atraso herdado antes sleep="+std::to_string(inheritedLateOnePeriod)+
           " | atraso novo apos sleep="+std::to_string(timerOversleepOnePeriod)+
           " | maior sequencia atrasada="+std::to_string(lateBurstLongest)+
+          " | episodios de atraso="+std::to_string(lateEpisodeCount)+
+          " | janela atrasada frames="+
+              (lateFirstFrame<0?std::string("nenhuma"):
+               std::to_string(lateFirstFrame)+"-"+std::to_string(lateLastFrame))+
+          " | criterio atraso=CPU retomou apos deadline+1 periodo; nao e present perdido"+
           cpuDistribution(wakeLateMs,"CPU wake lateness")+
           cpuDistribution(fenceWaitMs,"CPU fence wait")+
           cpuDistribution(acquireWaitMs,"CPU acquire wait")+
@@ -260,45 +366,56 @@ struct Presenter {
     // image-layout transitions; they do NOT measure compositor/scanout time.
     void harvestGpuTimestamps() {
         if(!gpuQueryPool || pendingGpuRole<0)return;
+        const int role=pendingGpuRole;
+        // Every new original starts a fresh pair. A failed query must never
+        // reuse a successful timestamp from a previous pair.
+        if(role==0 && gpuBudgetEnabled)pendingPairRealAvailable=false;
         uint64_t values[2]{};
         VkResult r=vkGetQueryPoolResults(device,gpuQueryPool,0,2,sizeof(values),
                     values,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT);
+        bool sampleValid=false;
+        double ms=0.0;
         if(r==VK_SUCCESS) {
             uint64_t ticks=(values[1]-values[0]);
             if(timestampValidBits<64)
                 ticks&=((uint64_t(1)<<timestampValidBits)-1u);
-            const double ms=double(ticks)*double(timestampPeriodNs)*1.e-6;
+            ms=double(ticks)*double(timestampPeriodNs)*1.e-6;
             if(ms>=0.0 && std::isfinite(ms) && ms<10000.0) {
-                if(pendingGpuRole==1) {
-                    generatedGpuMs.push_back(ms);
+                sampleValid=true;
+                if(role==1) generatedGpuMs.push_back(ms);
+                else {
+                    realGpuMs.push_back(ms);
                     if(gpuBudgetEnabled) {
-                        // When a pair's original timestamp is unavailable,
-                        // fail open instead of inventing a GPU budget violation.
-                        if(realGpuMs.empty()) {
-                            ++gpuBudgetMissingPairs;
-                            gpuBudgetOverrunStreak=0;
-                        } else {
-                            const double pairMs=realGpuMs.back()+ms;
-                            lastPairGpuMs=pairMs;
-                            gpuPairMs.push_back(pairMs);
-                            ++gpuBudgetProbeFrames;
-                            if(pairMs>gpuBudgetMs) {
-                                ++gpuBudgetOverruns;
-                                ++gpuBudgetOverrunStreak;
-                                if(gpuBudgetOverrunStreak>=3u) {
-                                    // One held synthetic slot per three
-                                    // consecutive overloaded completed pairs.
-                                    gpuBudgetHoldCountdown=1u;
-                                    ++gpuBudgetGovernorTrips;
-                                    gpuBudgetOverrunStreak=0u;
-                                }
-                            } else gpuBudgetOverrunStreak=0u;
-                        }
+                        pendingPairRealGpuMs=ms;
+                        pendingPairRealAvailable=true;
                     }
-                } else realGpuMs.push_back(ms);
+                }
             } else ++gpuTimingReadFailures;
         } else ++gpuTimingReadFailures;
-        if(pendingGpuRole==1) {
+        if(gpuBudgetEnabled && role==1) {
+            if(!sampleValid || !pendingPairRealAvailable) {
+                ++gpuBudgetMissingPairs;
+                gpuBudgetOverrunStreak=0;
+            } else {
+                const double pairMs=pendingPairRealGpuMs+ms;
+                lastPairGpuMs=pairMs;
+                gpuPairMs.push_back(pairMs);
+                ++gpuBudgetProbeFrames;
+                if(pairMs>gpuBudgetMs) {
+                    ++gpuBudgetOverruns;
+                    ++gpuBudgetOverrunStreak;
+                    if(gpuBudgetOverrunStreak>=3u) {
+                        // One held synthetic slot per three
+                        // consecutive overloaded completed pairs.
+                        gpuBudgetHoldCountdown=1u;
+                        ++gpuBudgetGovernorTrips;
+                        gpuBudgetOverrunStreak=0u;
+                    }
+                } else gpuBudgetOverrunStreak=0u;
+            }
+            pendingPairRealAvailable=false;
+        }
+        if(role==1) {
             uint64_t parts[3]{};
             VkResult split=vkGetQueryPoolResults(device,gpuQueryPool,2,3,
                sizeof(parts),parts,sizeof(uint64_t),VK_QUERY_RESULT_64_BIT);
@@ -343,7 +460,7 @@ struct Presenter {
 
 
     void collectTiming() {
-        if(!displayTimingEnabled || !getPastTiming) return;
+        if(!swap || !displayTimingEnabled || !getPastTiming) return;
         uint32_t count=0;
         VkResult q=getPastTiming(device,swap,&count,nullptr);
         if(q!=VK_SUCCESS) { ++timingQueryFailures;return; }
@@ -372,6 +489,12 @@ struct Presenter {
         if(reportedActualNs.size()<2) {
             result+=" | taxa fisica nao determinada";
         } else {
+            const auto& first= *reportedActualNs.begin();
+            const auto& last = *reportedActualNs.rbegin();
+            if(last.second>=first.second)
+                result+=" | janela WSI observada IDs="+std::to_string(first.first)+
+                    ".."+std::to_string(last.first)+" duracao="+
+                    std::to_string(double(last.second-first.second)/1.e9)+"s";
             std::vector<double> intervals;
             uint32_t previousId=0;
             uint64_t previousTime=0;
@@ -435,6 +558,8 @@ struct Presenter {
             if(pool)vkDestroyCommandPool(device,pool,nullptr);
             if(staging)vkDestroyBuffer(device,staging,nullptr);
             if(stagingMemory)vkFreeMemory(device,stagingMemory,nullptr);
+            if(readbackBuffer)vkDestroyBuffer(device,readbackBuffer,nullptr);
+            if(readbackMemory)vkFreeMemory(device,readbackMemory,nullptr);
             for(auto& x:tex) {
                 if(x.view)vkDestroyImageView(device,x.view,nullptr);
                 if(x.image)vkDestroyImage(device,x.image,nullptr);
@@ -446,6 +571,13 @@ struct Presenter {
         if(surface && instance)vkDestroySurfaceKHR(instance,surface,nullptr);
         if(instance)vkDestroyInstance(instance,nullptr);
         if(window)ANativeWindow_release(window);
+        if(traceLayerLibrary)dlclose(traceLayerLibrary);
+    }
+    void releaseSwapchainForProbe() {
+        if(device && swap) {
+            vkDestroySwapchainKHR(device,swap,nullptr);
+            swap=VK_NULL_HANDLE;
+        }
     }
     uint32_t selectMemory(uint32_t allowed,VkMemoryPropertyFlags flags) const {
         for(uint32_t i=0;i<memory.memoryTypeCount;++i) {
@@ -453,6 +585,53 @@ struct Presenter {
                (memory.memoryTypes[i].propertyFlags & flags)==flags)return i;
         }
         throw std::runtime_error("Required Vulkan memory flags unavailable");
+    }
+    void createReadbackBuffer() {
+        if(!readbackSupported)return;
+        VkBufferCreateInfo info{};
+        info.sType=VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        info.size=VkDeviceSize(64)*64*4*2;
+        info.usage=VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        info.sharingMode=VK_SHARING_MODE_EXCLUSIVE;
+        check(vkCreateBuffer(device,&info,nullptr,&readbackBuffer),
+              "Create one-shot readback buffer");
+        VkMemoryRequirements req{};
+        vkGetBufferMemoryRequirements(device,readbackBuffer,&req);
+        VkMemoryAllocateInfo alloc{};
+        alloc.sType=VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        alloc.allocationSize=req.size;
+        alloc.memoryTypeIndex=selectMemory(req.memoryTypeBits,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        check(vkAllocateMemory(device,&alloc,nullptr,&readbackMemory),
+              "Allocate one-shot readback");
+        check(vkBindBufferMemory(device,readbackBuffer,readbackMemory,0),
+              "Bind one-shot readback");
+    }
+    void finishReadback() {
+        if(!readbackSupported || (!readbackRealRecorded && !readbackGeneratedRecorded) ||
+           readbackBuffer==VK_NULL_HANDLE)return;
+        void* mapped=nullptr;
+        constexpr size_t sampleBytes=size_t(64)*64*4;
+        check(vkMapMemory(device,readbackMemory,0,VkDeviceSize(sampleBytes*2),0,&mapped),
+              "Map one-shot readback");
+        const auto* bytes=static_cast<const uint8_t*>(mapped);
+        auto hashRange=[&](size_t offset) {
+            uint64_t hash=14695981039346656037ULL;
+            for(size_t i=0;i<sampleBytes;++i) {
+                hash^=bytes[offset+i];
+                hash*=1099511628211ULL;
+            }
+            return hash;
+        };
+        if(readbackRealRecorded) {
+            readbackRealHash=hashRange(0);
+            readbackRealCaptured=true;
+        }
+        if(readbackGeneratedRecorded) {
+            readbackGeneratedHash=hashRange(sampleBytes);
+            readbackGeneratedCaptured=true;
+        }
+        vkUnmapMemory(device,readbackMemory);
     }
     void makeTexture(int index,uint32_t w,uint32_t h,VkFormat format,
                      VkImageUsageFlags extra) {
@@ -501,7 +680,50 @@ struct Presenter {
         ci.sType=VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         ci.pApplicationInfo=&app;
         ci.enabledExtensionCount=2;ci.ppEnabledExtensionNames=instanceExts;
-        check(vkCreateInstance(&ci,nullptr,&instance),"vkCreateInstance");
+        traceLayerLibrary=dlopen(kPipaTraceLayerLibrary,RTLD_NOW|RTLD_LOCAL);
+        if(traceLayerLibrary!=nullptr) {
+            traceLayerReset=reinterpret_cast<PipaTraceResetFn>(
+                dlsym(traceLayerLibrary,"pipa_vk_layer_reset_stats"));
+            traceLayerGetStats=reinterpret_cast<PipaTraceGetStatsFn>(
+                dlsym(traceLayerLibrary,"pipa_vk_layer_get_stats"));
+            traceLayerGetSwapchainStats=reinterpret_cast<PipaTraceGetSwapchainStatsFn>(
+                dlsym(traceLayerLibrary,"pipa_vk_layer_get_swapchain_stats"));
+            traceLayerGetLastSwapchainProbe=
+                reinterpret_cast<PipaTraceGetLastSwapchainProbeFn>(
+                    dlsym(traceLayerLibrary,"pipa_vk_layer_get_last_swapchain_probe"));
+            if(traceLayerReset!=nullptr)traceLayerReset();
+        }
+        uint32_t layerCount=0;
+        VkResult layerEnum=vkEnumerateInstanceLayerProperties(&layerCount,nullptr);
+        if(layerEnum==VK_SUCCESS && layerCount>0) {
+            std::vector<VkLayerProperties> layerProperties(layerCount);
+            layerEnum=vkEnumerateInstanceLayerProperties(&layerCount,layerProperties.data());
+            if(layerEnum==VK_SUCCESS || layerEnum==VK_INCOMPLETE) {
+                for(const auto& property:layerProperties) {
+                    if(std::strcmp(property.layerName,kPipaTraceLayerName)==0) {
+                        traceLayerAvailable=true;
+                        break;
+                    }
+                }
+            }
+        }
+        traceLayerActive=traceLayerAvailable && traceLayerLibrary!=nullptr &&
+                         traceLayerReset!=nullptr && traceLayerGetStats!=nullptr &&
+                         traceLayerGetSwapchainStats!=nullptr &&
+                         traceLayerGetLastSwapchainProbe!=nullptr;
+        const char* enabledLayers[]={kPipaTraceLayerName};
+        if(traceLayerActive) {
+            ci.enabledLayerCount=1;
+            ci.ppEnabledLayerNames=enabledLayers;
+        }
+        VkResult instanceResult=vkCreateInstance(&ci,nullptr,&instance);
+        if(instanceResult!=VK_SUCCESS && traceLayerActive) {
+            traceLayerActive=false;
+            ci.enabledLayerCount=0;
+            ci.ppEnabledLayerNames=nullptr;
+            instanceResult=vkCreateInstance(&ci,nullptr,&instance);
+        }
+        check(instanceResult,"vkCreateInstance");
         VkAndroidSurfaceCreateInfoKHR androidSurface{};
         androidSurface.sType=VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
         androidSurface.window=window;
@@ -591,6 +813,7 @@ struct Presenter {
         requestedIdentity3d=preferIdentityFor3D;
         expect((caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)!=0,
                "Swapchain does not support TRANSFER_DST (graphics path required)");
+        readbackSupported=(caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)!=0;
         if(caps.currentExtent.width!=UINT32_MAX) {
             extent=caps.currentExtent;
         } else {
@@ -639,7 +862,15 @@ struct Presenter {
         sci.imageColorSpace=chosen.colorSpace;
         sci.imageExtent=extent;
         sci.imageArrayLayers=1;
+        // EXP29.44: exercise a swapchain configuration that can later support
+        // image reads, but only when the surface explicitly advertises it.
+        // This app-owned analytical swapchain still does not read or retain
+        // pixels; rendering and present synchronization remain unchanged.
         sci.imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        const bool transferSrcRequested=
+            (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)!=0;
+        if(transferSrcRequested)
+            sci.imageUsage|=VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         sci.imageSharingMode=VK_SHARING_MODE_EXCLUSIVE;
         // EXP29.23: the EXP29.22 16:9 rectangle was letterboxed in
         // 2844x790 swapchain coordinates but appeared as horizontal bars on
@@ -664,6 +895,8 @@ struct Presenter {
         sci.presentMode=VK_PRESENT_MODE_FIFO_KHR;
         sci.clipped=VK_TRUE;
         check(vkCreateSwapchainKHR(device,&sci,nullptr,&swap),"vkCreateSwapchainKHR");
+        readbackSupported=transferSrcRequested &&
+                          swapFormat==VK_FORMAT_R8G8B8A8_UNORM;
         if(displayTimingEnabled) {
             VkRefreshCycleDurationGOOGLE cycle{};
             if(getRefreshDuration(device,swap,&cycle)==VK_SUCCESS)
@@ -720,6 +953,7 @@ struct Presenter {
               &engine);
         expect(code==0,"pipa_framegen_vk_create_ex failed");
         if(continuous)createScenePipeline(scene);
+        createReadbackBuffer();
 
         const VkDeviceSize one=VkDeviceSize(kWidth)*kHeight*4;
         VkBufferCreateInfo bi{};
@@ -790,8 +1024,9 @@ struct Presenter {
     }
     int run(int targetHz,int requested,bool continuous,bool holdInsteadOfFG,
             bool alignWithDisplay,int motionRadius,bool fit3dAspect,
-            bool enableGpuBudget) {
+            bool enableGpuBudget,const std::function<void(int)>& progress) {
         recordedMotionRadius=motionRadius;
+        runTerminationReason="completed";
         fitAspect=fit3dAspect;
         const double fitScale=std::min(double(extent.width)/double(kWidth),
                                        double(extent.height)/double(kHeight));
@@ -817,20 +1052,29 @@ struct Presenter {
         // Reserve 15% margin for other GPU work before shedding FG slots.
         gpuBudgetMs=2.0*double(selectedPacingPeriodNs)*0.85e-6;
         const auto interval=std::chrono::nanoseconds(selectedPacingPeriodNs);
+        if(progress)progress(0);
         for(int frame=0;frame<requested && !g_stop.load();++frame) {
             auto deadline=start+interval*frame;
             const auto beforeSleep=std::chrono::steady_clock::now();
             const bool inheritedLate=beforeSleep>deadline+interval;
             if(inheritedLate)++inheritedLateOnePeriod;
             std::this_thread::sleep_until(deadline);
+            if(g_stop.load(std::memory_order_relaxed)) {
+                runTerminationReason="stop_requested";
+                break;
+            }
             const auto afterWake=std::chrono::steady_clock::now();
             const bool late=afterWake>deadline+interval;
             if(late) {
                 ++deadlineMisses;
                 if(!inheritedLate)++timerOversleepOnePeriod;
+                if(!previousDeadlineLate)++lateEpisodeCount;
+                if(lateFirstFrame<0)lateFirstFrame=frame;
+                lateLastFrame=frame;
                 ++lateBurstCurrent;
                 lateBurstLongest=std::max(lateBurstLongest,lateBurstCurrent);
             } else lateBurstCurrent=0;
+            previousDeadlineLate=late;
             wakeLateMs.push_back(std::max(0.0,
                  std::chrono::duration<double,std::milli>(afterWake-deadline).count()));
             const auto beforeFence=std::chrono::steady_clock::now();
@@ -845,7 +1089,14 @@ struct Presenter {
                                                          acquired,VK_NULL_HANDLE,&index);
             acquireWaitMs.push_back(std::chrono::duration<double,std::milli>(
                  std::chrono::steady_clock::now()-beforeAcquire).count());
-            if(acquiredResult==VK_ERROR_OUT_OF_DATE_KHR)break;
+            if(acquiredResult==VK_ERROR_OUT_OF_DATE_KHR) {
+                runTerminationReason="surface_out_of_date";
+                break;
+            }
+            if(acquiredResult==VK_ERROR_SURFACE_LOST_KHR) {
+                runTerminationReason="surface_lost";
+                break;
+            }
             expect(acquiredResult==VK_SUCCESS || acquiredResult==VK_SUBOPTIMAL_KHR,
                    "Acquire swapchain image failed");
             check(vkResetFences(device,1,&fence),"Reset frame fence");
@@ -875,8 +1126,10 @@ struct Presenter {
             const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;
             int source=continuous?0:((frame%4)==2?1:0);
             Texture& texSource=tex[synthesized?3:source];
-            if(continuous && !odd)
-                recordSourceScene(command,uint32_t(frame/2));
+            if(continuous && !odd) {
+                const uint32_t sourcePair=uint32_t(frame/2);
+                recordSourceScene(command,sourcePair);
+            }
             if(synthesized) {
                 // Reusing motionField between generated frames requires a read-to-
                 // write dependency after the preceding warp sampled the field.
@@ -952,12 +1205,49 @@ struct Presenter {
                                swapImages[index],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                1,&copy);
             }
+            const bool captureThisFrame=readbackSupported && extent.width>=64 &&
+                extent.height>=64 && requested>=2 && frame>=requested-2 &&
+                frame<requested;
+            const VkDeviceSize readbackOffset=synthesized?
+                VkDeviceSize(64)*64*4:0;
+            VkImageLayout presentedOldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            if(captureThisFrame) {
+                VkImageMemoryBarrier toRead=imageBarrier(swapImages[index],
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT);
+                vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,1,&toRead);
+                VkBufferImageCopy region{};
+                region.imageSubresource.aspectMask=VK_IMAGE_ASPECT_COLOR_BIT;
+                region.imageSubresource.layerCount=1;
+                region.imageOffset={int32_t(extent.width/2)-32,
+                                    int32_t(extent.height/2)-32,0};
+                region.imageExtent={64,64,1};
+                region.bufferOffset=readbackOffset;
+                vkCmdCopyImageToBuffer(command,swapImages[index],
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,readbackBuffer,1,&region);
+                VkBufferMemoryBarrier toHost{};
+                toHost.sType=VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+                toHost.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+                toHost.dstAccessMask=VK_ACCESS_HOST_READ_BIT;
+                toHost.srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+                toHost.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+                toHost.buffer=readbackBuffer;
+                toHost.offset=0;
+                toHost.size=VK_WHOLE_SIZE;
+                vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_HOST_BIT,0,0,nullptr,1,&toHost,0,nullptr);
+                if(synthesized)readbackGeneratedRecorded=true;
+                else readbackRealRecorded=true;
+                presentedOldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            }
             auto back=imageBarrier(texSource.image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                    VK_IMAGE_LAYOUT_GENERAL,VK_ACCESS_TRANSFER_READ_BIT,
                                    VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT);
-            auto presented=imageBarrier(swapImages[index],VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            auto presented=imageBarrier(swapImages[index],presentedOldLayout,
                                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                     VK_ACCESS_TRANSFER_WRITE_BIT,0);
+                                     captureThisFrame?VK_ACCESS_TRANSFER_READ_BIT:
+                                                      VK_ACCESS_TRANSFER_WRITE_BIT,0);
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
                  VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,0,nullptr,1,&back);
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -987,6 +1277,8 @@ struct Presenter {
             present.swapchainCount=1;
             present.pSwapchains=&swap;
             present.pImageIndices=&index;
+            VkResult perSwapchainResult=VK_NOT_READY;
+            present.pResults=&perSwapchainResult;
             VkPresentTimeGOOGLE presentStamp{};
             VkPresentTimesInfoGOOGLE presentTiming{};
             if(displayTimingEnabled) {
@@ -1000,10 +1292,25 @@ struct Presenter {
             }
             const auto submitTime=std::chrono::steady_clock::now();
             VkResult pr=vkQueuePresentKHR(queue,&present);
+            lastTopLevelPresentResult=pr;
+            lastPerSwapchainPresentResult=perSwapchainResult;
+            if(pr!=perSwapchainResult)++presentResultMismatches;
+            if(pr==VK_SUBOPTIMAL_KHR) {
+                ++topLevelSuboptimal;
+                if(perSwapchainResult==VK_SUBOPTIMAL_KHR)++perSwapchainSuboptimal;
+                querySurfaceAfterSuboptimal();
+            }
             const auto completeTime=std::chrono::steady_clock::now();
             presentCallMs.push_back(
                 std::chrono::duration<double,std::milli>(completeTime-submitTime).count());
-            if(pr==VK_ERROR_OUT_OF_DATE_KHR)break;
+            if(pr==VK_ERROR_OUT_OF_DATE_KHR) {
+                runTerminationReason="surface_out_of_date";
+                break;
+            }
+            if(pr==VK_ERROR_SURFACE_LOST_KHR) {
+                runTerminationReason="surface_lost";
+                break;
+            }
             expect(pr==VK_SUCCESS || pr==VK_SUBOPTIMAL_KHR,"vkQueuePresentKHR failed");
             ++queued;
             if(gpuQueryPool)pendingGpuRole=synthesized?1:0;
@@ -1011,8 +1318,13 @@ struct Presenter {
             else if(synthesized)++sceneGeneratedSubmitted;
             else ++sceneRealSubmitted;
             if((frame%8)==7) collectTiming();
+            if(progress && (frame+1)%120==0)progress(frame+1);
         }
+        if(g_stop.load(std::memory_order_relaxed) && queued<requested &&
+           runTerminationReason=="completed")
+            runTerminationReason="stop_requested";
         check(vkQueueWaitIdle(queue),"Wait present queue idle");
+        finishReadback();
         harvestGpuTimestamps();
         collectTiming();
         return queued;
@@ -1028,7 +1340,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativeStop(JNIEnv*,jobject) {
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
-    JNIEnv* env,jobject,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
+    JNIEnv* env,jobject activity,jobject surface,jbyteArray motionShader,jbyteArray warpShader,
     jbyteArray sceneShader,jint targetHz,jint frames,jboolean continuousMode,
     jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode,jint motionRadius,
     jboolean fit3dAspectMode,jboolean preferIdentity3dMode,
@@ -1039,8 +1351,22 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
     g_stop.store(false);
     std::string result;
     try {
+        jclass activityClass=env->GetObjectClass(activity);
+        expect(activityClass!=nullptr,"Get PresenterActivity class failed");
+        jmethodID diagnosticMethod=env->GetMethodID(activityClass,"nativeDiagnostic",
+                                                     "(Ljava/lang/String;)V");
+        expect(diagnosticMethod!=nullptr,"Find nativeDiagnostic callback failed");
+        auto diagnostic=[&](const std::string& stage) {
+            jstring value=env->NewStringUTF(stage.c_str());
+            if(value) {
+                env->CallVoidMethod(activity,diagnosticMethod,value);
+                env->DeleteLocalRef(value);
+            }
+            if(env->ExceptionCheck())env->ExceptionClear();
+        };
+        diagnostic("NATIVE_ENTER");
         expect(targetHz==60 || targetHz==120 || targetHz==144,"Invalid targetHz");
-        expect(frames>0 && frames<=2400,"Invalid frame count");
+        expect(frames>0 && frames<=9000,"Invalid frame count");
         expect(motionRadius==3 || motionRadius==4,"Invalid Motion radius");
         auto motion=shaderBytes(env,motionShader);
         auto warp=shaderBytes(env,warpShader);
@@ -1048,15 +1374,26 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
         const bool holdInsteadOfFG=continuous && holdInsteadOfFGMode==JNI_TRUE;
         std::vector<uint32_t> scene;
         if(continuous) scene=shaderBytes(env,sceneShader);
+        {
         Presenter p;
         auto t0=std::chrono::steady_clock::now();
+        diagnostic("NATIVE_INIT_BEGIN");
         p.init(env,surface,motion,warp,scene,continuous,
                fit3dAspectMode==JNI_TRUE && preferIdentity3dMode==JNI_TRUE);
         auto t1=std::chrono::steady_clock::now();
+        diagnostic("NATIVE_INIT_DONE");
         int queued=p.run(targetHz,frames,continuous,holdInsteadOfFG,
                          alignWithDisplayMode==JNI_TRUE,int(motionRadius),
                          fit3dAspectMode==JNI_TRUE,
-                         gpuBudgetMode==JNI_TRUE);
+                         gpuBudgetMode==JNI_TRUE,[&](int frame) {
+                             diagnostic("NATIVE_FRAME="+std::to_string(frame));
+                         });
+        diagnostic("NATIVE_RUN_DONE queued="+std::to_string(queued));
+        // run() drains the queue; release now so the opt-in layer can report
+        // a complete create/destroy lifecycle before the summary is formed.
+        diagnostic("NATIVE_SWAPCHAIN_DESTROY_BEGIN");
+        p.releaseSwapchainForProbe();
+        diagnostic("NATIVE_SWAPCHAIN_DESTROY_DONE");
         auto t2=std::chrono::steady_clock::now();
         double initializeMs=std::chrono::duration<double,std::milli>(t1-t0).count();
         double presentSeconds=std::chrono::duration<double>(t2-t1).count();
@@ -1070,9 +1407,11 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | cena="+(holdInsteadOfFG?std::string("continua GPU HOLD sem FG"):
               continuous?std::string("continua GPU 2x"):
                          std::string("A/B estatica"))+
-          " | deadlines perdidos="+std::to_string(p.deadlineMisses)+
+          " | runStatus="+p.runTerminationReason+
+          " | amostras CPU atrasadas >1 periodo="+std::to_string(p.deadlineMisses)+
           " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
           " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
+          " passes stress cena=0"+
           " teto="+std::to_string(p.gpuBudgetMs)+"ms"+
           " probes pares="+std::to_string(p.gpuBudgetProbeFrames)+
           " acima teto par="+std::to_string(p.gpuBudgetOverruns)+
@@ -1092,11 +1431,36 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | swapFormat="+std::to_string(int(p.swapFormat))+
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
-          " | inicializacao="+std::to_string(initializeMs)+" ms"+
-          p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()+
-          " | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
+          " | inicializacao="+std::to_string(initializeMs)+" ms";
+        result+=" | pixel probe own-swapchain real64x64="+
+            std::to_string(p.readbackRealCaptured?1:0)+
+            " hashReal="+std::to_string(p.readbackRealHash)+
+            " generated64x64="+
+            std::to_string(p.readbackGeneratedCaptured?1:0)+
+            " hashGenerated="+std::to_string(p.readbackGeneratedHash)+
+            " hashesEqual="+
+                (p.readbackRealCaptured && p.readbackGeneratedCaptured?
+                    std::to_string(p.readbackRealHash==p.readbackGeneratedHash?1:0):
+                    std::string("unknown"));
+        diagnostic("NATIVE_SUMMARY_BASE_DONE");
+        result+=p.gpuTimingSummary();
+        diagnostic("NATIVE_GPU_SUMMARY_DONE");
+        result+=p.cpuPacingSummary();
+        diagnostic("NATIVE_CPU_SUMMARY_DONE");
+        result+=p.timingSummary();
+        diagnostic("NATIVE_WSI_SUMMARY_DONE");
+        result+=p.surfaceDiagnosticSummary();
+        diagnostic("NATIVE_SURFACE_SUMMARY_DONE");
+        result+=p.traceLayerSummary();
+        diagnostic("NATIVE_LAYER_SUMMARY_DONE");
+        result+=" | chamadas/s NAO sao FPS fisicos exibidos; timing WSI e reportado pelo driver.";
+        diagnostic("NATIVE_SUMMARY_DONE");
+        diagnostic("NATIVE_CLEANUP_BEGIN");
+        }
+        diagnostic("NATIVE_CLEANUP_DONE");
+        diagnostic("NATIVE_RETURN_PREP");
     } catch(const std::exception& e) {
-        result=std::string("EXP29.24 Vulkan presenter: ")+e.what();
+        result=std::string("EXP29.27 Vulkan presenter: ")+e.what();
     }
     g_inUse.store(false);
     return env->NewStringUTF(result.c_str());

@@ -27,7 +27,7 @@ for token in (
     "cobertura WSI=", "intervalos >1.5 ciclos=",
     "p50=", "p95=", "p99=", "max=",
     "CPU vkQueuePresentKHR p95=",
-    'frames<=2400,"Invalid frame count"',
+    'frames<=9000,"Invalid frame count"',
     "NAO sao FPS fisicos exibidos",
     "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
 ):
@@ -39,8 +39,8 @@ for token in (
     "result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,",
     '"pipa_scene_v2.comp.spv"',
 ): assert token in ui,token
-assert "versionCode 315" in gradle
-assert "versionName '29.25-lab'" in gradle
+assert "versionCode 316" in gradle
+assert "versionName '29.26-governor-overload'" in gradle
 
 for frames in (240,1440):
     real=sum(i%2==0 for i in range(frames))

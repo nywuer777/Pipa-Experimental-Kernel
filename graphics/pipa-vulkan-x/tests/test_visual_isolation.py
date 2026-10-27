@@ -16,7 +16,7 @@ for token in (
  "int source=continuous?0:((frame%4)==2?1:0);",
  "Texture& texSource=tex[synthesized?3:source];",
  "if(continuous && !odd)",
- "recordSourceScene(command,uint32_t(frame/2))",
+ "recordSourceScene(command,sourcePair)",
  "if(synthesized) {",
  "if(odd && (holdInsteadOfFG || budgetFallback))++sceneHeldSubmitted;",
  "else if(synthesized)++sceneGeneratedSubmitted;",
@@ -36,8 +36,8 @@ for token in (
  "hold144.setEnabled(enabled && validSurface);",
  "result=nativePresent(surface,motion,warp,scene,hz,stress?1440:240,",
 ): assert token in ui,token
-assert "versionCode 315" in gradle
-assert "versionName '29.25-lab'" in gradle
+assert "versionCode 316" in gradle
+assert "versionName '29.26-governor-overload'" in gradle
 
 for hold in (False,True):
  for frame in range(240):

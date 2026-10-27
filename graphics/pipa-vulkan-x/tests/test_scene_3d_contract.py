@@ -33,12 +33,12 @@ for name in (
     "copyReport.setOnClickListener(v->",
 ): assert name in java,name
 for name in (
-    "recordSourceScene(command,uint32_t(frame/2))",
+    "recordSourceScene(command,sourcePair)",
     "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
     "pipa_framegen_vk_record_profiled(",
     "cpuPacingSummary()",
     "gpuTimingSummary()",
 ): assert name in native,name
-assert "versionCode 315" in build
-assert "29.25-lab" in build
+assert "versionCode 316" in build
+assert "29.26-governor-overload" in build
 print("EXP29_21_3D_PERSPECTIVE_OCCLUSION_SOURCE_CONTRACT=PASS; HARDWARE_3D_PENDING")

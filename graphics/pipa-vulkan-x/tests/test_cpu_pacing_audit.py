@@ -20,6 +20,8 @@ for token in (
     "submitCallMs.push_back(",
     "wakeLateMs.push_back(",
     "CPU pacing=",
+    "amostras CPU >1 periodo=",
+    "criterio atraso=CPU retomou apos deadline+1 periodo; nao e present perdido",
     "CPU wake lateness",
     "CPU fence wait",
     "CPU acquire wait",
@@ -27,24 +29,31 @@ for token in (
     "atraso herdado antes sleep=",
     "atraso novo apos sleep=",
     "maior sequencia atrasada=",
+    "episodios de atraso=",
+    "janela atrasada frames=",
     "p.run(targetHz,frames,continuous,holdInsteadOfFG,",
     "jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode",
-    "p.gpuTimingSummary()+p.cpuPacingSummary()+p.timingSummary()",
+    "result+=p.gpuTimingSummary();",
+    "result+=p.cpuPacingSummary();",
+    "result+=p.timingSummary();",
     "VK_GOOGLE_display_timing",
     "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
 ): assert token in cpp,token
 for token in (
     "private CheckBox syncDisplay, fastMotion, identity3d, gpuBudgetGuard;",
-    "syncDisplay.setChecked(false)",
+    "syncDisplay.setChecked(true)",
     "final boolean alignWithDisplay=syncDisplay.isChecked();",
     "stressHold144.setOnClickListener(",
     "stressFg144.setOnClickListener(",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "copyReport.setOnClickListener(v->",
     "ClipboardManager clipboard=",
+    "thermal Android início=",
+    "addThermalStatusListener(thermalStatusListener)",
+    "peakThermalStatus.accumulateAndGet(value, Math::max)",
 ): assert token in ui,token
 assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
-assert "versionCode 315" in gradle and "29.25-lab" in gradle
+assert "versionCode 337" in gradle and "29.47-graceful-wsi-stop" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.
@@ -55,4 +64,4 @@ drift=(reported-fixed)*1440/1e6
 assert drift>20,drift
 assert (reported*1440/1e9)>(fixed*1440/1e9)
 # No physical missed-presentation claim is made by these purely CPU timers.
-print(f"EXP29_19_PACING_CONTRACT=PASS; FIXED_vs_WSI_10S_DRIFT_MS={drift:.3f}; DEVICE_STRESS=UNTESTED")
+print(f"EXP29_31_PACING_CONTRACT=PASS; FIXED_vs_WSI_10S_DRIFT_MS={drift:.3f}; DEVICE_STRESS=UNTESTED")
