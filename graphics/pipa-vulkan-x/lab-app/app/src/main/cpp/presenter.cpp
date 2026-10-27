@@ -291,6 +291,9 @@ struct Presenter {
     std::vector<double> wakeLateMs, fenceWaitMs, acquireWaitMs, submitCallMs;
     uint32_t inheritedLateOnePeriod=0, timerOversleepOnePeriod=0;
     uint32_t lateBurstCurrent=0, lateBurstLongest=0;
+    uint32_t lateEpisodeCount=0;
+    int lateFirstFrame=-1, lateLastFrame=-1;
+    bool previousDeadlineLate=false;
     bool refreshAligned=false;
     uint64_t selectedPacingPeriodNs=0;
 
@@ -314,11 +317,15 @@ struct Presenter {
         const size_t n=wakeLateMs.size();
         return std::string(" | CPU pacing=")+(refreshAligned?"WSI_SYNC":"FIXED_REQUEST")+
           " periodo="+std::to_string(double(selectedPacingPeriodNs)/1.e6)+"ms"+
-          " | inicios CPU >1 periodo="+std::to_string(deadlineMisses)+
+          " | amostras CPU >1 periodo="+std::to_string(deadlineMisses)+
           "/"+std::to_string(n)+
           " | atraso herdado antes sleep="+std::to_string(inheritedLateOnePeriod)+
           " | atraso novo apos sleep="+std::to_string(timerOversleepOnePeriod)+
           " | maior sequencia atrasada="+std::to_string(lateBurstLongest)+
+          " | episodios de atraso="+std::to_string(lateEpisodeCount)+
+          " | janela atrasada frames="+
+              (lateFirstFrame<0?std::string("nenhuma"):
+               std::to_string(lateFirstFrame)+"-"+std::to_string(lateLastFrame))+
           " | criterio atraso=CPU retomou apos deadline+1 periodo; nao e present perdido"+
           cpuDistribution(wakeLateMs,"CPU wake lateness")+
           cpuDistribution(fenceWaitMs,"CPU fence wait")+
@@ -963,9 +970,13 @@ struct Presenter {
             if(late) {
                 ++deadlineMisses;
                 if(!inheritedLate)++timerOversleepOnePeriod;
+                if(!previousDeadlineLate)++lateEpisodeCount;
+                if(lateFirstFrame<0)lateFirstFrame=frame;
+                lateLastFrame=frame;
                 ++lateBurstCurrent;
                 lateBurstLongest=std::max(lateBurstLongest,lateBurstCurrent);
             } else lateBurstCurrent=0;
+            previousDeadlineLate=late;
             wakeLateMs.push_back(std::max(0.0,
                  std::chrono::duration<double,std::milli>(afterWake-deadline).count()));
             const auto beforeFence=std::chrono::steady_clock::now();
@@ -1243,7 +1254,7 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | cena="+(holdInsteadOfFG?std::string("continua GPU HOLD sem FG"):
               continuous?std::string("continua GPU 2x"):
                          std::string("A/B estatica"))+
-          " | inicios CPU atrasados >1 periodo="+std::to_string(p.deadlineMisses)+
+          " | amostras CPU atrasadas >1 periodo="+std::to_string(p.deadlineMisses)+
           " | GPU BUDGET solicitado="+std::to_string(p.gpuBudgetRequested?1:0)+
           " ativo="+std::to_string(p.gpuBudgetEnabled?1:0)+
           " passes stress cena=0"+

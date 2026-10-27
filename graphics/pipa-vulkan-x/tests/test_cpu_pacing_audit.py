@@ -20,7 +20,7 @@ for token in (
     "submitCallMs.push_back(",
     "wakeLateMs.push_back(",
     "CPU pacing=",
-    "inicios CPU >1 periodo=",
+    "amostras CPU >1 periodo=",
     "criterio atraso=CPU retomou apos deadline+1 periodo; nao e present perdido",
     "CPU wake lateness",
     "CPU fence wait",
@@ -29,6 +29,8 @@ for token in (
     "atraso herdado antes sleep=",
     "atraso novo apos sleep=",
     "maior sequencia atrasada=",
+    "episodios de atraso=",
+    "janela atrasada frames=",
     "p.run(targetHz,frames,continuous,holdInsteadOfFG,",
     "jboolean holdInsteadOfFGMode,jboolean alignWithDisplayMode",
     "result+=p.gpuTimingSummary();",
@@ -51,7 +53,7 @@ for token in (
     "peakThermalStatus.accumulateAndGet(value, Math::max)",
 ): assert token in ui,token
 assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
-assert "versionCode 330" in gradle and "29.40-thermal-trace" in gradle
+assert "versionCode 331" in gradle and "29.41-cpu-late-episodes" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.
