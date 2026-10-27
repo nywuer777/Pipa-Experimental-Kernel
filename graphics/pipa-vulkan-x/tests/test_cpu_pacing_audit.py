@@ -53,7 +53,7 @@ for token in (
     "peakThermalStatus.accumulateAndGet(value, Math::max)",
 ): assert token in ui,token
 assert ui.index("final boolean alignWithDisplay=syncDisplay.isChecked();") < ui.index('status.setText("MOTION raio="+motionRadius+')
-assert "versionCode 333" in gradle and "29.43-surface-usage-capabilities" in gradle
+assert "versionCode 334" in gradle and "29.44-transfer-src-swapchain-probe" in gradle
 
 # Deterministic demonstration: fixed 1/144 sec diverges over 10 seconds
 # from WSI cycle of 6.9608ms as reported by the Xiaomi Pad 6.

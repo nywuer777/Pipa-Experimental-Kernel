@@ -49,7 +49,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(18, 12, 18, 14);
         root.setBackgroundColor(0xff0f0f13);
-        TextView title = text("PIPA FRAMEGEN / EXP29.43 - SURFACE USAGE", 21, Color.WHITE);
+        TextView title = text("PIPA FRAMEGEN / EXP29.44 - TRANSFER SRC PROBE", 21, Color.WHITE);
         title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
         root.addView(title);
         root.addView(text("Vulkan FIFO 720p | WSI SYNC | testes 3D de 10s e 60s",13,0xffbbbbc2));
@@ -152,7 +152,7 @@ public final class PresenterActivity extends Activity implements SurfaceHolder.C
         surfaceView = new SurfaceView(this);
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView,new LinearLayout.LayoutParams(-1,0,1f));
-        root.addView(text("EXP29.43: compara o image usage pedido com os usos que a superfície Vulkan aceita. Destaca suporte a TRANSFER_SRC e SAMPLED sem ativá-los. Não lê pixels nem injeta quadros. Cena analítica Vulkan Compute, não é jogo externo.",12,0xff9b9ba7));
+        root.addView(text("EXP29.44: pede TRANSFER_SRC na swapchain própria somente quando a superfície anuncia suporte. O relatório confirma o uso efetivo. Não lê pixels nem injeta quadros. Cena analítica Vulkan Compute, não é jogo externo.",12,0xff9b9ba7));
         setContentView(root);
         powerManager=(PowerManager)getSystemService(Context.POWER_SERVICE);
         if(powerManager!=null)powerManager.addThermalStatusListener(thermalStatusListener);

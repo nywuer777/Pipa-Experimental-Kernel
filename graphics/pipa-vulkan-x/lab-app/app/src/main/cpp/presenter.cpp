@@ -805,7 +805,15 @@ struct Presenter {
         sci.imageColorSpace=chosen.colorSpace;
         sci.imageExtent=extent;
         sci.imageArrayLayers=1;
+        // EXP29.44: exercise a swapchain configuration that can later support
+        // image reads, but only when the surface explicitly advertises it.
+        // This app-owned analytical swapchain still does not read or retain
+        // pixels; rendering and present synchronization remain unchanged.
         sci.imageUsage=VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        const bool transferSrcRequested=
+            (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)!=0;
+        if(transferSrcRequested)
+            sci.imageUsage|=VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         sci.imageSharingMode=VK_SHARING_MODE_EXCLUSIVE;
         // EXP29.23: the EXP29.22 16:9 rectangle was letterboxed in
         // 2844x790 swapchain coordinates but appeared as horizontal bars on
