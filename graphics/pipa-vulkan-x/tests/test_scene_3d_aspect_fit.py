@@ -39,7 +39,7 @@ for token in (
     "fastMotion.setChecked(false);",
 ): assert token in java,token
 assert "versionCode 334" in gradle
-assert "29.43-surface-usage-capabilities" in gradle
+assert "29.44-transfer-src-swapchain-probe" in gradle
 # Reference algebra for source 1280x720; FIT rect always fits and
 # keeps a source-equivalent aspect ratio to within pixel rounding.
 for w,h in ((1280,720),(2844,790),(2048,1280),(1920,1080),(790,2844),(512,512)):

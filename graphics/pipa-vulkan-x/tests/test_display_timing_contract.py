@@ -35,5 +35,5 @@ assert "std::to_string(reportedActualNs.size())" in cpp
 assert "getDisplay().getRefreshRate()" in java
 assert "dp(48)" in java
 assert "versionCode 334" in gradle
-assert "versionName '29.43-surface-usage-capabilities'" in gradle
+assert "versionName '29.44-transfer-src-swapchain-probe'" in gradle
 print("EXP29_31_DISPLAY_TIMING_SOURCE_CONTRACT=PASS; ADRENO_EXTENSION_AVAILABILITY=UNTESTED")
