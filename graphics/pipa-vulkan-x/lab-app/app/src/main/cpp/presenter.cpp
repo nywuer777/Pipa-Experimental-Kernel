@@ -31,7 +31,7 @@ using PipaTraceGetStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*,uint64_t*);
 using PipaTraceGetSwapchainStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*);
 using PipaTraceGetLastSwapchainProbeFn=void (*)(uint32_t*,uint32_t*,uint32_t*,
                                                uint32_t*,uint32_t*,uint32_t*,
-                                               uint32_t*);
+                                               uint32_t*,uint32_t*);
 
 void check(VkResult r, const char* label) {
     if(r!=VK_SUCCESS) throw std::runtime_error(std::string(label)+
@@ -254,10 +254,11 @@ struct Presenter {
         if(traceLayerGetSwapchainStats!=nullptr)
             traceLayerGetSwapchainStats(&creates,&destroys,&images);
         uint32_t width=0,height=0,format=0,usage=0,presentMode=0,imageCount=0,
-                 supportedUsage=0;
+                 supportedUsage=0,surfaceCapsAvailable=0;
         if(traceLayerGetLastSwapchainProbe!=nullptr)
             traceLayerGetLastSwapchainProbe(&width,&height,&format,&usage,
-                                            &presentMode,&imageCount,&supportedUsage);
+                                            &presentMode,&imageCount,&supportedUsage,
+                                            &surfaceCapsAvailable);
         return " | VK_LAYER_PIPA available=1 active=1 presents="+
             std::to_string(calls)+" success="+std::to_string(success)+
             " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors)+
@@ -269,6 +270,7 @@ struct Presenter {
             " usageBits="+std::to_string(usage)+
             " presentModeVk="+std::to_string(presentMode)+
             " imageCount="+std::to_string(imageCount)+
+            " surfaceCapsAvailable="+std::to_string(surfaceCapsAvailable)+
             " surfaceUsageBits="+std::to_string(supportedUsage)+
             " supportsTransferSrc="+
                 std::to_string((supportedUsage&VK_IMAGE_USAGE_TRANSFER_SRC_BIT)?1:0)+

@@ -49,6 +49,7 @@ std::atomic<uint32_t> g_lastSwapchainUsage{0};
 std::atomic<uint32_t> g_lastSwapchainPresentMode{0};
 std::atomic<uint32_t> g_lastSwapchainImageCount{0};
 std::atomic<uint32_t> g_lastSurfaceSupportedUsage{0};
+std::atomic<uint32_t> g_lastSurfaceCapsAvailable{0};
 
 template <typename Handle>
 void* dispatchKey(Handle handle) {
@@ -294,6 +295,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
                 if (nextGetSurfaceCaps(physicalDevice,createInfo->surface,&caps) ==
                     VK_SUCCESS) {
                     supportedUsage = static_cast<uint32_t>(caps.supportedUsageFlags);
+                    g_lastSurfaceCapsAvailable.store(1,std::memory_order_relaxed);
                 }
             }
             g_lastSurfaceSupportedUsage.store(supportedUsage,
@@ -471,6 +473,7 @@ void pipa_vk_layer_reset_stats() {
     g_lastSwapchainPresentMode.store(0, std::memory_order_relaxed);
     g_lastSwapchainImageCount.store(0, std::memory_order_relaxed);
     g_lastSurfaceSupportedUsage.store(0, std::memory_order_relaxed);
+    g_lastSurfaceCapsAvailable.store(0, std::memory_order_relaxed);
 }
 
 void pipa_vk_layer_get_swapchain_stats(uint64_t* creates, uint64_t* destroys,
@@ -484,7 +487,8 @@ void pipa_vk_layer_get_last_swapchain_probe(uint32_t* width, uint32_t* height,
                                             uint32_t* format, uint32_t* usage,
                                             uint32_t* presentMode,
                                             uint32_t* imageCount,
-                                            uint32_t* supportedUsage) {
+                                            uint32_t* supportedUsage,
+                                            uint32_t* surfaceCapsAvailable) {
     if (width != nullptr) *width = g_lastSwapchainWidth.load(std::memory_order_relaxed);
     if (height != nullptr) *height = g_lastSwapchainHeight.load(std::memory_order_relaxed);
     if (format != nullptr) *format = g_lastSwapchainFormat.load(std::memory_order_relaxed);
@@ -495,6 +499,8 @@ void pipa_vk_layer_get_last_swapchain_probe(uint32_t* width, uint32_t* height,
         *imageCount = g_lastSwapchainImageCount.load(std::memory_order_relaxed);
     if (supportedUsage != nullptr)
         *supportedUsage = g_lastSurfaceSupportedUsage.load(std::memory_order_relaxed);
+    if (surfaceCapsAvailable != nullptr)
+        *surfaceCapsAvailable = g_lastSurfaceCapsAvailable.load(std::memory_order_relaxed);
 }
 
 void pipa_vk_layer_get_stats(uint64_t* calls, uint64_t* success,

@@ -24,6 +24,7 @@ assert "caps.supportedUsageFlags" in LAYER
 assert "layerSwapchain extent=" in PRESENTER
 assert "usageBits=" in PRESENTER
 assert "surfaceUsageBits=" in PRESENTER
+assert "surfaceCapsAvailable=" in PRESENTER
 assert "supportsTransferSrc=" in PRESENTER
 assert "supportsSampled=" in PRESENTER
 assert 'dlsym(traceLayerLibrary,"pipa_vk_layer_get_last_swapchain_probe")' in PRESENTER

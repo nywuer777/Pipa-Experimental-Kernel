@@ -8,7 +8,7 @@ Esse uso pedido não informa sozinho se a superfície permite que uma swapchain 
 
 ## Mudança EXP29.43
 
-Durante a sonda da swapchain, a camada consulta `vkGetPhysicalDeviceSurfaceCapabilitiesKHR` para a superfície associada e registra `supportedUsageFlags`. O relatório apresenta o bitmask e dois indicadores: `supportsTransferSrc` e `supportsSampled`.
+Durante a sonda da swapchain, a camada consulta `vkGetPhysicalDeviceSurfaceCapabilitiesKHR` para a superfície associada e registra `supportedUsageFlags`. O relatório apresenta o bitmask, `surfaceCapsAvailable` e dois indicadores: `supportsTransferSrc` e `supportsSampled`. Se a consulta falhar, `surfaceCapsAvailable=0` diferencia resultado indisponível de capacidade ausente.
 
 A consulta não modifica `VkSwapchainCreateInfoKHR`, não adiciona flags de uso e não altera a aplicação. Não há cópia, leitura ou retenção de pixels e não há novos submits GPU.
 
