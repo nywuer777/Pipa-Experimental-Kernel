@@ -42,7 +42,6 @@ GRADLE = (ROOT / "lab-app/app/build.gradle").read_text()
 assert "versionCode 334" in GRADLE
 assert "29.44-transfer-src-swapchain-probe" in GRADLE
 assert "VK_IMAGE_USAGE_TRANSFER_SRC_BIT" in PRESENTER
-assert "29.43-surface-usage-capabilities" in GRADLE
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
-print("EXP29.43 Vulkan surface usage capability contract: PASS")
+print("EXP29.44 conditional TRANSFER_SRC swapchain contract: PASS")
