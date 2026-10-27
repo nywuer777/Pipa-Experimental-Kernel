@@ -18,6 +18,8 @@ struct InstanceState {
 };
 
 struct DeviceState {
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR nextGetSurfaceCapabilities = nullptr;
     PFN_vkGetDeviceProcAddr nextGdpa = nullptr;
     PFN_vkDestroyDevice nextDestroyDevice = nullptr;
     PFN_vkGetDeviceQueue nextGetDeviceQueue = nullptr;
@@ -46,6 +48,7 @@ std::atomic<uint32_t> g_lastSwapchainFormat{0};
 std::atomic<uint32_t> g_lastSwapchainUsage{0};
 std::atomic<uint32_t> g_lastSwapchainPresentMode{0};
 std::atomic<uint32_t> g_lastSwapchainImageCount{0};
+std::atomic<uint32_t> g_lastSurfaceSupportedUsage{0};
 
 template <typename Handle>
 void* dispatchKey(Handle handle) {
@@ -223,6 +226,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateDevice(
     VkResult result = nextCreate(physicalDevice, createInfo, allocator, device);
     if (result == VK_SUCCESS) {
         DeviceState state{};
+        state.physicalDevice = physicalDevice;
+        state.nextGetSurfaceCapabilities =
+            reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR>(
+                nextGipa(parentInstance,"vkGetPhysicalDeviceSurfaceCapabilitiesKHR"));
         state.nextGdpa = nextGdpa;
         state.nextDestroyDevice = nextGdpa(*device, "vkDestroyDevice") == nullptr ?
             nullptr : reinterpret_cast<PFN_vkDestroyDevice>(
@@ -250,12 +257,16 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
     const VkAllocationCallbacks* allocator, VkSwapchainKHR* swapchain) {
     PFN_vkCreateSwapchainKHR nextCreate = nullptr;
     PFN_vkGetSwapchainImagesKHR nextGetImages = nullptr;
+    PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR nextGetSurfaceCaps = nullptr;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     {
         std::lock_guard<std::mutex> lock(g_stateMutex);
         auto it = g_devices.find(dispatchKey(device));
         if (it != g_devices.end()) {
             nextCreate = it->second.nextCreateSwapchain;
             nextGetImages = it->second.nextGetSwapchainImages;
+            nextGetSurfaceCaps = it->second.nextGetSurfaceCapabilities;
+            physicalDevice = it->second.physicalDevice;
         }
     }
     if (nextCreate == nullptr) return VK_ERROR_INITIALIZATION_FAILED;
@@ -275,6 +286,18 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateSwapchainKHR(
             g_lastSwapchainPresentMode.store(
                 static_cast<uint32_t>(createInfo->presentMode),
                 std::memory_order_relaxed);
+            uint32_t supportedUsage = 0;
+            if (nextGetSurfaceCaps != nullptr &&
+                physicalDevice != VK_NULL_HANDLE &&
+                createInfo->surface != VK_NULL_HANDLE) {
+                VkSurfaceCapabilitiesKHR caps{};
+                if (nextGetSurfaceCaps(physicalDevice,createInfo->surface,&caps) ==
+                    VK_SUCCESS) {
+                    supportedUsage = static_cast<uint32_t>(caps.supportedUsageFlags);
+                }
+            }
+            g_lastSurfaceSupportedUsage.store(supportedUsage,
+                                               std::memory_order_relaxed);
         }
         if (nextGetImages != nullptr) {
             uint32_t count = 0;
@@ -447,6 +470,7 @@ void pipa_vk_layer_reset_stats() {
     g_lastSwapchainUsage.store(0, std::memory_order_relaxed);
     g_lastSwapchainPresentMode.store(0, std::memory_order_relaxed);
     g_lastSwapchainImageCount.store(0, std::memory_order_relaxed);
+    g_lastSurfaceSupportedUsage.store(0, std::memory_order_relaxed);
 }
 
 void pipa_vk_layer_get_swapchain_stats(uint64_t* creates, uint64_t* destroys,
@@ -459,7 +483,8 @@ void pipa_vk_layer_get_swapchain_stats(uint64_t* creates, uint64_t* destroys,
 void pipa_vk_layer_get_last_swapchain_probe(uint32_t* width, uint32_t* height,
                                             uint32_t* format, uint32_t* usage,
                                             uint32_t* presentMode,
-                                            uint32_t* imageCount) {
+                                            uint32_t* imageCount,
+                                            uint32_t* supportedUsage) {
     if (width != nullptr) *width = g_lastSwapchainWidth.load(std::memory_order_relaxed);
     if (height != nullptr) *height = g_lastSwapchainHeight.load(std::memory_order_relaxed);
     if (format != nullptr) *format = g_lastSwapchainFormat.load(std::memory_order_relaxed);
@@ -468,6 +493,8 @@ void pipa_vk_layer_get_last_swapchain_probe(uint32_t* width, uint32_t* height,
         *presentMode = g_lastSwapchainPresentMode.load(std::memory_order_relaxed);
     if (imageCount != nullptr)
         *imageCount = g_lastSwapchainImageCount.load(std::memory_order_relaxed);
+    if (supportedUsage != nullptr)
+        *supportedUsage = g_lastSurfaceSupportedUsage.load(std::memory_order_relaxed);
 }
 
 void pipa_vk_layer_get_stats(uint64_t* calls, uint64_t* success,

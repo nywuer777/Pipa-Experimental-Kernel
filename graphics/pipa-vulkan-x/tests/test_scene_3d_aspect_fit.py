@@ -28,7 +28,7 @@ for token in (
     "result+=p.timingSummary();",
 ): assert token in native,token
 for token in (
-    "EXP29.42: a camada registra extent, formato",
+    "EXP29.43: compara o image usage pedido",
     "boolean alignWithDisplay, int motionRadius, boolean fit3dAspect,",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "scene3dHold.setOnClickListener(",
@@ -38,8 +38,8 @@ for token in (
     "copyReport.setOnClickListener(",
     "fastMotion.setChecked(false);",
 ): assert token in java,token
-assert "versionCode 332" in gradle
-assert "29.42-swapchain-ingress-probe" in gradle
+assert "versionCode 333" in gradle
+assert "29.43-surface-usage-capabilities" in gradle
 # Reference algebra for source 1280x720; FIT rect always fits and
 # keeps a source-equivalent aspect ratio to within pixel rounding.
 for w,h in ((1280,720),(2844,790),(2048,1280),(1920,1080),(790,2844),(512,512)):

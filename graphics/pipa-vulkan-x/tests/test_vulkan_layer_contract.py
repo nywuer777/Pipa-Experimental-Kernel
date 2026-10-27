@@ -19,8 +19,13 @@ assert "pipa_vk_layer_get_last_swapchain_probe" in LAYER
 assert "createInfo->imageExtent.width" in LAYER
 assert "createInfo->imageUsage" in LAYER
 assert "createInfo->presentMode" in LAYER
+assert "nextGetSurfaceCaps(physicalDevice,createInfo->surface,&caps)" in LAYER
+assert "caps.supportedUsageFlags" in LAYER
 assert "layerSwapchain extent=" in PRESENTER
 assert "usageBits=" in PRESENTER
+assert "surfaceUsageBits=" in PRESENTER
+assert "supportsTransferSrc=" in PRESENTER
+assert "supportsSampled=" in PRESENTER
 assert 'dlsym(traceLayerLibrary,"pipa_vk_layer_get_last_swapchain_probe")' in PRESENTER
 assert "pipa_vk_layer_reset_stats" in LAYER
 assert "registerQueue(device, *queue, state);" in LAYER
@@ -33,8 +38,8 @@ assert "present.pResults=&perSwapchainResult;" in PRESENTER
 assert "querySurfaceAfterSuboptimal()" in PRESENTER
 assert "surfaceDiagnosticSummary()" in PRESENTER
 GRADLE = (ROOT / "lab-app/app/build.gradle").read_text()
-assert "versionCode 332" in GRADLE
-assert "29.42-swapchain-ingress-probe" in GRADLE
+assert "versionCode 333" in GRADLE
+assert "29.43-surface-usage-capabilities" in GRADLE
 assert "dlopen(kPipaTraceLayerLibrary" in PRESENTER
 assert "if(instanceResult!=VK_SUCCESS && traceLayerActive)" in PRESENTER
-print("EXP29.42 Vulkan swapchain ingress probe contract: PASS")
+print("EXP29.43 Vulkan surface usage capability contract: PASS")

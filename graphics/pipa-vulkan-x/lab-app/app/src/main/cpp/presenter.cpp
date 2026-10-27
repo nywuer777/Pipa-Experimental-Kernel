@@ -30,7 +30,8 @@ using PipaTraceResetFn=void (*)();
 using PipaTraceGetStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*,uint64_t*);
 using PipaTraceGetSwapchainStatsFn=void (*)(uint64_t*,uint64_t*,uint64_t*);
 using PipaTraceGetLastSwapchainProbeFn=void (*)(uint32_t*,uint32_t*,uint32_t*,
-                                               uint32_t*,uint32_t*,uint32_t*);
+                                               uint32_t*,uint32_t*,uint32_t*,
+                                               uint32_t*);
 
 void check(VkResult r, const char* label) {
     if(r!=VK_SUCCESS) throw std::runtime_error(std::string(label)+
@@ -252,10 +253,11 @@ struct Presenter {
         uint64_t creates=0,destroys=0,images=0;
         if(traceLayerGetSwapchainStats!=nullptr)
             traceLayerGetSwapchainStats(&creates,&destroys,&images);
-        uint32_t width=0,height=0,format=0,usage=0,presentMode=0,imageCount=0;
+        uint32_t width=0,height=0,format=0,usage=0,presentMode=0,imageCount=0,
+                 supportedUsage=0;
         if(traceLayerGetLastSwapchainProbe!=nullptr)
             traceLayerGetLastSwapchainProbe(&width,&height,&format,&usage,
-                                            &presentMode,&imageCount);
+                                            &presentMode,&imageCount,&supportedUsage);
         return " | VK_LAYER_PIPA available=1 active=1 presents="+
             std::to_string(calls)+" success="+std::to_string(success)+
             " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors)+
@@ -266,7 +268,12 @@ struct Presenter {
             std::to_string(height)+" formatVk="+std::to_string(format)+
             " usageBits="+std::to_string(usage)+
             " presentModeVk="+std::to_string(presentMode)+
-            " imageCount="+std::to_string(imageCount);
+            " imageCount="+std::to_string(imageCount)+
+            " surfaceUsageBits="+std::to_string(supportedUsage)+
+            " supportsTransferSrc="+
+                std::to_string((supportedUsage&VK_IMAGE_USAGE_TRANSFER_SRC_BIT)?1:0)+
+            " supportsSampled="+
+                std::to_string((supportedUsage&VK_IMAGE_USAGE_SAMPLED_BIT)?1:0);
     }
     void querySurfaceAfterSuboptimal() {
         if(surfaceCapsQueriedAfterSuboptimal)return;
