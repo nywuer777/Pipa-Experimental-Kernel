@@ -28,7 +28,7 @@ for token in (
     "result+=p.timingSummary();",
 ): assert token in native,token
 for token in (
-    "EXP29.45: lê uma região 64x64 de um único frame",
+    "EXP29.46: compara hashes de regiões 64x64",
     "boolean alignWithDisplay, int motionRadius, boolean fit3dAspect,",
     "continuous,holdInsteadOfFG,alignWithDisplay,motionRadius,",
     "scene3dHold.setOnClickListener(",
@@ -38,8 +38,8 @@ for token in (
     "copyReport.setOnClickListener(",
     "fastMotion.setChecked(false);",
 ): assert token in java,token
-assert "versionCode 335" in gradle
-assert "29.45-one-shot-swapchain-readback" in gradle
+assert "versionCode 336" in gradle
+assert "29.46-real-generated-pixel-probe" in gradle
 # Reference algebra for source 1280x720; FIT rect always fits and
 # keeps a source-equivalent aspect ratio to within pixel rounding.
 for w,h in ((1280,720),(2844,790),(2048,1280),(1920,1080),(790,2844),(512,512)):

@@ -98,8 +98,9 @@ struct Presenter {
     VkDeviceMemory stagingMemory=VK_NULL_HANDLE;
     VkBuffer readbackBuffer=VK_NULL_HANDLE;
     VkDeviceMemory readbackMemory=VK_NULL_HANDLE;
-    bool readbackSupported=false,readbackRecorded=false,readbackCaptured=false;
-    uint64_t readbackHash=0;
+    bool readbackSupported=false,readbackRealRecorded=false,readbackGeneratedRecorded=false;
+    bool readbackRealCaptured=false,readbackGeneratedCaptured=false;
+    uint64_t readbackRealHash=0,readbackGeneratedHash=0;
     Texture tex[4]{};
     PipaFramegenVk* engine=nullptr;
 
@@ -264,7 +265,8 @@ struct Presenter {
                                             &presentMode,&imageCount,&supportedUsage,
                                             &surfaceCapsAvailable);
         return " | VK_LAYER_PIPA available=1 active=1 presents="+
-            std::to_string(calls)+" success="+std::to_string(success)+
+            std::to_string(calls)+" accepted="+std::to_string(success+suboptimal)+
+            " success="+std::to_string(success)+
             " suboptimal="+std::to_string(suboptimal)+" errors="+std::to_string(errors)+
             " swapchains created="+std::to_string(creates)+
             " destroyed="+std::to_string(destroys)+
@@ -587,7 +589,7 @@ struct Presenter {
         if(!readbackSupported)return;
         VkBufferCreateInfo info{};
         info.sType=VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        info.size=VkDeviceSize(64)*64*4;
+        info.size=VkDeviceSize(64)*64*4*2;
         info.usage=VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         info.sharingMode=VK_SHARING_MODE_EXCLUSIVE;
         check(vkCreateBuffer(device,&info,nullptr,&readbackBuffer),
@@ -605,20 +607,30 @@ struct Presenter {
               "Bind one-shot readback");
     }
     void finishReadback() {
-        if(!readbackSupported || !readbackRecorded ||
+        if(!readbackSupported || (!readbackRealRecorded && !readbackGeneratedRecorded) ||
            readbackBuffer==VK_NULL_HANDLE)return;
         void* mapped=nullptr;
-        check(vkMapMemory(device,readbackMemory,0,VkDeviceSize(64)*64*4,0,&mapped),
+        constexpr size_t sampleBytes=size_t(64)*64*4;
+        check(vkMapMemory(device,readbackMemory,0,VkDeviceSize(sampleBytes*2),0,&mapped),
               "Map one-shot readback");
         const auto* bytes=static_cast<const uint8_t*>(mapped);
-        uint64_t hash=14695981039346656037ULL;
-        for(size_t i=0;i<size_t(64)*64*4;++i) {
-            hash^=bytes[i];
-            hash*=1099511628211ULL;
+        auto hashRange=[&](size_t offset) {
+            uint64_t hash=14695981039346656037ULL;
+            for(size_t i=0;i<sampleBytes;++i) {
+                hash^=bytes[offset+i];
+                hash*=1099511628211ULL;
+            }
+            return hash;
+        };
+        if(readbackRealRecorded) {
+            readbackRealHash=hashRange(0);
+            readbackRealCaptured=true;
+        }
+        if(readbackGeneratedRecorded) {
+            readbackGeneratedHash=hashRange(sampleBytes);
+            readbackGeneratedCaptured=true;
         }
         vkUnmapMemory(device,readbackMemory);
-        readbackHash=hash;
-        readbackCaptured=true;
     }
     void makeTexture(int index,uint32_t w,uint32_t h,VkFormat format,
                      VkImageUsageFlags extra) {
@@ -1181,7 +1193,10 @@ struct Presenter {
                                1,&copy);
             }
             const bool captureThisFrame=readbackSupported && extent.width>=64 &&
-                extent.height>=64 && frame==requested-1;
+                extent.height>=64 && requested>=2 && frame>=requested-2 &&
+                frame<requested;
+            const VkDeviceSize readbackOffset=synthesized?
+                VkDeviceSize(64)*64*4:0;
             VkImageLayout presentedOldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             if(captureThisFrame) {
                 VkImageMemoryBarrier toRead=imageBarrier(swapImages[index],
@@ -1195,6 +1210,7 @@ struct Presenter {
                 region.imageOffset={int32_t(extent.width/2)-32,
                                     int32_t(extent.height/2)-32,0};
                 region.imageExtent={64,64,1};
+                region.bufferOffset=readbackOffset;
                 vkCmdCopyImageToBuffer(command,swapImages[index],
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,readbackBuffer,1,&region);
                 VkBufferMemoryBarrier toHost{};
@@ -1208,7 +1224,8 @@ struct Presenter {
                 toHost.size=VK_WHOLE_SIZE;
                 vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_PIPELINE_STAGE_HOST_BIT,0,0,nullptr,1,&toHost,0,nullptr);
-                readbackRecorded=true;
+                if(synthesized)readbackGeneratedRecorded=true;
+                else readbackRealRecorded=true;
                 presentedOldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             }
             auto back=imageBarrier(texSource.image,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -1391,9 +1408,16 @@ Java_dev_pipa_framegen_lab_PresenterActivity_nativePresent(
           " | Frequencia solicitada="+std::to_string(targetHz)+" Hz"+
           " | chamadas apresentacao/s="+std::to_string(apiRate)+
           " | inicializacao="+std::to_string(initializeMs)+" ms";
-        result+=" | pixel probe own-swapchain 64x64 captured="+
-            std::to_string(p.readbackCaptured?1:0)+
-            " FNV64="+std::to_string(p.readbackHash);
+        result+=" | pixel probe own-swapchain real64x64="+
+            std::to_string(p.readbackRealCaptured?1:0)+
+            " hashReal="+std::to_string(p.readbackRealHash)+
+            " generated64x64="+
+            std::to_string(p.readbackGeneratedCaptured?1:0)+
+            " hashGenerated="+std::to_string(p.readbackGeneratedHash)+
+            " hashesEqual="+
+                (p.readbackRealCaptured && p.readbackGeneratedCaptured?
+                    std::to_string(p.readbackRealHash==p.readbackGeneratedHash?1:0):
+                    std::string("unknown"));
         diagnostic("NATIVE_SUMMARY_BASE_DONE");
         result+=p.gpuTimingSummary();
         diagnostic("NATIVE_GPU_SUMMARY_DONE");
