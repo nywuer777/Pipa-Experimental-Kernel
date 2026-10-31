@@ -164,6 +164,7 @@ jobs:
             grep -qx "CONFIG_${k}=y" "$WORKDIR/out/.config" || { echo "Missing CONFIG_${k}=y"; exit 1; }
           done
           ! grep -Eq '^CONFIG_PREEMPT_RT(_FULL)?=y$' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
           grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
           python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
           # Compiler identity belongs to compiler fingerprint, not kernel .config.
