@@ -145,6 +145,12 @@ jobs:
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
           done
+          # Uprobe events are unrelated to touchscreen IRQ/scheduler tracepoints.
+          # Disable the legacy uprobes translation unit that fails under Clang 21.
+          for opt in UPROBE_EVENTS; do
+            sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
+            printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
+          done
           git -C "$WORKDIR/kernel" diff --check
 
       - name: Build kernel with the actual Android 21 compiler
@@ -162,7 +168,7 @@ jobs:
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
           done
-          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER; do
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER UPROBE_EVENTS; do
             if grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"; then exit 1; fi
           done
           if grep -Eq "CONFIG_PREEMPT_RT(_FULL)?=y" "$WORKDIR/out/.config"; then exit 1; fi
