@@ -245,6 +245,21 @@ jobs:
           } > "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
           test -s "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
 
+      - name: Audit UFS command logger declarations and Kconfig (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== UFS caller around failing line 794 ==="
+            sed -n '710,840p' "$K/drivers/scsi/ufs/ufshcd.c"
+            echo "=== all UFS command logger references and guards ==="
+            rg -n -C 7 '__ufshcd_cmd_log|ufshcd_cmd_log|CONFIG_SCSI_UFS|CONFIG_UFS' "$K/drivers/scsi/ufs" "$K/include" 2>/dev/null || true
+            echo "=== UFS build and Kconfig definitions ==="
+            rg -n -C 4 'config SCSI_UFS|config UFS|ufshcd[.]o|CONFIG_SCSI_UFS' "$K/drivers/scsi/ufs" "$K/drivers/scsi/Kconfig" 2>/dev/null || true
+          } > "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+
       - name: Guard legacy STM event export when CONFIG_STM is disabled (fail-closed)
         shell: bash
         run: |
@@ -390,6 +405,7 @@ jobs:
             exp25-ring-buffer-compat.diff
             exp25-stm-structural-audit.txt
             exp25-stm-compat.diff
+            exp25-ufs-structural-audit.txt
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
