@@ -241,7 +241,7 @@ jobs:
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf 'CONFIG_%s=y\n' "$opt" >> "$DEF"
           done
-          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER FTRACE_MCOUNT_USE_CC SCHED_DEBUG; do
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER FTRACE_MCOUNT_USE_CC SCHED_DEBUG STM_SOURCE_FTRACE; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
           done
@@ -268,7 +268,7 @@ jobs:
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
           done
-          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER UPROBE_EVENTS SCHED_DEBUG; do
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER UPROBE_EVENTS SCHED_DEBUG STM_SOURCE_FTRACE; do
             if grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"; then exit 1; fi
           done
           if grep -Eq "CONFIG_PREEMPT_RT(_FULL)?=y" "$WORKDIR/out/.config"; then exit 1; fi
