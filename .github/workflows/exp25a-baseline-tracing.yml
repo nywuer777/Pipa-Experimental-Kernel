@@ -4,7 +4,7 @@ on:
   push:
     branches: [exp25a-baseline-tracing]
     paths:
-      - ".github/workflows/exp25-touch-clang21-build.yml"
+      - ".github/workflows/exp25a-baseline-tracing.yml"
       - "tools/exp25-apply-touch.py"
       - "tests/test_exp25_touch.py"
   workflow_dispatch:
