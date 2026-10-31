@@ -72,8 +72,20 @@ jobs:
           git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
           git config core.sparseCheckout true
           printf '/clang-r563880c/\n' > .git/info/sparse-checkout
-          git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT"
-          git checkout --detach FETCH_HEAD
+          # Transient Gitiles transport failures are common for large partial clones.
+          git config http.version HTTP/1.1
+          git config http.lowSpeedLimit 1000
+          git config http.lowSpeedTime 120
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Pinned Clang download failed after 3 attempts"
+              exit 1
+            fi
+            sleep "$((attempt * 15))"
+          done
           test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
           test -x clang-r563880c/bin/clang
           test -x clang-r563880c/bin/ld.lld
