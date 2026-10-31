@@ -130,20 +130,21 @@ jobs:
           git -C "$WORKDIR/kernel" diff --check
           git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
 
-      - name: Configure baseline ftrace options (no RT)
+      - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
           set -euo pipefail
           DEF="$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
           test -s "$DEF"
-          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER SCHED_TRACER; do
+          # Keep IRQ/scheduler tracepoints and tracefs; avoid recordmcount on Clang LTO objects.
+          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf 'CONFIG_%s=y\n' "$opt" >> "$DEF"
           done
-          # Clang LTO bitcode cannot be parsed by legacy recordmcount.
-          # Request compiler-generated mcount records if supported by E404 Kconfig.
-          sed -i -E '/^(# )?CONFIG_FTRACE_MCOUNT_USE_CC(=| is not set)/d' "$DEF"
-          printf 'CONFIG_FTRACE_MCOUNT_USE_CC=y\n' >> "$DEF"
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER FTRACE_MCOUNT_USE_CC; do
+            sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
+            printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
+          done
           git -C "$WORKDIR/kernel" diff --check
 
       - name: Build kernel with the actual Android 21 compiler
@@ -158,8 +159,11 @@ jobs:
           # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
           bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
-          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER SCHED_TRACER; do
+          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
+          done
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER; do
+            if grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"; then exit 1; fi
           done
           if grep -Eq "CONFIG_PREEMPT_RT(_FULL)?=y" "$WORKDIR/out/.config"; then exit 1; fi
           grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
