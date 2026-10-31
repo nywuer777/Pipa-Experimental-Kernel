@@ -140,8 +140,8 @@ jobs:
             'CONFIG_SCHED_TRACER':'y',
           }
           for k,v in requested.items():
-            s=re.sub(r'(?m)^(?:'+re.escape(k)+r'=.*|# '+re.escape(k)+r' is not set)\\n?', '', s)
-          p.write_text(s.rstrip()+'\\n'+'\\n'.join(k+'='+v for k,v in requested.items())+'\\n')
+            s=re.sub(r'(?m)^(?:'+re.escape(k)+r'=.*|# '+re.escape(k)+r' is not set)\n?', '', s)
+          p.write_text(s.rstrip()+'\n'+'\n'.join(k+'='+v for k,v in requested.items())+'\n')
           PY
           # Tracefs is normally registered by the tracing core; CONFIG_TRACEFS is not
           # a universal 4.19 Kconfig symbol. Do not insert an unknown symbol.
