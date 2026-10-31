@@ -145,6 +145,71 @@ jobs:
           git -C "$WORKDIR/kernel" diff --check
           git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
 
+      - name: Remove unsupported E404 scheduler trace fields (no fabricated values)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p = Path(os.environ["WORKDIR"]) / "kernel/include/trace/events/sched.h"
+          src = p.read_text()
+          changes = [
+              ("__field(unsigned long, cpu_load)", "__field(unsigned long, cpu_load)"),
+          ]
+          # Exact source guards: remove only metrics absent from this pinned E404 tree.
+          edits = [
+              ("\t\t__field(unsigned long,\tcpu_load)", ""),
+              ("\t\t__entry->cpu_load\t= task_rq(p)->cpu_load[0];", ""),
+              (" cpu_load=%lu rt_nr_running=%u", " rt_nr_running=%u"),
+              ("\t\t\t__entry->cpu_load, __entry->rt_nr_running,", "\t\t\t__entry->rt_nr_running,"),
+              ("\t\t__field(\tunsigned long,\trbl_load", "\t\t__field(\tunsigned long,\trbl_load"),
+          ]
+          # Use line-level deletion for fields/assignments and explicit print format changes.
+          lines = src.splitlines(keepends=True)
+          banned = ("__field(" ,)
+          out = []
+          removed = {"cpu_load_field":0, "cpu_load_assign":0, "rbl_field":0, "rbl_assign":0, "idle_field":0, "idle_assign":0, "isolated_field":0, "isolated_assign":0}
+          for line in lines:
+              st = line.strip()
+              kind = None
+              if st.startswith("__field(") and "cpu_load)" in st: kind = "cpu_load_field"
+              elif "__entry->cpu_load" in st and "task_rq(p)->cpu_load[0]" in st: kind = "cpu_load_assign"
+              elif st.startswith("__field(") and "rbl_load" in st: kind = "rbl_field"
+              elif "__entry->rbl_load" in st and "runnable_load_avg" in st: kind = "rbl_assign"
+              elif st.startswith("__field(") and "idle_state)" in st: kind = "idle_field"
+              elif "__entry->idle_state" in st and "idle_get_state_idx" in st: kind = "idle_assign"
+              elif st.startswith("__field(") and "isolated)" in st: kind = "isolated_field"
+              elif "__entry->isolated" in st and "cpu_isolated" in st: kind = "isolated_assign"
+              if kind:
+                  removed[kind] += 1
+              else:
+                  out.append(line)
+          expected = {"cpu_load_field":1, "cpu_load_assign":1, "rbl_field":2, "rbl_assign":2, "idle_field":1, "idle_assign":1, "isolated_field":1, "isolated_assign":1}
+          if removed != expected:
+              raise SystemExit(f"Unexpected E404 trace layout: {removed} != {expected}")
+          src = "".join(out)
+          # Keep the remaining metrics in the same order as the TP_printk arguments.
+          replacements = [
+              (' cpu_load=%lu rt_nr_running=%u', ' rt_nr_running=%u', 1),
+              ('__entry->cpu_load, __entry->rt_nr_running,', '__entry->rt_nr_running,', 1),
+              (' load=%lu rbl_load=%lu util=%lu', ' load=%lu util=%lu', 2),
+              ('__entry->rbl_load,__entry->util', '__entry->util', 1),
+              ('__entry->load, __entry->rbl_load, __entry->util', '__entry->load, __entry->util', 1),
+              (' idle_state=%d irqload=%llu online=%u, isolated=%u, reserved=%u', ' irqload=%llu online=%u, reserved=%u', 1),
+              ('__entry->idle_state, __entry->irqload, __entry->online,', '__entry->irqload, __entry->online,', 1),
+              ('__entry->isolated, __entry->reserved,', '__entry->reserved,', 1),
+          ]
+          for before, after, count in replacements:
+              if src.count(before) != count:
+                  raise SystemExit(f"Unexpected trace format count for {before!r}: {src.count(before)}")
+              src = src.replace(before, after)
+          p.write_text(src)
+          print("Removed only unsupported trace fields; retained sched events and valid metrics")
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- include/trace/events/sched.h > "$GITHUB_WORKSPACE/exp25-sched-compat.diff"
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -256,6 +321,7 @@ jobs:
             exp25-touch-final-gate.log
             exp06-clang-version.txt
             exp25-sched-trace-diagnostic.txt
+            exp25-sched-compat.diff
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
