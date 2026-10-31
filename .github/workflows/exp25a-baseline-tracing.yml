@@ -245,6 +245,31 @@ jobs:
           } > "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
           test -s "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
 
+      - name: Guard legacy STM event export when CONFIG_STM is disabled (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import difflib
+          import os
+          p = Path(os.environ["WORKDIR"]) / "kernel/kernel/trace/trace.h"
+          original = p.read_text()
+          old = "\t\tif (len)\n\t\t\tstm_log(OST_ENTITY_FTRACE_EVENTS, entry, len);\n\n\t\ttrace_buffer_unlock_commit("
+          new = "\t\tif (IS_ENABLED(CONFIG_STM) && len)\n\t\t\tstm_log(OST_ENTITY_FTRACE_EVENTS, entry, len);\n\n\t\ttrace_buffer_unlock_commit("
+          # The disabled STM branch must be removed at preprocessing time:
+          # IS_ENABLED alone still leaves undeclared names visible to the compiler.
+          new = "\t\t#ifdef CONFIG_STM\n\t\tif (len)\n\t\t\tstm_log(OST_ENTITY_FTRACE_EVENTS, entry, len);\n\t\t#endif\n\n\t\ttrace_buffer_unlock_commit("
+          if original.count(old) != 1:
+              raise SystemExit("FAIL CLOSED: unexpected E404 STM call site")
+          updated = original.replace(old, new, 1)
+          p.write_text(updated)
+          diff = "".join(difflib.unified_diff(original.splitlines(True), updated.splitlines(True), fromfile="a/kernel/trace/trace.h", tofile="b/kernel/trace/trace.h"))
+          Path(os.environ["GITHUB_WORKSPACE"], "exp25-stm-compat.diff").write_text(diff)
+          print(diff)
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -364,6 +389,7 @@ jobs:
             exp25-sched-compat.diff
             exp25-ring-buffer-compat.diff
             exp25-stm-structural-audit.txt
+            exp25-stm-compat.diff
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
