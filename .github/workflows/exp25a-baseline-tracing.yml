@@ -285,6 +285,22 @@ jobs:
           PY
           git -C "$WORKDIR/kernel" diff --check
 
+      - name: Audit UFS logging declarations and guards before build (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== UFS failing call and surrounding preprocessor guards ==="
+            sed -n '650,850p' "$K/drivers/scsi/ufs/ufshcd.c"
+            echo "=== All UFS command logging declarations, definitions and call sites ==="
+            rg -n -C 7 '__ufshcd_cmd_log|ufshcd_cmd_log|CONFIG_SCSI_UFS|UFS.*LOG|DEBUG_UFS' "$K/drivers/scsi/ufs" "$K/include" 2>/dev/null || true
+            echo "=== UFS Kconfig and Makefile ==="
+            sed -n '1,240p' "$K/drivers/scsi/ufs/Kconfig"
+            sed -n '1,160p' "$K/drivers/scsi/ufs/Makefile"
+          } > "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -405,6 +421,7 @@ jobs:
             exp25-ring-buffer-compat.diff
             exp25-stm-structural-audit.txt
             exp25-stm-compat.diff
+            exp25-ufs-structural-audit.txt
             exp25-ufs-structural-audit.txt
             exp06-prepare.log
             exp06-console.log
