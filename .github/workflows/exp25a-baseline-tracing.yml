@@ -230,6 +230,21 @@ jobs:
           git -C "$WORKDIR/kernel" diff --check
           git -C "$WORKDIR/kernel" diff -- kernel/trace/ring_buffer.c > "$GITHUB_WORKSPACE/exp25-ring-buffer-compat.diff"
 
+      - name: Audit STM tracing source and Kconfig before Clang21 build
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== trace.h STM caller and guards ==="
+            sed -n '1340,1455p' "$K/kernel/trace/trace.h"
+            echo "=== STM references and declarations ==="
+            rg -n -C 3 'stm_log|OST_ENTITY_FTRACE_EVENTS|STM_SOURCE_FTRACE|CONFIG_STM|CONFIG_OST' "$K/kernel/trace" "$K/drivers/hwtracing" "$K/include" 2>/dev/null || true
+            echo "=== STM and tracing Kconfig definitions ==="
+            rg -n -C 5 'config (STM|STM_SOURCE_FTRACE|TRACING|TRACEFS)|select STM|depends on STM' "$K/kernel/trace" "$K/drivers/hwtracing" "$K/fs/tracefs" 2>/dev/null || true
+          } > "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -348,6 +363,7 @@ jobs:
             exp25-sched-trace-diagnostic.txt
             exp25-sched-compat.diff
             exp25-ring-buffer-compat.diff
+            exp25-stm-structural-audit.txt
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
