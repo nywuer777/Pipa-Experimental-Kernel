@@ -221,7 +221,7 @@ jobs:
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf 'CONFIG_%s=y\n' "$opt" >> "$DEF"
           done
-          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER FTRACE_MCOUNT_USE_CC; do
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER FTRACE_MCOUNT_USE_CC SCHED_DEBUG; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
           done
@@ -248,13 +248,18 @@ jobs:
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
           done
-          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER UPROBE_EVENTS; do
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER UPROBE_EVENTS SCHED_DEBUG; do
             if grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"; then exit 1; fi
           done
           if grep -Eq "CONFIG_PREEMPT_RT(_FULL)?=y" "$WORKDIR/out/.config"; then exit 1; fi
           grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
           grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
           python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # The unsupported scheduler debug translation unit must stay excluded.
+          if grep -Eq '(^|[[:space:]])CC[[:space:]]+kernel/sched/debug[.]o([[:space:]]|$)' exp06-console.log; then
+            echo 'Unexpected scheduler debug compilation under E404'
+            exit 1
+          fi
           # Compiler identity belongs to compiler fingerprint, not kernel .config.
           grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
           (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
