@@ -210,6 +210,26 @@ jobs:
           git -C "$WORKDIR/kernel" diff --check
           git -C "$WORKDIR/kernel" diff -- include/trace/events/sched.h > "$GITHUB_WORKSPACE/exp25-sched-compat.diff"
 
+      - name: Fix legacy ring buffer uninitialized_var declaration for Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          root = Path(os.environ["WORKDIR"]) / "kernel"
+          p = root / "kernel/trace/ring_buffer.c"
+          old = "struct ring_buffer_per_cpu *uninitialized_var(cpu_buffer);"
+          new = "struct ring_buffer_per_cpu *cpu_buffer = NULL;"
+          src = p.read_text()
+          if src.count(old) != 1:
+              raise SystemExit(f"Refusing unexpected ring buffer layout: {src.count(old)} matches")
+          p.write_text(src.replace(old, new, 1))
+          print("Clang21 ring buffer declaration compatibility applied")
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- kernel/trace/ring_buffer.c > "$GITHUB_WORKSPACE/exp25-ring-buffer-compat.diff"
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -327,6 +347,7 @@ jobs:
             exp06-clang-version.txt
             exp25-sched-trace-diagnostic.txt
             exp25-sched-compat.diff
+            exp25-ring-buffer-compat.diff
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
