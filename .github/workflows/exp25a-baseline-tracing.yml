@@ -149,7 +149,7 @@ jobs:
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER SCHED_TRACER; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
           done
-          ! grep -Eq '^CONFIG_PREEMPT_RT(_FULL)?=y
+          if grep -Eq "CONFIG_PREEMPT_RT(_FULL)?=y" "$WORKDIR/out/.config"; then exit 1; fi
           grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
           grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
           python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
