@@ -1,0 +1,70 @@
+name: RT 4.19 conflict audit (NO INTEGRATION)
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha256:
+        description: 'Verified SHA-256 of official .xz (64 hex characters)'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and download RT archive
+        shell: bash
+        env:
+          EXPECTED: ${{ inputs.expected_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED" =~ ^[a-fA-F0-9]{64}$ ]] || { echo "Invalid expected SHA"; exit 1; }
+          mkdir -p rt-report
+          URL=https://cdn.kernel.org/pub/linux/kernel/projects/rt/4.19/patch-4.19.325-rt140.patch.xz
+          echo "$URL" > rt-report/source-url.txt
+          curl -fL --retry 3 "$URL" -o rt.patch.xz
+          stat -c '%s' rt.patch.xz | tee rt-report/archive-size-bytes.txt
+          sha256sum rt.patch.xz | tee rt-report/archive-sha256.txt
+          echo "$EXPECTED  rt.patch.xz" | sha256sum -c -
+          xz -t rt.patch.xz
+          xz -dc rt.patch.xz > rt.patch
+          sha256sum rt.patch | tee rt-report/uncompressed-sha256.txt
+      - name: Fetch pinned E404 and audit textual application
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404.git kernel
+          git -C kernel checkout --detach fed88a6024cd4d46c52eda607a95d97d7371ba81
+          git -C kernel rev-parse HEAD | tee rt-report/kernel-commit.txt
+          cp rt.patch kernel/rt.patch
+          (cd kernel && git apply --3way --check rt.patch) >rt-report/threeway.log 2>&1 && echo PASS > rt-report/threeway-status.txt || echo FAIL > rt-report/threeway-status.txt
+          git clone --shared kernel kernel-reject
+          cp rt.patch kernel-reject/rt.patch
+          (cd kernel-reject && git apply --reject rt.patch) >rt-report/reject.log 2>&1 && echo PASS > rt-report/reject-status.txt || echo FAIL > rt-report/reject-status.txt
+          find kernel-reject -name '*.rej' -type f -print | sed 's@^kernel-reject/@@' | sort > rt-report/rejected-files.txt
+          python3 - <<'PY'
+          import pathlib,csv
+          paths=pathlib.Path('rt-report/rejected-files.txt').read_text().splitlines()
+          def category(p):
+              if p.startswith('kernel/sched/'): return 'sched'
+              if p.startswith('kernel/locking/') or 'spinlock' in p: return 'locking'
+              if p.startswith('kernel/irq/'): return 'irq'
+              if p.startswith('kernel/rcu/'): return 'rcu'
+              if p.startswith('drivers/'): return 'drivers (origin unverified)'
+              return 'other'
+          with open('rt-report/rejected-files.csv','w') as f:
+              w=csv.writer(f);w.writerow(['path','subsystem','origin','failure_type'])
+              for p in paths:w.writerow([p.removesuffix('.rej'),category(p),'UNVERIFIED','UNCLASSIFIED'])
+          pathlib.Path('rt-report/rejected-count.txt').write_text(str(len(paths))+'\n')
+          PY
+          echo 'Semantic review and Qualcomm/mainline provenance NOT COMPLETED by this workflow.' > rt-report/limitations.txt
+          echo 'Audit of pinned E404 only; EXP overlays NOT reconstructed.' >> rt-report/limitations.txt
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rt-audit-evidence
+          path: rt-report/
+          if-no-files-found: warn
