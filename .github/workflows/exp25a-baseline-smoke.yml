@@ -1,0 +1,19 @@
+name: EXP25A Baseline Actions Smoke Test
+on:
+  push:
+    branches: [exp25a-baseline-tracing]
+    paths:
+      - ".github/workflows/exp25a-baseline-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm runner
+        run: |
+          set -euo pipefail
+          echo "RUNNER_OK"
+          test -f .github/workflows/exp25a-baseline-smoke.yml
