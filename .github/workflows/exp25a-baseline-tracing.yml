@@ -301,6 +301,34 @@ jobs:
           } > "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
           test -s "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
 
+      - name: Guard UFS command trace helper behind its logging dependency (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import difflib
+          import os
+          p = Path(os.environ["WORKDIR"]) / "kernel/drivers/scsi/ufs/ufshcd.c"
+          before = p.read_text()
+          old = "#ifdef CONFIG_TRACEPOINTS\nstatic inline void ufshcd_cond_add_cmd_trace(struct ufs_hba *hba,"
+          new = "#if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_SCSI_UFSHCD_CMD_LOGGING)\nstatic inline void ufshcd_cond_add_cmd_trace(struct ufs_hba *hba,"
+          if before.count(old) != 1:
+              raise SystemExit("FAIL CLOSED: UFS trace helper guard differs from audited E404")
+          # The helper calls __ufshcd_cmd_log, defined only under the
+          # SCSI_UFSHCD_CMD_LOGGING gate. Keep the existing #else no-op helper.
+          start = before.index(old)
+          end = before.find("#else\nstatic inline void ufshcd_cond_add_cmd_trace(", start)
+          if end < 0 or before[start:end].count("__ufshcd_cmd_log(") != 1:
+              raise SystemExit("FAIL CLOSED: unexpected UFS helper body")
+          after = before.replace(old, new, 1)
+          p.write_text(after)
+          diff = "".join(difflib.unified_diff(before.splitlines(True), after.splitlines(True), fromfile="a/drivers/scsi/ufs/ufshcd.c", tofile="b/drivers/scsi/ufs/ufshcd.c"))
+          Path(os.environ["GITHUB_WORKSPACE"], "exp25-ufs-compat.diff").write_text(diff)
+          print(diff)
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -422,7 +450,7 @@ jobs:
             exp25-stm-structural-audit.txt
             exp25-stm-compat.diff
             exp25-ufs-structural-audit.txt
-            exp25-ufs-structural-audit.txt
+            exp25-ufs-compat.diff
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
