@@ -97,3 +97,18 @@ A correção `tools/exp76-rt-stage21-rcu-include.py` restaura a inclusão E404 e
 Este estágio **não remove** rejeitos adicionais; o alvo continua em **64 arquivos `.rej`**. A eliminação do aviso Clang21 `-Wmacro-redefined` ainda depende de executar o novo workflow. A equivalência semântica completa de RCU, afinidade do scheduler e ciclo de vida de sleeping_lock permanecem pendentes. As únicas saídas permitidas seguem sendo auditoria e compilação de objetos — nenhum kernel bootável é produzido.
 
 `EXP76_STAGE21_SOURCE=COMMITTED`; `EXP76_STAGE21_CI=PENDING`; `FLASH_READY=false`.
+
+## Stage22 — gate de preparação ARM64 antes dos objetos
+
+**Situação de CI:** não foi possível extrair o resultado do Stage21 por um run ID de GitHub Actions confirmado. O conector de execuções por SHA retorna apenas workflows originados de PR, não os runs de push deste branch. Nenhum erro de Clang posterior ao Stage20 é declarado como confirmado neste estágio.
+
+O script `tools/exp76-stage18-clang21-object-diagnostic.sh` agora executa `make prepare` em arm64 com Clang 21 pinado, registrando `prepare.rc`, `prepare.log`, `prepare.errors.txt` e `prepare-status.txt`:
+
+- Quando `prepare` falha, os três objetos **não são compilados**, cada objeto registra `attempted=false`, `exit_code=null` e `skip_reason=BLOCKED_BY_PREPARE` em `OBJECT_DIAGNOSTIC.json`.
+- Quando `prepare` passa, a CI compila separadamente `cpupri.o`, `core.o` e `fork.o` e registra os códigos individuais.
+- O teste de regressão `tests/test_exp76_stage22_prepare_parser.py` cobre três cenários: preparação falha, compilação parcialmente falha e três objetos completos. As verificações da CI incluem esses testes antes de construir a árvore de ensaio.
+- O artefato diagnóstico passa a incluir os relatórios dos Stages 19, 20 e 21 para permitir verificar que as mudanças de cabeçalho foram efetivamente aplicadas.
+
+`make prepare` é apenas um pré-requisito de compilação, não um kernel. Não há `Image`, `vmlinux` ou `boot.img`, e não ocorre escrita no dispositivo.
+
+`EXP76_STAGE22_SOURCE=COMMITTED`; `EXP76_STAGE22_CI=UNVERIFIED`; `EXP76_RT_TARGET_REJECTS=64`; `FLASH_READY=false`.
