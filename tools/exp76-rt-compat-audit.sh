@@ -205,6 +205,18 @@ test "$(grep -c '^@@ -' "$ROOT/exp76-trial-overlay/include/linux/rcuwait.h.rej")
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE10=RCUWAIT_ACTIVE_PORTED; RCUWAIT_HUNKS_REMAINING=2; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage10-gate.txt"
 
+# Stage11: complete rcuwait lifecycle ONLY when the post-RT int wakeup
+# and finish_rcuwait() implementations exactly match the linked contract.
+python3 tools/exp76-rt-stage11-rcuwait-lifecycle.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage11" \
+    --mode apply | tee "$REPORT/stage11-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 70
+test ! -e "$ROOT/exp76-trial-overlay/include/linux/rcuwait.h.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE11=RCUWAIT_LIFECYCLE_LINKED; REJECTED_FILES=70; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage11-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 71 files are rejected.
