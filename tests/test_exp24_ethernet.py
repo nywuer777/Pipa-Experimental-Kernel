@@ -29,6 +29,24 @@ def run():
         baseline = config.read_bytes()
         mod.update_config(config, desired)
         assert config.read_bytes() == baseline, 'update is not idempotent'
+        # EXP44 enables loadable modules, but all requested Ethernet drivers
+        # remain builtin. Require module versioning and signature support.
+        module_enabled = baseline.decode().replace(
+            '# CONFIG_MODULES is not set',
+            'CONFIG_MODULES=y\nCONFIG_MODULE_UNLOAD=y\nCONFIG_MODVERSIONS=y\n'
+            'CONFIG_MODULE_SIG=y\nCONFIG_MODULE_REL_CRCS=y')
+        config.write_text(module_enabled)
+        assert mod.verify_config(config, desired)
+        for broken, reason in (
+            (module_enabled.replace('CONFIG_USB_RTL8152=y', 'CONFIG_USB_RTL8152=m'), 'modular Ethernet driver'),
+            (module_enabled.replace('CONFIG_MODVERSIONS=y', '# CONFIG_MODVERSIONS is not set'), 'missing MODVERSIONS'),
+            (module_enabled + 'CONFIG_MODULES=y\n', 'duplicate MODULES state'),
+        ):
+            config.write_text(broken)
+            try: mod.verify_config(config, desired)
+            except ValueError: pass
+            else: raise AssertionError('accepted ' + reason)
+        config.write_bytes(baseline)
         config.write_text(baseline.decode().replace('CONFIG_USB_RTL8152=y', 'CONFIG_USB_RTL8152=m'))
         try: mod.verify_config(config, desired)
         except ValueError: pass
@@ -42,7 +60,7 @@ def run():
         try: mod.parse_upload(modified)
         except ValueError: pass
         else: raise AssertionError('accepted mismatching user upload digest')
-    print('EXP24 SYNTHETIC KCONFIG TESTS PASS: 21 builtin drivers, idempotent, reject missing/m, bad input SHA')
+    print('EXP24 TESTS PASS: 21 builtin drivers, MODULES=y/n, reject m/missing/duplicate and bad input')
 
 if __name__ == '__main__':
     run()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXP24: pinned ethernet.config -> builtin pipa defconfig, never silently ignore unsupported options."""
+"""EXP24: pinned ethernet.config -> builtin drivers compatible with CONFIG_MODULES=y."""
 import argparse
 import hashlib
 import re
@@ -78,8 +78,98 @@ def update_config(file, desired):
 
 def verify_config(file, desired):
     txt = file.read_text()
-    if 'CONFIG_MODULES=n' not in txt and '# CONFIG_MODULES is not set' not in txt:
-        raise ValueError('MODULES may be enabled; builtin policy not proven')
+    # MODULES=y and builtin Ethernet drivers coexist; verify both separately.
+    states = re.findall(r'^(?:CONFIG_MODULES=y|CONFIG_MODULES=n|# CONFIG_MODULES is not set)    if 'CONFIG_PIPA_EXP_SUGOV=y' not in txt or 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' not in txt:
+        raise ValueError('EXP06 schedutil patch not preserved')
+    for name in desired:
+        if len(re.findall(rf'^{re.escape(name)}=y$', txt, re.M)) != 1:
+            raise ValueError(f'{name} not resolved to builtin y')
+    return True
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--source', required=True, type=Path)
+    p.add_argument('--kernel', required=True, type=Path)
+    p.add_argument('--out', required=True, type=Path)
+    p.add_argument('--mode', choices=('apply','verify'), required=True)
+    args = p.parse_args()
+    requested = parse_upload(args.source)
+    check_sources(args.kernel, requested)
+    desired = {x:'y' for x in requested if x not in UNSUPPORTED}
+    assert len(desired) == 21
+    print('EXP24 requested=22 source_supported=21 unsupported=CONFIG_USB_NET_AQC111')
+    print('EXP24 excluded AQC111: Kconfig, source, Makefile target absent in pinned E404 (not silently enabled)')
+    config = args.kernel / 'arch/arm64/configs/vendor/pipa_defconfig' if args.mode == 'apply' else args.out / '.config'
+    if args.mode == 'apply':
+        modified = update_config(config, desired)
+        print('EXP24 apply builtin defconfig: symbols_changed=' + str(len(modified)))
+        # EXP01's builder may reuse out/.config rather than running pipa_defconfig again.
+        # Align both possible inputs, then require final resolved .config after build.
+        out_config = args.out / '.config'
+        if out_config.is_file():
+            changed_out = update_config(out_config, desired)
+            print('EXP24 apply already-existing out/.config: symbols_changed=' + str(len(changed_out)))
+    else:
+        verify_config(config, desired)
+        print('EXP24 final resolved kernel .config: ALL 21 SUPPORTED CONFIG SYMBOLS = y; EXP06 SUGOV 1500 PRESERVED; MODULES CONFIG VERIFIED')
+    print('EXP24 CONFIG_GATE=PASS')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ValueError, OSError) as exc:
+        sys.exit('EXP24 CONFIG_GATE=FAIL: '+str(exc))
+, txt, re.M)
+    if len(states) != 1:
+        raise ValueError('MODULES selection missing or ambiguous')
+    if states[0] == 'CONFIG_MODULES=y':
+        for opt in ('MODULE_UNLOAD', 'MODVERSIONS', 'MODULE_SIG', 'MODULE_REL_CRCS'):
+            if len(re.findall(rf'^CONFIG_{opt}=y    if 'CONFIG_PIPA_EXP_SUGOV=y' not in txt or 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' not in txt:
+        raise ValueError('EXP06 schedutil patch not preserved')
+    for name in desired:
+        if len(re.findall(rf'^{re.escape(name)}=y$', txt, re.M)) != 1:
+            raise ValueError(f'{name} not resolved to builtin y')
+    return True
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--source', required=True, type=Path)
+    p.add_argument('--kernel', required=True, type=Path)
+    p.add_argument('--out', required=True, type=Path)
+    p.add_argument('--mode', choices=('apply','verify'), required=True)
+    args = p.parse_args()
+    requested = parse_upload(args.source)
+    check_sources(args.kernel, requested)
+    desired = {x:'y' for x in requested if x not in UNSUPPORTED}
+    assert len(desired) == 21
+    print('EXP24 requested=22 source_supported=21 unsupported=CONFIG_USB_NET_AQC111')
+    print('EXP24 excluded AQC111: Kconfig, source, Makefile target absent in pinned E404 (not silently enabled)')
+    config = args.kernel / 'arch/arm64/configs/vendor/pipa_defconfig' if args.mode == 'apply' else args.out / '.config'
+    if args.mode == 'apply':
+        modified = update_config(config, desired)
+        print('EXP24 apply builtin defconfig: symbols_changed=' + str(len(modified)))
+        # EXP01's builder may reuse out/.config rather than running pipa_defconfig again.
+        # Align both possible inputs, then require final resolved .config after build.
+        out_config = args.out / '.config'
+        if out_config.is_file():
+            changed_out = update_config(out_config, desired)
+            print('EXP24 apply already-existing out/.config: symbols_changed=' + str(len(changed_out)))
+    else:
+        verify_config(config, desired)
+        print('EXP24 final resolved kernel .config: ALL 21 SUPPORTED CONFIG SYMBOLS = y; EXP06 SUGOV 1500 PRESERVED; MODULES DISABLED')
+    print('EXP24 CONFIG_GATE=PASS')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (ValueError, OSError) as exc:
+        sys.exit('EXP24 CONFIG_GATE=FAIL: '+str(exc))
+, txt, re.M)) != 1:
+                raise ValueError(f'{opt} must be y for stock module compatibility')
     if 'CONFIG_PIPA_EXP_SUGOV=y' not in txt or 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' not in txt:
         raise ValueError('EXP06 schedutil patch not preserved')
     for name in desired:
