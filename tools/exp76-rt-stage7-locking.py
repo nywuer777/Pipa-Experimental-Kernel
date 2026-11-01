@@ -27,6 +27,20 @@ RT_BLOCK = (
     "endif\n"
 )
 LEGACY_START = "obj-y += mutex.o semaphore.o rwsem.o percpu-rwsem.o\n"
+E404_PARTIAL_GUARD = (
+    "ifneq ($(CONFIG_PREEMPT_RT_FULL),y)\n"
+    "obj-y += mutex.o\n"
+    "obj-$(CONFIG_DEBUG_MUTEXES) += mutex-debug.o\n"
+    "endif\n"
+    "obj-y += rwsem.o\n"
+)
+E404_CORRECT_GUARD = (
+    "ifneq ($(CONFIG_PREEMPT_RT_FULL),y)\n"
+    "obj-y += mutex.o\n"
+    "obj-$(CONFIG_DEBUG_MUTEXES) += mutex-debug.o\n"
+    "obj-y += rwsem.o\n"
+    "endif\n"
+)
 SEM_PAIR = (
     "obj-$(CONFIG_RWSEM_GENERIC_SPINLOCK) += rwsem-spinlock.o\n"
     "obj-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += rwsem-xadd.o\n"
@@ -56,6 +70,9 @@ def prepare(tree: Path):
     if before.count(LEGACY_START) == 1:
         candidate = before.replace(LEGACY_START, RT_BLOCK, 1)
         legacy_layout = "replaced-unconditional-legacy-locking"
+    elif before.count(E404_PARTIAL_GUARD) == 1:
+        candidate = before.replace(E404_PARTIAL_GUARD, E404_CORRECT_GUARD, 1)
+        legacy_layout = "moved-vendor-rwsem.o-into-existing-non-RT-guard"
     elif before.count(RT_BLOCK) == 1 and LEGACY_START not in before:
         candidate = before
         legacy_layout = "upstream-RT-guard-already-applied"
@@ -77,7 +94,9 @@ def prepare(tree: Path):
 
     insertion = "obj-$(CONFIG_QUEUED_RWLOCKS) += qrwlock.o\n"
     candidate = candidate.replace(insertion, UPSTREAM_RT_OBJS + insertion, 1)
-    if candidate.count(UPSTREAM_RT_OBJS) != 1 or candidate.count(RT_BLOCK) != 1:
+    if (candidate.count(UPSTREAM_RT_OBJS) != 1
+            or (candidate.count(RT_BLOCK) != 1
+                and candidate.count(E404_CORRECT_GUARD) != 1)):
         raise ValueError("RT locking object/legacy guard not unique")
 
     rwsem = (tree / RWSEM).read_text(encoding="utf-8")
