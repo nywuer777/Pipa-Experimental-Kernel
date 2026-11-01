@@ -373,6 +373,19 @@ jobs:
           set -euo pipefail
           DEF="$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
           test -s "$DEF"
+          # E404 MODULE_REL_CRCS is a hidden bool: defconfig=y alone is ignored.
+          # Apply a narrowly scoped default only to the ephemeral CI source tree.
+          python3 - "$WORKDIR/kernel/init/Kconfig" <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path(sys.argv[1])
+          s = p.read_text()
+          before = "config MODULE_REL_CRCS\n\tbool\n\tdepends on MODVERSIONS\n"
+          after = "config MODULE_REL_CRCS\n\tbool\n\tdepends on MODVERSIONS\n\tdefault y if ARM64 && RELOCATABLE\n"
+          if s.count(before) != 1:
+              raise SystemExit("EXP48 FAIL CLOSED: unexpected MODULE_REL_CRCS Kconfig definition")
+          p.write_text(s.replace(before, after))
+          PY
           # Keep IRQ/scheduler tracepoints and tracefs; avoid recordmcount on Clang LTO objects.
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
@@ -478,7 +491,7 @@ jobs:
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
           for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || {
-              echo "EXP44 FAIL CLOSED: CONFIG_${opt} not enabled after Kconfig"
+              echo "EXP48 FAIL CLOSED: CONFIG_${opt} not enabled after Kconfig"
               exit 1
             }
           done
