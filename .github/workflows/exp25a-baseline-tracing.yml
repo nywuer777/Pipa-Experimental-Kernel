@@ -552,22 +552,31 @@ jobs:
           if [ "$build_rc" -ne 0 ]; then
             exit "$build_rc"
           fi
-          # EXP64: parse literal compiler warnings; fail closed on CRC version loss.
+          # EXP65: reject malformed/unknown export warnings rather than silently skipping them.
           python3 - <<'PY'
           from pathlib import Path
           log = Path("exp06-console.log").read_text(errors="replace")
+          marker = "WARNING: EXPORT symbol"
           prefix = 'WARNING: EXPORT symbol "'
           suffix = '" [vmlinux] version generation failed, symbol will not be versioned.'
-          names = sorted(set(line.split(prefix, 1)[1].split(suffix, 1)[0]
-                             for line in log.splitlines()
-                             if prefix in line and suffix in line))
+          names = set()
+          for line in log.splitlines():
+              if marker not in line:
+                  continue
+              if not line.startswith(prefix) or not line.endswith(suffix):
+                  raise SystemExit("EXP65 FAIL CLOSED: unrecognized export CRC warning format")
+              name = line[len(prefix):-len(suffix)]
+              if not name or '"' in name or any(ch.isspace() for ch in name):
+                  raise SystemExit("EXP65 FAIL CLOSED: malformed exported symbol name")
+              names.add(name)
+          names = sorted(names)
           report = Path("exp62-export-crc-audit.txt")
           report.write_text("Unversioned vmlinux exports:" + chr(10)
                             + chr(10).join(names) + chr(10)
                             + "Count: " + str(len(names)) + chr(10))
           print(report.read_text())
           if names:
-              raise SystemExit("EXP64 FAIL CLOSED: " + str(len(names)) + " unversioned exports; NONFLASH")
+              raise SystemExit("EXP65 FAIL CLOSED: " + str(len(names)) + " unversioned exports; NONFLASH")
           PY
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
           for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
