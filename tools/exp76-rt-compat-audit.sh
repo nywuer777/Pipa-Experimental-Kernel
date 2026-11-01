@@ -163,6 +163,18 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 73
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE6=IRQ_WORK_VENDOR_EQUIVALENCE_AND_SWORK_INCLUDE; REMAINING_REJECTED_FILES=73; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage6-gate.txt"
 
+# Stage7: link upstream RT locking implementations only under PREEMPT_RT_FULL,
+# preserve vendor non-RT mutex/rwsem selection, and verify existing 3-arg
+# percpu rwsem wait. Two original rejects, SHA256-pinned.
+python3 tools/exp76-rt-stage7-locking.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage7" \
+    --mode apply | tee "$REPORT/stage7-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 71
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE7=LOCKING_MAKEFILE_AND_PERCPU_RCUWAIT; REMAINING_REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage7-gate.txt"
+
+
 
 
 
