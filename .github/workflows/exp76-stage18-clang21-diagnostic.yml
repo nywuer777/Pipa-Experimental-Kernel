@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/exp76-stage18-clang21-diagnostic.yml'
       - 'tools/exp76-stage18-clang21-object-diagnostic.sh'
+      - 'tests/test_exp76_stage22_prepare_parser.py'
       - 'tools/exp76-rt-stage19-header-fixes.py'
       - 'tools/exp76-rt-stage20-headers.py'
       - 'tools/exp76-rt-stage21-rcu-include.py'
@@ -33,6 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           bash -n tools/exp76-stage18-clang21-object-diagnostic.sh
+          python3 tests/test_exp76_stage22_prepare_parser.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
           echo 'EXP76_STAGE18_NO_FLASH_CODE_GATE=PASS'
