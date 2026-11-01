@@ -63,8 +63,20 @@ def verify_config(config):
     for line in required:
         if text.splitlines().count(line) != 1:
             raise ValueError("missing required resolved config: " + line)
-    if "CONFIG_MODULES=y" in text:
-        raise ValueError("modules enabled unexpectedly")
+    # EXP73: MODULES=y is required for stock module compatibility; the NVT
+    # IRQ fix is independent of whether the Ethernet drivers are builtin.
+    # Resolve the module state explicitly and retain signature/CRC gates.
+    lines = text.splitlines()
+    states = [line for line in lines if line in (
+        "CONFIG_MODULES=y", "CONFIG_MODULES=n",
+        "# CONFIG_MODULES is not set")]
+    if len(states) != 1:
+        raise ValueError("missing or ambiguous resolved MODULES state")
+    if states[0] == "CONFIG_MODULES=y":
+        for opt in ("MODULE_UNLOAD", "MODVERSIONS", "MODULE_SIG", "MODULE_REL_CRCS"):
+            symbol = "CONFIG_" + opt + "=y"
+            if lines.count(symbol) != 1:
+                raise ValueError("stock module compatibility requires: " + symbol)
 
 
 def main():
