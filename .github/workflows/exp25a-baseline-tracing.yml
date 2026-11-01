@@ -367,6 +367,35 @@ jobs:
           }
           wc -lc "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
 
+      - name: Probe missing irq_config task field under TRACE_IRQFLAGS (experimental; fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, subprocess, difflib
+          k = Path(os.environ["WORKDIR"]) / "kernel"
+          if subprocess.check_output(["git", "-C", str(k), "rev-parse", "HEAD"], text=True).strip() != "fed88a6024cd4d46c52eda607a95d97d7371ba81":
+              raise SystemExit("FAIL CLOSED: unexpected E404 source")
+          sched = k / "include/linux/sched.h"
+          flags = k / "include/linux/irqflags.h"
+          before = sched.read_text()
+          irq = flags.read_text()
+          expected = "int\t\t\t\thardirq_context;"
+          if before.count(expected) != 1 or "irq_config;" in before:
+              raise SystemExit("FAIL CLOSED: task_struct field layout differs")
+          if irq.count("current->irq_config = 1;") != 1 or irq.count("current->irq_config = 0;") != 1:
+              raise SystemExit("FAIL CLOSED: IRQ work macros differ")
+          if "#ifdef CONFIG_TRACE_IRQFLAGS" not in before:
+              raise SystemExit("FAIL CLOSED: task tracing guard absent")
+          after = before.replace(expected, expected + "\n\tint\t\t\t\tirq_config; /* experimental IRQ work tracing compatibility */", 1)
+          sched.write_text(after)
+          diff = "".join(difflib.unified_diff(before.splitlines(True), after.splitlines(True), fromfile="a/include/linux/sched.h", tofile="b/include/linux/sched.h"))
+          (Path(os.environ["GITHUB_WORKSPACE"]) / "exp25-irq-config-compat.diff").write_text(diff)
+          print(diff)
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -618,6 +647,7 @@ jobs:
             exp25-ufs-structural-audit.txt
             exp25-latency-tracer-structural-audit.txt
             exp25-irq-config-audit.txt
+            exp25-irq-config-compat.diff
             exp25-ufs-compat.diff
             exp25-link-providers-audit.txt
             exp25-link-providers-compat.diff
