@@ -238,6 +238,18 @@ test ! -e "$ROOT/exp76-trial-overlay/include/linux/rcutree.h.rej"
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE13=UNIFIED_RCU_BH_WRAPPERS_ALREADY_PRESENT; REJECTED_FILES=68; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage13-gate.txt"
 
+# Stage14: scheduler core already defines sleeper-aware __wake_q_*
+# functions. Make public wake_q wrappers match the actual ABI.
+python3 tools/exp76-rt-stage14-wake-q.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage14" \
+    --mode apply | tee "$REPORT/stage14-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 67
+test ! -e "$ROOT/exp76-trial-overlay/include/linux/sched/wake_q.h.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE14=WAKE_QUEUE_ABI_LINKED; REJECTED_FILES=67; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage14-gate.txt"
+
+
 
 
 
