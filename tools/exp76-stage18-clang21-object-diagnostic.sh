@@ -10,7 +10,7 @@ CLANG="$ROOT/android-clang-prebuilt/clang-r563880c/bin"
 mkdir -p "$REPORT" "$OUT"
 test -d "$K/.git"
 test -f "$K/kernel/sched/cpupri.c.rej"
-test -f "$ROOT/exp76-rt-report/stage17/stage17-result.json"
+test -f "$ROOT/exp76-rt-report/stage19/stage19-status.json"
 test -x "$CLANG/clang"
 test -x "$CLANG/ld.lld"
 
