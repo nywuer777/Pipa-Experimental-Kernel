@@ -497,6 +497,10 @@ jobs:
           } > "$GITHUB_WORKSPACE/exp46-crc-linker-diagnostic.txt" 2>&1
           # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
           # Fail closed if the EXP56 diagnostic was silently overridden by Kconfig.
+          test -r "$WORKDIR/out/.config" && test -s "$WORKDIR/out/.config" || {
+            echo "EXP57 FAIL CLOSED: missing or unreadable effective kernel config"
+            exit 1
+          }
           echo "=== EXP57 effective LTO config ==="
           grep -E '^(CONFIG_(LTO|THINLTO|LTO_CLANG|LTO_CLANG_THIN|LTO_NONE|LTO_CLANG_FULL)=|# CONFIG_(LTO|THINLTO|LTO_CLANG|LTO_CLANG_THIN|LTO_NONE|LTO_CLANG_FULL) is not set)' "$WORKDIR/out/.config" || true
           if grep -Eq '^CONFIG_(LTO|LTO_CLANG|LTO_CLANG_THIN|THINLTO|LTO_CLANG_FULL)=y$' "$WORKDIR/out/.config"; then
