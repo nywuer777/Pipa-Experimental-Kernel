@@ -174,6 +174,19 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 71
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE7=LOCKING_MAKEFILE_AND_PERCPU_RCUWAIT; REMAINING_REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage7-gate.txt"
 
+# Stage8: recognize only two E404 RCU vendor-equivalent hunks: already
+# present header includes and IRQ_WORK atomic_set(). Preserve original
+# complete reject manifest above; leave all 18 functional RCU hunks pending.
+python3 tools/exp76-rt-stage8-rcu-equivalence.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage8" \
+    --mode apply | tee "$REPORT/stage8-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 71
+test "$(grep -c '^@@ -' "$ROOT/exp76-trial-overlay/kernel/rcu/tree.c.rej")" -eq 18
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE8=2_RCU_HUNKS_ALREADY_VENDOR_EQUIVALENT; RCU_HUNKS_REMAINING=18; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage8-gate.txt"
+
+
 
 
 
