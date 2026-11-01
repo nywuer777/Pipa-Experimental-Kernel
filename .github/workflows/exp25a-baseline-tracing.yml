@@ -386,6 +386,21 @@ jobs:
               raise SystemExit("EXP48 FAIL CLOSED: unexpected MODULE_REL_CRCS Kconfig definition")
           p.write_text(s.replace(before, after))
           PY
+          # EXP49 diagnostic: E404 uses -pie for LLD in RELOCATABLE arm64.
+          # Test the alternative shared-object link mode without changing
+          # MODVERSIONS, LTO, or module signature configuration. NONFLASH only.
+          python3 - "$WORKDIR/kernel/arch/arm64/Makefile" <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path(sys.argv[1])
+          s = p.read_text()
+          old = "ifdef CONFIG_LD_IS_LLD\\nLDFLAGS_vmlinux\\t\\t+= -pie\\nelse\\nLDFLAGS_vmlinux\\t\\t+= -shared\\nendif"
+          new = "ifdef CONFIG_LD_IS_LLD\\nLDFLAGS_vmlinux\\t\\t+= -shared\\nelse\\nLDFLAGS_vmlinux\\t\\t+= -shared\\nendif"
+          if s.count(old) != 1:
+              raise SystemExit("EXP49 FAIL CLOSED: unexpected ARM64 LLD link mode")
+          p.write_text(s.replace(old, new))
+          PY
+          git -C "$WORKDIR/kernel" diff --check
           # Keep IRQ/scheduler tracepoints and tracefs; avoid recordmcount on Clang LTO objects.
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
