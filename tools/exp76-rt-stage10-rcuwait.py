@@ -77,7 +77,10 @@ def prepare(tree: Path):
         raise ValueError("RCU pointer inspection macro missing")
     impl = exit_c.read_text(encoding="utf-8")
     if impl.count("void rcuwait_wake_up(struct rcuwait *w)") != 1:
-        raise ValueError("E404 kernel/exit.c wakeup signature changed")
+        signatures = [s.strip() for s in impl.splitlines()
+                      if "rcuwait_wake_up" in s or "finish_rcuwait" in s]
+        raise ValueError("Post-RT kernel/exit.c wakeup ABI differs: "
+                         + json.dumps(signatures[:25]))
     if impl.count("task = rcu_dereference(w->task);") != 1:
         raise ValueError("E404 kernel/exit.c RCU dereference changed")
     after = before.replace(ANCHOR, ANCHOR + ACTIVE, 1)
