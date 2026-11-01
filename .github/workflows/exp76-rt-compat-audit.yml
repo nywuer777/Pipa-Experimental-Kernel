@@ -13,6 +13,7 @@ on:
       - 'tools/exp76-rt-stage3-rtmutex.py'
       - 'tools/exp76-rt-stage4-spinlock.py'
       - 'tools/exp76-spinlock-type-abi-audit.py'
+      - 'tools/exp76-rt-stage5-spinlock-types.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
       - 'tests/test_exp76_uname.py'
@@ -45,6 +46,7 @@ jobs:
           python3 -m py_compile tools/exp76-rt-stage3-rtmutex.py
           python3 -m py_compile tools/exp76-rt-stage4-spinlock.py
           python3 -m py_compile tools/exp76-spinlock-type-abi-audit.py
+          python3 -m py_compile tools/exp76-rt-stage5-spinlock-types.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
           echo 'EXP76_BASELINE_WORKFLOW=CHECKED; NO_RT_BUILD; FLASH_READY=false'
