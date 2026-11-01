@@ -59,7 +59,7 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
-            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi device-tree-compiler \
+            ripgrep gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi device-tree-compiler \
             liblz4-tool zstd rsync ccache
           df -h .
 
@@ -334,6 +334,11 @@ jobs:
         run: |
           set -euo pipefail
           K="$WORKDIR/kernel"
+          command -v rg
+          rg --version
+          test -s "$K/kernel/trace/Kconfig"
+          test -s "$K/Makefile"
+          test -s "$K/arch/arm64/configs/vendor/pipa_defconfig"
           {
             echo "=== pinned E404 revision ==="
             git -C "$K" rev-parse HEAD
@@ -347,6 +352,20 @@ jobs:
             rg -n 'CONFIG_(FTRACE|TRACING|TRACEFS|IRQSOFF|PREEMPT_TRACER|FUNCTION_TRACER|FTRACE_MCOUNT|LTO|PREEMPT|HAVE_FUNCTION)' "$K/arch/arm64/configs/vendor/pipa_defconfig" || true
           } > "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
           test -s "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
+          # Require actual source evidence, not only printed section headings.
+          rg -q '(^|[[:space:]])(config|menuconfig)[[:space:]]+(IRQSOFF_TRACER|PREEMPT_TRACER|FUNCTION_TRACER)' "$K/kernel/trace/Kconfig" || {
+            echo "FAIL CLOSED: latency tracer Kconfig definitions not found"
+            exit 1
+          }
+          rg -q 'recordmcount|mcount|fentry|LTO' "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt" || {
+            echo "FAIL CLOSED: no instrumentation evidence captured"
+            exit 1
+          }
+          rg -q 'tracefs|TRACEFS' "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt" || {
+            echo "FAIL CLOSED: no tracefs evidence captured"
+            exit 1
+          }
+          wc -lc "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
 
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
