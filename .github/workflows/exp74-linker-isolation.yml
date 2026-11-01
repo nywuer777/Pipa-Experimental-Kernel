@@ -126,7 +126,7 @@ jobs:
           python3 - "$WORKDIR/kernel/arch/arm64/Makefile" <<'PY'
           import pathlib, re, sys
           p=pathlib.Path(sys.argv[1]); before=p.read_text()
-          pat=r"(?m)^(LDFLAGS_vmlinux[ \\t]*\\+= )-pie$"
+          pat=r"(?m)^(LDFLAGS_vmlinux[ \t]*\+= )-pie$"
           matches=re.findall(pat,before)
           if len(matches)!=1:
               raise SystemExit(f"EXP74 FAIL_CLOSED: -pie matches={len(matches)}")
