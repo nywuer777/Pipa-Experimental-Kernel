@@ -143,6 +143,17 @@ python3 tools/exp76-spinlock-type-abi-audit.py \
 test -f "$ROOT/exp76-trial-overlay/include/linux/spinlock_types.h.rej"
 echo 'EXP76_SPINLOCK_HEADER=ABI_REVIEW_ONLY; HEADER_PORT=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/spinlock-type-gate.txt"
 
+# Stage5: preserve E404 lockdep wait_type and nonRT spinlock initializer
+# while switching to upstream RT split headers. Source-only; no build.
+python3 tools/exp76-rt-stage5-spinlock-types.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage5" \
+    --mode apply | tee "$REPORT/stage5-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 76
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE5=SPINLOCK_TYPE_SPLIT_SOURCE_PORT; REMAINING_REJECTED_FILES=76; ABI_BUILD_UNVERIFIED=true; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage5-gate.txt"
+
+
 
 
 
