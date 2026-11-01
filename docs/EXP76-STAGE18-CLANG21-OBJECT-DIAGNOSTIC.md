@@ -42,3 +42,27 @@ A falha de build é resultado esperado e tecnicamente útil; sucesso no workflow
 - **Não habilitar flash** até um build kernel completo, compatibilidade Android/KernelSU e testes reversíveis de inicialização/toque/Ethernet/suspensão.
 
 `EXP76_RT_PORT=INCOMPLETE`; `EXP75_PERMANENT=PRESERVED`; `FLASH_READY=false`.
+
+
+## Resultado real da primeira compilação (2026-11-01)
+
+- Workflow: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41350824272 — **SUCCESS como execução de diagnóstico**, não como build do kernel.
+- Artefato: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41350824272/artifacts/13100618610
+- O Clang21 pinado foi validado; `CONFIG_PREEMPT_RT_FULL=y` ficou ativo na configuração efetiva.
+- Os alvos `kernel/sched/cpupri.o`, `kernel/sched/core.o` e `kernel/fork.o` **falharam com exit code 2**. Os três pararam antes de compilar seus próprios objetos, na dependência `arch/arm64/kernel/asm-offsets.s`.
+- As **primeiras** mensagens de C são `rcupdate.h:493` (redefinição de `rcu_assign_pointer`), `sched.h:2108/2124` (macros `task_is_traced` e `task_is_stopped_or_traced` colidindo com novas funções), `sched.h:2197/2202` (`sleeping_lock` ausente), `rwsem.h:217` (`#endif` sem `#if`) e `interrupt.h:3` (condicional não encerrado).
+- `swap.h:346` também falhou, mas **não foi o primeiro erro**. O diagnóstico inicial que o destacava foi corrigido após inspeção completa do log.
+- Não houve compilação de `Image`, `vmlinux` ou `boot.img` e não foi executada qualquer ação de flash.
+
+## Stage 19 — correção delimitada em revisão
+
+`tools/exp76-rt-stage19-header-fixes.py` aplica correções à árvore temporária após Stage 17:
+
+- Completa o ramo RT de `rwsem.h` com `rwsem_rt.h` e definições lockdep; mantém o ramo não RT separado. O reject específico de `rwsem.h` é removido **somente** depois de conferir seu hash.
+- Fecha o condicional de `interrupt.h` e declara `thread_do_softirq` / `__raise_softirq_irqoff_ksoft`, exigindo definições correspondentes no código RT pós-patch. O restante do reject de `interrupt.h` permanece sem port, especialmente `softirq_check_pending_idle`.
+- Remove as macros antigas `task_is_traced` e `task_is_stopped_or_traced` que colidem com as funções RT já aplicadas, e introduz o campo `sleeping_lock`. O reject de `sched.h` com afinidade de CPU continua pendente e o ciclo de vida do campo exige auditoria.
+- Retira o include duplicado de `rcu_assign_pointer.h` de `rcupdate.h`, mantendo a macro própria da E404.
+
+A meta estrutural é reduzir **66 para 65 arquivos com rejeições**. **Esta meta não comprova compilação nem correção de semântica.** A nova CI deverá verificar se o Clang21 progride além de `asm-offsets.s` e reportar quaisquer erros subsequentes.
+
+`EXP76_STAGE18_OBJECTS=3_FAILED`; `EXP76_STAGE19_VALIDATION=PENDING`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
