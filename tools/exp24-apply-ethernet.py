@@ -79,7 +79,15 @@ def update_config(file, desired):
 def verify_config(file, desired):
     txt = file.read_text()
     # MODULES=y and builtin Ethernet drivers coexist; verify both separately.
-    states = re.findall(r'^(?:CONFIG_MODULES=y|CONFIG_MODULES=n|# CONFIG_MODULES is not set)    if 'CONFIG_PIPA_EXP_SUGOV=y' not in txt or 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' not in txt:
+    states = re.findall(r'^(?:CONFIG_MODULES=y|CONFIG_MODULES=n|# CONFIG_MODULES is not set)$', txt, re.M)
+    if len(states) != 1:
+        raise ValueError('MODULES selection missing or ambiguous')
+    if states[0] == 'CONFIG_MODULES=y':
+        for opt in ('MODULE_UNLOAD', 'MODVERSIONS', 'MODULE_SIG', 'MODULE_REL_CRCS'):
+            if len(re.findall(rf'^CONFIG_{opt}=y$', txt, re.M)) != 1:
+                raise ValueError(f'{opt} must be y for stock module compatibility')
+
+    if 'CONFIG_PIPA_EXP_SUGOV=y' not in txt or 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' not in txt:
         raise ValueError('EXP06 schedutil patch not preserved')
     for name in desired:
         if len(re.findall(rf'^{re.escape(name)}=y$', txt, re.M)) != 1:
