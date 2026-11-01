@@ -60,7 +60,7 @@ def prepare(tree: Path):
         candidate = before
         legacy_layout = "upstream-RT-guard-already-applied"
     else:
-        raise ValueError("Unexpected mutex.o/rwsem.o build guard layout")
+        raise ValueError("Unexpected mutex.o/rwsem.o build guard layout; source excerpt:\n" + "\n".join(f"{i+1:02d}: {line}" for i, line in enumerate(before.splitlines()[:55])))
 
     # The vendor tree may not contain generic rwsem-algorithm objects.
     # Do not invent entries for absent source/config variants.
