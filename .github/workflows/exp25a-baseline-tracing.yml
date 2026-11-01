@@ -373,6 +373,45 @@ jobs:
           set -euo pipefail
           DEF="$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
           test -s "$DEF"
+          # EXP66: the pinned E404 arm64 tree lacks asm/asm-prototypes.h.
+          # scripts/Makefile.build skips cmd_modversions_S without this file,
+          # leaving assembly exports with undefined weak __crc_* symbols.
+          # Add the Linux v5.4 ARM64 declarations to the ephemeral CI checkout.
+          # Preserve the ABI and symbol CRCs; do not synthesize checksum values.
+          PROTO="$WORKDIR/kernel/arch/arm64/include/asm/asm-prototypes.h"
+          test ! -e "$PROTO" || { echo 'EXP66 FAIL CLOSED: ARM64 prototype header already exists'; exit 1; }
+          test -s "$WORKDIR/kernel/include/asm-generic/asm-prototypes.h"
+          grep -Fq 'ASM_PROTOTYPES := $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/asm-prototypes.h)' "$WORKDIR/kernel/scripts/Makefile.build"
+          cat > "$PROTO" <<'EOF'
+          /* SPDX-License-Identifier: GPL-2.0 */
+          #ifndef __ASM_PROTOTYPES_H
+          #define __ASM_PROTOTYPES_H
+          /*
+           * Assembly EXPORT_SYMBOL definitions require matching C prototypes
+           * so genksyms can compute CRCs under CONFIG_MODVERSIONS.
+           * Backported from Linux v5.4 arch/arm64/include/asm/asm-prototypes.h.
+           */
+          #include <linux/arm-smccc.h>
+
+          #include <asm/ftrace.h>
+          #include <asm/page.h>
+          #include <asm/string.h>
+          #include <asm/uaccess.h>
+
+          #include <asm-generic/asm-prototypes.h>
+
+          long long __ashlti3(long long a, int b);
+          long long __ashrti3(long long a, int b);
+          long long __lshrti3(long long a, int b);
+
+          #endif /* __ASM_PROTOTYPES_H */
+          EOF
+          test -s "$PROTO"
+          grep -Fq '#include <asm-generic/asm-prototypes.h>' "$PROTO"
+          test "$(git -C "$WORKDIR/kernel" status --porcelain -- arch/arm64/include/asm/asm-prototypes.h)" = '?? arch/arm64/include/asm/asm-prototypes.h' || {
+            echo 'EXP66 FAIL CLOSED: prototype header not isolated as an untracked CI-only file'
+            exit 1
+          }
           # E404 MODULE_REL_CRCS is a hidden bool: defconfig=y alone is ignored.
           # Apply a narrowly scoped default only to the ephemeral CI source tree.
           python3 - "$WORKDIR/kernel/init/Kconfig" <<'PY'
@@ -735,6 +774,7 @@ jobs:
             exp25-touch-tests.log
             exp06-work/out/System.map
             exp06-work/out/modules.builtin
+            exp06-work/out/Module.symvers
             exp06-work/out/modules.order
             exp25-touch-apply.log
             exp25-touch-code.diff
