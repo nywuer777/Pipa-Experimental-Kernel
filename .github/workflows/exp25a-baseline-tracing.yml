@@ -441,7 +441,7 @@ jobs:
           import sys
           p = Path(sys.argv[1])
           src = p.read_text().splitlines()
-          keys = ("MODULES", "MODULE_UNLOAD", "MODVERSIONS", "MODULE_SIG")
+          keys = ("MODULES", "MODULE_UNLOAD", "MODVERSIONS", "MODULE_SIG", "MODULE_REL_CRCS")
           src = [line for line in src if not any(
               line.startswith("CONFIG_" + k + "=") or line == "# CONFIG_" + k + " is not set"
               for k in keys
@@ -449,11 +449,11 @@ jobs:
           src += ["CONFIG_" + k + "=y" for k in keys]
           p.write_text("\n".join(src) + "\n")
           PY
-          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG; do
+          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
             test "$(grep -xc "CONFIG_${opt}=y" "$DEF")" -eq 1
           done
           git -C "$WORKDIR/kernel" diff --check
-          echo 'EXP44 requested stock module options; Kconfig and compile must still validate'
+          echo 'EXP45 requests relative CRC relocations to avoid AARCH64_ABS32; Kconfig and link must validate'
 
       - name: Build kernel with the actual Android 21 compiler
         shell: bash
@@ -467,7 +467,7 @@ jobs:
           # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
           bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
-          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG; do
+          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || {
               echo "EXP44 FAIL CLOSED: CONFIG_${opt} not enabled after Kconfig"
               exit 1
