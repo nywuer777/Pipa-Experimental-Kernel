@@ -496,6 +496,11 @@ jobs:
             ld.lld --version
           } > "$GITHUB_WORKSPACE/exp46-crc-linker-diagnostic.txt" 2>&1
           # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          # EXP52: capture symbol provenance and exact generated objects after
+          # compilation; run regardless of builder status and preserve its exit.
+          set +e
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          build_rc=${PIPESTATUS[0]}
           # Fail closed if the EXP56 diagnostic was silently overridden by Kconfig.
           test -r "$WORKDIR/out/.config" && test -s "$WORKDIR/out/.config" || {
             echo "EXP57 FAIL CLOSED: missing or unreadable effective kernel config"
@@ -507,11 +512,6 @@ jobs:
             echo "EXP57 FAIL CLOSED: active LTO detected"
             exit 1
           fi
-          # EXP52: capture symbol provenance and exact generated objects after
-          # compilation; run regardless of builder status and preserve its exit.
-          set +e
-          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
-          build_rc=${PIPESTATUS[0]}
           set -e
           # Keep diagnostic collection independent from pipefail/SIGPIPE in head/grep.
           set +e
