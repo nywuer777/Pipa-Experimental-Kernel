@@ -1,0 +1,820 @@
+name: EXP75 - EXP73 config with original PIE (NO FLASH)
+
+on:
+  push:
+    branches: [exp75-pie-restore-ci]
+    paths:
+      - ".github/workflows/exp75-pie-restore-ci.yml"
+      - "tools/exp25-apply-touch.py"
+      - "tests/test_exp25_touch.py"
+      - "tools/exp24-apply-ethernet.py"
+      - "tests/test_exp24_ethernet.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipa-exp75-original-pie
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Pipa EXP25A / E404-Clang21 Ethernet + touchscreen IRQ
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      WORKDIR: ${{ github.workspace }}/exp06-work
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test isolated EXP25A Novatek IRQ patch (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_exp25_touch.py | tee exp25-touch-tests.log
+
+      - name: Unit tests for EXP24 Ethernet config (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/test_exp24_ethernet.py
+          sha256sum configs/ethernet.config | tee exp24-ethernet-input.sha256
+
+      - name: Verify original EXP01 ZIP and corrected patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '548ebb47ad0febe3c4541b9e93f2233bb9188c78d8f9ec298dd397a11216b852  PipaExperimental-EXP01-source.zip' | sha256sum -c -
+          mkdir -p exp01-src
+          unzip -q PipaExperimental-EXP01-source.zip -d exp01-src
+          test -s patches/0001-pipa-exp01-schedutil-rate-limit.patch
+          cp patches/0001-pipa-exp01-schedutil-rate-limit.patch exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch
+          python3 exp01-src/validate.py
+          bash -n exp01-src/prepare-build.sh
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            ripgrep gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi device-tree-compiler \
+            liblz4-tool zstd rsync ccache
+          df -h .
+
+      - name: Obtain exactly pinned AOSP Android Clang 21.0.0 / build 14054515
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init android-clang-prebuilt
+          cd android-clang-prebuilt
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          # Transient Gitiles transport failures are common for large partial clones.
+          git config http.version HTTP/1.1
+          git config http.lowSpeedLimit 1000
+          git config http.lowSpeedTime 120
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Pinned Clang download failed after 3 attempts"
+              exit 1
+            fi
+            sleep "$((attempt * 15))"
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          clang-r563880c/bin/clang --version | tee "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          grep -F 'clang version 21.0.0' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          printf 'AOSP toolchain repository commit: %s\n' "$ANDROID_LLVM_COMMIT" >> "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          # The revision above is already captured; git metadata not required for compilation.
+          rm -rf .git
+          df -h .
+
+      - name: Checkout exact E404 source, apply EXP01 and recover pinned KernelSU
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash exp01-src/prepare-build.sh "$WORKDIR" prepare 2>&1 | tee exp06-prepare.log
+          cd "$WORKDIR/kernel"
+          test "$(git rev-parse HEAD)" = fed88a6024cd4d46c52eda607a95d97d7371ba81
+          git submodule update --init --depth 1 KernelSU
+          test -f drivers/kernelsu/Kconfig
+          git apply --reverse --check "$GITHUB_WORKSPACE/exp01-src/0001-pipa-exp01-schedutil-rate-limit.patch"
+          df -h .
+
+      - name: Capture E404 scheduler tracing definitions for compatibility diagnosis
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== pinned kernel revision ==="
+            git -C "$K" rev-parse HEAD
+            echo "=== scheduler trace event definitions (1-115, 685-855, 940-990) ==="
+            sed -n '1,115p;685,855p;940,990p' "$K/include/trace/events/sched.h"
+            echo "=== scheduler definitions and trace configuration ==="
+            rg -n 'cpu_load\\[|runnable_load_avg|runnable_avg|idle_get_state_idx|cpu_isolated|CONFIG_SCHED_TRACER|CONFIG_SCHEDSTATS|CONFIG_WALT|CONFIG_UPROBE_EVENTS' "$K/kernel/sched" "$K/include/trace/events/sched.h" "$K/kernel/trace/Kconfig" "$K/arch/arm64/configs/vendor/pipa_defconfig" || true
+          } > "$GITHUB_WORKSPACE/exp25-sched-trace-diagnostic.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-sched-trace-diagnostic.txt"
+
+      - name: Enable 21 available Ethernet drivers in pinned E404 pipa config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode apply 2>&1 | tee exp24-ethernet-config-gate.log
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          grep -qx 'CONFIG_USB_NET_AX88179_178A=y' "$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          # Same pinned EXP06 source and compiler; explicit config-only Ethernet variant.
+          echo "EXP24 source=E404-pinned exp06_sugov=1500 modules=builtin AQC111=unsupported"
+
+      - name: EXP25A apply minimal NVT resume IRQ fix (do not change FW/retries/USB)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode apply | tee exp25-touch-apply.log
+          grep -F 'EXP25A_IRQ_RESTORE' "$WORKDIR/kernel/drivers/input/touchscreen/nt36532/nt36xxx.c"
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- drivers/input/touchscreen/nt36532/nt36xxx.c | tee exp25-touch-code.diff
+
+      - name: Remove unsupported E404 scheduler trace fields (no fabricated values)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p = Path(os.environ["WORKDIR"]) / "kernel/include/trace/events/sched.h"
+          src = p.read_text()
+          changes = [
+              ("__field(unsigned long, cpu_load)", "__field(unsigned long, cpu_load)"),
+          ]
+          # Exact source guards: remove only metrics absent from this pinned E404 tree.
+          edits = [
+              ("\t\t__field(unsigned long,\tcpu_load)", ""),
+              ("\t\t__entry->cpu_load\t= task_rq(p)->cpu_load[0];", ""),
+              (" cpu_load=%lu rt_nr_running=%u", " rt_nr_running=%u"),
+              ("\t\t\t__entry->cpu_load, __entry->rt_nr_running,", "\t\t\t__entry->rt_nr_running,"),
+              ("\t\t__field(\tunsigned long,\trbl_load", "\t\t__field(\tunsigned long,\trbl_load"),
+          ]
+          # Use line-level deletion for fields/assignments and explicit print format changes.
+          lines = src.splitlines(keepends=True)
+          banned = ("__field(" ,)
+          out = []
+          removed = {"cpu_load_field":0, "cpu_load_assign":0, "rbl_field":0, "rbl_assign":0, "idle_field":0, "idle_assign":0, "isolated_field":0, "isolated_assign":0}
+          for line in lines:
+              st = line.strip()
+              kind = None
+              if st.startswith("__field(") and "cpu_load)" in st: kind = "cpu_load_field"
+              elif "__entry->cpu_load" in st and "task_rq(p)->cpu_load[0]" in st: kind = "cpu_load_assign"
+              elif st.startswith("__field(") and "rbl_load" in st: kind = "rbl_field"
+              elif "__entry->rbl_load" in st and "runnable_load_avg" in st: kind = "rbl_assign"
+              elif st.startswith("__field(") and "idle_state)" in st: kind = "idle_field"
+              elif "__entry->idle_state" in st and "idle_get_state_idx" in st: kind = "idle_assign"
+              elif st.startswith("__field(") and "isolated)" in st: kind = "isolated_field"
+              elif "__entry->isolated" in st and "cpu_isolated" in st: kind = "isolated_assign"
+              if kind:
+                  removed[kind] += 1
+              else:
+                  out.append(line)
+          expected = {"cpu_load_field":1, "cpu_load_assign":1, "rbl_field":2, "rbl_assign":2, "idle_field":1, "idle_assign":1, "isolated_field":1, "isolated_assign":1}
+          if removed != expected:
+              raise SystemExit(f"Unexpected E404 trace layout: {removed} != {expected}")
+          src = "".join(out)
+          # Keep the remaining metrics in the same order as the TP_printk arguments.
+          replacements = [
+              (' cpu_load=%lu rt_nr_running=%u', ' rt_nr_running=%u', 1),
+              ('__entry->cpu_load, __entry->rt_nr_running,', '__entry->rt_nr_running,', 1),
+              (' load=%lu rbl_load=%lu util=%lu', ' load=%lu util=%lu', 2),
+              ('__entry->rbl_load,__entry->util', '__entry->util', 1),
+              ('__entry->load, __entry->rbl_load, __entry->util', '__entry->load, __entry->util', 1),
+              (' idle_state=%d irqload=%llu online=%u, isolated=%u, reserved=%u', ' irqload=%llu online=%u, reserved=%u', 1),
+              ('__entry->idle_state, __entry->irqload, __entry->online,', '__entry->irqload, __entry->online,', 1),
+              ('__entry->isolated, __entry->reserved,', '__entry->reserved,', 1),
+          ]
+          for before, after, count in replacements:
+              if src.count(before) != count:
+                  raise SystemExit(f"Unexpected trace format count for {before!r}: {src.count(before)}")
+              src = src.replace(before, after)
+          p.write_text(src)
+          print("Removed only unsupported trace fields; retained sched events and valid metrics")
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- include/trace/events/sched.h > "$GITHUB_WORKSPACE/exp25-sched-compat.diff"
+
+      - name: Fix legacy ring buffer uninitialized_var declaration for Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          root = Path(os.environ["WORKDIR"]) / "kernel"
+          p = root / "kernel/trace/ring_buffer.c"
+          old = "struct ring_buffer_per_cpu *uninitialized_var(cpu_buffer);"
+          new = "struct ring_buffer_per_cpu *cpu_buffer = NULL;"
+          src = p.read_text()
+          if src.count(old) != 1:
+              raise SystemExit(f"Refusing unexpected ring buffer layout: {src.count(old)} matches")
+          p.write_text(src.replace(old, new, 1))
+          print("Clang21 ring buffer declaration compatibility applied")
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+          git -C "$WORKDIR/kernel" diff -- kernel/trace/ring_buffer.c > "$GITHUB_WORKSPACE/exp25-ring-buffer-compat.diff"
+
+      - name: Audit STM tracing source and Kconfig before Clang21 build
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== trace.h STM caller and guards ==="
+            sed -n '1340,1455p' "$K/kernel/trace/trace.h"
+            echo "=== STM references and declarations ==="
+            rg -n -C 3 'stm_log|OST_ENTITY_FTRACE_EVENTS|STM_SOURCE_FTRACE|CONFIG_STM|CONFIG_OST' "$K/kernel/trace" "$K/drivers/hwtracing" "$K/include" 2>/dev/null || true
+            echo "=== STM and tracing Kconfig definitions ==="
+            rg -n -C 5 'config (STM|STM_SOURCE_FTRACE|TRACING|TRACEFS)|select STM|depends on STM' "$K/kernel/trace" "$K/drivers/hwtracing" "$K/fs/tracefs" 2>/dev/null || true
+          } > "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-stm-structural-audit.txt"
+
+      - name: Audit UFS command logger declarations and Kconfig (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== UFS caller around failing line 794 ==="
+            sed -n '710,840p' "$K/drivers/scsi/ufs/ufshcd.c"
+            echo "=== all UFS command logger references and guards ==="
+            rg -n -C 7 '__ufshcd_cmd_log|ufshcd_cmd_log|CONFIG_SCSI_UFS|CONFIG_UFS' "$K/drivers/scsi/ufs" "$K/include" 2>/dev/null || true
+            echo "=== UFS build and Kconfig definitions ==="
+            rg -n -C 4 'config SCSI_UFS|config UFS|ufshcd[.]o|CONFIG_SCSI_UFS' "$K/drivers/scsi/ufs" "$K/drivers/scsi/Kconfig" 2>/dev/null || true
+          } > "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+
+      - name: Guard legacy STM event export when CONFIG_STM is disabled (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import difflib
+          import os
+          p = Path(os.environ["WORKDIR"]) / "kernel/kernel/trace/trace.h"
+          original = p.read_text()
+          old = "\t\tif (len)\n\t\t\tstm_log(OST_ENTITY_FTRACE_EVENTS, entry, len);\n\n\t\ttrace_buffer_unlock_commit("
+          new = "\t\tif (IS_ENABLED(CONFIG_STM) && len)\n\t\t\tstm_log(OST_ENTITY_FTRACE_EVENTS, entry, len);\n\n\t\ttrace_buffer_unlock_commit("
+          # The disabled STM branch must be removed at preprocessing time:
+          # IS_ENABLED alone still leaves undeclared names visible to the compiler.
+          new = "\t\t#ifdef CONFIG_STM\n\t\tif (len)\n\t\t\tstm_log(OST_ENTITY_FTRACE_EVENTS, entry, len);\n\t\t#endif\n\n\t\ttrace_buffer_unlock_commit("
+          if original.count(old) != 1:
+              raise SystemExit("FAIL CLOSED: unexpected E404 STM call site")
+          updated = original.replace(old, new, 1)
+          p.write_text(updated)
+          diff = "".join(difflib.unified_diff(original.splitlines(True), updated.splitlines(True), fromfile="a/kernel/trace/trace.h", tofile="b/kernel/trace/trace.h"))
+          Path(os.environ["GITHUB_WORKSPACE"], "exp25-stm-compat.diff").write_text(diff)
+          print(diff)
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+
+      - name: Audit UFS logging declarations and guards before build (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== UFS failing call and surrounding preprocessor guards ==="
+            sed -n '650,850p' "$K/drivers/scsi/ufs/ufshcd.c"
+            echo "=== All UFS command logging declarations, definitions and call sites ==="
+            rg -n -C 7 '__ufshcd_cmd_log|ufshcd_cmd_log|CONFIG_SCSI_UFS|UFS.*LOG|DEBUG_UFS' "$K/drivers/scsi/ufs" "$K/include" 2>/dev/null || true
+            echo "=== UFS Kconfig and Makefile ==="
+            sed -n '1,240p' "$K/drivers/scsi/ufs/Kconfig"
+            sed -n '1,160p' "$K/drivers/scsi/ufs/Makefile"
+          } > "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-ufs-structural-audit.txt"
+
+      - name: Guard UFS command trace helper behind its logging dependency (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import difflib
+          import os
+          p = Path(os.environ["WORKDIR"]) / "kernel/drivers/scsi/ufs/ufshcd.c"
+          before = p.read_text()
+          old = "#ifdef CONFIG_TRACEPOINTS\nstatic inline void ufshcd_cond_add_cmd_trace(struct ufs_hba *hba,"
+          new = "#if defined(CONFIG_TRACEPOINTS) && defined(CONFIG_SCSI_UFSHCD_CMD_LOGGING)\nstatic inline void ufshcd_cond_add_cmd_trace(struct ufs_hba *hba,"
+          if before.count(old) != 1:
+              raise SystemExit("FAIL CLOSED: UFS trace helper guard differs from audited E404")
+          # The helper calls __ufshcd_cmd_log, defined only under the
+          # SCSI_UFSHCD_CMD_LOGGING gate. Keep the existing #else no-op helper.
+          start = before.index(old)
+          end = before.find("#else\nstatic inline void ufshcd_cond_add_cmd_trace(", start)
+          if end < 0 or before[start:end].count("__ufshcd_cmd_log(") != 1:
+              raise SystemExit("FAIL CLOSED: unexpected UFS helper body")
+          after = before.replace(old, new, 1)
+          p.write_text(after)
+          diff = "".join(difflib.unified_diff(before.splitlines(True), after.splitlines(True), fromfile="a/drivers/scsi/ufs/ufshcd.c", tofile="b/drivers/scsi/ufs/ufshcd.c"))
+          Path(os.environ["GITHUB_WORKSPACE"], "exp25-ufs-compat.diff").write_text(diff)
+          print(diff)
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+
+      - name: Audit latency tracer Kconfig, tracefs and Clang LTO instrumentation (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          command -v rg
+          rg --version
+          test -s "$K/kernel/trace/Kconfig"
+          test -s "$K/Makefile"
+          test -s "$K/arch/arm64/configs/vendor/pipa_defconfig"
+          {
+            echo "=== pinned E404 revision ==="
+            git -C "$K" rev-parse HEAD
+            echo "=== tracer and instrumentation Kconfig ==="
+            rg -n -C 9 '^config (IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|FUNCTION_TRACER|FUNCTION_GRAPH_TRACER|FTRACE_MCOUNT_USE_CC|HAVE_FUNCTION_TRACER|DYNAMIC_FTRACE|FTRACE|TRACING|TRACEPOINTS|TRACEFS_FS|LTO_CLANG|LTO)' "$K/kernel/trace" "$K/arch/arm64" "$K/fs" "$K/init" 2>/dev/null || true
+            echo "=== tracefs registration, mount and config ==="
+            rg -n -C 3 'tracefs_create|tracefs_mount|tracefs|tracing_mount|TRACEFS' "$K/fs/tracefs" "$K/kernel/trace/trace.c" "$K/kernel/trace/Kconfig" 2>/dev/null || true
+            echo "=== recordmcount and compiler instrumentation paths ==="
+            rg -n -C 4 'recordmcount|mcount|fentry|FTRACE_MCOUNT_USE_CC|CC_FLAGS_FTRACE|LTO_CLANG|CONFIG_LTO' "$K/Makefile" "$K/scripts/Makefile.build" "$K/scripts/Makefile.lib" "$K/arch/arm64/Makefile" "$K/arch/arm64/Kconfig" "$K/kernel/trace/Kconfig" 2>/dev/null || true
+            echo "=== relevant pipa defconfig ==="
+            rg -n 'CONFIG_(FTRACE|TRACING|TRACEFS|IRQSOFF|PREEMPT_TRACER|FUNCTION_TRACER|FTRACE_MCOUNT|LTO|PREEMPT|HAVE_FUNCTION)' "$K/arch/arm64/configs/vendor/pipa_defconfig" || true
+          } > "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
+          # Require actual source evidence, not only printed section headings.
+          rg -q '(^|[[:space:]])(config|menuconfig)[[:space:]]+(IRQSOFF_TRACER|PREEMPT_TRACER|FUNCTION_TRACER)' "$K/kernel/trace/Kconfig" || {
+            echo "FAIL CLOSED: latency tracer Kconfig definitions not found"
+            exit 1
+          }
+          rg -q 'recordmcount|mcount|fentry|LTO' "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt" || {
+            echo "FAIL CLOSED: no instrumentation evidence captured"
+            exit 1
+          }
+          rg -q 'tracefs|TRACEFS' "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt" || {
+            echo "FAIL CLOSED: no tracefs evidence captured"
+            exit 1
+          }
+          wc -lc "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
+
+      - name: Configure baseline tracepoints without legacy recordmcount (no RT)
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEF="$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          test -s "$DEF"
+          # EXP66: the pinned E404 arm64 tree lacks asm/asm-prototypes.h.
+          # scripts/Makefile.build skips cmd_modversions_S without this file,
+          # leaving assembly exports with undefined weak __crc_* symbols.
+          # Add the Linux v5.4 ARM64 declarations to the ephemeral CI checkout.
+          # Preserve the ABI and symbol CRCs; do not synthesize checksum values.
+          PROTO="$WORKDIR/kernel/arch/arm64/include/asm/asm-prototypes.h"
+          test ! -e "$PROTO" || { echo 'EXP66 FAIL CLOSED: ARM64 prototype header already exists'; exit 1; }
+          test -s "$WORKDIR/kernel/include/asm-generic/asm-prototypes.h"
+          grep -Fq 'ASM_PROTOTYPES := $(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/asm-prototypes.h)' "$WORKDIR/kernel/scripts/Makefile.build"
+          cat > "$PROTO" <<'EOF'
+          /* SPDX-License-Identifier: GPL-2.0 */
+          #ifndef __ASM_PROTOTYPES_H
+          #define __ASM_PROTOTYPES_H
+          /*
+           * Assembly EXPORT_SYMBOL definitions require matching C prototypes
+           * so genksyms can compute CRCs under CONFIG_MODVERSIONS.
+           * Backported from Linux v5.4 arch/arm64/include/asm/asm-prototypes.h.
+           */
+          #include <linux/arm-smccc.h>
+
+          #include <asm/ftrace.h>
+          #include <asm/page.h>
+          #include <asm/string.h>
+          #include <asm/uaccess.h>
+
+          #include <asm-generic/asm-prototypes.h>
+
+          long long __ashlti3(long long a, int b);
+          long long __ashrti3(long long a, int b);
+          long long __lshrti3(long long a, int b);
+
+          #endif /* __ASM_PROTOTYPES_H */
+          EOF
+          test -s "$PROTO"
+          grep -Fq '#include <asm-generic/asm-prototypes.h>' "$PROTO"
+          test "$(git -C "$WORKDIR/kernel" status --porcelain -- arch/arm64/include/asm/asm-prototypes.h)" = '?? arch/arm64/include/asm/asm-prototypes.h' || {
+            echo 'EXP66 FAIL CLOSED: prototype header not isolated as an untracked CI-only file'
+            exit 1
+          }
+          # E404 MODULE_REL_CRCS is a hidden bool: defconfig=y alone is ignored.
+          # Apply a narrowly scoped default only to the ephemeral CI source tree.
+          python3 - "$WORKDIR/kernel/init/Kconfig" <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path(sys.argv[1])
+          s = p.read_text()
+          before = "config MODULE_REL_CRCS\n\tbool\n\tdepends on MODVERSIONS\n"
+          after = "config MODULE_REL_CRCS\n\tbool\n\tdepends on MODVERSIONS\n\tdefault y if ARM64 && RELOCATABLE\n"
+          if s.count(before) != 1:
+              raise SystemExit("EXP48 FAIL CLOSED: unexpected MODULE_REL_CRCS Kconfig definition")
+          p.write_text(s.replace(before, after))
+          PY
+          # EXP75 / GitHub Actions Bash + Python3 / E404 arm64 / original LLD PIE
+          # Keep the exact linker setting of the EXP25A build that booted on pipa.
+          python3 - "$WORKDIR/kernel/arch/arm64/Makefile" <<'PY'
+          from pathlib import Path
+          import re, sys
+          src = Path(sys.argv[1]).read_text()
+          pat = r"(?m)^LDFLAGS_vmlinux[ \\t]*\\+= -pie$"
+          if len(re.findall(pat, src)) != 1:
+              raise SystemExit("EXP75 FAIL_CLOSED: original -pie not found")
+          if "LDFLAGS_vmlinux += -no-pie" in src:
+              raise SystemExit("EXP75 FAIL_CLOSED: -no-pie still set")
+          print("EXP75_ORIGINAL_LLD_PIE=PASS")
+          PY
+          echo 'EXP75_LINKER_ORIGINAL_PIE=PASS; CONFIG_FROM_EXP73=UNMODIFIED; FLASH_READY=false' | tee "$GITHUB_WORKSPACE/exp75-pie-gate.txt"
+          git -C "$WORKDIR/kernel" diff --check
+          # EXP56 isolated diagnostic: test whether ThinLTO triggers CRC PREL32.
+          # Preserve MODULES/MODVERSIONS/REL_CRCS and all fail-closed gates.
+          for opt in LTO_CLANG LTO_CLANG_THIN LTO_CLANG_FULL LTO_NONE; do
+            sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
+          done
+          printf 'CONFIG_LTO_NONE=y\n# CONFIG_LTO_CLANG is not set\n# CONFIG_LTO_CLANG_THIN is not set\n# CONFIG_LTO_CLANG_FULL is not set\n' >> "$DEF"
+          # Keep IRQ/scheduler tracepoints and tracefs; avoid recordmcount on Clang LTO objects.
+          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
+            sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
+            printf 'CONFIG_%s=y\n' "$opt" >> "$DEF"
+          done
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER FTRACE_MCOUNT_USE_CC SCHED_DEBUG STM_SOURCE_FTRACE; do
+            sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
+            printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
+          done
+          # Uprobe events are unrelated to touchscreen IRQ/scheduler tracepoints.
+          # Disable the legacy uprobes translation unit that fails under Clang 21.
+          for opt in UPROBE_EVENTS; do
+            sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
+            printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
+          done
+          git -C "$WORKDIR/kernel" diff --check
+
+      - name: Restore missing netfilter and tracepoint providers (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, subprocess, difflib
+          k = Path(os.environ["WORKDIR"]) / "kernel"
+          sha = subprocess.check_output(["git", "-C", str(k), "rev-parse", "HEAD"], text=True).strip()
+          if sha != "fed88a6024cd4d46c52eda607a95d97d7371ba81":
+              raise SystemExit("FAIL CLOSED: E404 source SHA mismatch")
+          for path, marker in [
+              ("net/netfilter/nf_log.c", "int __init netfilter_log_init(void)"),
+              ("net/wireless/trace.c", "#define CREATE_TRACE_POINTS"),
+              ("techpack/camera/drivers/cam_utils/cam_trace.c", "#define CREATE_TRACE_POINTS"),
+              ("techpack/camera/config/konacamera.conf", "export CONFIG_SPECTRA_CAMERA=y"),
+          ]:
+              if marker not in (k / path).read_text():
+                  raise SystemExit("FAIL CLOSED: provider absent: " + path)
+          edits = [
+              ("net/netfilter/Makefile", "netfilter-objs := core.o nf_queue.o nf_sockopt.o utils.o", "netfilter-objs := core.o nf_queue.o nf_sockopt.o utils.o nf_log.o"),
+              ("net/wireless/Makefile", "cfg80211-y += core.o sysfs.o radiotap.o util.o reg.o scan.o nl80211.o", "cfg80211-y += core.o sysfs.o radiotap.o util.o reg.o scan.o nl80211.o trace.o"),
+              ("techpack/camera/drivers/cam_utils/Makefile", "obj-$(CONFIG_SPECTRA_CAMERA) += cam_cx_ipeak.o", "obj-$(CONFIG_SPECTRA_CAMERA) += cam_cx_ipeak.o cam_trace.o"),
+          ]
+          diff = []
+          for rel, old, new in edits:
+              p = k / rel
+              before = p.read_text()
+              if before.count(old) != 1 or new in before:
+                  raise SystemExit("FAIL CLOSED: unexpected Makefile: " + rel)
+              after = before.replace(old, new, 1)
+              p.write_text(after)
+              diff.extend(difflib.unified_diff(before.splitlines(True), after.splitlines(True), fromfile="a/" + rel, tofile="b/" + rel))
+          if len(diff) < 9:
+              raise SystemExit("FAIL CLOSED: incomplete provider patch")
+          (Path(os.environ["GITHUB_WORKSPACE"]) / "exp25-link-providers-compat.diff").write_text("".join(diff))
+          print("".join(diff))
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+
+      - name: EXP44 request stock module compatibility in pinned defconfig
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEF="$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          test -s "$DEF"
+          python3 - "$DEF" <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path(sys.argv[1])
+          src = p.read_text().splitlines()
+          keys = ("MODULES", "MODULE_UNLOAD", "MODVERSIONS", "MODULE_SIG", "MODULE_REL_CRCS")
+          src = [line for line in src if not any(
+              line.startswith("CONFIG_" + k + "=") or line == "# CONFIG_" + k + " is not set"
+              for k in keys
+          )]
+          src += ["CONFIG_" + k + "=y" for k in keys]
+          p.write_text("\n".join(src) + "\n")
+          PY
+          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
+            test "$(grep -xc "CONFIG_${opt}=y" "$DEF")" -eq 1
+          done
+          git -C "$WORKDIR/kernel" diff --check
+          echo 'EXP45 requests relative CRC relocations to avoid AARCH64_ABS32; Kconfig and link must validate'
+
+      - name: Build kernel with the actual Android 21 compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          command -v clang
+          clang --version
+          command -v ld.lld
+          ld.lld --version
+          # Capture actual CRC/linker implementation even if the build fails.
+          {
+            echo "=== relevant Kconfig definitions ==="
+            rg -n -C 5 'config (MODULE_REL_CRCS|MODVERSIONS|LTO_CLANG|LTO_NONE|RELOCATABLE)' "$WORKDIR/kernel" --glob 'Kconfig*' || true
+            echo "=== CRC assembly and link flags ==="
+            rg -n -C 4 '___kcrctab|__crc_|MODULE_REL_CRCS|KBUILD_LDFLAGS|LDFLAGS_vmlinux|--no-pie|--pie' "$WORKDIR/kernel/arch/arm64" "$WORKDIR/kernel/scripts" "$WORKDIR/kernel/Makefile" --glob '*.[cSh]' --glob 'Makefile*' || true
+            echo "=== toolchain linker ==="
+            ld.lld --version
+          } > "$GITHUB_WORKSPACE/exp46-crc-linker-diagnostic.txt" 2>&1
+          # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          # EXP52: capture symbol provenance and exact generated objects after
+          # compilation; run regardless of builder status and preserve its exit.
+          set +e
+          bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
+          build_rc=${PIPESTATUS[0]}
+          # Fail closed if the EXP56 diagnostic was silently overridden by Kconfig.
+          test -r "$WORKDIR/out/.config" && test -s "$WORKDIR/out/.config" || {
+            echo "EXP57 FAIL CLOSED: missing or unreadable effective kernel config"
+            exit 1
+          }
+          echo "=== EXP57 effective LTO config ==="
+          grep -E '^(CONFIG_(LTO|THINLTO|LTO_CLANG|LTO_CLANG_THIN|LTO_NONE|LTO_CLANG_FULL)=|# CONFIG_(LTO|THINLTO|LTO_CLANG|LTO_CLANG_THIN|LTO_NONE|LTO_CLANG_FULL) is not set)' "$WORKDIR/out/.config" || true
+          if grep -Eq '^CONFIG_(LTO|LTO_CLANG|LTO_CLANG_THIN|THINLTO|LTO_CLANG_FULL)=y$' "$WORKDIR/out/.config"; then
+            echo "EXP57 FAIL CLOSED: active LTO detected"
+            exit 1
+          fi
+          set -e
+          # Keep diagnostic collection independent from pipefail/SIGPIPE in head/grep.
+          set +e
+          {
+            echo "=== effective module/LTO config ==="
+            grep -E '^(CONFIG_(MODULES|MODVERSIONS|MODULE_REL_CRCS|LTO_CLANG|RELOCATABLE|LD_IS_LLD)=|# CONFIG_(MODULE_REL_CRCS|LTO_CLANG) is not set)' "$WORKDIR/out/.config" || true
+            echo "=== CRC source definitions ==="
+            rg -n -F '__CRC_SYMBOL' "$WORKDIR/kernel/include" "$WORKDIR/kernel/arch/arm64" || true
+            rg -n -F '__crc_' "$WORKDIR/kernel/scripts" "$WORKDIR/kernel/include" "$WORKDIR/kernel/arch/arm64" | head -100 || true
+            echo "=== relevant generated artifacts ==="
+            find "$WORKDIR/out" -type f \( -name '*.mod.c' -o -name '*.symversions' -o -name 'vmlinux.o' -o -name 'built-in.o' -o -name 'vmlinux' \) | sed -n '1,70p'
+            echo "=== object symbol and relocation diagnostics ==="
+            for f in "$WORKDIR/out/vmlinux.o" "$WORKDIR/out/arch/arm64/lib/memcmp.o" "$WORKDIR/out/arch/arm64/lib/memcpy.o"; do
+              if test -f "$f"; then
+                echo "--- $f"
+                "$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin/llvm-readelf" -s -r "$f" | grep -E -m 35 '__crc_|kcrctab|PREL32|ABS32' || true
+              fi
+            done
+            echo "=== build return code ==="
+            echo "$build_rc"
+          } > "$GITHUB_WORKSPACE/exp52-crc-provenance.txt" 2>&1
+          set -e
+          test -s "$GITHUB_WORKSPACE/exp52-crc-provenance.txt"
+          if [ "$build_rc" -ne 0 ]; then
+            exit "$build_rc"
+          fi
+          # EXP65: reject malformed/unknown export warnings rather than silently skipping them.
+          python3 - <<'PY'
+          from pathlib import Path
+          log = Path("exp06-console.log").read_text(errors="replace")
+          marker = "WARNING: EXPORT symbol"
+          prefix = 'WARNING: EXPORT symbol "'
+          suffix = '" [vmlinux] version generation failed, symbol will not be versioned.'
+          names = set()
+          for line in log.splitlines():
+              if marker not in line:
+                  continue
+              if not line.startswith(prefix) or not line.endswith(suffix):
+                  raise SystemExit("EXP65 FAIL CLOSED: unrecognized export CRC warning format")
+              name = line[len(prefix):-len(suffix)]
+              if not name or '"' in name or any(ch.isspace() for ch in name):
+                  raise SystemExit("EXP65 FAIL CLOSED: malformed exported symbol name")
+              names.add(name)
+          names = sorted(names)
+          report = Path("exp62-export-crc-audit.txt")
+          report.write_text("Unversioned vmlinux exports:" + chr(10)
+                            + chr(10).join(names) + chr(10)
+                            + "Count: " + str(len(names)) + chr(10))
+          print(report.read_text())
+          if names:
+              raise SystemExit("EXP65 FAIL CLOSED: " + str(len(names)) + " unversioned exports; NONFLASH")
+          PY
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
+            grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || {
+              echo "EXP48 FAIL CLOSED: CONFIG_${opt} not enabled after Kconfig"
+              exit 1
+            }
+          done
+          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
+            grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
+          done
+          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER UPROBE_EVENTS SCHED_DEBUG STM_SOURCE_FTRACE; do
+            if grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"; then exit 1; fi
+          done
+          if grep -Eq "CONFIG_PREEMPT_RT(_FULL)?=y" "$WORKDIR/out/.config"; then exit 1; fi
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
+          python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$WORKDIR/kernel" --out "$WORKDIR/out" --mode verify 2>&1 | tee -a exp24-ethernet-config-gate.log
+          # The unsupported scheduler debug translation unit must stay excluded.
+          if grep -Eq '(^|[[:space:]])CC[[:space:]]+kernel/sched/debug[.]o([[:space:]]|$)' exp06-console.log; then
+            echo 'Unexpected scheduler debug compilation under E404'
+            exit 1
+          fi
+          # Compiler identity belongs to compiler fingerprint, not kernel .config.
+          grep -F 'Android (14054515,' "$GITHUB_WORKSPACE/exp06-clang-version.txt"
+          (cd "$WORKDIR/out/arch/arm64/boot" && sha256sum Image) | tee exp24-Image.sha256
+          ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
+          df -h .
+
+      - name: Capture link-time tracepoint and netfilter provider audit (read-only)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          C="$WORKDIR/out/.config"
+          {
+            echo "=== kernel and resolved config availability ==="
+            test -d "$K"
+            if test -s "$C"; then
+              echo "=== resolved tracing, camera, wireless and netfilter options ==="
+              grep -E '^(# )?CONFIG_(TRACEPOINTS|FTRACE|TRACING|LTO|NETFILTER|NF_LOG|CFG80211|VIDEO_V4L2|MSM_CAMERA|SCSI_UFSHCD_CMD_LOGGING)([=_ ]|$)' "$C" || true
+            else
+              echo "Resolved .config unavailable: build did not reach configuration"
+            fi
+            echo "=== linker undefined symbols, if present ==="
+            if test -s exp06-console.log; then
+              grep -E 'undefined symbol:|too many errors emitted|LTO +vmlinux.o|LD +vmlinux' exp06-console.log || true
+            fi
+            echo "=== symbol call sites and provider definitions ==="
+            rg -n -C 3 'netfilter_log_init|cam_req_mgr_apply_request|rdev_stop_p2p_device' "$K/net" "$K/drivers/media" "$K/include" --glob '*.[ch]' 2>/dev/null || true
+            echo "=== tracepoint provider translation units ==="
+            rg -l '^#define CREATE_TRACE_POINTS' "$K/net" "$K/drivers/media" --glob '*.[ch]' 2>/dev/null || true
+            echo "=== candidate netfilter/camera/wireless build selections ==="
+            rg -n 'netfilter_log|tracepoint|trace\.o|cam_req_mgr|cfg80211' "$K/net/netfilter/Makefile" "$K/net/wireless/Makefile" "$K/drivers/media/platform/msm/Makefile" "$K/drivers/media/platform/msm/camera/Makefile" 2>/dev/null || true
+          } > "$GITHUB_WORKSPACE/exp25-link-providers-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-link-providers-audit.txt"
+
+      - name: Verify provider objects and linked tracepoint symbols (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for object in net/netfilter/nf_log.o net/wireless/trace.o techpack/camera/drivers/cam_utils/cam_trace.o; do
+            test -s "$WORKDIR/out/$object" || { echo "FAIL CLOSED: missing $object"; exit 1; }
+          done
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '[[:space:]]__tracepoint_cam_req_mgr_apply_request$' "$WORKDIR/out/System.map"
+          grep -Eq '[[:space:]]__tracepoint_rdev_stop_p2p_device$' "$WORKDIR/out/System.map"
+          for opt in DEBUG_KERNEL TRACEPOINTS CFG80211 ARCH_KONA; do
+            grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"
+          done
+          if grep -Eq 'CONFIG_PREEMPT_RT(_FULL)?=y' "$WORKDIR/out/.config"; then exit 1; fi
+          echo 'EXP25A_PROVIDER_LINK_PASS; FLASH_READY=false; DEVICE_RUNTIME_NOT_TESTED'
+
+      - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          # EXP72: the isolated EXP56 no-LTO configuration links vmlinux.o
+          # through LD, not LTO. Verify the actual selected path fail-closed.
+          grep -qx 'CONFIG_LTO_NONE=y' "$WORKDIR/out/.config"
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          if grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log; then
+            echo 'EXP72 FAIL CLOSED: unexpected LTO link while CONFIG_LTO_NONE=y'
+            exit 1
+          fi
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Capture CRC provenance independently after failed linker (EXP54)
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          K="$WORKDIR/kernel"
+          O="$WORKDIR/out"
+          REPORT="$GITHUB_WORKSPACE/exp54-crc-provenance.txt"
+          {
+            echo "=== kernel config ==="
+            grep -E 'CONFIG_(MODULES|MODVERSIONS|MODULE_REL_CRCS|LTO_CLANG|RELOCATABLE|LD_IS_LLD)' "$O/.config"
+            echo "=== export CRC macro definitions ==="
+            rg -n -C 8 -F '__CRC_SYMBOL' "$K/include" "$K/arch/arm64"
+            echo "=== CRC generation scripts ==="
+            rg -n -C 3 -F '__crc_' "$K/scripts" "$K/include" "$K/arch/arm64" | sed -n '1,200p'
+            echo "=== ELF objects ==="
+            find "$O" -name 'vmlinux.o' -o -name 'built-in.o' | sed -n '1,50p'
+            echo "=== vmlinux.o CRC relocations and symbol types ==="
+            TOOL="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin/llvm-readelf"
+            if test -x "$TOOL" && test -f "$O/vmlinux.o"; then
+              "$TOOL" -r "$O/vmlinux.o" | grep -E -m 45 'PREL32|ABS32|__crc_' || true
+              "$TOOL" -s "$O/vmlinux.o" | grep -E -m 45 '__crc_|kcrctab' || true
+            fi
+          } > "$REPORT" 2>&1
+          wc -c "$REPORT"
+          test -s "$REPORT"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp75-pie-restore-NONFLASH-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp06-work/out/System.map
+            exp06-work/out/modules.builtin
+            exp06-work/out/Module.symvers
+            exp06-work/out/modules.order
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp75-pie-gate.txt
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp46-crc-linker-diagnostic.txt
+            exp52-crc-provenance.txt
+            exp54-crc-provenance.txt
+            exp62-export-crc-audit.txt
+            exp25-sched-trace-diagnostic.txt
+            exp25-sched-compat.diff
+            exp25-ring-buffer-compat.diff
+            exp25-stm-structural-audit.txt
+            exp25-stm-compat.diff
+            exp25-ufs-structural-audit.txt
+            exp25-latency-tracer-structural-audit.txt
+            exp25-ufs-compat.diff
+            exp25-link-providers-audit.txt
+            exp25-link-providers-compat.diff
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
