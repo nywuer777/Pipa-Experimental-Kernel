@@ -95,6 +95,16 @@ python3 tools/exp76-rt-conflict-report.py \
     --overlay-trial "$ROOT/exp76-trial-overlay" \
     --overlay-paths "$REPORT/overlay/rejected-paths.txt" | tee "$REPORT/conflict-priority-summary.json"
 
+# Stage-1 only: resolve two exact, SHA-pinned rejected hunks in the EXP overlay checkout.
+# Keep the full original rejection manifest above as immutable evidence.
+python3 tools/exp76-rt-stage1-port.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage1" \
+    --mode apply | tee "$REPORT/stage1-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 80
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE1=2_EXACT_HUNKS_PORTED; REMAINING_REJECTED_FILES=80; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage1-gate.txt"
+
 {
     echo "EXP76_RT_STAGE=AUDIT_ONLY"
     echo "RT_SOURCE=4.19.325-rt140"
