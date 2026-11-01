@@ -24,6 +24,7 @@ on:
       - 'tools/exp76-rt-stage13-unified-rcu.py'
       - 'tools/exp76-rt-stage14-wake-q.py'
       - 'tools/exp76-rt-stage15-sched-features.py'
+      - 'tools/exp76-stage15-feature-cc-preflight.py'
       - 'tools/exp76-export-partial-source.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
@@ -68,6 +69,7 @@ jobs:
           python3 -m py_compile tools/exp76-rt-stage13-unified-rcu.py
           python3 -m py_compile tools/exp76-rt-stage14-wake-q.py
           python3 -m py_compile tools/exp76-rt-stage15-sched-features.py
+          python3 -m py_compile tools/exp76-stage15-feature-cc-preflight.py
           python3 -m py_compile tools/exp76-export-partial-source.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
