@@ -562,6 +562,35 @@ jobs:
             echo "FLASH_READY=false"
           } | tee "$REPORT"
 
+      - name: Capture kernel reproducibility provenance (read-only)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/exp25-reproducibility-audit.txt"
+          {
+            echo "EXP25A build provenance; observational only"
+            echo "GitHub run: $GITHUB_RUN_ID"
+            echo "Workflow commit: $GITHUB_SHA"
+            echo "Runner OS: $RUNNER_OS"
+            echo "Runner architecture: $RUNNER_ARCH"
+            echo "Kernel source SHA:"
+            if test -d "$WORKDIR/kernel/.git"; then git -C "$WORKDIR/kernel" rev-parse HEAD; else echo "source git metadata unavailable"; fi
+            echo "Build metadata environment:"
+            for key in KBUILD_BUILD_TIMESTAMP KBUILD_BUILD_USER KBUILD_BUILD_HOST SOURCE_DATE_EPOCH KBUILD_BUILD_VERSION; do
+              if test -n "${!key-}"; then printf '%s=%s\n' "$key" "${!key}"; else printf '%s=<unset>\n' "$key"; fi
+            done
+            echo "Kernel release and version generated headers:"
+            for p in "$WORKDIR/out/include/generated/compile.h" "$WORKDIR/out/include/generated/utsrelease.h" "$WORKDIR/out/include/generated/compile.h"; do
+              if test -f "$p"; then printf 'FILE %s\n' "$p"; sed -n '1,35p' "$p"; fi
+            done
+            echo "Image digest:"
+            if test -s "$WORKDIR/out/arch/arm64/boot/Image"; then sha256sum "$WORKDIR/out/arch/arm64/boot/Image"; else echo "Image not available"; fi
+            echo "Resolved config digest:"
+            if test -s "$WORKDIR/out/.config"; then sha256sum "$WORKDIR/out/.config"; else echo "config not available"; fi
+            echo "No reproducibility conclusion from one build"
+          } | tee "$OUT"
+
       - name: Capture link-time tracepoint and netfilter provider audit (read-only)
         if: always()
         shell: bash
@@ -676,6 +705,7 @@ jobs:
             exp25-irq-config-audit.txt
             exp25-irq-config-compat.diff
             exp25-latency-static-validation.txt
+            exp25-reproducibility-audit.txt
             exp25-ufs-compat.diff
             exp25-link-providers-audit.txt
             exp25-link-providers-compat.diff
