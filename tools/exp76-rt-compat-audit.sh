@@ -60,7 +60,7 @@ for variant in e404 overlay; do
         printf 'FAIL\n' > "$REPORT/$variant/apply-reject-status.txt"
     fi
 
-    find "exp76-trial-$variant" -type f -name '*.rej' -print | sed "s@^exp76-trial-$variant/@@;s@\.rej$@@" | sort > "$REPORT/$variant/rejected-paths.txt"
+    find "exp76-trial-$variant" -type f -name '*.rej' -print | sed -e "s#^exp76-trial-$variant/##" -e 's#\.rej$##' | sort > "$REPORT/$variant/rejected-paths.txt"
     wc -l < "$REPORT/$variant/rejected-paths.txt" | tr -d ' ' > "$REPORT/$variant/rejected-count.txt"
 
     python3 - "$REPORT/$variant" <<'PY'
