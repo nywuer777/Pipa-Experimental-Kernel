@@ -123,9 +123,10 @@ def prepare(tree: Path):
     for symbol in (
         "static inline bool task_is_stopped_or_traced(struct task_struct *task)",
         "static inline bool task_is_traced(struct task_struct *task)",
-        "static inline void sleeping_lock_inc(void)",
     ):
         one(sched, symbol, "sched.h")
+    if (sched.count("static inline void sleeping_lock_inc(void)") != 2):
+        raise ValueError("Expected RT implementation and non-RT no-op for sleeping_lock_inc")
     one(sched, FIELD_ANCHOR, "sched.h")
     if re.search(r"(?m)^\s*int\s+sleeping_lock\s*;", sched):
         raise ValueError("sched.h sleeping_lock field already present")
