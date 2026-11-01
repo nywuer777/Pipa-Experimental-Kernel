@@ -266,6 +266,17 @@ python3 tools/exp76-stage15-feature-cc-preflight.py \
     --tree "$ROOT/exp76-trial-overlay" \
     --report "$REPORT/stage15" | tee "$REPORT/stage15-host-c-preflight.log"
 
+# Stage16: the upstream cpupri.c reject expects task_struct.cpus_ptr.
+# E404 has cpus_allowed instead; inventory all already-applied RT users and
+# retain the reject until full affinity ABI is reconciled across scheduler.
+python3 tools/exp76-rt-stage16-affinity-abi.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage16" | tee "$REPORT/stage16-affinity-abi.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 66
+test -f "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+echo 'EXP76_RT_STAGE16=AFFINITY_ABI_BLOCKER_DOCUMENTED; REJECTED_FILES=66; BUILD_BLOCKED=true; FLASH_READY=false' | tee "$REPORT/stage16-gate.txt"
+
+
 
 
 
@@ -274,7 +285,7 @@ python3 tools/exp76-stage15-feature-cc-preflight.py \
 
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
-# This remains an incomplete NONFLASH patch while 71 files are rejected.
+# This remains an incomplete NONFLASH patch while 66 files are rejected.
 python3 tools/exp76-export-partial-source.py \
     --trial "$ROOT/exp76-trial-overlay" \
     --clean-base "$ROOT/exp76-e404" \
