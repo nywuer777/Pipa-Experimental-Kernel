@@ -505,7 +505,7 @@ jobs:
             rg -n -F '__CRC_SYMBOL' "$WORKDIR/kernel/include" "$WORKDIR/kernel/arch/arm64" || true
             rg -n -F '__crc_' "$WORKDIR/kernel/scripts" "$WORKDIR/kernel/include" "$WORKDIR/kernel/arch/arm64" | head -100 || true
             echo "=== relevant generated artifacts ==="
-            find "$WORKDIR/out" -type f \\( -name '*.mod.c' -o -name '*.symversions' -o -name 'vmlinux.o' -o -name 'built-in.o' -o -name 'vmlinux' \\) | head -70
+            find "$WORKDIR/out" -type f \( -name '*.mod.c' -o -name '*.symversions' -o -name 'vmlinux.o' -o -name 'built-in.o' -o -name 'vmlinux' \) | sed -n '1,70p'
             echo "=== object symbol and relocation diagnostics ==="
             for f in "$WORKDIR/out/vmlinux.o" "$WORKDIR/out/arch/arm64/lib/memcmp.o" "$WORKDIR/out/arch/arm64/lib/memcpy.o"; do
               if test -f "$f"; then
@@ -518,7 +518,9 @@ jobs:
           } > "$GITHUB_WORKSPACE/exp52-crc-provenance.txt" 2>&1
           set -e
           test -s "$GITHUB_WORKSPACE/exp52-crc-provenance.txt"
-          exit "$build_rc"
+          if [ "$build_rc" -ne 0 ]; then
+            exit "$build_rc"
+          fi
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
           for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || {
