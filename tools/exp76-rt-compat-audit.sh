@@ -276,6 +276,18 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 66
 test -f "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
 echo 'EXP76_RT_STAGE16=AFFINITY_ABI_BLOCKER_DOCUMENTED; REJECTED_FILES=66; BUILD_BLOCKED=true; FLASH_READY=false' | tee "$REPORT/stage16-gate.txt"
 
+# Stage17: E404 already assigns WF_TTWU=0x08, unlike the old RT patch.
+# Use collision-free 0x100 for WF_LOCK_SLEEPER; keep nr_pinned pending.
+python3 tools/exp76-rt-stage17-wake-flags.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage17" \
+    --mode apply | tee "$REPORT/stage17-wake-flags.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 66
+test "$(grep -c '^@@ -' "$ROOT/exp76-trial-overlay/kernel/sched/sched.h.rej")" -eq 1
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE17=COLLISION_FREE_WAKE_LOCK_FLAG_PORTED; REJECTED_FILES=66; NR_PINNED=PENDING; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage17-gate.txt"
+
+
 
 
 
