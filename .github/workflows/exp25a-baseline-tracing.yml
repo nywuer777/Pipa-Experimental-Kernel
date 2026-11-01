@@ -729,7 +729,7 @@ jobs:
             exp46-crc-linker-diagnostic.txt
             exp52-crc-provenance.txt
             exp54-crc-provenance.txt
-          exp62-export-crc-audit.txt
+            exp62-export-crc-audit.txt
             exp25-sched-trace-diagnostic.txt
             exp25-sched-compat.diff
             exp25-ring-buffer-compat.diff
