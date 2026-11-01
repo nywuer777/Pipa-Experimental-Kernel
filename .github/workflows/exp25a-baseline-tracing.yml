@@ -385,6 +385,35 @@ jobs:
           ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
           df -h .
 
+      - name: Capture link-time tracepoint and netfilter provider audit (read-only)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          C="$WORKDIR/out/.config"
+          {
+            echo "=== kernel and resolved config availability ==="
+            test -d "$K"
+            if test -s "$C"; then
+              echo "=== resolved tracing, camera, wireless and netfilter options ==="
+              grep -E '^(# )?CONFIG_(TRACEPOINTS|FTRACE|TRACING|LTO|NETFILTER|NF_LOG|CFG80211|VIDEO_V4L2|MSM_CAMERA|SCSI_UFSHCD_CMD_LOGGING)([=_ ]|$)' "$C" || true
+            else
+              echo "Resolved .config unavailable: build did not reach configuration"
+            fi
+            echo "=== linker undefined symbols, if present ==="
+            if test -s exp06-console.log; then
+              grep -E 'undefined symbol:|too many errors emitted|LTO +vmlinux.o|LD +vmlinux' exp06-console.log || true
+            fi
+            echo "=== symbol call sites and provider definitions ==="
+            rg -n -C 3 'netfilter_log_init|cam_req_mgr_apply_request|rdev_stop_p2p_device' "$K/net" "$K/drivers/media" "$K/include" --glob '*.[ch]' 2>/dev/null || true
+            echo "=== tracepoint provider translation units ==="
+            rg -l '^#define CREATE_TRACE_POINTS' "$K/net" "$K/drivers/media" --glob '*.[ch]' 2>/dev/null || true
+            echo "=== candidate netfilter/camera/wireless build selections ==="
+            rg -n 'netfilter_log|tracepoint|trace\.o|cam_req_mgr|cfg80211' "$K/net/netfilter/Makefile" "$K/net/wireless/Makefile" "$K/drivers/media/platform/msm/Makefile" "$K/drivers/media/platform/msm/camera/Makefile" 2>/dev/null || true
+          } > "$GITHUB_WORKSPACE/exp25-link-providers-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-link-providers-audit.txt"
+
       - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
         shell: bash
         run: |
@@ -451,6 +480,7 @@ jobs:
             exp25-stm-compat.diff
             exp25-ufs-structural-audit.txt
             exp25-ufs-compat.diff
+            exp25-link-providers-audit.txt
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
