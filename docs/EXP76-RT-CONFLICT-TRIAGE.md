@@ -108,3 +108,15 @@ Próximo gate: revisar dependências transversais entre `spinlock.h`, `spinlock_
 - **Status validado:** CI #41336929947 concluída com SUCCESS. `EXP76_RT_STAGE6=IRQ_WORK_VENDOR_EQUIVALENCE_AND_SWORK_INCLUDE`; `resolved_rejected_files=3`, `remaining_rejected_files=73`, `KERNEL_BUILT=false`, `FLASH_READY=false`. Fonte: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41336929947
 
 `FLASH_READY=false`.
+
+
+## Stage 7 — Makefile de locking RT e chamada de percpu rwsem
+
+- CI aprovada: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41338213001 — **SUCCESS**.
+- Os dois rejeitos foram verificados por SHA-256: `kernel/locking/Makefile.rej` `54a73eaacf53f52659ff9679da3acc6f51a9e73973bbe3ca6e58dd498da04896`; `kernel/locking/percpu-rwsem.c.rej` `d344f32ffd3b6b36199be57c71530d7b39b2b619b2ebfbe85f0f015d59c8296b`.
+- A inspeção da árvore pós-patch revelou que `mutex.o` e `mutex-debug.o` já estavam protegidos com `ifneq ($(CONFIG_PREEMPT_RT_FULL),y)`, mas `rwsem.o` não. O Stage 7 move `rwsem.o` para esse mesmo bloco e inclui `mutex-rt.o rwsem-rt.o rwlock-rt.o` sob `CONFIG_PREEMPT_RT_FULL`.
+- `kernel/locking/percpu-rwsem.c` já invoca `rcuwait_wait_event(..., TASK_UNINTERRUPTIBLE)`, de acordo com o macro de 3 argumentos da E404; sem modificação funcional adicional.
+- A CI validou `git diff --check` e reduziu os caminhos `.rej` restantes de 73 para **71**.
+- **Escopo:** alteração de código-fonte em checkout temporário. Sem configuração RT ativada, compilação, teste em tablet ou imagem para instalação. `FLASH_READY=false`.
+
+A etapa seguinte é a revisão integrada de `softirq.c` e RCU, mapeada no arquivo `docs/EXP76-SOFTIRQ-RCU-PORT-TRIAGE.md`.
