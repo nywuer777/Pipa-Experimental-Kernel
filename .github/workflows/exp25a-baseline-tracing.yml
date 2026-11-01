@@ -1,4 +1,5 @@
 name: EXP25A Baseline Tracing Build (NO FLASH)
+# EXP25A reproducibility repeat: workflow-only comment; build inputs unchanged.
 
 on:
   push:
