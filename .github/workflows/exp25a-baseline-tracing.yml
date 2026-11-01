@@ -557,12 +557,18 @@ jobs:
           from pathlib import Path
           import re
           log = Path("exp06-console.log").read_text(errors="replace")
-          names = sorted(set(re.findall(r'WARNING: EXPORT symbol "([^"]+)" \\[vmlinux\\] version generation failed, symbol will not be versioned\\.', log)))
+          # Require an exact match for every export-version warning; no silent false negatives.
+          pattern = re.compile(r'WARNING: EXPORT symbol "([^"]+)" \[vmlinux\] version generation failed, symbol will not be versioned\.')
+          warnings = [line.strip() for line in log.splitlines() if "WARNING: EXPORT symbol " in line]
+          matches = [pattern.fullmatch(line) for line in warnings]
+          if any(match is None for match in matches):
+              raise SystemExit("EXP64 FAIL CLOSED: unrecognized export CRC warning format")
+          names = sorted({match.group(1) for match in matches})
           report = Path("exp62-export-crc-audit.txt")
-          report.write_text("Unversioned vmlinux exports:\\n" + "\\n".join(names) + "\\nCount: " + str(len(names)) + "\\n")
+          report.write_text("Unversioned vmlinux exports:\n" + "\n".join(names) + "\nCount: " + str(len(names)) + "\n")
           print(report.read_text())
           if names:
-              raise SystemExit("EXP62 FAIL CLOSED: unversioned exports detected; Image is NONFLASH")
+              raise SystemExit("EXP64 FAIL CLOSED: unversioned exports detected; Image is NONFLASH")
           PY
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
           for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG MODULE_REL_CRCS; do
