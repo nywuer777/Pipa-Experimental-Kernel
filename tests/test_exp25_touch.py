@@ -61,8 +61,8 @@ def run():
         # The EXP44/EXP73 baseline enables signed, versioned modules.
         stock_modules = valid.replace(
             "# CONFIG_MODULES is not set",
-            "CONFIG_MODULES=y\\nCONFIG_MODULE_UNLOAD=y\\n"
-            "CONFIG_MODVERSIONS=y\\nCONFIG_MODULE_SIG=y\\n"
+            "CONFIG_MODULES=y\nCONFIG_MODULE_UNLOAD=y\n"
+            "CONFIG_MODVERSIONS=y\nCONFIG_MODULE_SIG=y\n"
             "CONFIG_MODULE_REL_CRCS=y")
         path.write_text(stock_modules)
         mod.verify_config(path)
@@ -71,7 +71,7 @@ def run():
             stock_modules.replace("CONFIG_MODULE_SIG=y", "CONFIG_MODULE_SIG=m"),
             stock_modules.replace("CONFIG_MODULE_REL_CRCS=y", ""),
             stock_modules.replace("CONFIG_MODULE_UNLOAD=y", ""),
-            stock_modules + "CONFIG_MODULES=y\\n",
+            stock_modules + "CONFIG_MODULES=y\n",
             valid.replace("# CONFIG_MODULES is not set", ""),
             valid.replace("# CONFIG_MODULES is not set", "CONFIG_MODULES=m"),
         )
