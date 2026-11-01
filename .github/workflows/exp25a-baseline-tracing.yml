@@ -430,6 +430,31 @@ jobs:
           PY
           git -C "$WORKDIR/kernel" diff --check
 
+      - name: Diagnose irq_config and lockdep IRQ work dependencies (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          OUT="$GITHUB_WORKSPACE/exp25-irq-config-audit.txt"
+          {
+            echo "=== irqflags.h macros and guards ==="
+            sed -n '1,125p' "$K/include/linux/irqflags.h"
+            echo "=== irq_work.c call sites ==="
+            sed -n '115,175p' "$K/kernel/irq_work.c"
+            echo "=== irq_config references and definitions ==="
+            rg -n -C 5 'irq_config|lockdep_irq_work_(enter|exit)' "$K/include" "$K/kernel" "$K/arch/arm64" || true
+            echo "=== relevant resolved config ==="
+            grep -E '^(CONFIG_(PROVE_LOCKING|LOCKDEP|TRACE_IRQFLAGS|IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|DEBUG_LOCK_ALLOC|IRQ_WORK|PREEMPT)=|# CONFIG_(PROVE_LOCKING|LOCKDEP|TRACE_IRQFLAGS|IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|DEBUG_LOCK_ALLOC|IRQ_WORK|PREEMPT) is not set)' "$WORKDIR/out/.config" || true
+            echo "=== task_struct declarations ==="
+            rg -n -C 5 'struct task_struct|irq_config|hardirq_context|softirq_context' "$K/include/linux/sched.h" "$K/include/linux/irqflags.h" || true
+          } > "$OUT"
+          test "$(wc -c < "$OUT")" -gt 1000
+          rg -q 'irq_config' "$OUT"
+          echo "=== concise IRQ work diagnosis ==="
+          sed -n '1,115p' "$OUT"
+          echo "=== full audit line count ==="
+          wc -lc "$OUT"
+
       - name: Build kernel with the actual Android 21 compiler
         shell: bash
         run: |
