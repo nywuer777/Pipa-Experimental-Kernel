@@ -329,6 +329,25 @@ jobs:
           PY
           git -C "$WORKDIR/kernel" diff --check
 
+      - name: Audit latency tracer Kconfig, tracefs and Clang LTO instrumentation (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          K="$WORKDIR/kernel"
+          {
+            echo "=== pinned E404 revision ==="
+            git -C "$K" rev-parse HEAD
+            echo "=== tracer and instrumentation Kconfig ==="
+            rg -n -C 9 '^config (IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|FUNCTION_TRACER|FUNCTION_GRAPH_TRACER|FTRACE_MCOUNT_USE_CC|HAVE_FUNCTION_TRACER|DYNAMIC_FTRACE|FTRACE|TRACING|TRACEPOINTS|TRACEFS_FS|LTO_CLANG|LTO)' "$K/kernel/trace" "$K/arch/arm64" "$K/fs" "$K/init" 2>/dev/null || true
+            echo "=== tracefs registration, mount and config ==="
+            rg -n -C 3 'tracefs_create|tracefs_mount|tracefs|tracing_mount|TRACEFS' "$K/fs/tracefs" "$K/kernel/trace/trace.c" "$K/kernel/trace/Kconfig" 2>/dev/null || true
+            echo "=== recordmcount and compiler instrumentation paths ==="
+            rg -n -C 4 'recordmcount|mcount|fentry|FTRACE_MCOUNT_USE_CC|CC_FLAGS_FTRACE|LTO_CLANG|CONFIG_LTO' "$K/Makefile" "$K/scripts/Makefile.build" "$K/scripts/Makefile.lib" "$K/arch/arm64/Makefile" "$K/arch/arm64/Kconfig" "$K/kernel/trace/Kconfig" 2>/dev/null || true
+            echo "=== relevant pipa defconfig ==="
+            rg -n 'CONFIG_(FTRACE|TRACING|TRACEFS|IRQSOFF|PREEMPT_TRACER|FUNCTION_TRACER|FTRACE_MCOUNT|LTO|PREEMPT|HAVE_FUNCTION)' "$K/arch/arm64/configs/vendor/pipa_defconfig" || true
+          } > "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
+          test -s "$GITHUB_WORKSPACE/exp25-latency-tracer-structural-audit.txt"
+
       - name: Configure baseline tracepoints without legacy recordmcount (no RT)
         shell: bash
         run: |
@@ -535,6 +554,7 @@ jobs:
             exp25-stm-structural-audit.txt
             exp25-stm-compat.diff
             exp25-ufs-structural-audit.txt
+            exp25-latency-tracer-structural-audit.txt
             exp25-ufs-compat.diff
             exp25-link-providers-audit.txt
             exp25-link-providers-compat.diff
