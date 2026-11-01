@@ -310,9 +310,24 @@ echo 'EXP76_RT_STAGE19=COMPILER_HEADER_FIXES_PORTED; REJECTED_FILES=65; SCHED_AF
 
 
 
+# Stage20: take exactly the remaining RT swap.h locallock include reject,
+# and suppress vendor percpu-rwsem owner hints on PREEMPT_RT_FULL, which uses
+# a different rw_semaphore representation. Non-RT ABI is unchanged.
+python3 tools/exp76-rt-stage20-headers.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage20" \
+    --mode apply | tee "$REPORT/stage20-header-abi.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test ! -e "$ROOT/exp76-trial-overlay/include/linux/swap.h.rej"
+test -e "$ROOT/exp76-trial-overlay/include/linux/sched.h.rej"
+test -e "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE20=SWAP_LOCALLOCK_AND_RWSEM_OWNER_GUARDED; REJECTED_FILES=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage20-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
-# This remains an incomplete NONFLASH patch while 65 files are rejected.
+# This remains an incomplete NONFLASH patch while 64 files are rejected.
 python3 tools/exp76-export-partial-source.py \
     --trial "$ROOT/exp76-trial-overlay" \
     --clean-base "$ROOT/exp76-e404" \
