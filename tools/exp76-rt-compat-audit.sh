@@ -194,6 +194,18 @@ python3 tools/exp76-rt-stage9-rcu-softirq-abi.py \
 test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 71
 echo 'EXP76_RT_STAGE9=RCU_GENERATION_DIFFERENCE_DOCUMENTED; RCU_PORT_PENDING=true; SOFTIRQ_PORT_PENDING=true; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage9-gate.txt"
 
+# Stage10: mark two rcuwait vendor-equivalent hunks and add rcuwait_active()
+# without changing kernel/exit.c wakeup ABI or wait lifecycle semantics.
+python3 tools/exp76-rt-stage10-rcuwait.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage10" \
+    --mode apply | tee "$REPORT/stage10-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 71
+test "$(grep -c '^@@ -' "$ROOT/exp76-trial-overlay/include/linux/rcuwait.h.rej")" -eq 2
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE10=RCUWAIT_ACTIVE_PORTED; RCUWAIT_HUNKS_REMAINING=2; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage10-gate.txt"
+
+
 
 
 
