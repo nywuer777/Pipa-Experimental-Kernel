@@ -205,6 +205,18 @@ test "$(grep -c '^@@ -' "$ROOT/exp76-trial-overlay/include/linux/rcuwait.h.rej")
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE10=RCUWAIT_ACTIVE_PORTED; RCUWAIT_HUNKS_REMAINING=2; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage10-gate.txt"
 
+# Export ALL partial source changes (including new RT files), excluding
+# reject/scratch evidence. Verify that it reapplies to clean pinned E404.
+# This remains an incomplete NONFLASH patch while 71 files are rejected.
+python3 tools/exp76-export-partial-source.py \
+    --trial "$ROOT/exp76-trial-overlay" \
+    --clean-base "$ROOT/exp76-e404" \
+    --report "$REPORT/partial-source" | tee "$REPORT/partial-source-export.log"
+test -s "$REPORT/partial-source/EXP76-RT-PARTIAL-SOURCE-NONFLASH.patch"
+test -s "$REPORT/partial-source/PARTIAL_SOURCE_MANIFEST.json"
+echo 'EXP76_PARTIAL_SOURCE=REAPPLY_CHECKED; RT_NOT_BUILT=true; FLASH_READY=false' | tee "$REPORT/partial-source-gate.txt"
+
+
 
 
 
