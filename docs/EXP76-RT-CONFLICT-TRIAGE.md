@@ -71,3 +71,14 @@ Scripts: `tools/exp76-rt-conflict-report.py` e `tools/exp76-rt-stage1-port.py`. 
 - A evidência de fonte pós-aplicação para `rtmutex` e `spinlock` está em `stage2/locking-source-excerpts.txt` no artifact do workflow.
 - **Os três stages são ports de fonte isolados; não estabelecem equivalência semântica completa e não compilaram um kernel RT**.
 - `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `KERNEL_BUILT=false`; `DEVICE_TESTED=false`; `FLASH_READY=false`.
+
+
+## Stage 4 — guard das funções raw rwlock na árvore experimental
+
+- CI da Stage 4: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41335919291 — **SUCCESS**.
+- `kernel/locking/spinlock.c`: o hunk rejeitado `024a58992bd98d88b635d2692e3be4f32daa7529e75e48faeeb47681feed03c1` adiciona `#ifndef CONFIG_PREEMPT_RT_FULL` antes dos wrappers read/write. O fecho já vindo do patch original foi confirmado por análise de diretivas, e os condicionais ficaram balanceados.
+- Rejeições restantes na árvore de ensaio: **77 arquivos** (82 originais menos os 5 arquivos portados nas stages 1–4).
+- `include/linux/spinlock_types.h` segue com o hunk de substituição integral rejeitado. A E404 possui `RAW_SPIN_DEP_MAP_INIT`, `SPIN_DEP_MAP_INIT` e campos `wait_type_inner` que diferem do contexto upstream. O novo audit `tools/exp76-spinlock-type-abi-audit.py` compara esses contratos com os headers RT separados, sem modificá-los.
+- **Não há `Image` RT. O sucesso desta etapa é exclusivamente de porta de fonte / estrutura.**
+
+`EXP76_RT_STAGE4=PASS`; `EXP76_RT_REMAINING=77_FILES`; `SPINLOCK_TYPES_ABI_REVIEW=PENDING`; `FLASH_READY=false`.
