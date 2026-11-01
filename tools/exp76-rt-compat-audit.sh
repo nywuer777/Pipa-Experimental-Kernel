@@ -116,6 +116,17 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 79
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE2=1_ARM64_FIELD_PORTED; REMAINING_REJECTED_FILES=79; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage2-gate.txt"
 
+# Stage3: reconcile one exact rtmutex waiter/ww_ctx hunk against the actual
+# E404 three-argument deadlock helper, preserving the original reject audit.
+python3 tools/exp76-rt-stage3-rtmutex.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage3" \
+    --mode apply | tee "$REPORT/stage3-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 78
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE3=RTMUTEX_WW_CTX_PORTED; REMAINING_REJECTED_FILES=78; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage3-gate.txt"
+
+
 
 {
     echo "EXP76_RT_STAGE=AUDIT_ONLY"
