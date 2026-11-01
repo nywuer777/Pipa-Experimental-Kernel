@@ -2,7 +2,7 @@ name: EXP25A Baseline Tracing Build (NO FLASH)
 
 on:
   push:
-    branches: [exp25a-baseline-tracing]
+    branches: [exp25a-baseline-tracing, exp25a-build44-compat]
     paths:
       - ".github/workflows/exp25a-baseline-tracing.yml"
       - "tools/exp25-apply-touch.py"
@@ -430,6 +430,31 @@ jobs:
           PY
           git -C "$WORKDIR/kernel" diff --check
 
+      - name: EXP44 request stock module compatibility in pinned defconfig
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEF="$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
+          test -s "$DEF"
+          python3 - "$DEF" <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path(sys.argv[1])
+          src = p.read_text().splitlines()
+          keys = ("MODULES", "MODULE_UNLOAD", "MODVERSIONS", "MODULE_SIG")
+          src = [line for line in src if not any(
+              line.startswith("CONFIG_" + k + "=") or line == "# CONFIG_" + k + " is not set"
+              for k in keys
+          )]
+          src += ["CONFIG_" + k + "=y" for k in keys]
+          p.write_text("\n".join(src) + "\n")
+          PY
+          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG; do
+            test "$(grep -xc "CONFIG_${opt}=y" "$DEF")" -eq 1
+          done
+          git -C "$WORKDIR/kernel" diff --check
+          echo 'EXP44 requested stock module options; Kconfig and compile must still validate'
+
       - name: Build kernel with the actual Android 21 compiler
         shell: bash
         run: |
@@ -442,6 +467,12 @@ jobs:
           # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
           bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          for opt in MODULES MODULE_UNLOAD MODVERSIONS MODULE_SIG; do
+            grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || {
+              echo "EXP44 FAIL CLOSED: CONFIG_${opt} not enabled after Kconfig"
+              exit 1
+            }
+          done
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
           done
@@ -563,6 +594,9 @@ jobs:
           name: pipa-exp25a-baseline-NONFLASH-${{ github.run_number }}
           path: |
             exp25-touch-tests.log
+            exp06-work/out/System.map
+            exp06-work/out/modules.builtin
+            exp06-work/out/modules.order
             exp25-touch-apply.log
             exp25-touch-code.diff
             exp25-touch-final-gate.log
