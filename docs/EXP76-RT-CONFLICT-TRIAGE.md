@@ -82,3 +82,17 @@ Scripts: `tools/exp76-rt-conflict-report.py` e `tools/exp76-rt-stage1-port.py`. 
 - **Não há `Image` RT. O sucesso desta etapa é exclusivamente de porta de fonte / estrutura.**
 
 `EXP76_RT_STAGE4=PASS`; `EXP76_RT_REMAINING=77_FILES`; `SPINLOCK_TYPES_ABI_REVIEW=PENDING`; `FLASH_READY=false`.
+
+
+## Stage 5 — spinlock type split com semântica lockdep E404
+
+- CI de Stage 5: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41336502524 — **SUCCESS** em `source-only`.
+- O reject pinado `include/linux/spinlock_types.h.rej`, SHA-256 `a15e8b5faf0abcdce61b99b1409a0359e94cf34eba098b3f22fdc34f03ff0599`, foi aplicado por transformação estritamente verificada após todas as stages anteriores.
+- `spinlock_types.h`: inclui headers separados para RT e não RT; preserva `SPIN_DEP_MAP_INIT` com `LD_WAIT_CONFIG`.
+- `spinlock_types_raw.h`: inicializador `RAW_SPIN_DEP_MAP_INIT` mantém `LD_WAIT_SPIN` em vez do inicializador upstream genérico.
+- `spinlock_types_nort.h`: inicializador separado `___SPIN_LOCK_INITIALIZER` preserva a distinção do lockdep vendor.
+- `git diff --check` e gates de conteúdo passam; **compatibilidade de compilação de structs/macros e comportamento do lockdep ainda não verificados**.
+- Restam **76 arquivos com rejeições RT** na árvore do ensaio. A transformação só opera no checkout temporário da CI, não no tablet.
+- `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+Próximo gate: revisar dependências transversais entre `spinlock.h`, `spinlock_rt.h`, `rwlock_rt`, `mutex-rt`, `softirq` e os drivers Qualcomm, antes de qualquer compilação experimental.
