@@ -444,7 +444,15 @@ jobs:
             echo "=== irq_config references and definitions ==="
             rg -n -C 5 'irq_config|lockdep_irq_work_(enter|exit)' "$K/include" "$K/kernel" "$K/arch/arm64" || true
             echo "=== relevant resolved config ==="
-            grep -E '^(CONFIG_(PROVE_LOCKING|LOCKDEP|TRACE_IRQFLAGS|IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|DEBUG_LOCK_ALLOC|IRQ_WORK|PREEMPT)=|# CONFIG_(PROVE_LOCKING|LOCKDEP|TRACE_IRQFLAGS|IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|DEBUG_LOCK_ALLOC|IRQ_WORK|PREEMPT) is not set)' "$WORKDIR/out/.config" || true
+            if test -f "$WORKDIR/out/.config"; then
+              grep -E '^(CONFIG_(PROVE_LOCKING|LOCKDEP|TRACE_IRQFLAGS|IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|DEBUG_LOCK_ALLOC|IRQ_WORK|PREEMPT)=|# CONFIG_(PROVE_LOCKING|LOCKDEP|TRACE_IRQFLAGS|IRQSOFF_TRACER|PREEMPT_TRACER|PREEMPTIRQ_TRACEPOINTS|DEBUG_LOCK_ALLOC|IRQ_WORK|PREEMPT) is not set)' "$WORKDIR/out/.config" || true
+            else
+              echo "Resolved .config is generated during the following build step"
+            fi
+            echo "=== config inputs and tracer selection ==="
+            rg -n -C 4 'TRACE_IRQFLAGS|IRQSOFF_TRACER|PREEMPT_TRACER|PROVE_LOCKING|irq_config' "$K/kernel/trace/Kconfig" "$K/lib/Kconfig.debug" "$K/include/linux/sched.h" "$K/include/linux/irqflags.h" || true
+            echo "=== task_struct exact field references ==="
+            rg -n -C 3 'irq_config|hardirq_context|softirq_context|hardirq_threaded' "$K/include/linux/sched.h" "$K/include/linux/sched" "$K/include/linux/irqflags.h" || true
             echo "=== task_struct declarations ==="
             rg -n -C 5 'struct task_struct|irq_config|hardirq_context|softirq_context' "$K/include/linux/sched.h" "$K/include/linux/irqflags.h" || true
           } > "$OUT"
