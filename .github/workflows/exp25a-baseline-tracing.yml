@@ -682,6 +682,40 @@ jobs:
           grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
           echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
 
+      - name: Verify reproducible EXP25A Image and non-flash release boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="$WORKDIR/out/arch/arm64/boot/Image"
+          CFG="$WORKDIR/out/.config"
+          REPORT="$GITHUB_WORKSPACE/exp25-release-boundary-audit.txt"
+          EXPECTED="02f85b02957a578fb8449108a35d1f19abb394eca29bf33fc78c2bf378e79178"
+          test -s "$IMAGE"
+          test -s "$CFG"
+          ACTUAL="$(sha256sum "$IMAGE" | cut -d ' ' -f 1)"
+          {
+            printf 'EXP25A reference Image SHA256: %s\n' "$EXPECTED"
+            printf 'EXP25A actual Image SHA256: %s\n' "$ACTUAL"
+            if test "$ACTUAL" != "$EXPECTED"; then
+              echo "FAIL CLOSED: Image differs from independently reproduced builds #41/#42"
+              exit 1
+            fi
+            echo "PASS: Image matches reproducible reference"
+            for opt in IRQSOFF_TRACER PREEMPT_TRACER TRACE_IRQFLAGS LTO_CLANG_THIN; do
+              grep -qx "CONFIG_${opt}=y" "$CFG" || { echo "FAIL CLOSED: missing $opt"; exit 1; }
+              echo "PASS CONFIG_${opt}=y"
+            done
+            for opt in PREEMPT_RT PREEMPT_RT_FULL FUNCTION_TRACER; do
+              if grep -qx "CONFIG_${opt}=y" "$CFG"; then echo "FAIL CLOSED: forbidden $opt"; exit 1; fi
+            done
+            test ! -e "$WORKDIR/out/boot.img"
+            test ! -e "$GITHUB_WORKSPACE/boot.img"
+            test ! -e "$GITHUB_WORKSPACE/vendor_boot.img"
+            echo "PASS: no boot.img or vendor_boot.img generated"
+            echo "FLASH_READY=false"
+            echo "Device boot, tracefs runtime and measured latency remain UNVALIDATED"
+          } | tee "$REPORT"
+
       - name: Hard gate non-flashable outputs
         shell: bash
         run: |
@@ -713,6 +747,7 @@ jobs:
             exp25-irq-config-compat.diff
             exp25-latency-static-validation.txt
             exp25-reproducibility-audit.txt
+            exp25-release-boundary-audit.txt
             exp25-ufs-compat.diff
             exp25-link-providers-audit.txt
             exp25-link-providers-compat.diff
