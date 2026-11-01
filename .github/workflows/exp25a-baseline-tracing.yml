@@ -617,6 +617,7 @@ jobs:
             exp25-stm-compat.diff
             exp25-ufs-structural-audit.txt
             exp25-latency-tracer-structural-audit.txt
+            exp25-irq-config-audit.txt
             exp25-ufs-compat.diff
             exp25-link-providers-audit.txt
             exp25-link-providers-compat.diff
