@@ -433,7 +433,7 @@ jobs:
           from pathlib import Path
           import re, sys
           src = Path(sys.argv[1]).read_text()
-          pat = r"(?m)^LDFLAGS_vmlinux[ \\t]*\\+= -pie$"
+          pat = r"(?m)^LDFLAGS_vmlinux[ \t]*\+= -pie$"
           if len(re.findall(pat, src)) != 1:
               raise SystemExit("EXP75 FAIL_CLOSED: original -pie not found")
           if "LDFLAGS_vmlinux += -no-pie" in src:
