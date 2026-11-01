@@ -136,6 +136,14 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 77
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE4=SPINLOCK_LEGACY_GUARD_PORTED; REMAINING_REJECTED_FILES=77; SPINLOCK_TYPES_HEADER=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage4-gate.txt"
 
+# Type/lockdep ABI review before altering spinlock_types.h (no source mutation).
+python3 tools/exp76-spinlock-type-abi-audit.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/spinlock-type-abi" | tee "$REPORT/spinlock-type-abi.log"
+test -f "$ROOT/exp76-trial-overlay/include/linux/spinlock_types.h.rej"
+echo 'EXP76_SPINLOCK_HEADER=ABI_REVIEW_ONLY; HEADER_PORT=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/spinlock-type-gate.txt"
+
+
 
 
 
