@@ -105,6 +105,18 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 80
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE1=2_EXACT_HUNKS_PORTED; REMAINING_REJECTED_FILES=80; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage1-gate.txt"
 
+# Stage 2: add the ARM64 preempt_lazy_count field only if the exact upstream
+# rejected hunk and prerequisite Stage1 feature select match.
+# Capture rtmutex/spinlock API excerpts for semantic reconciliation.
+python3 tools/exp76-rt-stage2-port.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage2" \
+    --mode apply | tee "$REPORT/stage2-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 79
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE2=1_ARM64_FIELD_PORTED; REMAINING_REJECTED_FILES=79; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage2-gate.txt"
+
+
 {
     echo "EXP76_RT_STAGE=AUDIT_ONLY"
     echo "RT_SOURCE=4.19.325-rt140"
