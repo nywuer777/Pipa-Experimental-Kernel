@@ -1,0 +1,53 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 RT feasibility audit / NO FLASH
+name: EXP76 PREEMPT_RT compatibility audit (NO FLASH)
+
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-rt-compat-audit.yml'
+      - 'tools/exp76-rt-compat-audit.sh'
+      - 'tools/exp76-uname-probe.ps1'
+      - 'docs/EXP76-PREEMPT-RT-UNAME.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp76-rt-compat-audit
+  cancel-in-progress: false
+
+jobs:
+  rt-compat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate EXP76 source audit tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/exp76-rt-compat-audit.sh
+          test -s docs/EXP76-PREEMPT-RT-UNAME.md
+          test -s tools/exp76-uname-probe.ps1
+          echo 'EXP76_BASELINE_WORKFLOW=CHECKED; NO_RT_BUILD; FLASH_READY=false'
+
+      - name: Verify official RT source and audit pinned E404 plus partial EXP overlays
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh
+          test -s exp76-rt-report/summary.txt
+          cat exp76-rt-report/summary.txt
+
+      - name: Publish text audit evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-compat-AUDIT-ONLY-${{ github.run_number }}
+          path: |
+            exp76-rt-report/
+          if-no-files-found: warn
+          retention-days: 90
