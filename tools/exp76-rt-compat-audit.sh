@@ -249,6 +249,18 @@ test ! -e "$ROOT/exp76-trial-overlay/include/linux/sched/wake_q.h.rej"
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE14=WAKE_QUEUE_ABI_LINKED; REJECTED_FILES=67; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage14-gate.txt"
 
+# Stage15: adapt RT lazy-preempt feature to the E404 #define SCHED_FEAT_*
+# interface without changing vendor TTWU_QUEUE=0 for non-RT or RT configs.
+python3 tools/exp76-rt-stage15-sched-features.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage15" \
+    --mode apply | tee "$REPORT/stage15-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 66
+test ! -e "$ROOT/exp76-trial-overlay/kernel/sched/features.h.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE15=PREEMPT_LAZY_FEATURE_ABI_PORTED; REJECTED_FILES=66; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage15-gate.txt"
+
+
 
 
 
