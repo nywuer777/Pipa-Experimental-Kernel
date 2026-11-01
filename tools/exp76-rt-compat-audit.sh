@@ -34,6 +34,8 @@ git -C exp76-overlay apply --check "$ROOT/patches/0001-pipa-exp01-schedutil-rate
 git -C exp76-overlay apply "$ROOT/patches/0001-pipa-exp01-schedutil-rate-limit.patch"
 python3 tools/exp24-apply-ethernet.py --source configs/ethernet.config --kernel "$ROOT/exp76-overlay" --out "$ROOT/exp76-overlay-out" --mode apply > "$REPORT/ethernet-overlay.log" 2>&1
 python3 tools/exp25-apply-touch.py --kernel "$ROOT/exp76-overlay" --mode apply > "$REPORT/touch-overlay.log" 2>&1
+python3 tools/exp76-fix-uname.py --kernel "$ROOT/exp76-overlay" --mode apply | tee "$REPORT/uname-fix.log"
+python3 tools/exp76-fix-uname.py --kernel "$ROOT/exp76-overlay" --mode verify
 git -C exp76-overlay diff --check
 git -C exp76-overlay diff --binary > "$REPORT/exp-source-overlays.patch"
 sha256sum "$REPORT/exp-source-overlays.patch" > "$REPORT/exp-source-overlays.sha256"
@@ -96,6 +98,7 @@ done
         echo "$variant.reject_count=$(cat "$REPORT/$variant/rejected-count.txt")"
     done
     echo "EXP75_INLINE_OVERLAYS_REPRODUCED=false"
+    echo "EXP76_UNAME_SOURCE_FIX=APPLIED_IN_AUDIT_TREE_ONLY"
     echo "CONFIG_PREEMPT_RT_FULL_ENABLED=false"
     echo "KERNEL_BUILT=false"
     echo "DEVICE_TESTED=false"
@@ -105,6 +108,7 @@ done
 cat > "$REPORT/limitations.txt" <<'EOF'
 Patch application audit only: official RT patch targets 4.19.325-rt140, not E404 4.19.404R.
 The overlay reconstruction includes EXP01 scheduler, EXP24 Ethernet, EXP25A touch,
+and EXP76 user-UID uname source fix,
 but not EXP75 inline CI source shims, KernelSU submodule, or EXP75 generated .config.
 No claim of complete PREEMPT_RT integration, semantic correctness, compilation,
 image bootability, or safe permanent installation. FLASH_READY=false.
