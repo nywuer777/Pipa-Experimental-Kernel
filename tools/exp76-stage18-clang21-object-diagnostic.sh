@@ -75,19 +75,41 @@ fi
 grep -E '^((# )?CONFIG_PREEMPT|CONFIG_HAVE_PREEMPT_LAZY)' "$OUT/.config" \
   > "$REPORT/preempt-config.txt" || true
 
+# Stage22: make prepare is the real common prerequisite, including arm64
+# asm-offsets.s. Capture its first fatal errors once, without building Image.
+set +e
+timeout 210s make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+  HOSTCC=gcc CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+  -j2 prepare > "$REPORT/prepare.log" 2>&1
+PREPARE_RC=$?
+set -e
+printf '%s\n' "$PREPARE_RC" > "$REPORT/prepare.rc"
+grep -m 50 -E 'fatal error:|error:|undefined reference|No rule to make target|Error [0-9]+|warning:' \
+  "$REPORT/prepare.log" > "$REPORT/prepare.errors.txt" || true
+if [ "$PREPARE_RC" -eq 0 ]; then
+  echo 'EXP76_STAGE22_PREPARE=PASS; OBJECT_COMPILE=ATTEMPTED' | tee "$REPORT/prepare-status.txt"
+  for obj in kernel/sched/cpupri.o kernel/sched/core.o kernel/fork.o; do
+    name="$(printf '%s' "$obj" | tr '/' '_')"
+    set +e
+    timeout 210s make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+      HOSTCC=gcc CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+      -j2 "$obj" > "$REPORT/$name.log" 2>&1
+    rc=$?
+    set -e
+    printf '%s\n' "$rc" > "$REPORT/$name.rc"
+    grep -m 30 -E 'fatal error:|error:|undefined reference|No rule to make target|Error [0-9]+|warning:' \
+      "$REPORT/$name.log" > "$REPORT/$name.errors.txt" || true
+  done
+else
+  echo 'EXP76_STAGE22_PREPARE=FAILED; OBJECT_COMPILE=SKIPPED' | tee "$REPORT/prepare-status.txt"
+  for obj in kernel/sched/cpupri.o kernel/sched/core.o kernel/fork.o; do
+    name="$(printf '%s' "$obj" | tr '/' '_')"
+    printf '%s\n' 'BLOCKED_BY_PREPARE' > "$REPORT/$name.skipped"
+    : > "$REPORT/$name.log"
+    : > "$REPORT/$name.errors.txt"
+  done
+fi
 # Object-only: no Image, vmlinux, boot.img or partition writes.
-for obj in kernel/sched/cpupri.o kernel/sched/core.o kernel/fork.o; do
-  name="$(printf '%s' "$obj" | tr '/' '_')"
-  set +e
-  timeout 210s make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
-    HOSTCC=gcc CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
-    -j2 "$obj" > "$REPORT/$name.log" 2>&1
-  rc=$?
-  set -e
-  printf '%s\n' "$rc" > "$REPORT/$name.rc"
-  grep -m 30 -E 'fatal error:|error:|undefined reference|No rule to make target|Error [0-9]+|warning:' \
-    "$REPORT/$name.log" > "$REPORT/$name.errors.txt" || true
-done
 test ! -e "$OUT/arch/arm64/boot/Image"
 test ! -e "$OUT/arch/arm64/boot/Image.gz"
 test ! -e "$OUT/boot.img"
@@ -100,14 +122,30 @@ import pathlib
 import sys
 report = pathlib.Path(sys.argv[1])
 targets = {}
+prepare_rc = int((report / "prepare.rc").read_text().strip())
+prepare_errors = (report / "prepare.errors.txt").read_text().splitlines()
 for obj in ("kernel_sched_cpupri.o", "kernel_sched_core.o", "kernel_fork.o"):
-    rc = int((report / (obj + ".rc")).read_text().strip())
+    skipped = report / (obj + ".skipped")
+    attempted = not skipped.exists()
+    rc = int((report / (obj + ".rc")).read_text().strip()) if attempted else None
     errors = (report / (obj + ".errors.txt")).read_text().splitlines()
-    targets[obj] = {"exit_code": rc, "compiled": rc == 0, "errors_excerpt": errors[:20]}
+    targets[obj] = {
+        "attempted": attempted,
+        "exit_code": rc,
+        "compiled": attempted and rc == 0,
+        "skip_reason": skipped.read_text().strip() if skipped.exists() else None,
+        "errors_excerpt": errors[:20],
+    }
 summary = {
-    "stage": "EXP76_STAGE18_CLANG21_OBJECT_DIAGNOSTIC",
+    "stage": "EXP76_STAGE22_CLANG21_PREPARE_AND_OBJECT_DIAGNOSTIC",
     "compiler": "AOSP Clang 21.0.0 build 14054515",
     "config_preempt_rt_full": True,
+    "preparation": {
+        "target": "prepare",
+        "exit_code": prepare_rc,
+        "completed": prepare_rc == 0,
+        "errors_excerpt": prepare_errors[:30],
+    },
     "targets": targets,
     "all_target_objects_compiled": all(x["compiled"] for x in targets.values()),
     "kernel_built": False,
@@ -116,5 +154,10 @@ summary = {
 (report / "OBJECT_DIAGNOSTIC.json").write_text(json.dumps(summary, indent=2) + "\n")
 print(json.dumps(summary, indent=2))
 PY
-echo 'EXP76_STAGE18=OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false' \
-  | tee "$REPORT/status.txt"
+if [ "$PREPARE_RC" -eq 0 ]; then
+  echo 'EXP76_STAGE22=PREPARE_PASS_OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false' \
+    | tee "$REPORT/status.txt"
+else
+  echo 'EXP76_STAGE22=PREPARE_FAILED_OBJECTS_NOT_ATTEMPTED; KERNEL_BUILT=false; FLASH_READY=false' \
+    | tee "$REPORT/status.txt"
+fi
