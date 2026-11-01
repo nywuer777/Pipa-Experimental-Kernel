@@ -19,6 +19,7 @@ on:
       - 'tools/exp76-rt-stage8-rcu-equivalence.py'
       - 'tools/exp76-rt-stage9-rcu-softirq-abi.py'
       - 'tools/exp76-rt-stage10-rcuwait.py'
+      - 'tools/exp76-rt-stage11-rcuwait-lifecycle.py'
       - 'tools/exp76-export-partial-source.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
@@ -58,6 +59,7 @@ jobs:
           python3 -m py_compile tools/exp76-rt-stage8-rcu-equivalence.py
           python3 -m py_compile tools/exp76-rt-stage9-rcu-softirq-abi.py
           python3 -m py_compile tools/exp76-rt-stage10-rcuwait.py
+          python3 -m py_compile tools/exp76-rt-stage11-rcuwait-lifecycle.py
           python3 -m py_compile tools/exp76-export-partial-source.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
