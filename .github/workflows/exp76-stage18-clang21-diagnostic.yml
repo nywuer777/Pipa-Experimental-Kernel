@@ -1,0 +1,108 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 pinned Clang21 arm64 object diagnostics / NO FLASH
+name: EXP76 Clang21 RT scheduler object diagnostics (NO FLASH)
+
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-stage18-clang21-diagnostic.yml'
+      - 'tools/exp76-stage18-clang21-object-diagnostic.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp76-stage18-clang21-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  clang21-object-diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate object-only diagnostic scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/exp76-stage18-clang21-object-diagnostic.sh
+          bash -n tools/exp76-rt-compat-audit.sh
+          ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
+          echo 'EXP76_STAGE18_NO_FLASH_CODE_GATE=PASS'
+
+      - name: Install pinned kernel build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev \
+            python3 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+            rsync device-tree-compiler
+          df -h .
+
+      - name: Obtain exact Android Clang 21 from EXP75
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          git config http.lowSpeedLimit 1000
+          git config http.lowSpeedTime 120
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          clang-r563880c/bin/clang --version
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+          clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
+          rm -rf .git
+
+      - name: Prepare Stage17 source using pinned official RT/E404 patch audit
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > stage18-prior-audit.log 2>&1 || {
+            tail -n 100 stage18-prior-audit.log
+            exit 1
+          }
+          test -f exp76-rt-report/stage17/stage17-result.json
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 66
+          test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE17_66_REJECTS'
+
+      - name: Compile selected arm64 scheduler objects in RT config only
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          bash tools/exp76-stage18-clang21-object-diagnostic.sh
+
+      - name: Publish diagnostics only (NO Image, NO boot.img)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-stage18-clang21-NONFLASH-diagnostic
+          path: |
+            exp76-stage18-report/
+            exp76-rt-report/stage16/
+            exp76-rt-report/stage17/
+            stage18-prior-audit.log
+          if-no-files-found: warn
+          retention-days: 30
