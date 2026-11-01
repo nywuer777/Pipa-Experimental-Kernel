@@ -87,3 +87,13 @@ O novo `tools/exp76-rt-stage20-headers.py`:
 **Estado do Stage20 após publicação:** o teste local sintético passou; build do kernel e validação da CI ainda não comprovados. É um passo para ultrapassar `asm-offsets.s`, não uma declaração de compatibilidade RT completa.
 
 `EXP76_STAGE20_PENDING_CI=true`; `EXP75_PERMANENT=PRESERVED`; `FLASH_READY=false`.
+
+## Stage21 — E404 RCU include reconciliation (source-only, CI pendente)
+
+A árvore acumulada do Stage19 inclui o header novo do RT-140 \`include/linux/rcu_assign_pointer.h\`, contendo uma macro \`rcu_assign_pointer\` independente da versão da E404. O RT-140 também alterou \`include/linux/rbtree.h\` para incluir esse header, embora a E404 originalmente incluísse \`linux/rcupdate.h\`.
+
+A correção \`tools/exp76-rt-stage21-rcu-include.py\` restaura a inclusão E404 em \`rbtree.h\`, exige uma única definição da macro E404 em \`rcupdate.h\`, verifica por SHA256 o header RT extra e preserva o arquivo novo sem depender dele a partir de \`rbtree.h\`. O script falha se o Stage20 não tiver terminado com 64 rejeições ou se o código-fonte tiver desviado da base conhecida.
+
+Este estágio **não remove** rejeitos adicionais; o alvo continua em **64 arquivos \`.rej\`**. A eliminação do aviso Clang21 \`-Wmacro-redefined\` ainda depende de executar o novo workflow. A equivalência semântica completa de RCU, afinidade do scheduler e ciclo de vida de sleeping_lock permanecem pendentes. As únicas saídas permitidas seguem sendo auditoria e compilação de objetos — nenhum kernel bootável é produzido.
+
+\`EXP76_STAGE21_SOURCE=COMMITTED\`; \`EXP76_STAGE21_CI=PENDING\`; \`FLASH_READY=false\`.
