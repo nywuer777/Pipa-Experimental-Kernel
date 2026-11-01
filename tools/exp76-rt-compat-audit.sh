@@ -126,6 +126,17 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 78
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE3=RTMUTEX_WW_CTX_PORTED; REMAINING_REJECTED_FILES=78; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage3-gate.txt"
 
+# Stage4 only: guard legacy read/write spinlock wrappers out of PREEMPT_RT_FULL.
+# Keep the vendor raw spin operations and defer spinlock_types.h API split.
+python3 tools/exp76-rt-stage4-spinlock.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage4" \
+    --mode apply | tee "$REPORT/stage4-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 77
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE4=SPINLOCK_LEGACY_GUARD_PORTED; REMAINING_REJECTED_FILES=77; SPINLOCK_TYPES_HEADER=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage4-gate.txt"
+
+
 
 
 {
