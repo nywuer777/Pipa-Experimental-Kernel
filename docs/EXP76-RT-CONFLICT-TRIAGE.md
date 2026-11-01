@@ -105,6 +105,6 @@ Próximo gate: revisar dependências transversais entre `spinlock.h`, `spinlock_
 - O único código-fonte a acrescentar no estágio 6 é `#include <linux/swork.h>` em `include/linux/cgroup-defs.h`, sujeito à confirmação de `swork.h` e `swork.c` no checkout pós-patch.
 - Script `tools/exp76-rt-stage6-irq-work.py` confere os hashes SHA-256 exatos dos três arquivos `.rej`, a declaração `atomic_t`, o valor `BIT(3)`, o inicializador por CPU e os pré-requisitos swork antes de escrever. Elimina os dois rejeitos que a árvore já satisfaz, sem alterar seus arquivos.
 - Meta da auditoria: reduzir 76 para **73 arquivos com rejeições**, sem compilação nem imagem de boot.
-- **Status de execução:** aguarda a conclusão do workflow Stage 6; não marcar PASS com base apenas em commit ou sintaxe Python.
+- **Status validado:** CI #41336929947 concluída com SUCCESS. `EXP76_RT_STAGE6=IRQ_WORK_VENDOR_EQUIVALENCE_AND_SWORK_INCLUDE`; `resolved_rejected_files=3`, `remaining_rejected_files=73`, `KERNEL_BUILT=false`, `FLASH_READY=false`. Fonte: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41336929947
 
 `FLASH_READY=false`.
