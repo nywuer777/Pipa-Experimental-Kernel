@@ -58,6 +58,31 @@ def run():
         ))
         path.write_text(valid)
         mod.verify_config(path)
+        # The EXP44/EXP73 baseline enables signed, versioned modules.
+        stock_modules = valid.replace(
+            "# CONFIG_MODULES is not set",
+            "CONFIG_MODULES=y\\nCONFIG_MODULE_UNLOAD=y\\n"
+            "CONFIG_MODVERSIONS=y\\nCONFIG_MODULE_SIG=y\\n"
+            "CONFIG_MODULE_REL_CRCS=y")
+        path.write_text(stock_modules)
+        mod.verify_config(path)
+        invalid_configs = (
+            stock_modules.replace("CONFIG_MODVERSIONS=y", "# CONFIG_MODVERSIONS is not set"),
+            stock_modules.replace("CONFIG_MODULE_SIG=y", "CONFIG_MODULE_SIG=m"),
+            stock_modules.replace("CONFIG_MODULE_REL_CRCS=y", ""),
+            stock_modules.replace("CONFIG_MODULE_UNLOAD=y", ""),
+            stock_modules + "CONFIG_MODULES=y\\n",
+            valid.replace("# CONFIG_MODULES is not set", ""),
+            valid.replace("# CONFIG_MODULES is not set", "CONFIG_MODULES=m"),
+        )
+        for invalid in invalid_configs:
+            path.write_text(invalid)
+            try:
+                mod.verify_config(path)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("accepted invalid module ABI compatibility")
         path.write_text(valid.replace("CONFIG_USB_RTL8152=y", "CONFIG_USB_RTL8152=m"))
         try:
             mod.verify_config(path)
@@ -66,7 +91,7 @@ def run():
         else:
             raise AssertionError("accepted missing builtin Ethernet driver")
     print("EXP25A_HERMETIC_TESTS=PASS")
-    print("NVT mutation isolated, idempotent, fail-closed and preserves EXP24")
+    print("NVT mutation isolated; MODULES=y CRC/signature ABI and builtin Ethernet gates verified")
 
 if __name__ == "__main__":
     run()
