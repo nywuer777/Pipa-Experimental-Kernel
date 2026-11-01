@@ -216,6 +216,18 @@ test ! -e "$ROOT/exp76-trial-overlay/include/linux/rcuwait.h.rej"
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE11=RCUWAIT_LIFECYCLE_LINKED; REJECTED_FILES=70; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage11-gate.txt"
 
+# Stage12: retain E404's already-equivalent call_rcu_bh forwarding; protect
+# the lockdep read-side helper with the RT guard already used in update.c.
+python3 tools/exp76-rt-stage12-rcupdate.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage12" \
+    --mode apply | tee "$REPORT/stage12-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 69
+test ! -e "$ROOT/exp76-trial-overlay/include/linux/rcupdate.h.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE12=RCUPDATE_BH_LOCKDEP_PORTED; REJECTED_FILES=69; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage12-gate.txt"
+
+
 
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
