@@ -610,7 +610,7 @@ jobs:
             exp25-touch-code.diff
             exp25-touch-final-gate.log
             exp06-clang-version.txt
-          exp46-crc-linker-diagnostic.txt
+            exp46-crc-linker-diagnostic.txt
             exp25-sched-trace-diagnostic.txt
             exp25-sched-compat.diff
             exp25-ring-buffer-compat.diff
