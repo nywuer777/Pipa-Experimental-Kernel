@@ -153,6 +153,17 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 76
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE5=SPINLOCK_TYPE_SPLIT_SOURCE_PORT; REMAINING_REJECTED_FILES=76; ABI_BUILD_UNVERIFIED=true; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage5-gate.txt"
 
+# Stage6: two vendor-equivalent IRQ_WORK_HARD_IRQ hunks require no code
+# mutation; add only the source-verified swork include. All rejects SHA-locked.
+python3 tools/exp76-rt-stage6-irq-work.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage6" \
+    --mode apply | tee "$REPORT/stage6-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 73
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE6=IRQ_WORK_VENDOR_EQUIVALENCE_AND_SWORK_INCLUDE; REMAINING_REJECTED_FILES=73; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage6-gate.txt"
+
+
 
 
 
