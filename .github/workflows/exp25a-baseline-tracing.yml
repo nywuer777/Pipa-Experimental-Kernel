@@ -389,6 +389,12 @@ jobs:
           # EXP52: restore pinned E404 ARM64 linker flags after the negative
           # -shared experiment. Do not change the kernel for this diagnostic.
           test -f "$WORKDIR/kernel/arch/arm64/Makefile"
+          # EXP56 isolated diagnostic: test whether ThinLTO triggers CRC PREL32.
+          # Preserve MODULES/MODVERSIONS/REL_CRCS and all fail-closed gates.
+          for opt in LTO_CLANG LTO_CLANG_THIN LTO_CLANG_FULL LTO_NONE; do
+            sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
+          done
+          printf 'CONFIG_LTO_NONE=y\n# CONFIG_LTO_CLANG is not set\n# CONFIG_LTO_CLANG_THIN is not set\n# CONFIG_LTO_CLANG_FULL is not set\n' >> "$DEF"
           # Keep IRQ/scheduler tracepoints and tracefs; avoid recordmcount on Clang LTO objects.
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
@@ -490,6 +496,15 @@ jobs:
             ld.lld --version
           } > "$GITHUB_WORKSPACE/exp46-crc-linker-diagnostic.txt" 2>&1
           # The pinned EXP01 builder creates an ARM64 Image only, not boot.img.
+          # Fail closed if the EXP56 diagnostic was silently overridden by Kconfig.
+          grep -qx 'CONFIG_LTO_NONE=y' "$WORKDIR/out/.config" || {
+            echo "EXP56 FAIL CLOSED: LTO_NONE not effective"
+            exit 1
+          }
+          grep -qx '# CONFIG_LTO_CLANG is not set' "$WORKDIR/out/.config" || {
+            echo "EXP56 FAIL CLOSED: LTO_CLANG unexpectedly enabled"
+            exit 1
+          }
           # EXP52: capture symbol provenance and exact generated objects after
           # compilation; run regardless of builder status and preserve its exit.
           set +e
