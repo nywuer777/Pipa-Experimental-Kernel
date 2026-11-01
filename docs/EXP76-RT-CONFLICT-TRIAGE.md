@@ -59,3 +59,15 @@ CI concluiu com success e confirmou:
 - `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
 
 Scripts: `tools/exp76-rt-conflict-report.py` e `tools/exp76-rt-stage1-port.py`. O port não foi aplicado à fonte EXP75 já instalada no tablet e não é um artefato de inicialização. Não confundir o sucesso de um job de auditoria com uma compilação do kernel.
+
+
+## Stage 2 e Stage 3 — gates de fonte aprovados (2026-11-01)
+
+- Stage 2 CI: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41334970325 (SUCCESS).
+- Stage 3 CI: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41335389390 (SUCCESS).
+- Stage 2: `arch/arm64/include/asm/thread_info.h` ganhou `preempt_lazy_count` após conferir `HAVE_PREEMPT_LAZY` da Stage 1, SHA-256 exato do hunk e layout vendor. Rejeições restantes: **79 arquivos**.
+- Stage 3: `kernel/locking/rtmutex.c` teve o hunk de `rt_mutex_slowlock_locked` portado: `waiter` é ponteiro, `__rt_mutex_slowlock` recebe `ww_ctx`; o helper E404 `rt_mutex_handle_deadlock` permanece com três argumentos. A transformação verifica assinaturas e SHA-256 do hunk antes de alterar a árvore parcial. Rejeições restantes: **78 arquivos**.
+- `git diff --check` após as alterações: PASS.
+- A evidência de fonte pós-aplicação para `rtmutex` e `spinlock` está em `stage2/locking-source-excerpts.txt` no artifact do workflow.
+- **Os três stages são ports de fonte isolados; não estabelecem equivalência semântica completa e não compilaram um kernel RT**.
+- `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `KERNEL_BUILT=false`; `DEVICE_TESTED=false`; `FLASH_READY=false`.
