@@ -2,7 +2,7 @@ name: EXP25A Baseline Tracing Build (NO FLASH)
 
 on:
   push:
-    branches: [exp25a-baseline-tracing]
+    branches: [exp25a-latency-tracers-probe]
     paths:
       - ".github/workflows/exp25a-baseline-tracing.yml"
       - "tools/exp25-apply-touch.py"
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pipa-exp25a-touch-clang21-build
+  group: pipa-exp25a-latency-probe-build
   cancel-in-progress: false
 
 jobs:
@@ -374,11 +374,11 @@ jobs:
           DEF="$WORKDIR/kernel/arch/arm64/configs/vendor/pipa_defconfig"
           test -s "$DEF"
           # Keep IRQ/scheduler tracepoints and tracefs; avoid recordmcount on Clang LTO objects.
-          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
+          for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER IRQSOFF_TRACER PREEMPT_TRACER; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf 'CONFIG_%s=y\n' "$opt" >> "$DEF"
           done
-          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER FTRACE_MCOUNT_USE_CC SCHED_DEBUG STM_SOURCE_FTRACE; do
+          for opt in FUNCTION_TRACER FTRACE_MCOUNT_USE_CC SCHED_DEBUG STM_SOURCE_FTRACE; do
             sed -i -E "/^(# )?CONFIG_${opt}(=| is not set)/d" "$DEF"
             printf '# CONFIG_%s is not set\n' "$opt" >> "$DEF"
           done
@@ -445,9 +445,19 @@ jobs:
           for opt in PREEMPT DEBUG_KERNEL FTRACE TRACING TRACEPOINTS SCHED_TRACER; do
             grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || exit 1
           done
-          for opt in FUNCTION_TRACER IRQSOFF_TRACER PREEMPT_TRACER UPROBE_EVENTS SCHED_DEBUG STM_SOURCE_FTRACE; do
+          for opt in FUNCTION_TRACER UPROBE_EVENTS SCHED_DEBUG STM_SOURCE_FTRACE; do
             if grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"; then exit 1; fi
           done
+          for opt in IRQSOFF_TRACER PREEMPT_TRACER; do
+            grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config" || {
+              echo "FAIL CLOSED: requested latency tracer ${opt} not resolved"
+              exit 1
+            }
+          done
+          if grep -Eq 'CONFIG_FTRACE_MCOUNT_USE_RECORDMCOUNT=y' "$WORKDIR/out/.config"; then
+            echo "FAIL CLOSED: legacy recordmcount is enabled"
+            exit 1
+          fi
           if grep -Eq "CONFIG_PREEMPT_RT(_FULL)?=y" "$WORKDIR/out/.config"; then exit 1; fi
           grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
           grep -qx 'CONFIG_KSU=y' "$WORKDIR/out/.config"
@@ -560,7 +570,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pipa-exp25a-baseline-NONFLASH-${{ github.run_number }}
+          name: pipa-exp25a-latency-probe-NONFLASH-${{ github.run_number }}
           path: |
             exp25-touch-tests.log
             exp25-touch-apply.log
