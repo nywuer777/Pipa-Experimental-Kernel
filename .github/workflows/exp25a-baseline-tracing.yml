@@ -386,9 +386,23 @@ jobs:
               raise SystemExit("EXP48 FAIL CLOSED: unexpected MODULE_REL_CRCS Kconfig definition")
           p.write_text(s.replace(before, after))
           PY
-          # EXP52: restore pinned E404 ARM64 linker flags after the negative
-          # -shared experiment. Do not change the kernel for this diagnostic.
-          test -f "$WORKDIR/kernel/arch/arm64/Makefile"
+          # EXP61 isolated link experiment: disable PIE only in the ephemeral
+          # kernel source to determine whether PREL32 is rejected by PIE mode.
+          # This does NOT establish bootability or relocation correctness.
+          python3 - "$WORKDIR/kernel/arch/arm64/Makefile" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+          p = Path(sys.argv[1])
+          s = p.read_text()
+          pattern = r"(?m)^(LDFLAGS_vmlinux[ \t]*\+= )-pie$"
+          if len(re.findall(pattern, s)) != 1:
+              raise SystemExit("EXP61 FAIL CLOSED: expected exactly one LLD PIE assignment")
+          if "ifdef CONFIG_LD_IS_LLD" not in s:
+              raise SystemExit("EXP61 FAIL CLOSED: missing LLD branch")
+          p.write_text(re.sub(pattern, r"\1-no-pie", s))
+          PY
+          git -C "$WORKDIR/kernel" diff --check
           # EXP56 isolated diagnostic: test whether ThinLTO triggers CRC PREL32.
           # Preserve MODULES/MODVERSIONS/REL_CRCS and all fail-closed gates.
           for opt in LTO_CLANG LTO_CLANG_THIN LTO_CLANG_FULL LTO_NONE; do
