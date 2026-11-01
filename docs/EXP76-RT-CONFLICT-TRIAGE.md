@@ -43,3 +43,19 @@ A diferença de assinatura indica deriva de API; **não** aplicar literalmente o
 ### Limites
 
 O script atual de auditoria reconstrói EXP01, EXP24, EXP25A e aplica o ajuste de `uname`, mas **não** todos os shims inline de compatibilidade do workflow EXP75, sua configuração final ou KernelSU completo. As novas alterações devem permanecer em branch de desenvolvimento. `FLASH_READY=false`.
+
+
+## Stage 1 comprovado — hunks localizados (2026-11-01)
+
+Workflow: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41334455459
+
+CI concluiu com success e confirmou:
+- Manifesto anterior: 82 arquivos / 235 hunks rejeitados, mantido na íntegra como evidência.
+- `arch/arm64/Kconfig`: o hunk para `select HAVE_PREEMPT_LAZY` foi aplicado à árvore temporária, hash do .rej conferido.
+- `kernel/sched/Makefile`: o hunk para `swork.o` foi aplicado à árvore temporária, com `swork.c` e `swork.h` presentes.
+- Remanescentes depois de portar os dois hunks: **80 arquivos com .rej**. O port permanece incompleto.
+- `git diff --check` pós-stage1: PASS.
+- `EXP76_UNAME_UID_SPOOF_REMOVED=PASS` na árvore temporária.
+- `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+Scripts: `tools/exp76-rt-conflict-report.py` e `tools/exp76-rt-stage1-port.py`. O port não foi aplicado à fonte EXP75 já instalada no tablet e não é um artefato de inicialização. Não confundir o sucesso de um job de auditoria com uma compilação do kernel.
