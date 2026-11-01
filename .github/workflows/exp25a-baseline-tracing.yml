@@ -497,6 +497,12 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          # Experimental reproducibility probe: normalize build identity only.
+          export KBUILD_BUILD_TIMESTAMP="2026-01-01 00:00:00 UTC"
+          export KBUILD_BUILD_USER="pipa-exp25a"
+          export KBUILD_BUILD_HOST="reproducible-ci"
+          export KBUILD_BUILD_VERSION="1"
+          export SOURCE_DATE_EPOCH="1767225600"
           command -v clang
           clang --version
           command -v ld.lld
