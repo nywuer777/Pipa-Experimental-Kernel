@@ -36,8 +36,8 @@ for tok in (
  "std::to_string(int(p.swapFormat))",
  "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
  "if(continuous && !odd)",
- "recordSourceScene(command,uint32_t(frame/2))",
+ "recordSourceScene(command,sourcePair)",
 ): assert tok in native,tok
-assert "versionCode 315" in gradle
-assert "versionName '29.25-lab'" in gradle
+assert "versionCode 316" in gradle
+assert "versionName '29.26-governor-overload'" in gradle
 print("EXP29_16_FORENSIC_SHADERS_AND_PRESENT_ABI=PASS; DEVICE_VISUAL_DIAG=UNTESTED")

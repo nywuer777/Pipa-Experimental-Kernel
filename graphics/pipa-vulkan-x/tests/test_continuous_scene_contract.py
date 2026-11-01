@@ -7,7 +7,9 @@ java=(p/"lab-app/app/src/main/java/dev/pipa/framegen/lab/PresenterActivity.java"
 shader=(p/"shaders/pipa_scene.comp").read_text()
 gradle=(p/"lab-app/app/build.gradle").read_text()
 for token in (
-    "recordSourceScene(command,uint32_t(frame/2));",
+    "const uint32_t sourcePair=uint32_t(frame/2);",
+    "recordSourceScene(command,sourcePair);",
+    "kGpuBudgetValidationSceneRepeatPasses=4u",
     "const bool odd=(frame%2)==1;",
     "const bool synthesized=odd && !holdInsteadOfFG && !budgetFallback;",
     "int source=continuous?0:",
@@ -45,8 +47,8 @@ for token in (
     "imageStore(realImage,xy,vec4(rgb,1.0));",
 ):
     assert token in shader, token
-assert "versionCode 315" in gradle
-assert "versionName '29.25-lab'" in gradle
+assert "versionCode 316" in gradle
+assert "versionName '29.26-governor-overload'" in gradle
 for frames in (120,240):
     produced=[]
     for frame in range(frames):

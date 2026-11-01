@@ -22,16 +22,18 @@ for token in (
     "pair.first==previousId+1u",
     "intervals.size()*95u+99u",
     "collectTiming();",
+    "if(!swap || !displayTimingEnabled || !getPastTiming) return;",
     "VK_GOOGLE_display_timing indisponivel",
     "NAO sao FPS fisicos",
 ):
     assert token in cpp,token
 assert "if(displayTimingEnabled)" in cpp
 assert "std::map<uint32_t,uint64_t> reportedActualNs" in cpp
+assert "janela WSI observada IDs=" in cpp
 assert "VK_PRESENT_MODE_FIFO_KHR" in cpp
 assert "std::to_string(reportedActualNs.size())" in cpp
 assert "getDisplay().getRefreshRate()" in java
 assert "dp(48)" in java
-assert "versionCode 315" in gradle
-assert "versionName '29.25-lab'" in gradle
-print("EXP29_13_DISPLAY_TIMING_SOURCE_CONTRACT=PASS; ADRENO_EXTENSION_AVAILABILITY=UNTESTED")
+assert "versionCode 337" in gradle
+assert "versionName '29.47-graceful-wsi-stop'" in gradle
+print("EXP29_31_DISPLAY_TIMING_SOURCE_CONTRACT=PASS; ADRENO_EXTENSION_AVAILABILITY=UNTESTED")
