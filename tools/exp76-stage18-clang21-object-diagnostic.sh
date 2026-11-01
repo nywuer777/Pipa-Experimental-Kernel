@@ -81,11 +81,14 @@ set +e
 timeout 210s make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
   HOSTCC=gcc CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
   -j2 prepare > "$REPORT/prepare.log" 2>&1
-PREPARE_RC=$?
+PREPARE_MAKE_RC=$?
 set -e
-printf '%s\n' "$PREPARE_RC" > "$REPORT/prepare.rc"
-grep -m 50 -E 'fatal error:|error:|undefined reference|No rule to make target|Error [0-9]+|warning:' \
-  "$REPORT/prepare.log" > "$REPORT/prepare.errors.txt" || true
+python3 tools/exp76-stage23-prepare-gate.py \
+  --output "$OUT" \
+  --log "$REPORT/prepare.log" \
+  --report "$REPORT" \
+  --make-rc "$PREPARE_MAKE_RC"
+PREPARE_RC="$(cat "$REPORT/prepare.rc")"
 if [ "$PREPARE_RC" -eq 0 ]; then
   echo 'EXP76_STAGE22_PREPARE=PASS; OBJECT_COMPILE=ATTEMPTED' | tee "$REPORT/prepare-status.txt"
   for obj in kernel/sched/cpupri.o kernel/sched/core.o kernel/fork.o; do
