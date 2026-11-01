@@ -46,8 +46,8 @@ def main() -> None:
     reject_files = sorted(f for f in files if f.endswith(".rej"))
     excluded = sorted(f for f in files if f.endswith((".rej", ".orig", ".swp", ".tmp")))
     new_sources = sorted(f for f in files if f not in excluded)
-    if len(reject_files) != 66:
-        raise ValueError(f"Expected 66 unresolved reject files, got {len(reject_files)}")
+    if len(reject_files) != 65:
+        raise ValueError(f"Expected 65 unresolved reject files, got {len(reject_files)}")
     # Intent-to-add makes newly created RT source files visible to git diff
     # without committing. .rej and scratch files stay excluded.
     for i in range(0, len(new_sources), 80):
