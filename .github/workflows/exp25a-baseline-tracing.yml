@@ -700,7 +700,14 @@ jobs:
           test -s "$WORKDIR/out/vmlinux"
           test -s "$WORKDIR/out/System.map"
           grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
-          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          # EXP72: the isolated EXP56 no-LTO configuration links vmlinux.o
+          # through LD, not LTO. Verify the actual selected path fail-closed.
+          grep -qx 'CONFIG_LTO_NONE=y' "$WORKDIR/out/.config"
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          if grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log; then
+            echo 'EXP72 FAIL CLOSED: unexpected LTO link while CONFIG_LTO_NONE=y'
+            exit 1
+          fi
           grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
           grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
           grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
