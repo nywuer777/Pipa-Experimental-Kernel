@@ -287,6 +287,21 @@ test "$(grep -c '^@@ -' "$ROOT/exp76-trial-overlay/kernel/sched/sched.h.rej")" -
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE17=COLLISION_FREE_WAKE_LOCK_FLAG_PORTED; REJECTED_FILES=66; NR_PINNED=PENDING; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage17-gate.txt"
 
+# Stage19: pinned Clang21 object build exposed header breakage. Reconcile
+# vendor rwsem/RT header split, softirq branch closure, task state macros,
+# missing sleeping_lock field and duplicate RCU pointer import. Source only.
+python3 tools/exp76-rt-stage19-header-fixes.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage19" \
+    --mode apply | tee "$REPORT/stage19-header-fixes.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 65
+test ! -e "$ROOT/exp76-trial-overlay/include/linux/rwsem.h.rej"
+test -e "$ROOT/exp76-trial-overlay/include/linux/interrupt.h.rej"
+test -e "$ROOT/exp76-trial-overlay/include/linux/sched.h.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE19=COMPILER_HEADER_FIXES_PORTED; REJECTED_FILES=65; SCHED_AFFINITY_BLOCKED=true; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage19-gate.txt"
+
+
 
 
 
@@ -297,7 +312,7 @@ echo 'EXP76_RT_STAGE17=COLLISION_FREE_WAKE_LOCK_FLAG_PORTED; REJECTED_FILES=66; 
 
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
-# This remains an incomplete NONFLASH patch while 66 files are rejected.
+# This remains an incomplete NONFLASH patch while 65 files are rejected.
 python3 tools/exp76-export-partial-source.py \
     --trial "$ROOT/exp76-trial-overlay" \
     --clean-base "$ROOT/exp76-e404" \
