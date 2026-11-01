@@ -633,6 +633,33 @@ jobs:
           grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
           echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
 
+      - name: Capture CRC provenance independently after failed linker (EXP54)
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          K="$WORKDIR/kernel"
+          O="$WORKDIR/out"
+          REPORT="$GITHUB_WORKSPACE/exp54-crc-provenance.txt"
+          {
+            echo "=== kernel config ==="
+            grep -E 'CONFIG_(MODULES|MODVERSIONS|MODULE_REL_CRCS|LTO_CLANG|RELOCATABLE|LD_IS_LLD)' "$O/.config"
+            echo "=== export CRC macro definitions ==="
+            rg -n -C 8 -F '__CRC_SYMBOL' "$K/include" "$K/arch/arm64"
+            echo "=== CRC generation scripts ==="
+            rg -n -C 3 -F '__crc_' "$K/scripts" "$K/include" "$K/arch/arm64" | sed -n '1,200p'
+            echo "=== ELF objects ==="
+            find "$O" -name 'vmlinux.o' -o -name 'built-in.o' | sed -n '1,50p'
+            echo "=== vmlinux.o CRC relocations and symbol types ==="
+            TOOL="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin/llvm-readelf"
+            if test -x "$TOOL" && test -f "$O/vmlinux.o"; then
+              "$TOOL" -r "$O/vmlinux.o" | grep -E -m 45 'PREL32|ABS32|__crc_' || true
+              "$TOOL" -s "$O/vmlinux.o" | grep -E -m 45 '__crc_|kcrctab' || true
+            fi
+          } > "$REPORT" 2>&1
+          wc -c "$REPORT"
+          test -s "$REPORT"
+
       - name: Hard gate non-flashable outputs
         shell: bash
         run: |
@@ -658,6 +685,7 @@ jobs:
             exp06-clang-version.txt
             exp46-crc-linker-diagnostic.txt
             exp52-crc-provenance.txt
+            exp54-crc-provenance.txt
             exp25-sched-trace-diagnostic.txt
             exp25-sched-compat.diff
             exp25-ring-buffer-compat.diff
