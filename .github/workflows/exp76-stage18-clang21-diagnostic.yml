@@ -92,7 +92,7 @@ jobs:
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
           echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE21_64_REJECTS'
 
-      - name: Compile selected arm64 scheduler objects in RT config only
+      - name: Run arm64 prepare gate, then compile only selected scheduler objects
         shell: bash
         timeout-minutes: 35
         run: |
@@ -108,6 +108,9 @@ jobs:
             exp76-stage18-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
+            exp76-rt-report/stage19/
+            exp76-rt-report/stage20/
+            exp76-rt-report/stage21/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
