@@ -96,3 +96,15 @@ Scripts: `tools/exp76-rt-conflict-report.py` e `tools/exp76-rt-stage1-port.py`. 
 - `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
 
 Próximo gate: revisar dependências transversais entre `spinlock.h`, `spinlock_rt.h`, `rwlock_rt`, `mutex-rt`, `softirq` e os drivers Qualcomm, antes de qualquer compilação experimental.
+
+
+## Stage 6 — equivalência de IRQ work e dependência swork (em validação)
+
+- Rejeições de `include/linux/irq_work.h`, `kernel/time/tick-sched.c` e `include/linux/cgroup-defs.h` auditadas em artifact `exp76-rt-compat-AUDIT-ONLY-17` da CI `41336502524`.
+- O E404 pinado **já define** `IRQ_WORK_HARD_IRQ BIT(3)` no header, e o `nohz_full_kick_work` usa `ATOMIC_INIT(IRQ_WORK_HARD_IRQ)`, preservando corretamente o tipo `atomic_t`. O patch RT tenta introduzir as mesmas capacidades usando contextos diferentes. Não duplicar o macro nem trocar o inicializador atômico por um inteiro.
+- O único código-fonte a acrescentar no estágio 6 é `#include <linux/swork.h>` em `include/linux/cgroup-defs.h`, sujeito à confirmação de `swork.h` e `swork.c` no checkout pós-patch.
+- Script `tools/exp76-rt-stage6-irq-work.py` confere os hashes SHA-256 exatos dos três arquivos `.rej`, a declaração `atomic_t`, o valor `BIT(3)`, o inicializador por CPU e os pré-requisitos swork antes de escrever. Elimina os dois rejeitos que a árvore já satisfaz, sem alterar seus arquivos.
+- Meta da auditoria: reduzir 76 para **73 arquivos com rejeições**, sem compilação nem imagem de boot.
+- **Status de execução:** aguarda a conclusão do workflow Stage 6; não marcar PASS com base apenas em commit ou sintaxe Python.
+
+`FLASH_READY=false`.
