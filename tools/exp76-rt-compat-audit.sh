@@ -325,6 +325,20 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE20=SWAP_LOCALLOCK_AND_RWSEM_OWNER_GUARDED; REJECTED_FILES=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage20-gate.txt"
 
 
+# Stage21: the older RT tree redirects rbtree.h to a second RCU publishing
+# macro. Restore E404's original rcupdate.h include, preserving its existing
+# sparse/RCU contract. The 64 remaining RT reject files are unchanged.
+python3 tools/exp76-rt-stage21-rcu-include.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage21" \
+    --mode apply | tee "$REPORT/stage21-rcu-include.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage21/stage21-status.json"
+test -e "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE21=E404_RCU_INCLUDE_RESTORED; REJECTED_FILES=64; RCU_RUNTIME_PORT=PENDING; FLASH_READY=false' | tee "$REPORT/stage21-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
