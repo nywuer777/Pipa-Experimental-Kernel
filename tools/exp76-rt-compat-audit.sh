@@ -227,6 +227,18 @@ test ! -e "$ROOT/exp76-trial-overlay/include/linux/rcupdate.h.rej"
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE12=RCUPDATE_BH_LOCKDEP_PORTED; REJECTED_FILES=69; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage12-gate.txt"
 
+# Stage13: retire two obsolete old-flavor RCU header hunks only when
+# unified E404 synchronize_rcu_bh()/rcu_barrier_bh() wrappers are verified.
+python3 tools/exp76-rt-stage13-unified-rcu.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage13" \
+    --mode apply | tee "$REPORT/stage13-port.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 68
+test ! -e "$ROOT/exp76-trial-overlay/include/linux/rcutree.h.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE13=UNIFIED_RCU_BH_WRAPPERS_ALREADY_PRESENT; REJECTED_FILES=68; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage13-gate.txt"
+
+
 
 
 # Export ALL partial source changes (including new RT files), excluding
