@@ -8,6 +8,7 @@ on:
       - '.github/workflows/exp76-stage18-clang21-diagnostic.yml'
       - 'tools/exp76-stage18-clang21-object-diagnostic.sh'
       - 'tools/exp76-rt-stage19-header-fixes.py'
+      - 'tools/exp76-rt-stage20-headers.py'
   workflow_dispatch:
 
 permissions:
@@ -74,7 +75,7 @@ jobs:
           clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
           rm -rf .git
 
-      - name: Prepare Stage17 source using pinned official RT/E404 patch audit
+      - name: Prepare Stage20 source using pinned official RT/E404 patch audit
         shell: bash
         timeout-minutes: 35
         run: |
@@ -84,9 +85,10 @@ jobs:
             exit 1
           }
           test -f exp76-rt-report/stage19/stage19-status.json
-          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 65
+          test -f exp76-rt-report/stage20/stage20-status.json
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
-          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE19_65_REJECTS'
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE20_64_REJECTS'
 
       - name: Compile selected arm64 scheduler objects in RT config only
         shell: bash
