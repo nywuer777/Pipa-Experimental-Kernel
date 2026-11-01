@@ -260,6 +260,13 @@ test ! -e "$ROOT/exp76-trial-overlay/kernel/sched/features.h.rej"
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE15=PREEMPT_LAZY_FEATURE_ABI_PORTED; REJECTED_FILES=66; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage15-gate.txt"
 
+# Compile the E404 scheduler feature header with a host C compiler for
+# non-RT, RT/no-lazy and RT/lazy configurations (NOT a kernel compile).
+python3 tools/exp76-stage15-feature-cc-preflight.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage15" | tee "$REPORT/stage15-host-c-preflight.log"
+
+
 
 
 
