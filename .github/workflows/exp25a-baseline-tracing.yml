@@ -535,6 +535,33 @@ jobs:
           ls -lh "$WORKDIR/out/arch/arm64/boot/Image"
           df -h .
 
+      - name: Validate latency tracer resolved config (read-only; fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          CFG="$WORKDIR/out/.config"
+          REPORT="$GITHUB_WORKSPACE/exp25-latency-static-validation.txt"
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$GITHUB_WORKSPACE/exp25-irq-config-compat.diff"
+          {
+            echo "EXP25A static validation; no device runtime validation"
+            for opt in TRACE_IRQFLAGS IRQSOFF_TRACER PREEMPT_TRACER FTRACE TRACING TRACEPOINTS LTO_CLANG_THIN; do
+              grep -qx "CONFIG_${opt}=y" "$CFG" || { echo "FAIL CLOSED: missing $opt"; exit 1; }
+              echo "PASS CONFIG_${opt}=y"
+            done
+            for opt in FUNCTION_TRACER FTRACE_MCOUNT_USE_RECORDMCOUNT PREEMPT_RT PREEMPT_RT_FULL; do
+              if grep -qx "CONFIG_${opt}=y" "$CFG"; then echo "FAIL CLOSED: forbidden $opt"; exit 1; fi
+              echo "PASS forbidden $opt disabled"
+            done
+            grep -Fq 'irq_config;' "$WORKDIR/kernel/include/linux/sched.h"
+            grep -Fq 'current->irq_config = 1;' "$WORKDIR/kernel/include/linux/irqflags.h"
+            grep -Fq 'current->irq_config = 0;' "$WORKDIR/kernel/include/linux/irqflags.h"
+            grep -Fq '+	int				irq_config;' "$GITHUB_WORKSPACE/exp25-irq-config-compat.diff"
+            echo "PASS irq_config declaration and IRQ work macros"
+            sha256sum "$WORKDIR/out/arch/arm64/boot/Image"
+            echo "FLASH_READY=false"
+          } | tee "$REPORT"
+
       - name: Capture link-time tracepoint and netfilter provider audit (read-only)
         if: always()
         shell: bash
@@ -648,6 +675,7 @@ jobs:
             exp25-latency-tracer-structural-audit.txt
             exp25-irq-config-audit.txt
             exp25-irq-config-compat.diff
+            exp25-latency-static-validation.txt
             exp25-ufs-compat.diff
             exp25-link-providers-audit.txt
             exp25-link-providers-compat.diff
