@@ -66,3 +66,24 @@ A falha de build é resultado esperado e tecnicamente útil; sucesso no workflow
 A meta estrutural é reduzir **66 para 65 arquivos com rejeições**. **Esta meta não comprova compilação nem correção de semântica.** A nova CI deverá verificar se o Clang21 progride além de `asm-offsets.s` e reportar quaisquer erros subsequentes.
 
 `EXP76_STAGE18_OBJECTS=3_FAILED`; `EXP76_STAGE19_VALIDATION=PENDING`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage19 — CI confirmada em 2026-11-01
+
+- Auditoria [41352077738](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41352077738): executou Stage19 e confirmou **65** arquivos ainda com `.rej`.
+- Diagnóstico [41352077574](https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41352077574): `CONFIG_PREEMPT_RT_FULL=y` e Clang 21 validados; **3/3 objetos falharam** ainda em `arch/arm64/kernel/asm-offsets.s`.
+- Primeiro erro fatal: `include/linux/percpu-rwsem.h:120/130` acessa `rw_sem.owner`, que não existe no `struct rw_semaphore` definido em `rwsem_rt.h`; `RWSEM_OWNER_UNKNOWN` também não pertence ao ramo RT.
+- Outro erro fatal: `include/linux/swap.h:346` chama `DECLARE_LOCAL_IRQ_LOCK(swapvec_lock)` sem importar `linux/locallock.h`.
+- Aviso pendente: `rcu_assign_pointer` redefinido; o port RT troca `rbtree.h` para importar `rcu_assign_pointer.h`, mas a E404 ainda define sua própria macro em `rcupdate.h`.
+
+## Stage20 — correção de headers delimitada, validação da CI pendente
+
+O novo `tools/exp76-rt-stage20-headers.py`:
+
+- Integra a única inclusão `linux/locallock.h` presente no rejeito original de `swap.h` (SHA256 `445ee7f190e53347b5d25fbbcc9e29ba37a946763323743de2b9044ec8261370`); esse rejeito específico é removido.
+- Restringe as duas atualizações de `rw_sem.owner` em `percpu-rwsem.h` ao ramo `CONFIG_RWSEM_SPIN_ON_OWNER && !CONFIG_PREEMPT_RT_FULL`, preservando E404 não RT e os mapas lockdep.
+- Espera **64** arquivos com rejeitos após a aplicação na árvore temporária. O exportador e os dois workflows verificam esse gate.
+- Não altera `rcu_assign_pointer` sem primeiro conferir os caminhos de inclusão no novo diagnóstico; também não resolve `cpus_ptr`, `cpus_mask` nem o ciclo de vida de `sleeping_lock`.
+
+**Estado do Stage20 após publicação:** o teste local sintético passou; build do kernel e validação da CI ainda não comprovados. É um passo para ultrapassar `asm-offsets.s`, não uma declaração de compatibilidade RT completa.
+
+`EXP76_STAGE20_PENDING_CI=true`; `EXP75_PERMANENT=PRESERVED`; `FLASH_READY=false`.
