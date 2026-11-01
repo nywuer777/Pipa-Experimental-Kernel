@@ -186,6 +186,15 @@ test "$(grep -c '^@@ -' "$ROOT/exp76-trial-overlay/kernel/rcu/tree.c.rej")" -eq 
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE8=2_RCU_HUNKS_ALREADY_VENDOR_EQUIVALENT; RCU_HUNKS_REMAINING=18; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage8-gate.txt"
 
+# Stage9: check newer E404 RCU generation and post-RT softirq/task ABI.
+# This is evidence only, not an attempt to port old-flavor RT callbacks.
+python3 tools/exp76-rt-stage9-rcu-softirq-abi.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage9" | tee "$REPORT/stage9-abi.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 71
+echo 'EXP76_RT_STAGE9=RCU_GENERATION_DIFFERENCE_DOCUMENTED; RCU_PORT_PENDING=true; SOFTIRQ_PORT_PENDING=true; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage9-gate.txt"
+
+
 
 
 
