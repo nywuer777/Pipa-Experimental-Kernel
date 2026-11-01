@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Python 3 / GitHub Actions Ubuntu / EXP76 RT Stage10 rcuwait header partial port / NO FLASH
-"""Port rcuwait_active() and mark two already-satisfied rejected hunks.
+"""Port rcuwait_active() and align post-RT wakeup ABI to int.
 
-The remaining rcuwait changes concern wake-up return type and wait lifecycle.
+The remaining rcuwait changes concern additional helpers and wait lifecycle.
 They are intentionally NOT applied until kernel/exit.c and callers are ported.
 """
 from __future__ import annotations
@@ -76,14 +76,16 @@ def prepare(tree: Path):
     if "rcu_access_pointer" not in rcu_h.read_text(encoding="utf-8"):
         raise ValueError("RCU pointer inspection macro missing")
     impl = exit_c.read_text(encoding="utf-8")
-    if impl.count("void rcuwait_wake_up(struct rcuwait *w)") != 1:
+    if impl.count("int rcuwait_wake_up(struct rcuwait *w)") != 1:
         signatures = [s.strip() for s in impl.splitlines()
                       if "rcuwait_wake_up" in s or "finish_rcuwait" in s]
-        raise ValueError("Post-RT kernel/exit.c wakeup ABI differs: "
+        raise ValueError("Expected post-RT int wakeup ABI: "
                          + json.dumps(signatures[:25]))
     if impl.count("task = rcu_dereference(w->task);") != 1:
         raise ValueError("E404 kernel/exit.c RCU dereference changed")
-    after = before.replace(ANCHOR, ANCHOR + ACTIVE, 1)
+    after = before.replace(
+        ANCHOR, "extern int rcuwait_wake_up(struct rcuwait *w);\n" + ACTIVE, 1
+    )
     remaining = REJECT_HEADER + h3 + h4
     if len(HUNK_PATTERN.split(remaining)) != 3:
         raise ValueError("Expected two remaining rcuwait hunks")
@@ -107,7 +109,8 @@ def main():
         "vendor_equivalent_hunks": 2,
         "rcuwait_active_added": args.mode == "apply",
         "rcuwait_remaining_hunks": 2,
-        "wakeup_signature_changed": False,
+        "wakeup_signature_changed": args.mode == "apply",
+        "wakeup_return_type": "int",
         "wait_lifecycle_changed": False,
         "remaining_rejected_files": pending,
         "kernel_built": False,
