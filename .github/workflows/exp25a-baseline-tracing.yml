@@ -496,6 +496,8 @@ jobs:
           bash exp01-src/prepare-build.sh "$WORKDIR" build 2>&1 | tee exp06-console.log
           build_rc=${PIPESTATUS[0]}
           set -e
+          # Keep diagnostic collection independent from pipefail/SIGPIPE in head/grep.
+          set +e
           {
             echo "=== effective module/LTO config ==="
             grep -E '^(CONFIG_(MODULES|MODVERSIONS|MODULE_REL_CRCS|LTO_CLANG|RELOCATABLE|LD_IS_LLD)=|# CONFIG_(MODULE_REL_CRCS|LTO_CLANG) is not set)' "$WORKDIR/out/.config" || true
@@ -514,6 +516,7 @@ jobs:
             echo "=== build return code ==="
             echo "$build_rc"
           } > "$GITHUB_WORKSPACE/exp52-crc-provenance.txt" 2>&1
+          set -e
           test -s "$GITHUB_WORKSPACE/exp52-crc-provenance.txt"
           exit "$build_rc"
           test -s "$WORKDIR/out/arch/arm64/boot/Image"
