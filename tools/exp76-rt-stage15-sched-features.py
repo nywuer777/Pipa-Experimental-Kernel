@@ -48,7 +48,7 @@ def analyze(root: Path):
         "+SCHED_FEAT(PREEMPT_LAZY, true)",
         "+#ifdef CONFIG_PREEMPT_RT_FULL",
         "+# ifdef CONFIG_PREEMPT_LAZY",
-        "+SCHED_FEAT(TTWU_QUEUE, true)",
+        " SCHED_FEAT(TTWU_QUEUE, true)",
     ):
         if rej.count(token) != 1:
             raise ValueError("Unknown RT scheduler feature reject: " + token)
