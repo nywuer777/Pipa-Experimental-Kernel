@@ -61,9 +61,10 @@ def plan(root: Path):
             raise ValueError("E404 rcutree.h reintroduced legacy RCU-bh API: " + name)
         if current_wrappers.count(definition) != 1:
             raise ValueError("E404 unified RCU wrapper missing or duplicated: " + name)
-    for symbol in ("void synchronize_rcu(void);", "void rcu_barrier(void);"):
-        if current_wrappers.count(symbol) != 1:
-            raise ValueError("Unified RCU underlying API missing or duplicated: " + symbol)
+    if current_wrappers.count("void synchronize_rcu(void);") != 1:
+        raise ValueError("Unified synchronize_rcu API declaration missing")
+    if current_tree.count("void rcu_barrier(void);") != 1:
+        raise ValueError("Unified rcu_barrier API declaration missing in rcutree.h")
     if current_wrappers.count("/* Transitional pre-consolidation compatibility definitions. */") != 1:
         raise ValueError("E404 RCU compatibility API generation changed")
     if "rcu_segcblist" not in (root / "kernel/rcu/tree.c").read_text(encoding="utf-8"):
