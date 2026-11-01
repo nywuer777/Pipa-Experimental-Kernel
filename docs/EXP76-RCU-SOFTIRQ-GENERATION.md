@@ -52,4 +52,12 @@ O script `tools/exp76-rt-stage9-rcu-softirq-abi.py` coleta os contratos na **ár
 4. Não promover `CONFIG_PREEMPT_RT_FULL=y` até que os contratos principais estejam corretos e o build Clang 21 seja reproduzível.
 5. Qualquer imagem EXP76 exige testes de boot reversíveis antes de sequer considerar gravação permanente.
 
-`EXP76_RT_STAGE8=PASS`; `EXP76_RCU_HUNKS_PENDING=18`; `EXP76_RT_REJECTED_FILES=71`; `EXP76_STAGE9=CI_PENDING`; `FLASH_READY=false`.
+`EXP76_RT_STAGE8=PASS`; `EXP76_RCU_HUNKS_PENDING=18`; `EXP76_RT_REJECTED_FILES=71`; `EXP76_STAGE9=PASS`; `FLASH_READY=false`.
+
+## Stage 9 — confirmado na CI
+
+- Execução https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41339146934 — **SUCCESS**.
+- A árvore pós-patch conserva o RCU de geração E404, contendo `rcu_segcblist`, `rcu_preempt_deferred_qs` e `rcu_core`, sem `rcu_bh_state`, `rcu_sched_state` e `for_each_rcu_flavor`.
+- `stage9/stage9-api-generation.json` registra o contrato de APIs RCU/softirq e probes do `task_struct`. O gate rejeita equivalência presumida com o RCU antigo do patch `4.19.325-rt140`.
+- Restam 18 hunks de RCU e 71 arquivos com rejeitos na árvore experimental. Nenhuma alteração em `kernel/rcu/tree.c` ou `kernel/softirq.c` foi realizada no Stage 8/9.
+- `KERNEL_BUILT=false`; `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `FLASH_READY=false`.
