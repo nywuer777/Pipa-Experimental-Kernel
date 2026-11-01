@@ -9,6 +9,7 @@ on:
       - 'tools/exp76-rt-compat-audit.sh'
       - 'tools/exp76-rt-conflict-report.py'
       - 'tools/exp76-rt-stage1-port.py'
+      - 'tools/exp76-rt-stage2-port.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
       - 'tests/test_exp76_uname.py'
@@ -37,6 +38,7 @@ jobs:
           python3 tests/test_exp76_uname.py
           python3 -m py_compile tools/exp76-rt-conflict-report.py
           python3 -m py_compile tools/exp76-rt-stage1-port.py
+          python3 -m py_compile tools/exp76-rt-stage2-port.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
           echo 'EXP76_BASELINE_WORKFLOW=CHECKED; NO_RT_BUILD; FLASH_READY=false'
