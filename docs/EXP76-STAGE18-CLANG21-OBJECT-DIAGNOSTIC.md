@@ -112,3 +112,15 @@ O script `tools/exp76-stage18-clang21-object-diagnostic.sh` agora executa `make 
 `make prepare` é apenas um pré-requisito de compilação, não um kernel. Não há `Image`, `vmlinux` ou `boot.img`, e não ocorre escrita no dispositivo.
 
 `EXP76_STAGE22_SOURCE=COMMITTED`; `EXP76_STAGE22_CI=UNVERIFIED`; `EXP76_RT_TARGET_REJECTS=64`; `FLASH_READY=false`.
+
+## Stage23 — gate para arquivos gerados pelo Kbuild ARM64
+
+O `Kbuild` fixado da E404 indica que `make prepare` gera `include/generated/asm-offsets.h`, `include/generated/bounds.h` e `include/generated/timeconst.h`. O Stage22 capturava somente o código de saída do `make`; agora o Stage23 exige os três arquivos presentes e não vazios antes de tentar compilar os objetos.
+
+O novo `tools/exp76-stage23-prepare-gate.py` registra `prepare-make.rc` (código original), `prepare.rc` (resultado do gate), `PREPARE_GATE.json`, `prepare.errors.txt` e `prepare.first-error-context.txt`. Caso `make prepare` retorne zero com cabeçalhos ausentes, o gate usa o código sintético **97**, sem alterar o resultado original registrado. Em caso de falha real do `make`, preserva o código original e captura o contexto de até 12 linhas antes e oito depois do primeiro erro identificável.
+
+O Stage23 preserva a regra de não tentar `cpupri.o`, `core.o` e `fork.o` quando o gate de preparação falha. O teste `tests/test_exp76_stage23_prepare_gate.py` contém quatro cenários determinísticos de regressão e foi executado no ambiente local antes da publicação.
+
+Não houve nova aplicação do patch PREEMPT_RT ou remoção de rejeitos nesta etapa: a meta continua em **64 `.rej`**. O resultado real do Clang 21 posterior ao Stage22 ainda requer os logs da CI.
+
+`EXP76_STAGE23_SOURCE=COMMITTED`; `EXP76_STAGE23_LOCAL_TESTS=4_PASS`; `EXP76_STAGE23_CI=UNVERIFIED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
