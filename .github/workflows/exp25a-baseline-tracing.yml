@@ -396,12 +396,12 @@ jobs:
           s = p.read_text()
           import re
           # E404 has tabs between LDFLAGS_vmlinux and +=; preserve all other lines.
-          pattern = r"(?m)^(LDFLAGS_vmlinux[ \\t]*\\+= )-pie$"
+          pattern = r"(?m)^(LDFLAGS_vmlinux[ \t]*\+= )-pie$"
           if len(re.findall(pattern, s)) != 1:
               raise SystemExit("EXP50 FAIL CLOSED: expected exactly one ARM64 -pie linker assignment")
           if not re.search(r"(?m)^ifdef CONFIG_LD_IS_LLD$", s):
               raise SystemExit("EXP50 FAIL CLOSED: LLD conditional missing")
-          s = re.sub(pattern, r"\\1-shared", s)
+          s = re.sub(pattern, r"\1-shared", s)
           p.write_text(s)
           PY
           git -C "$WORKDIR/kernel" diff --check
