@@ -18,7 +18,13 @@ Workflow: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/413
 - Na árvore pós-RT, `kernel/rcu/update.c` coloca a implementação `rcu_read_lock_bh_held()` sob `#ifndef CONFIG_PREEMPT_RT_FULL`. O header de `DEBUG_LOCK_ALLOC` ainda declara função externa sem condição, gerando risco de referência faltante no modo RT.
 - `tools/exp76-rt-stage12-rcupdate.py` introduz um `static inline` que encaminha para `rcu_read_lock_held()` **somente sob CONFIG_PREEMPT_RT_FULL**, preservando a declaração externa fora de RT e o helper existente sem `DEBUG_LOCK_ALLOC`.
 - Meta após Stage 12: **69 arquivos** restantes com `.rej`, exportação cumulativa reproduzível, nenhum kernel compilado ou testado.
-- **Status Stage 12:** aguardando conclusão da CI. Não presumir PASS.
+- **Status Stage 12:** https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41342260781 — **SUCCESS**.
+- `rcupdate.h` no checkout RT: `call_rcu_bh()` vendor preservado; `rcu_read_lock_bh_held()` inline sob `CONFIG_PREEMPT_RT_FULL`, com declaração externa preservada em modo não RT.
+- 2 hunks originais do arquivo resolvidos; `rcupdate.h.rej` removido do ensaio.
+- Restam **69 arquivos rejeitados** em todo o port RT parcial.
+- Exportação cumulativa **PASS**: `git apply --check` na E404 pinada limpa. SHA-256 `0284b75814eb2aea53159a934aebe658a338622310215313eb67262744d17027`.
+- Artifact `exp76-rt-compat-AUDIT-ONLY-40`: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41342260781/artifacts/13098385887
+- `KERNEL_BUILT=false`; `CONFIG_PREEMPT_RT_FULL_ENABLED=false`; `FLASH_READY=false`.
 
 ## Gates não negociáveis
 
