@@ -47,3 +47,20 @@ Pontos críticos para a primeira revisão de port: `kernel/sched/core.c`, `kerne
 `EXP76_RT_AUDIT=PASS` significa apenas que o pipeline produziu relatório íntegro. `RT_PATCH_APPLY=FAIL` significa que o port RT está bloqueado até resolver as 82 rejeições e conflitos semânticos.
 
 `EXP75_PERMANENT=PRESERVED`, `EXP76_RT_BUILD=NOT_STARTED`, `EXP76_UNAME_FIX=NOT_APPLIED`, `FLASH_READY=false`.
+
+
+## Descoberta posterior: origem do uname falsificado
+
+Revisão **direta** do E404 pinado `fed88a6024cd4d46c52eda607a95d97d7371ba81` em `kernel/sys.c`, dentro de `SYSCALL_DEFINE1(newuname, ...)`:
+
+```c
+} else if (cur_uid >= 1000) {
+    strlcpy(tmp.release, "5.10.404R", sizeof(tmp.release));
+}
+```
+
+A condição explica precisamente o shell ADB UID 2000 reportar `5.10.404R` e o shell KernelSU UID 0 reportar `4.19.404R`. Portanto a origem está no **código-fonte E404 do syscall**, e não foi necessário atribuir causalidade a SUSFS ou a namespaces. O mesmo syscall contém exceções especiais para processos root `bpfloader`, `netbpfload` e `netd` que recebem `5.10.404`.
+
+A correção EXP76 em `tools/exp76-fix-uname.py` remove **somente** a regra geral de UID>=1000 e o `cur_uid` que deixa de ser utilizado. As exceções root de rede permanecem até passar pelos testes de compatibilidade Android. `tests/test_exp76_uname.py` valida a transformação exata, a preservação das exceções e comportamento fail-closed. A CI aplica a correção apenas no checkout temporário `exp76-overlay`, **não** no EXP75 permanente.
+
+`EXP76_UNAME_SOURCE_ROOT_CAUSE=IDENTIFIED`, `EXP76_UNAME_FIX_SOURCE=PREPARED`, `EXP76_DEVICE_FIX=NOT_TESTED`, `FLASH_READY=false`.
