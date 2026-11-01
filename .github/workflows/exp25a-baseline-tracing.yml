@@ -7,6 +7,8 @@ on:
       - ".github/workflows/exp25a-baseline-tracing.yml"
       - "tools/exp25-apply-touch.py"
       - "tests/test_exp25_touch.py"
+      - "tools/exp24-apply-ethernet.py"
+      - "tests/test_exp24_ethernet.py"
   workflow_dispatch:
 
 permissions:
