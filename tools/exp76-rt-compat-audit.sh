@@ -88,6 +88,13 @@ with (directory / "rejected-paths.csv").open("w", newline="") as handle:
 PY
 done
 
+python3 tools/exp76-rt-conflict-report.py \
+    --report "$REPORT" \
+    --e404-trial "$ROOT/exp76-trial-e404" \
+    --e404-paths "$REPORT/e404/rejected-paths.txt" \
+    --overlay-trial "$ROOT/exp76-trial-overlay" \
+    --overlay-paths "$REPORT/overlay/rejected-paths.txt" | tee "$REPORT/conflict-priority-summary.json"
+
 {
     echo "EXP76_RT_STAGE=AUDIT_ONLY"
     echo "RT_SOURCE=4.19.325-rt140"
