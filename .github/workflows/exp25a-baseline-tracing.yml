@@ -352,6 +352,46 @@ jobs:
           done
           git -C "$WORKDIR/kernel" diff --check
 
+      - name: Restore missing netfilter and tracepoint providers (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, subprocess, difflib
+          k = Path(os.environ["WORKDIR"]) / "kernel"
+          sha = subprocess.check_output(["git", "-C", str(k), "rev-parse", "HEAD"], text=True).strip()
+          if sha != "fed88a6024cd4d46c52eda607a95d97d7371ba81":
+              raise SystemExit("FAIL CLOSED: E404 source SHA mismatch")
+          for path, marker in [
+              ("net/netfilter/nf_log.c", "int __init netfilter_log_init(void)"),
+              ("net/wireless/trace.c", "#define CREATE_TRACE_POINTS"),
+              ("techpack/camera/drivers/cam_utils/cam_trace.c", "#define CREATE_TRACE_POINTS"),
+              ("techpack/camera/config/konacamera.conf", "export CONFIG_SPECTRA_CAMERA=y"),
+          ]:
+              if marker not in (k / path).read_text():
+                  raise SystemExit("FAIL CLOSED: provider absent: " + path)
+          edits = [
+              ("net/netfilter/Makefile", "netfilter-objs := core.o nf_queue.o nf_sockopt.o utils.o", "netfilter-objs := core.o nf_queue.o nf_sockopt.o utils.o nf_log.o"),
+              ("net/wireless/Makefile", "cfg80211-y += core.o sysfs.o radiotap.o util.o reg.o scan.o nl80211.o", "cfg80211-y += core.o sysfs.o radiotap.o util.o reg.o scan.o nl80211.o trace.o"),
+              ("techpack/camera/drivers/cam_utils/Makefile", "obj-$(CONFIG_SPECTRA_CAMERA) += cam_cx_ipeak.o", "obj-$(CONFIG_SPECTRA_CAMERA) += cam_cx_ipeak.o cam_trace.o"),
+          ]
+          diff = []
+          for rel, old, new in edits:
+              p = k / rel
+              before = p.read_text()
+              if before.count(old) != 1 or new in before:
+                  raise SystemExit("FAIL CLOSED: unexpected Makefile: " + rel)
+              after = before.replace(old, new, 1)
+              p.write_text(after)
+              diff.extend(difflib.unified_diff(before.splitlines(True), after.splitlines(True), fromfile="a/" + rel, tofile="b/" + rel))
+          if len(diff) < 9:
+              raise SystemExit("FAIL CLOSED: incomplete provider patch")
+          (Path(os.environ["GITHUB_WORKSPACE"]) / "exp25-link-providers-compat.diff").write_text("".join(diff))
+          print("".join(diff))
+          PY
+          git -C "$WORKDIR/kernel" diff --check
+
       - name: Build kernel with the actual Android 21 compiler
         shell: bash
         run: |
@@ -413,6 +453,188 @@ jobs:
             rg -n 'netfilter_log|tracepoint|trace\.o|cam_req_mgr|cfg80211' "$K/net/netfilter/Makefile" "$K/net/wireless/Makefile" "$K/drivers/media/platform/msm/Makefile" "$K/drivers/media/platform/msm/camera/Makefile" 2>/dev/null || true
           } > "$GITHUB_WORKSPACE/exp25-link-providers-audit.txt"
           test -s "$GITHUB_WORKSPACE/exp25-link-providers-audit.txt"
+
+      - name: Verify provider objects and linked tracepoint symbols (fail-closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for object in net/netfilter/nf_log.o net/wireless/trace.o techpack/camera/drivers/cam_utils/cam_trace.o; do
+            test -s "$WORKDIR/out/$object" || { echo "FAIL CLOSED: missing $object"; exit 1; }
+          done
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '[[:space:]]__tracepoint_cam_req_mgr_apply_request
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-baseline-NONFLASH-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp25-sched-trace-diagnostic.txt
+            exp25-sched-compat.diff
+            exp25-ring-buffer-compat.diff
+            exp25-stm-structural-audit.txt
+            exp25-stm-compat.diff
+            exp25-ufs-structural-audit.txt
+            exp25-ufs-compat.diff
+            exp25-link-providers-audit.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$WORKDIR/out/System.map"
+          grep -Eq '[[:space:]]__tracepoint_rdev_stop_p2p_device
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WORKDIR/out/drivers/net/usb/r8152.o"
+          test -s "$WORKDIR/out/vmlinux"
+          test -s "$WORKDIR/out/System.map"
+          grep -Eq '(^|[[:space:]])CC[[:space:]]+drivers/net/usb/r8152[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LTO[[:space:]]+vmlinux[.]o([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])LD[[:space:]]+vmlinux([[:space:]]|$)' exp06-console.log
+          grep -Eq '(^|[[:space:]])SYSMAP[[:space:]]+System[.]map([[:space:]]|$)' exp06-console.log
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -F 'REALTEK_USB_DEVICE(VENDOR_ID_REALTEK, 0x8153)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -F 'module_usb_driver(rtl8152_driver)' "$WORKDIR/kernel/drivers/net/usb/r8152.c"
+          grep -E 'rtl8152_driver|rtl8152_probe' "$WORKDIR/out/System.map" | tee exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_driver' exp24-rtl8153-linked-symbols.txt
+          grep -Eq 'rtl8152_probe' exp24-rtl8153-linked-symbols.txt
+          {
+            echo 'EXP24_RTL8153_LINK_PASS'
+            echo 'USB_ID=0bda:8153'
+            echo 'RUNTIME_DRIVER_REGISTRATION=NOT_TESTED'
+            echo 'PHYSICAL_ETHERNET_FUNCTIONALITY=NOT_TESTED'
+            echo 'FLASH_READY=false'
+            sha256sum "$WORKDIR/out/System.map"
+            sha256sum "$WORKDIR/out/drivers/net/usb/r8152.o"
+          } | tee exp24-rtl8153-link-gate.txt
+
+      - name: Confirm EXP25A NVT fix in pinned source and final resolved kernel config
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp25-apply-touch.py --kernel "$WORKDIR/kernel" --mode verify --config "$WORKDIR/out/.config" | tee exp25-touch-final-gate.log
+          test -s "$WORKDIR/out/arch/arm64/boot/Image"
+          test -s "$WORKDIR/out/vmlinux"
+          grep -qx 'CONFIG_TOUCHSCREEN_NT36532_HOSTDL_SPI=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_USB_RTL8152=y' "$WORKDIR/out/.config"
+          grep -qx 'CONFIG_PIPA_EXP_SUGOV_RATE_LIMIT_US=1500' "$WORKDIR/out/.config"
+          echo "EXP25A_IMAGE_BUILT=YES; TOUCH_IRQ_FIX_SOURCE_VERIFIED=YES; DEVICE_BOOT_NOT_TESTED; FIRMWARE_RECOVERY_NOT_FIXED; FLASH_READY=false"
+
+      - name: Hard gate non-flashable outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e boot.img
+          test ! -e vendor_boot.img
+          test ! -e "$WORKDIR/out/boot.img"
+          echo 'NON_FLASHABLE EXP25A (EXP24 + touchscreen IRQ gate) kernel Image. Device boot, touch fix and network stability are not yet validated.'
+
+      - name: Publish compiler fingerprint, Image, config and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipa-exp25a-baseline-NONFLASH-${{ github.run_number }}
+          path: |
+            exp25-touch-tests.log
+            exp25-touch-apply.log
+            exp25-touch-code.diff
+            exp25-touch-final-gate.log
+            exp06-clang-version.txt
+            exp25-sched-trace-diagnostic.txt
+            exp25-sched-compat.diff
+            exp25-ring-buffer-compat.diff
+            exp25-stm-structural-audit.txt
+            exp25-stm-compat.diff
+            exp25-ufs-structural-audit.txt
+            exp25-ufs-compat.diff
+            exp25-link-providers-audit.txt
+            exp06-prepare.log
+            exp06-console.log
+            exp24-Image.sha256
+            exp24-ethernet-input.sha256
+            exp24-ethernet-config-gate.log
+            exp24-rtl8153-link-gate.txt
+            exp24-rtl8153-linked-symbols.txt
+            configs/ethernet.config
+            exp06-work/build.log
+            exp06-work/out/.config
+            exp06-work/out/arch/arm64/boot/Image
+            exp06-work/out/arch/arm64/boot/dtb
+            exp06-work/out/arch/arm64/boot/dtbo.img
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+ "$WORKDIR/out/System.map"
+          for opt in DEBUG_KERNEL TRACEPOINTS CFG80211 ARCH_KONA; do
+            grep -qx "CONFIG_${opt}=y" "$WORKDIR/out/.config"
+          done
+          if grep -Eq 'CONFIG_PREEMPT_RT(_FULL)?=y' "$WORKDIR/out/.config"; then exit 1; fi
+          echo 'EXP25A_PROVIDER_LINK_PASS; FLASH_READY=false; DEVICE_RUNTIME_NOT_TESTED'
 
       - name: Prove RTL8153 presence in final linked vmlinux (read-only; no boot)
         shell: bash
@@ -481,6 +703,7 @@ jobs:
             exp25-ufs-structural-audit.txt
             exp25-ufs-compat.diff
             exp25-link-providers-audit.txt
+            exp25-link-providers-compat.diff
             exp06-prepare.log
             exp06-console.log
             exp24-Image.sha256
