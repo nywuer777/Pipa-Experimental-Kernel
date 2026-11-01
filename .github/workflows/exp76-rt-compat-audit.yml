@@ -17,6 +17,7 @@ on:
       - 'tools/exp76-rt-stage6-irq-work.py'
       - 'tools/exp76-rt-stage7-locking.py'
       - 'tools/exp76-rt-stage8-rcu-equivalence.py'
+      - 'tools/exp76-rt-stage9-rcu-softirq-abi.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
       - 'tests/test_exp76_uname.py'
@@ -53,6 +54,7 @@ jobs:
           python3 -m py_compile tools/exp76-rt-stage6-irq-work.py
           python3 -m py_compile tools/exp76-rt-stage7-locking.py
           python3 -m py_compile tools/exp76-rt-stage8-rcu-equivalence.py
+          python3 -m py_compile tools/exp76-rt-stage9-rcu-softirq-abi.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
           echo 'EXP76_BASELINE_WORKFLOW=CHECKED; NO_RT_BUILD; FLASH_READY=false'
