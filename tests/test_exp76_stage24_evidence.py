@@ -39,6 +39,7 @@ def main() -> None:
         empty = invoke(artifact, evidence, 120, "failure")
         assert empty["artifact_present"] is False
         assert empty["preparation"] is None
+        assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
         assert empty["flash_ready"] is False
@@ -95,6 +96,27 @@ def main() -> None:
                 },
             },
         })
+        put(
+            artifact / "exp76-stage46-report" / "OBJECT_COVERAGE_CROSS_SUBSYSTEM.json", {
+                "stage": "EXP76_STAGE46_RT_CROSS_SUBSYSTEM_OBJECTS_NONFLASH",
+                "baseline_12_objects_compiled": True,
+                "objects_attempted": 9,
+                "objects_compiled": 8,
+                "all_cross_objects_compiled": False,
+                "remaining_rejected_files": 64,
+                "link_performed": False,
+                "targets": {
+                    "kernel/irq/manage.o": {
+                        "attempted": True, "compiled": False, "exit_code": 2,
+                        "errors_excerpt": ["manage.c:9: error: fixture only"],
+                    },
+                    "kernel/locking/mutex.o": {
+                        "attempted": True, "compiled": True, "exit_code": 0,
+                        "errors_excerpt": [],
+                    },
+                },
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -159,6 +181,12 @@ def main() -> None:
         assert failed["stages"]["stage42"]["present"] is True
         assert failed["stages"]["stage42"]["applied"] is True
         assert failed["stages"]["stage42"]["remaining_rejected_files"] == 64
+        assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
+        assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
+        assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
+        assert failed["cross_subsystem_coverage"]["link_performed"] is False
+        assert failed["cross_subsystem_coverage"]["targets"]["kernel/irq/manage.o"]["compiled"] is False
+        assert failed["cross_subsystem_coverage"]["targets"]["kernel/irq/manage.o"]["errors_excerpt"][0].endswith("fixture only")
         assert failed["extra_object_coverage"]["objects_attempted"] == 9
         assert failed["extra_object_coverage"]["objects_compiled"] == 3
         assert failed["extra_object_coverage"]["targets"]["kernel/sched/rt.o"]["compiled"] is False
