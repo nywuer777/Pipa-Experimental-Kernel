@@ -449,3 +449,13 @@ ValueError: kernel/cpu.c: expected one '\tirq_lock_sparse();\n\n', found 2
 ```
 
 Essa observação confirma que a correção Stage44 aborda o erro real da Stage43, e não apenas um risco hipotético. O Stage44 ainda depende de seu próprio job Clang21 para provar o port de hotplug. Nenhuma compilação de objetos adicionais foi realizada no Stage43 porque a auditoria interrompeu a preparação. `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage45 — limite real de função para todas as alterações RT em CPU hotplug
+
+**Motivo:** Stage44 restringia a inserção de `HOTPLUG_RT_WAIT` ao texto após a assinatura de `takedown_cpu()`, mas o trecho após a assinatura contém também outras funções de `kernel/cpu.c`. Além disso, `STOP_CALL`, `FAIL_ANCHOR` e `SUCCESS_ANCHOR` ainda eram substituídos no arquivo completo. Esse método permitia aplicar acidentalmente um hunk em outra função se as âncoras mudassem durante o port.
+
+**Correção Stage45:** `tools/exp76-rt-stage42-hotplug-tlb.py` exige o início `static int takedown_cpu(unsigned int cpu)` e o limite seguinte da E404 fixada, `static void cpuhp_complete_idle_dead(void *arg)`. Divide a fonte em prefixo, corpo de `takedown_cpu()` e sufixo. Valida e altera `irq_lock_sparse`, `stop_machine_cpuslocked`, o tratamento de erro e a saída normal **somente no corpo da função**. Preserva prefixo e sufixo literalmente, exceto pela declaração global RT inserida de propósito imediatamente antes de `takedown_cpu()`. Quando o protocolo RT já está aplicado, também valida os marcadores de espera, polling, retorno, `-EAGAIN`, limpeza e label no recorte delimitado, sem alterar a fonte original.
+
+Os testes `tests/test_exp76_stage42_hotplug_tlb.py` recebem um `cpuhp_complete_idle_dead()` sintético após o `takedown_cpu()`. Cobrem inserção sob duas chamadas legítimas de `irq_lock_sparse`, integridade do sufixo, protocolo upstream preexistente, âncora duplicada no corpo, uma função posterior com âncoras iguais e o stopper movido indevidamente para outra função. O marcador do teste passa a `EXP76_STAGE45_BOUNDED_HOTPLUG_REGRESSIONS=14_PASS`. A auditoria continua produzindo `stage42-status.json` com `bounded_takedown_function_scope_verified=true`; o workflow de diagnóstico foi rotulado como Stage45.
+
+**Limite:** o último relatório publicado de CI disponível no início deste stage era a execução `41466506172` (Stage43), que confirmou o erro de escopo corrigido no Stage44. A CI específica de Stage44/45, `core.o` e `cpu.o` não estava confirmada. Nenhuma medição de concorrência, boot ou CPU offlining foi realizada. Persistem 64 rejeitos RT. `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
