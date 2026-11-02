@@ -384,3 +384,19 @@ Os workflows de compatibilidade e diagnóstico Clang21 executam o script após S
 **Estado de evidência atualizado:** execução Clang21 `41450161880` sobre Stage39 `2cbe9950e55df391a595226949abdcf1d9797ee3`, com auditoria PASS, `3/3` objetos base e `8/9` adicionais compilados, inclusive `softirq.o`; 64 rejeitos RT persistem. O Stage40 não é a causa desse sucesso já confirmado: restaura a ABI `sleeping_lock` como pré-requisito de outros caminhos de configuração. `kernel/cpu.o` ainda depende do ciclo real de `cpu_nr_pinned` e o kernel completo continua sem link ou validação de runtime.
 
 `EXP76_STAGE40_SOURCE=COMMITTED`; `EXP76_STAGE40_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage41 — ciclo RT de migração e pinagem da runqueue, adaptado à E404
+
+**Ponto de partida comprovado:** execução Clang21 `41455627896`, commit `1a4e831198dac1fed58278e4694c44cf45096f06`. A auditoria Stage40 foi aplicada, `make prepare` passou, 3/3 objetos iniciais e 8/9 adicionais compilaram. O único erro adicional foi em `kernel/cpu.o`, com duas chamadas de `cpu_nr_pinned` sem declaração; `core.o` continuava com `migrate_disabled_sched` declarado sem implementação. 64 arquivos `.rej` permanecem.
+
+**Fonte do port:** último hunk rejeitado de `kernel/sched/core.c.rej`, originário do patch RT oficial `4.19.325-rt140` (marcador `@@ -7111,3 +7225,171 @@`), e campo `rq->nr_pinned` de `kernel/sched/sched.h.rej`. O script `tools/exp76-rt-stage41-migration-lifecycle.py` exige o hunk inteiro, o contador original com incremento/decremento, a lógica aninhada de `migrate_disable()`/`migrate_enable()`, o stopper assíncrono, o despertar do processo de CPU hotplug e os exports de símbolos RT (SMP e UP). Não usa uma função fictícia que sempre retorna zero.
+
+**Diferença de ABI:** o RT upstream usa `p->cpus_ptr` para selecionar temporariamente a máscara da CPU, sem sobrescrever `p->cpus_mask`. A E404 não possui esses campos; consulta `p->cpus_allowed` embutido e mantém `p->cpus_requested` para outras finalidades. Stage41 acrescenta `cpumask_t migrate_disable_saved_mask` sob `CONFIG_SMP && CONFIG_PREEMPT_RT_BASE`, salva o valor anterior ao marcar a tarefa como pinada e restaura no `migrate_enable()` final. A integração de `__set_cpus_allowed_ptr()` redireciona atualizações de afinidade para a máscara salva quando a tarefa está pinada. `cpus_requested` é preservado.
+
+O port também acrescenta `rq->nr_pinned` sob o mesmo contrato RT/SMP e declara `cpu_nr_pinned()` em `include/linux/cpu.h` para os dois consumidores de `kernel/cpu.c`. `kernel/sched/core.c` recebe os helpers de pinagem, o ciclo de migração aninhada e a definição real de `migrate_disabled_sched()`. A função `cpu_nr_pinned()` lê o contador atualizado na runqueue, **não um valor constante**. O código de migração assíncrona upstream conserva as verificações `arg->done` e `work->disabled`, sem substituí-las por silêncio.
+
+`tests/test_exp76_stage41_migration_lifecycle.py` cobre modo de verificação sem escrita, aplicação, rejeito alterado, máscara incompatível, consumidor hotplug ausente, implementação duplicada e contagem de rejeitos divergente. A auditoria Clang21 ainda executa o gate base 3/3 e os nove objetos adicionais, arquivando `stage41-status.json` no ramo isolado `exp76-ci-evidence`.
+
+**Limite técnico obrigatório:** Stage41 porta código-fonte e tenta a compilação, mas a correção dos 64 rejeitos restantes, a validação de pré-empção, pinagem sob concorrência, alterações simultâneas de afinidade, migração assíncrona, CPU hotplug, linkage completo e boot seguem **não comprovados**. A introdução de uma máscara própria requer revisão de concorrência e invariantes além do teste de objetos. Mesmo com `cpu.o` compilado, isso não libera `vmlinux`, `Image`, `boot.img` ou flash.
+
+`EXP76_STAGE41_SOURCE=COMMITTED`; `EXP76_STAGE41_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
