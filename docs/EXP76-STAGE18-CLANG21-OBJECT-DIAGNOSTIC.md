@@ -211,3 +211,15 @@ O rejeito original da atualização `include/linux/sched.h` contém `migrate_dis
 **Contrato de segurança:** os campos não implementam `migrate_disable()` e `migrate_enable()`; continuam ausentes os hooks completos do scheduler, `rq->nr_pinned`, tratamento de hotplug e auditoria de `sleeping_lock`. Uma eventual compilação dos três objetos significa apenas compilação dos objetos: não demonstra link, PREEMPT_RT funcional, ABI Android preservada para instalação, ou capacidade de boot. Nenhuma imagem é gerada e `FLASH_READY=false`.
 
 `EXP76_STAGE29_SOURCE=COMMITTED`; `EXP76_STAGE29_CI=UNVERIFIED`; `EXP76_REJECTS_TARGET=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage30 — ampliar cobertura real do PREEMPT_RT sem link de kernel
+
+**Evidência Stage29:** run `41385145583` sobre `04ce35fa20c6627a7db6b1b96c9e0ef308a9f922`. O Clang 21 completou `make prepare` e compilou `cpupri.o`, `core.o` e `fork.o` (**3/3**). O log de `core.o` ainda alertou: `migrate_disabled_sched` possui ligação interna, porém não possui definição disponível. Os Stages 19/20/21/26/27/28/29 foram aplicados; 64 rejeitos RT continuam sem resolução.
+
+**Expansão diagnóstica:** o script `tools/exp76-stage30-object-coverage.py` compila individualmente, somente quando a base 3/3 passou, os seguintes alvos: `kernel/sched/rt.o`, `fair.o`, `deadline.o`, `idle.o`, `stop_task.o`, `kernel/cpu.o`, `kernel/locking/rtmutex.o`, `kernel/softirq.o` e `kernel/time/timer.o`. Cada alvo tem timeout, código de saída e resumo dos primeiros erros próprios. O script **não liga vmlinux, não gera Image/boot.img, não gera módulos e não escreve no dispositivo**.
+
+A saída `exp76-stage30-report/OBJECT_COVERAGE.json` distingue os objetos tentados, compilados e bloqueados pelo gate inicial. Ela também registra a presença de declarações e definições de `migrate_disabled_sched` em `core.c`, mas explicitamente não interpreta uma definição como prova de corretude do runtime de migração. O collector Stage24 preserva esta saída resumida no branch `exp76-ci-evidence` sob `extra_object_coverage`. O teste `tests/test_exp76_stage30_object_coverage.py` verifica a allowlist dos nove objetos, aviso de helper ausente, gate inicial, alvo não permitido e compilação sintética de um objeto com warning.
+
+**Ainda pendente:** resta portar o contrato PREEMPT_RT completo de `migrate_disable/enable`, `migrate_disabled_sched`, `rq->nr_pinned`, regras de hotplug, `sleeping_lock` e todos os demais rejeitos RT. Sucesso do Stage30 significa cobertura parcial de objetos, nunca kernel completo ou flash autorizado.
+
+`EXP76_STAGE30_SOURCE=COMMITTED`; `EXP76_STAGE30_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
