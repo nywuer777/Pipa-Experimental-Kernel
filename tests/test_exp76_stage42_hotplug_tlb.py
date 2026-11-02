@@ -23,7 +23,15 @@ CORE = (
     '\twake_up_process(takedown_cpu_task);\n'
     + D["CORE_HOOK"] + '}\n'
 )
+CPU_BRINGUP = (
+    'static int bringup_cpu(void)\n'
+    '{\n'
+    + D["HOTPLUG_SETUP"] +
+    '\treturn 0;\n'
+    '}\n'
+)
 CPU = (
+    CPU_BRINGUP +
     'static int take_cpu_down(void *arg)\n'
     '{\n\tif (cpu_nr_pinned(cpu))\n\t\treturn -EAGAIN;\n}\n'
     + D["CPU_FUNC"] +
@@ -82,6 +90,10 @@ def main() -> None:
         assert "goto retry_pinned_cpu;" in cpu
         assert "if (err == -EAGAIN)" in cpu
         assert "if (cpu_nr_pinned(cpu))" in cpu
+        assert cpu.startswith(CPU_BRINGUP)
+        assert cpu.count(D["HOTPLUG_SETUP"]) == 2
+        assert cpu.index("retry_pinned_cpu:") > cpu.index(D["CPU_FUNC"])
+        assert "retry_pinned_cpu:" not in cpu.split(D["CPU_FUNC"], 1)[0]
         # An unported source has only the stopper check; the RT loop
         # adds exactly one second call. Do not allow phantom consumers.
         assert CPU.count("cpu_nr_pinned(cpu)") == 1
@@ -111,10 +123,12 @@ def main() -> None:
         ).replace(
             "if (!nr_pinned)", "if (nr_pinned == 0)"
         )
-        upstream_cpu = vendor_cpu.replace(
-            D["CPU_FUNC"], D["CPU_THREAD_GLOBAL"] + D["CPU_FUNC"], 1
-        ).replace(
-            D["HOTPLUG_SETUP"], D["HOTPLUG_SETUP"] + upstream_wait, 1
+        first, takedown = vendor_cpu.split(D["CPU_FUNC"], 1)
+        upstream_cpu = (
+            first + D["CPU_THREAD_GLOBAL"] + D["CPU_FUNC"] +
+            takedown.replace(
+                D["HOTPLUG_SETUP"], D["HOTPLUG_SETUP"] + upstream_wait, 1
+            )
         ).replace(
             D["STOP_CALL"],
             D["STOP_CALL"] + D["STOP_RETRY"].replace(
@@ -140,6 +154,9 @@ def main() -> None:
         kept = run(upstream)
         assert kept.returncode == 0, kept.stderr
         assert (upstream / D["CPU"]).read_text() == upstream_cpu
+        assert upstream_cpu.startswith(CPU_BRINGUP)
+        assert upstream_cpu.count(D["HOTPLUG_SETUP"]) == 2
+        assert "again:" not in upstream_cpu.split(D["CPU_FUNC"], 1)[0]
         assert upstream_cpu.count("cpu_nr_pinned(cpu)") == 2
         assert upstream_cpu.count("nr_pinned = cpu_nr_pinned(cpu);") == 1
         assert (upstream / D["CORE"]).read_text() != CORE
@@ -174,6 +191,13 @@ def main() -> None:
         assert run(incomplete_upstream).returncode != 0
         assert (incomplete_upstream / D["CORE"]).read_text() == CORE
 
+        duplicated_takedown_lock = base / "duplicated-takedown-lock"
+        fixture(duplicated_takedown_lock)
+        put(duplicated_takedown_lock, D["CPU"], CPU + D["HOTPLUG_SETUP"])
+        invalid = run(duplicated_takedown_lock)
+        assert invalid.returncode != 0
+        assert "expected one" in invalid.stderr
+
         second = run(good)
         assert second.returncode != 0  # not an idempotent silent port
 
@@ -206,7 +230,7 @@ def main() -> None:
         (short_rejects / "pending/r00.rej").unlink()
         assert run(short_rejects).returncode != 0
 
-    print("EXP76_STAGE43_HOTPLUG_PIN_CALL_SITES_REGRESSIONS=11_PASS; FLASH_READY=false")
+    print("EXP76_STAGE44_SCOPED_HOTPLUG_REGRESSIONS=12_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
