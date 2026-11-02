@@ -120,7 +120,7 @@ jobs:
             echo "=== scheduler trace event definitions (1-115, 685-855, 940-990) ==="
             sed -n '1,115p;685,855p;940,990p' "$K/include/trace/events/sched.h"
             echo "=== scheduler definitions and trace configuration ==="
-            rg -n 'cpu_load\\[|runnable_load_avg|runnable_avg|idle_get_state_idx|cpu_isolated|CONFIG_SCHED_TRACER|CONFIG_SCHEDSTATS|CONFIG_WALT|CONFIG_UPROBE_EVENTS' "$K/kernel/sched" "$K/include/trace/events/sched.h" "$K/kernel/trace/Kconfig" "$K/arch/arm64/configs/vendor/pipa_defconfig" || true
+            rg -n 'cpu_load\[|runnable_load_avg|runnable_avg|idle_get_state_idx|cpu_isolated|CONFIG_SCHED_TRACER|CONFIG_SCHEDSTATS|CONFIG_WALT|CONFIG_UPROBE_EVENTS' "$K/kernel/sched" "$K/include/trace/events/sched.h" "$K/kernel/trace/Kconfig" "$K/arch/arm64/configs/vendor/pipa_defconfig"
           } > "$GITHUB_WORKSPACE/exp25-sched-trace-diagnostic.txt"
           test -s "$GITHUB_WORKSPACE/exp25-sched-trace-diagnostic.txt"
 
