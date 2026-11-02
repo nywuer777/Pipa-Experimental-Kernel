@@ -271,3 +271,15 @@ O teste `tests/test_exp76_stage31_class_affinity.py` agora inclui as três ocorr
 O último resultado *válido* de compilação continua sendo Stage30: **3/3 objetos base e 2/9 objetos extras**, com 64 rejeitos RT, até nova execução com Stage33. `KERNEL_BUILT=false`; `FLASH_READY=false`; EXP75 preservado.
 
 `EXP76_STAGE33_SOURCE=COMMITTED`; `EXP76_STAGE33_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`.
+
+## Stage34 — restauração do worker RT dos timers a partir do rejeito original
+
+**Evidência Clang21 Stage33:** run `41397136733`, SHA `d69a6b513ee7943d9697b767840e9277b06560c2`. `make prepare=PASS`; objetos iniciais `3/3 PASS`. Entre os nove objetos adicionais, **5/9 PASS**: `sched/rt.o`, `sched/fair.o`, `sched/deadline.o`, `sched/idle.o` e `sched/stop_task.o`. Os quatro bloqueios restantes são `cpu_nr_pinned` em `kernel/cpu.o`, `might_sleep_no_state_check` em `kernel/locking/rtmutex.o`, `timer_update_work` em `kernel/time/timer.o` e conflitos extensos de API/preprocessamento em `kernel/softirq.o`. O compilador também emitiu `-Wundefined-internal` sobre `migrate_disabled_sched` em `core.o`. Permanecem 64 rejeitos de aplicação de RT.
+
+A atualização parcial do RT-140 em `kernel/time/timer.c` removeu a declaração de `timer_update_work`, acrescentou `timer_update_swork` e mudou o callback para `struct swork_event *`. Entretanto, o hunk de `kernel/time/timer.c.rej` não foi aplicado: `timers_update_nohz()` continuou chamando `schedule_work(&timer_update_work)`. O mesmo hunk rejeitado inclui `swork_queue(&timer_update_swork)`, `WARN_ON(swork_get())`, `INIT_SWORK` e `early_initcall(hrtimer_init_thread)`.
+
+O port Stage34 em `tools/exp76-rt-stage34-timer-swork.py` usa **o conteúdo textual exato do rejeito** como pré-condição. Inspeciona `include/linux/swork.h`, `kernel/sched/swork.c` e `kernel/sched/Makefile` para exigir o backend real. Insere `#include <linux/swork.h>`, restaura a fila `swork_queue()` e insere a função de init exatamente como fornecida no patch RT. O teste `tests/test_exp76_stage34_timer_swork.py` cobre verificação sem escrita, aplicação positiva, rejeito divergente, backend inexistente, Makefile divergente, corpo timer alterado e contagem de rejeitos incorreta. O manifesto `stage34-status.json` preserva `remaining_rejected_files=64` e `flash_ready=false`.
+
+**Limites:** a restauração de timer ainda exige prova de compilação no Clang21. Não prova execução correta de callbacks, inicialização completa do scheduler ou segurança PREEMPT_RT. Os componentes de CPU hotplug, rtmutex, softirq, migração e as demais rejeições continuam pendentes. Nenhuma alteração no EXP75, nenhum link de kernel, `Image` ou `boot.img`.
+
+`EXP76_STAGE34_SOURCE=COMMITTED`; `EXP76_STAGE34_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
