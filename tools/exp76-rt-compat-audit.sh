@@ -439,6 +439,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE35=KERNEL_SLEEP_CHECK_MACROS_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false' | tee "$REPORT/stage35-gate.txt"
 
 
+# Stage36: CPU hotplug's cpu_nr_pinned() depends on the whole rejected RT
+# migration-disable lifecycle, rq->nr_pinned, and E404 affinity ABI port.
+# Read-only inventory: refuse fake helper/counter implementations.
+python3 tools/exp76-stage36-migration-contract.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage36" \
+    --mode audit | tee "$REPORT/stage36-migration-contract.log"
+test -f "$REPORT/stage36/stage36-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE36=RT_PINNING_LIFECYCLE_INVENTORIED; CPU_NR_PINNED_RUNTIME_MISSING=true; FLASH_READY=false' | tee "$REPORT/stage36-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
