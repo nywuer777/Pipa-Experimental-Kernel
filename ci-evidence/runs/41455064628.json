@@ -1,0 +1,95 @@
+{
+  "artifact_present": false,
+  "extra_object_coverage": null,
+  "flash_ready": false,
+  "job_conclusion": "failure",
+  "kernel_built": false,
+  "preparation": null,
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "run_id": 41455064628,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41455064628",
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "source_sha": "d69b92e754e5ae64af6fd8ec4a5e26a4f1a89b16",
+  "stages": {
+    "stage19": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 65,
+      "stage": "EXP76_RT_STAGE19_COMPILER_HEADER_FIXES"
+    },
+    "stage20": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE20_SWAP_LOCALLOCK_AND_PERCPU_RWSEM_ABI"
+    },
+    "stage21": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED"
+    },
+    "stage26": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE26_E404_ARM64_FORK_VALUE_AFFINITY"
+    },
+    "stage27": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION"
+    },
+    "stage28": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE28_RT_TASK_STATE_LOCKED_HELPER_RESTORED"
+    },
+    "stage29": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE29_E404_RT_MIGRATION_TASK_ABI"
+    },
+    "stage31": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY"
+    },
+    "stage34": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED"
+    },
+    "stage35": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE35_RT_MIGHT_SLEEP_NO_STATE_CHECK"
+    },
+    "stage36": {
+      "applied": null,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE36_RT_CPU_PINNING_CONTRACT_INVENTORY"
+    },
+    "stage38": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS"
+    },
+    "stage40": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    }
+  },
+  "status": null,
+  "targets": {}
+}
