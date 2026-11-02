@@ -181,15 +181,15 @@
     "exit_code": 2,
     "first_error_context": [
       "  CC      kernel/sched/cputime.o",
-      "  CC      mm/page-writeback.o",
+      "  CC      mm/fadvise.o",
       "  CC      kernel/sched/wait_bit.o",
+      "  CC      mm/maccess.o",
+      "  CC      mm/page_alloc.o",
       "  CC      kernel/sched/swork.o",
       "  CC      kernel/sched/completion.o",
-      "  CC      mm/readahead.o",
-      "  CC      mm/swap.o",
       "  CC      kernel/sched/cpudeadline.o",
       "  CC      kernel/sched/topology.o",
-      "  CC      mm/truncate.o",
+      "  CC      mm/page-writeback.o",
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/topology.c:494:26: error: invalid operands to binary expression ('atomic_t' and 'unsigned long')",
       "  494 |         rd->rto_push_work.flags |= IRQ_WORK_HARD_IRQ;",
       "      |         ~~~~~~~~~~~~~~~~~~~~~~~ ^  ~~~~~~~~~~~~~~~~~",
@@ -216,10 +216,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41490870864,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41490870864",
+  "run_id": 41493313589,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41493313589",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "696846edf2958c13e884723c36d989cb6695492c",
+  "source_sha": "f54f292f45287ca7e5ea8f1addd3e451793b35ec",
   "stages": {
     "stage19": {
       "applied": true,
