@@ -532,6 +532,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE51=NEIGH_HH_MUTABLE_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage51-gate.txt"
 
 
+# Stage52: upstream RT removed E404's cgroup.h include but retained
+# vendor blkcg CSS/task_css uses. Restore header dependency and reconcile
+# remaining vendor callback_lock operations and task->cpus_allowed ABI.
+python3 tools/exp76-rt-stage52-cgroup-cpuset.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage52" \
+    --mode apply | tee "$REPORT/stage52-cgroup-cpuset.log"
+test -f "$REPORT/stage52/stage52-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE52=CGROUP_CSS_AND_CPUSET_RAW_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage52-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
