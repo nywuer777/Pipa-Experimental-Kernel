@@ -35,6 +35,8 @@ on:
       - 'tests/test_exp76_stage36_migration_contract.py'
       - 'tools/exp76-rt-stage38-softirq-entry.py'
       - 'tests/test_exp76_stage38_softirq_entry.py'
+      - 'tools/exp76-rt-stage40-sleeping-lock.py'
+      - 'tests/test_exp76_stage40_sleeping_lock.py'
   workflow_dispatch:
 
 permissions:
@@ -85,6 +87,8 @@ jobs:
           python3 tests/test_exp76_stage36_migration_contract.py
           python3 -m py_compile tools/exp76-rt-stage38-softirq-entry.py
           python3 tests/test_exp76_stage38_softirq_entry.py
+          python3 -m py_compile tools/exp76-rt-stage40-sleeping-lock.py
+          python3 tests/test_exp76_stage40_sleeping_lock.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -129,7 +133,7 @@ jobs:
           clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
           rm -rf .git
 
-      - name: Prepare Stage39 dual-guard softirq from pinned official RT/E404 patch
+      - name: Prepare Stage40 RT sleeping_lock using pinned official RT/E404 patch audit
         shell: bash
         timeout-minutes: 35
         run: |
@@ -150,9 +154,10 @@ jobs:
           test -f exp76-rt-report/stage35/stage35-status.json
           test -f exp76-rt-report/stage36/stage36-status.json
           test -f exp76-rt-report/stage38/stage38-status.json
+          test -f exp76-rt-report/stage40/stage40-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
-          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE39_DUAL_SOFTIRQ_GUARD'
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE40_SLEEPING_LOCK'
 
       - name: Run arm64 prepare gate, then compile only selected scheduler objects
         shell: bash
@@ -257,6 +262,7 @@ jobs:
             exp76-rt-report/stage35/
             exp76-rt-report/stage36/
             exp76-rt-report/stage38/
+            exp76-rt-report/stage40/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
