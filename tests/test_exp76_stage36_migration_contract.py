@@ -82,7 +82,10 @@ def main() -> None:
         assert report["core_cpu_nr_pinned_implemented"] is False
         assert report["runqueue_nr_pinned_field_implemented"] is False
         assert report["cross_file_runtime_contract_complete"] is False
-        assert report["remaining_rejected_files"] == 64
+        # Stage37: the manifest must report the number of .rej files,
+        # not the number of declarations in the final preempt.h loop.
+        assert len(list(good.rglob("*.rej"))) == 64
+        assert report["remaining_rejected_files"] == len(list(good.rglob("*.rej")))
         assert len(report["blockers"]) == 7
         assert report["kernel_built"] is False and report["flash_ready"] is False
 
@@ -118,11 +121,20 @@ def main() -> None:
         p.write_text(p.read_text().replace("nr_pinned = cpu_nr_pinned(cpu);", "nr_pinned = 0;"))
         assert call(no_hotplug).returncode != 0
 
+        preempt_drift = base / "preempt-declarations"
+        setup(preempt_drift)
+        p = preempt_drift / "include/linux/preempt.h"
+        p.write_text(p.read_text() + "int __migrate_disabled(struct task_struct *p);\n")
+        result = call(preempt_drift)
+        assert result.returncode != 0
+        assert "expected 1" in result.stderr
+        assert not (preempt_drift / "report/stage36-status.json").exists()
+
         no_reject = base / "reject-count"
         setup(no_reject)
         (no_reject / "pending/r00.rej").unlink()
         assert call(no_reject).returncode != 0
-    print("EXP76_STAGE36_RT_MIGRATION_CONTRACT=7_PASS; FLASH_READY=false")
+    print("EXP76_STAGE37_RT_MIGRATION_CONTRACT=8_PASS; REJECTS=64; FLASH_READY=false")
 
 
 if __name__ == "__main__":
