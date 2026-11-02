@@ -80,12 +80,13 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
     k = original[KTHREAD]
     exact(k, "\traw_spin_lock_init(&worker->lock);\n",
           "RT kthread worker lock initialization")
-    exact(k, "\traw_spin_lock_irq(&worker->lock);\n",
-          "Already-applied RT kthread_flush_work caller")
-    exact(k, "\traw_spin_unlock_irq(&worker->lock);\n",
-          "Already-applied RT kthread_flush_work unlock")
     pre, worker, post = section(k, WORKER_PREFIX, WORKER_END,
                                 "kthread_worker_fn exact body")
+    outside_worker = pre + post
+    exact(outside_worker, "\traw_spin_lock_irq(&worker->lock);\n",
+          "Already-applied RT kthread_flush_work caller")
+    exact(outside_worker, "\traw_spin_unlock_irq(&worker->lock);\n",
+          "Already-applied RT kthread_flush_work unlock")
     exact(worker, STOP_OLD, "E404 worker stop lock pair")
     exact(worker, PICK_OLD, "E404 worker pending-work acquire")
     exact(worker, PICK_UNLOCK_OLD, "E404 worker pending-work release")

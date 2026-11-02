@@ -89,7 +89,7 @@ def main() -> None:
         assert M["PROC_OLD"] not in (good / M["PROC"]).read_text()
         assert (good / M["PROC"]).read_text().count(M["PROC_NEW"]) == 2
         assert json.loads((root / "applied/stage59-status.json").read_text()) == done
-        reject(lambda: prepare(good), "Already-applied RT kthread_flush_work caller")
+        reject(lambda: prepare(good), "E404 worker stop lock pair")
 
         bad_type = fixture(root / "bad-type")
         p = bad_type / M["KTHREAD_HEADER"]
