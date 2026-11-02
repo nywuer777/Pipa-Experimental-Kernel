@@ -108,6 +108,8 @@ def main() -> None:
             "takedown_cpu_task = current;"
         ).replace("retry_pinned_cpu:", "again:").replace(
             "__set_current_state(TASK_RUNNING);", "set_current_state(TASK_RUNNING);"
+        ).replace(
+            "if (!nr_pinned)", "if (nr_pinned == 0)"
         )
         upstream_cpu = vendor_cpu.replace(
             D["CPU_FUNC"], D["CPU_THREAD_GLOBAL"] + D["CPU_FUNC"], 1
