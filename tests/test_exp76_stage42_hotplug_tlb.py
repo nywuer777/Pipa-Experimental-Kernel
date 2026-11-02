@@ -155,6 +155,17 @@ def main() -> None:
         assert rejected.returncode != 0
         assert "Complete RT hotplug requires stopper and polling call sites" in rejected.stderr
 
+        missing_poll = base / "missing-upstream-poll"
+        fixture(missing_poll)
+        put(missing_poll, D["CPU"], upstream_cpu.replace(
+            "nr_pinned = cpu_nr_pinned(cpu);",
+            "nr_pinned = 0;",
+        ))
+        invalid = run(missing_poll)
+        assert invalid.returncode != 0
+        assert "expected one" in invalid.stderr
+        assert (missing_poll / D["CORE"]).read_text() == CORE
+
         incomplete_upstream = base / "incomplete-upstream"
         fixture(incomplete_upstream)
         put(incomplete_upstream, D["CPU"], upstream_cpu.replace(
@@ -195,7 +206,7 @@ def main() -> None:
         (short_rejects / "pending/r00.rej").unlink()
         assert run(short_rejects).returncode != 0
 
-    print("EXP76_STAGE43_HOTPLUG_PIN_CALL_SITES_REGRESSIONS=10_PASS; FLASH_READY=false")
+    print("EXP76_STAGE43_HOTPLUG_PIN_CALL_SITES_REGRESSIONS=11_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
