@@ -239,3 +239,21 @@ O pipeline Clang 21 mantém o gate base 3/3 e executa os nove objetos adicionais
 Evidência: https://github.com/nywuer777/Pipa-Experimental-Kernel/blob/exp76-ci-evidence/ci-evidence/clang21-latest.json
 
 `EXP76_STAGE31_SOURCE=COMMITTED`; `EXP76_STAGE31_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage32 — correção do gate de afinidade NUMA que bloqueou a Stage31
+
+**Falha real:** GitHub Actions `41388920664`, SHA `27f7e3a6ffbad853a0ad4385f3d70f26ee8e07ad`. O job de validação de scripts concluiu com sucesso, incluindo `EXP76_STAGE31_CLASS_AFFINITY_REGRESSIONS=7_PASS`, mas a auditoria abortou antes do gate `make prepare`:
+
+```text
+ValueError: kernel/sched/fair.c: unrecognized remaining RT affinity reference
+```
+
+O patch RT-140 aplicado à E404 modifica **três expressões** de afinidade em `fair.c`, mais um comentário; o script Stage31 havia tratado somente uma expressão e o comentário. Os pontos adicionais são o teste da CPU de origem em `task_numa_compare()`, `cur->cpus_ptr`, e o teste de CPU candidata em `task_numa_find_cpu()`, `env->p->cpus_ptr`.
+
+Stage32 atualiza `tools/exp76-rt-stage31-class-affinity.py` para cobrir esses dois locais, restaurando o acesso às máscaras embutidas `&cur->cpus_allowed` e `&env->p->cpus_allowed`. O total do port de `rt.c`, `fair.c` e `deadline.c` é agora **nove fragmentos exatos** (oito expressões C e um comentário). O script falha se uma ocorrência sumir, duplicar, ou restar `->cpus_ptr` nos três arquivos. O manifesto registra `stage32_fair_numa_affinity_reconciled=true`.
+
+Os testes `tests/test_exp76_stage31_class_affinity.py` passaram a exigir os nove fragmentos e incluem dois novos casos específicos: ausência do teste NUMA de origem e duplicação do teste NUMA de destino. O workflow existente executa esses testes e a auditoria antes do Clang 21; nenhuma alteração de configuração de hardware, flash, política de scheduler, estado de migração ou locks foi introduzida.
+
+**Estado de evidência:** Stage31 falhou na auditoria e **não** produziu novos objetos. O placar real anterior permanece `3/3` objetos base e `2/9` objetos adicionais. As próximas saídas precisam validar se o Stage32 desbloqueia a auditoria e permite compilar `rt.o`, `fair.o` e `deadline.o`.
+
+`EXP76_STAGE32_SOURCE=COMMITTED`; `EXP76_STAGE32_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
