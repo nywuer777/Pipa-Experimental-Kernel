@@ -83,12 +83,25 @@ def prepare(root: Path) -> tuple[str, str]:
     one(sched, SCHED_ANCHOR, SCHED)
     one(core, CORE_ANCHOR, CORE)
     one(softirq, "tsk->sleeping_lock", SOFTIRQ)
-    # Accept a preexisting field only when its exact RT guard is unique.
-    field = "#ifdef CONFIG_PREEMPT_RT_FULL\n\tint\t\t\t\tsleeping_lock;\n#endif"
-    declarations = len(re.findall(r"\bint\s+sleeping_lock\s*;", sched))
-    existing_field = field in sched
-    if declarations != int(existing_field) or sched.count(field) > 1:
-        raise ValueError("ambiguous sleeping_lock field declaration")
+    # Require one exact RT-only field, allowing whitespace variation only.
+    # Unrecognized or duplicated declarations remain a hard failure.
+    guarded_field = re.compile(
+        r"(?m)^[ \t]*#ifdef[ \t]+CONFIG_PREEMPT_RT_FULL[ \t]*\n"
+        r"[ \t]*int[ \t]+sleeping_lock[ \t]*;[ \t]*\n"
+        r"[ \t]*#endif[ \t]*(?=\n|$)"
+    )
+    declarations = list(re.finditer(r"\bint\s+sleeping_lock\s*;", sched))
+    guarded = list(guarded_field.finditer(sched))
+    existing_field = len(declarations) == len(guarded) == 1
+    if declarations and not existing_field:
+        context = [
+            sched[max(0, m.start() - 160):min(len(sched), m.end() + 100)]
+            for m in declarations[:3]
+        ]
+        raise ValueError(
+            "ambiguous sleeping_lock field declaration: "
+            + repr(context)
+        )
     initializers = core.count("p->sleeping_lock = 0;")
     if initializers > 1 or (initializers and not existing_field):
         raise ValueError("inconsistent sleeping_lock fork initialization")
