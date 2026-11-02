@@ -30,6 +30,8 @@ jobs:
           path: source
 
       - name: Check evidence collector behavior without compiler
+        id: collector_regression
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -44,7 +46,10 @@ jobs:
           path: evidence
 
       - name: Write isolated relay heartbeat
+        if: always()
         shell: bash
+        env:
+          COLLECTOR_REGRESSION: ${{ steps.collector_regression.outcome }}
         run: |
           set -euo pipefail
           test -d evidence/.git
@@ -68,7 +73,7 @@ jobs:
               "run_url": f"https://github.com/{repo}/actions/runs/{run_id}",
               "repository": repo,
               "source_sha": sha,
-              "collector_regression": "PASS",
+              "collector_regression": os.environ["COLLECTOR_REGRESSION"],
               "kernel_compiled": False,
               "flash_ready": False,
           }
@@ -93,8 +98,9 @@ jobs:
           {
             echo '### EXP76 evidence relay smoke'
             echo
-            echo 'Collector regressions: PASS.'
+            echo "Collector regressions: $COLLECTOR_REGRESSION."
             echo 'Isolated evidence branch push: PASS.'
             echo "Run ID: $GITHUB_RUN_ID"
             echo 'KERNEL_BUILT=false; FLASH_READY=false'
           } >> "$GITHUB_STEP_SUMMARY"
+          test "$COLLECTOR_REGRESSION" = "success"
