@@ -43,6 +43,8 @@ on:
       - 'tests/test_exp76_stage42_hotplug_tlb.py'
       - 'tools/exp76-stage46-cross-subsystem-coverage.py'
       - 'tests/test_exp76_stage46_cross_subsystem.py'
+      - 'tools/exp76-rt-stage47-rcu-workqueue.py'
+      - 'tests/test_exp76_stage47_rcu_workqueue.py'
   workflow_dispatch:
 
 permissions:
@@ -101,6 +103,8 @@ jobs:
           python3 tests/test_exp76_stage42_hotplug_tlb.py
           python3 -m py_compile tools/exp76-stage46-cross-subsystem-coverage.py
           python3 tests/test_exp76_stage46_cross_subsystem.py
+          python3 -m py_compile tools/exp76-rt-stage47-rcu-workqueue.py
+          python3 tests/test_exp76_stage47_rcu_workqueue.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -145,7 +149,7 @@ jobs:
           clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
           rm -rf .git
 
-      - name: Prepare Stage45 bounded E404 takedown function and RT migration audit
+      - name: Prepare Stage47 RT RCU and workqueue from pinned rejects
         shell: bash
         timeout-minutes: 35
         run: |
@@ -169,9 +173,10 @@ jobs:
           test -f exp76-rt-report/stage40/stage40-status.json
           test -f exp76-rt-report/stage41/stage41-status.json
           test -f exp76-rt-report/stage42/stage42-status.json
+          test -f exp76-rt-report/stage47/stage47-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
-          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE45_BOUNDED_RT_TAKEDOWN'
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE47_RCU_WORKER_RAW_LOCK'
 
       - name: Run arm64 prepare gate, then compile only selected scheduler objects
         shell: bash
@@ -310,6 +315,7 @@ jobs:
             exp76-rt-report/stage40/
             exp76-rt-report/stage41/
             exp76-rt-report/stage42/
+            exp76-rt-report/stage47/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
