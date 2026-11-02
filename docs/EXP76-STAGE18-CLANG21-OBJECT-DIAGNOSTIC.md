@@ -199,3 +199,15 @@ O código RT de `wait_task_inactive()` verifica tanto `task->state` como `task->
 O erro `migrate_disable` **não é contornado**. O RT necessita campos de estado, sincronização de scheduler e ciclos de desabilitar/habilitar migração; adicionar somente um membro ou um stub que retorne zero produziria compilação sem demonstrar correção. Stage28 mantém esse bloqueio visível até um port íntegro. Nenhuma imagem, módulo instalável ou flash é produzido.
 
 `EXP76_STAGE28_SOURCE=COMMITTED`; `EXP76_STAGE28_CI=UNVERIFIED`; `EXP76_REJECTED_FILES_TARGET=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage29 — ABI RT de migração em task_struct, sem ciclo de execução
+
+**Evidência de partida:** Clang21 run `41381277114`, commit `a052f0655a7e4de1bfb727e8785dcc272273d380`. O gate `make prepare` passou; `cpupri.o` e `fork.o` compilaram. O único erro remanescente em `core.o` foi `p->migrate_disable` inexistente; o erro anterior de `check_task_state` desapareceu. Os manifestos registraram Stages 19, 20, 21, 26, 27 e 28 aplicados com 64 rejeições.
+
+O rejeito original da atualização `include/linux/sched.h` contém `migrate_disable` e `migrate_disable_scheduled` para `CONFIG_SMP && CONFIG_PREEMPT_RT_BASE`, mais `pinned_on_cpu` sob `CONFIG_SCHED_DEBUG`, mas a mesma hunk tenta trocar a máscara E404 `cpus_allowed` por `cpus_ptr/cpus_mask`. Esta troca é incompatível com o scheduler e com os ajustes vendor de afinidade já validados.
+
+`tools/exp76-rt-stage29-migration-abi.py` recupera **apenas** os campos RT com as mesmas condições de compilação, inserindo-os após `cpus_requested` e preservando `nr_cpus_allowed`, `cpus_allowed` e `cpus_requested`. O script inspeciona o rejeito original e `__migrate_disabled()`, exige 64 rejeições e falha se a ABI mudar. Em `__sched_fork()`, inicializa `migrate_disable=0`, `migrate_disable_scheduled=false` e `pinned_on_cpu=-1` sob os guards correspondentes. Seis testes sintéticos verificam execução sem escrita, aplicação positiva, campo duplicado, rejeito alterado, máscara vendor alterada e init de fork ausente.
+
+**Contrato de segurança:** os campos não implementam `migrate_disable()` e `migrate_enable()`; continuam ausentes os hooks completos do scheduler, `rq->nr_pinned`, tratamento de hotplug e auditoria de `sleeping_lock`. Uma eventual compilação dos três objetos significa apenas compilação dos objetos: não demonstra link, PREEMPT_RT funcional, ABI Android preservada para instalação, ou capacidade de boot. Nenhuma imagem é gerada e `FLASH_READY=false`.
+
+`EXP76_STAGE29_SOURCE=COMMITTED`; `EXP76_STAGE29_CI=UNVERIFIED`; `EXP76_REJECTS_TARGET=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
