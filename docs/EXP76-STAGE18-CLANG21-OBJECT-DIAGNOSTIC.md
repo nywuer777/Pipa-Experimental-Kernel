@@ -151,3 +151,25 @@ O workflow principal `exp76-stage18-clang21-diagnostic.yml` passou a disponibili
 Se o heartbeat `relay-health.json` não aparecer, a publicação continua não demonstrada. Se aparecer, confirma a rota básica de escrita, não o funcionamento completo do compilador. A meta de rejeitos permanece 64 e nenhuma instalação/flash foi autorizada.
 
 `EXP76_STAGE25_SOURCE=COMMITTED`; `EXP76_STAGE25_RELAY=UNVERIFIED`; `EXP76_STAGE25_CLANG21=UNVERIFIED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage25 — evidência real do Clang21, após Stage24
+
+O canal de publicação foi validado pelo smoke `41376944941` (`collector_regression=success`). O diagnóstico da compilação `41376314394`, SHA `b98c8e787a0e5c002fbcfa3e5b09d613182ed1e8`, publicou `ci-evidence/clang21-latest.json`.
+
+- `make prepare`: **PASS** (`gate_exit_code=0`), `asm-offsets.s` e os cabeçalhos gerados passaram.
+- `kernel/sched/cpupri.o`: **PASS** (`exit_code=0`).
+- `kernel/fork.o`: **FAIL** (`exit_code=2`) por `orig->cpus_ptr`, `orig->cpus_mask`, `tsk->cpus_ptr`, `tsk->cpus_mask` inexistentes em `task_struct` E404.
+- `kernel/sched/core.o`: **FAIL** (`exit_code=2`) por `cpus_ptr` / `cpus_mask`, `migrate_disable` ausente e `check_task_state` não declarado.
+- Stages 19, 20 e 21 aplicados conforme manifestos; **64 arquivos .rej** restantes. `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+Evidência: https://github.com/nywuer777/Pipa-Experimental-Kernel/blob/exp76-ci-evidence/ci-evidence/clang21-latest.json
+
+## Stage26 — ajuste cirúrgico do fork, sem alterar migração de CPU
+
+O `task_struct` da E404 mantém `cpumask_t cpus_allowed` e `cpumask_t cpus_requested`, ambas embutidas, sem membros `cpus_ptr` ou `cpus_mask`. O `arch_dup_task_struct()` ARM64 desta base executa `*dst = *src`, duplicando a estrutura por valor. O código RT-140 que reatribui o ponteiro do filho para `&tsk->cpus_mask` é incompatível e desnecessário nessa representação.
+
+`tools/exp76-rt-stage26-fork-affinity.py` remove somente essas duas linhas do `kernel/fork.c` pós-patch, exigindo evidências diretas da estrutura E404, cópia ARM64 por valor, código RT original e contagem pinada de 64 rejeitos. Os testes `tests/test_exp76_stage26_fork_affinity.py` incluem aplicação positiva e falhas por mudança da cópia ARM64 e dos campos de afinidade.
+
+O código não substitui usos de `cpus_ptr` em `core.c`, não cria `migrate_disable` fictício e não declara o scheduler funcional. A nova CI deve confirmar se `kernel/fork.o` compila após o ajuste; somente então revisar as próximas incompatibilidades do scheduler core.
+
+`EXP76_STAGE26_SOURCE=COMMITTED`; `EXP76_STAGE26_FORK_OBJECT_CI=PENDING`; `EXP76_RT_REJECT_TARGET=64`; `FLASH_READY=false`.
