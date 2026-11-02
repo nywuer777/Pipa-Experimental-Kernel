@@ -505,3 +505,29 @@ ValueError: kernel/rcu/update.c.rej: expected one '+#endif\n', saw 2
 **Pendente:** a execução Clang21 Stage48 precisa confirmar o script inteiro aplicado à árvore real e repetir os nove objetos adicionais Stage46. O último resultado compilado permanece 12/12 objetos anteriores e 4/9 cross-subsystem no Stage46. Os objetos `mutex.o` e `rwsem.o` continuam bloqueados por incompatibilidades estruturais RT, que não são tratados neste estágio. Os 64 rejeitos permanecem; sem `vmlinux`, `Image`, `boot.img` ou flash.
 
 `EXP76_STAGE48_SOURCE=COMMITTED`; `EXP76_STAGE48_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage49 — corrigir o alvo de compilação de mutex/rwsem para PREEMPT_RT
+
+**Evidência original Stage46:** execução Clang21 `41472504082` com 12/12 objetos iniciais e adicionais compilados, 4/9 cross-subsystem, cinco falhas: `mutex.o`, `rwsem.o`, `rcu/tree.o`, `rcu/update.o` e `workqueue.o`. A CI do Stage47 parou durante a auditoria. Stage48 corrigiu a seleção do `+#endif` em `update.c.rej`, mas o seu resultado completo ainda não estava disponível quando Stage49 foi preparado.
+
+**Causa de duas falhas de locking:** o patch RT parcial da E404 já altera `kernel/locking/Makefile` para **excluir** `mutex.o`, `rwsem.o` e `mutex-debug.o` quando `CONFIG_PREEMPT_RT_FULL=y`:
+
+```make
+ifneq ($(CONFIG_PREEMPT_RT_FULL),y)
+obj-y += mutex.o
+obj-$(CONFIG_DEBUG_MUTEXES) += mutex-debug.o
+obj-y += rwsem.o
+endif
+
+obj-$(CONFIG_PREEMPT_RT_FULL) += mutex-rt.o rwsem-rt.o rwlock-rt.o
+```
+
+Stage46 testava diretamente os objetos legados, apesar de a mesma configuração ativar os tipos RT em `include/linux/mutex.h` e `include/linux/rwsem.h`. Isso explica as falhas de `owner`, `wait_list`, `m_count` e o erro inicial de gramática em `mutex.o`. Compilar os objetos legados, isoladamente, não é um teste válido do mecanismo de locking que será selecionado pelo link RT.
+
+**Correção Stage49:** `tools/exp76-stage46-cross-subsystem-coverage.py` substitui `kernel/locking/mutex.o` por `kernel/locking/mutex-rt.o` e `kernel/locking/rwsem.o` por `kernel/locking/rwsem-rt.o`, e **adiciona** `kernel/locking/rwlock-rt.o` para incluir o terceiro componente RT selecionado. A cobertura passa de nove para **dez objetos cross-subsystem**, e de 21 para **22 objetos selecionados** no total. Os três arquivos `mutex-rt.c`, `rwsem-rt.c` e `rwlock-rt.c` são arquivos novos introduzidos no patch RT parcial e exigidos pela auditoria antes da compilação.
+
+A função `validate_rt_locking_makefile()` exige os dois blocos acima exatamente uma vez, recusa a linha herdada `obj-y += mutex.o semaphore.o rwsem.o percpu-rwsem.o` e impede incluir os alvos legados na allowlist. Assim, uma alteração futura no Makefile que mudasse a seleção de objetos será detectada, sem falsear resultados de compilação.
+
+`tests/test_exp76_stage46_cross_subsystem.py` agora testa os dez alvos com `make` sintético restrito a `.o`, o gate dos 12 anteriores, a falha isolada de `irq/manage.o`, o Makefile legado, a perda de `rwlock-rt.o`, as fontes ausentes, os 64 rejeitos e as proibições de imagem/link. O workflow rotula a etapa como `Compile 10 RT Kbuild-selected cross-subsystem objects (22 selected total, NO LINK)`, usando os relatórios existentes, sem mudar a fonte do kernel e sem eliminar nenhuma falha ainda não resolvida de RCU ou workqueue.
+
+**Limite:** a última compilação confirmada no momento desta revisão continua com 12/12 objetos anteriores e 4/9 cross-subsystem **no conjunto antigo de alvos**. Os novos três alvos de locking RT não tinham CI confirmada. Os 64 rejeitos pendentes, a validação funcional, o link e o boot do kernel ainda não foram resolvidos. `EXP76_STAGE49_SOURCE=COMMITTED`; `EXP76_STAGE49_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
