@@ -15,8 +15,8 @@ from pathlib import Path
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-STAGES = ("stage19", "stage20", "stage21", "stage26", "stage27", "stage28", "stage29", "stage31", "stage34", "stage35", "stage36", "stage38", "stage40", "stage41", "stage42")
-STAGE_FILENAMES = ("stage19-status.json", "stage20-status.json", "stage21-status.json", "stage26-status.json", "stage27-status.json", "stage28-status.json", "stage29-status.json", "stage31-status.json", "stage34-status.json", "stage35-status.json", "stage36-status.json", "stage38-status.json", "stage40-status.json", "stage41-status.json", "stage42-status.json")
+STAGES = ("stage19", "stage20", "stage21", "stage26", "stage27", "stage28", "stage29", "stage31", "stage34", "stage35", "stage36", "stage38", "stage40", "stage41", "stage42", "stage47")
+STAGE_FILENAMES = ("stage19-status.json", "stage20-status.json", "stage21-status.json", "stage26-status.json", "stage27-status.json", "stage28-status.json", "stage29-status.json", "stage31-status.json", "stage34-status.json", "stage35-status.json", "stage36-status.json", "stage38-status.json", "stage40-status.json", "stage41-status.json", "stage42-status.json", "stage47-status.json")
 
 
 def read_json(path: Path) -> dict | None:
