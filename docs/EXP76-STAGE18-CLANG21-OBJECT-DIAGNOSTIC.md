@@ -124,3 +124,18 @@ O Stage23 preserva a regra de não tentar `cpupri.o`, `core.o` e `fork.o` quando
 Não houve nova aplicação do patch PREEMPT_RT ou remoção de rejeitos nesta etapa: a meta continua em **64 `.rej`**. O resultado real do Clang 21 posterior ao Stage22 ainda requer os logs da CI.
 
 `EXP76_STAGE23_SOURCE=COMMITTED`; `EXP76_STAGE23_LOCAL_TESTS=4_PASS`; `EXP76_STAGE23_CI=UNVERIFIED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage24 — canal de evidência persistente, independente dos IDs do conector
+
+Os Stages 20 e 21 usam entradas verificadas no artefato da auditoria Stage19: o rejeito `include/linux/swap.h.rej` tem SHA256 `445ee7f190e53347b5d25fbbcc9e29ba37a946763323743de2b9044ec8261370`, e a versão upstream de `include/linux/rcu_assign_pointer.h` tem SHA256 `32bf555037ac9f9506dbd0ceef386f31d5bc3fdc79b75ac9a1184ce95df07e1d`. Essas verificações confirmam os insumos, não a compilação dos objetos.
+
+O conector GitHub utilizado não lista todas as execuções originadas por `push` ao consultar um SHA; por isso o workflow Clang21 agora possui um job de publicação de evidências separado, com `contents:write`, enquanto o job de compilação permanece `contents:read`.
+
+- O coletor `tools/exp76-stage24-collect-ci-evidence.py` lê os JSONs `OBJECT_DIAGNOSTIC.json`, `PREPARE_GATE.json` e os manifestos Stages 19–21 quando estão presentes, mantendo explicitamente `null` ou `artifact_present=false` quando ausentes.
+- O job publica apenas JSON resumido e limitado no branch isolado `exp76-ci-evidence`, nos arquivos `ci-evidence/clang21-latest.json` e `ci-evidence/runs/<run_id>.json`.
+- Os registros incluem o commit fonte real e o URL `https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/<run_id>`, tornando possível consultar posteriormente o log com o ID real.
+- Os testes `tests/test_exp76_stage24_evidence.py` verificam artefato ausente, resultado completo e a preservação do arquivo `latest` diante de uma publicação atrasada de ID anterior.
+
+A meta permanece em 64 rejeições pendentes, e a semântica do scheduler ainda precisa de revisão. A publicação do canal é uma mudança de observabilidade; ela não prova que `make prepare` passou e não produz `Image`, `vmlinux` nem `boot.img`.
+
+`EXP76_STAGE24_EVIDENCE_SOURCE=COMMITTED`; `EXP76_STAGE24_CI=UNVERIFIED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
