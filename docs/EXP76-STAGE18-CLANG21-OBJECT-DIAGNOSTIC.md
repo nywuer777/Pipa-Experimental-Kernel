@@ -283,3 +283,20 @@ O port Stage34 em `tools/exp76-rt-stage34-timer-swork.py` usa **o conteúdo text
 **Limites:** a restauração de timer ainda exige prova de compilação no Clang21. Não prova execução correta de callbacks, inicialização completa do scheduler ou segurança PREEMPT_RT. Os componentes de CPU hotplug, rtmutex, softirq, migração e as demais rejeições continuam pendentes. Nenhuma alteração no EXP75, nenhum link de kernel, `Image` ou `boot.img`.
 
 `EXP76_STAGE34_SOURCE=COMMITTED`; `EXP76_STAGE34_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage35 — `might_sleep_no_state_check` original da RT em `kernel.h`
+
+**Evidência Stage34:** execução Clang21 `41440311252` no commit `89f0e312fe2c50f0111c1c7c5eb859385ab0f9b5`, com `make prepare` PASS, objetos iniciais 3/3 e objetos adicionais **6/9** compilados. O `timer.o` passou após restauração do `swork`. Restaram `cpu.o` (chamada não declarada `cpu_nr_pinned`), `kernel/locking/rtmutex.o` (chamada não declarada `might_sleep_no_state_check`) e `softirq.o` (conflitos extensos de API/preprocessador). `sched/core.o` segue com warning `migrate_disabled_sched` sem definição. Permanecem 64 rejeitos.
+
+O rejeito `include/linux/kernel.h.rej` na árvore E404 contém **duas definições RT não aplicadas** de `might_sleep_no_state_check`:
+
+- Com `CONFIG_DEBUG_ATOMIC_SLEEP`: `do { ___might_sleep(__FILE__, __LINE__, 0); might_resched(); } while (0)`. O uso de três underscores é intencional: a variante sem verificação de estado não é a mesma coisa que `__might_sleep`.
+- Sem `CONFIG_DEBUG_ATOMIC_SLEEP`: `do { might_resched(); } while (0)`.
+
+`tools/exp76-rt-stage35-might-sleep.py` exige exatamente esses dois fragmentos no rejeito oficial, as duas posições originais em `include/linux/kernel.h`, a função auxiliar `___might_sleep` presente nas duas variantes da configuração, a chamada `might_sleep_no_state_check()` em `rtmutex.c` e 64 rejeitos RT. Só então insere as duas macros nos ramos existentes do cabeçalho, sem tocar em `rtmutex.c`, outras APIs de lock ou na semântica de `might_sleep()`.
+
+`tests/test_exp76_stage35_might_sleep.py` cobre verificação sem escrita, aplicação positiva, rejeito divergente em ambos os ramos, declaração auxiliar ausente, chamada RT ausente, duplicação da macro e contagem de rejeições. O workflow Clang 21 e o collector Stage24 incluem o novo manifesto `stage35-status.json` e preservam `FLASH_READY=false`.
+
+**Limites:** mesmo se `rtmutex.o` compilar, não há prova de locking funcional, ciclo de migração completo, kernel linkável, inicialização/boot ou integridade PREEMPT_RT. `cpu.o`, `softirq.o`, `migrate_disabled_sched` e as demais rejeições permanecem tarefas distintas.
+
+`EXP76_STAGE35_SOURCE=COMMITTED`; `EXP76_STAGE35_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
