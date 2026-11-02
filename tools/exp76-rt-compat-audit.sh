@@ -366,6 +366,21 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE27=CORE_VENDOR_AFFINITY_RECONCILED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false' | tee "$REPORT/stage27-gate.txt"
 
 
+# Stage28: the RT wait_task_inactive hunk invokes check_task_state without
+# its matching locked helper. Restore the upstream state/saved_state comparison.
+# Retain the migrate_disable compiler blocker until the full RT migration
+# lifecycle is ported; do not insert a fake field or runtime stub.
+python3 tools/exp76-rt-stage28-task-state.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage28" \
+    --mode apply | tee "$REPORT/stage28-task-state.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage28/stage28-status.json"
+test -f "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE28=TASK_STATE_HELPER_RESTORED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false' | tee "$REPORT/stage28-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
