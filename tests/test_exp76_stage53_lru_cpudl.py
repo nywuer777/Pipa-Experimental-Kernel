@@ -26,7 +26,7 @@ def fixture(folder: Path) -> Path:
         + "{\n\tlru_add_drain();\n}\n"
         + M["NONRT_HELPER"] + "#endif\n"
         + "void lru_add_drain_all(void)\n"
-        + "{\n\tint cpu;\n" + M["OLD_DRAIN"] + "}\n",
+        + "{\n\tstatic DEFINE_MUTEX(lock);\n\tstatic struct cpumask has_work;\n\tint cpu;\n" + M["OLD_DRAIN"] + "}\n",
         encoding="utf-8")
     c = t / M["CPUDL"]
     c.parent.mkdir(parents=True, exist_ok=True)

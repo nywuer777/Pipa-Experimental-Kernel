@@ -94,7 +94,7 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
     one(swap, RT_HELPER, "Pinned RT remote LRU helper")
     one(swap, NONRT_HELPER, "Pinned non-RT per-CPU work helper")
     one(swap, OLD_DRAIN, "E404 vendor LRU drain loop")
-    one(swap, "void lru_add_drain_all(void)\n", "SMP drain declaration")
+    one(swap, "void lru_add_drain_all(void)\n{\n\tstatic DEFINE_MUTEX(lock);\n", "Pinned SMP drain declaration")
     one(cpudl, CPUDL_AND_OLD, "RT cpudeadline affinity mask")
     one(cpudl, CPUDL_TEST_OLD, "RT cpudeadline best_cpu mask")
     if "int cpudl_find(struct cpudl *cp, struct task_struct *p," not in cpudl:
