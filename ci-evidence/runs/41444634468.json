@@ -1,0 +1,83 @@
+{
+  "artifact_present": false,
+  "extra_object_coverage": null,
+  "flash_ready": false,
+  "job_conclusion": "failure",
+  "kernel_built": false,
+  "preparation": null,
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "run_id": 41444634468,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41444634468",
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "source_sha": "46c11ae2683e06fa587bf45ace7e26cd3a8acc37",
+  "stages": {
+    "stage19": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage20": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage21": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage26": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage27": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage28": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage29": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage31": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage34": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage35": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage36": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    }
+  },
+  "status": null,
+  "targets": {}
+}
