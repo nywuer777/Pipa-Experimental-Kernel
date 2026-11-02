@@ -34,6 +34,12 @@ WAKE_ANCHOR = (
     "}\n"
 )
 RT_ELSE = "#else /* !PREEMPT_RT_FULL */"
+INVOKE_RT_ELSE = "#else /* PREEMPT_RT_FULL */"
+INVOKE_ANCHOR = (
+    "static inline void invoke_softirq(void)\n"
+    "{\n\n"
+    "\tif (!force_irqthreads) {"
+)
 
 
 def exactly_once(body: str, part: str, label: str) -> None:
@@ -47,9 +53,9 @@ def additions(piece: str) -> str:
                      if line.startswith("+")) + "\n"
 
 
-def source_sections(rejected: str) -> tuple[str, str, str, str]:
-    # 4.19.325-rt140 reject, first 3 hunks only; these are read from the
-    # actual E404 .rej rather than reconstructed from a different kernel.
+def source_sections(rejected: str) -> tuple[str, str, str, str, str]:
+    # Read first three body hunks AND the sixth invoke_softirq guard
+    # from the pinned E404 RT reject, not from an unrelated upstream tree.
     hunks = re.split(r"(?m)^@@ ", rejected)
     if len(hunks) < 7:
         raise ValueError("Unexpected truncated softirq rejected hunks")
@@ -61,6 +67,9 @@ def source_sections(rejected: str) -> tuple[str, str, str, str]:
     runners = additions(after)
     wake_and_guard = additions(second)
     nonrt_dispatch = additions(third)
+    invoke_guard = additions(hunks[6])
+    if invoke_guard != "#ifndef CONFIG_PREEMPT_RT_FULL\n":
+        raise ValueError("Original invoke_softirq RT guard missing from sixth reject")
     if not declaration.startswith("#ifdef CONFIG_PREEMPT_RT_FULL\n"):
         raise ValueError("Missing upstream ktimer softirq RT declaration")
     if not runners.startswith("#ifdef CONFIG_NO_HZ_COMMON\n"):
@@ -87,7 +96,7 @@ def source_sections(rejected: str) -> tuple[str, str, str, str]:
     ):
         if marker not in declaration + runners + wake_and_guard:
             raise ValueError("Missing original RT helper: " + marker)
-    return declaration, runners, wake_and_guard, nonrt_dispatch
+    return declaration, runners, wake_and_guard, nonrt_dispatch, invoke_guard
 
 
 def audit_preprocessor_balance(body: str) -> dict:
@@ -129,9 +138,10 @@ def prepare(tree: Path) -> tuple[str, dict]:
     if rejected_count != 64:
         raise ValueError(f"Stage38 needs 64 pending RT rejects, saw {rejected_count}")
     reject = (tree / REJECT).read_text(encoding="utf-8")
-    declare, runners, wake, nonrt = source_sections(reject)
+    declare, runners, wake, nonrt, invoke_guard = source_sections(reject)
     body = (tree / SOFTIRQ).read_text(encoding="utf-8")
-    for term in (KSOFTIRQD_ANCHOR, NAME_ANCHOR, WAKE_ANCHOR, RT_ELSE):
+    for term in (KSOFTIRQD_ANCHOR, NAME_ANCHOR, WAKE_ANCHOR,
+                 RT_ELSE, INVOKE_RT_ELSE, INVOKE_ANCHOR):
         exactly_once(body, term, SOFTIRQ)
     if "#ifndef CONFIG_PREEMPT_RT_FULL" in body or "softirq_set_runner(unsigned int sirq)" in body:
         raise ValueError("Early RT softirq guards already ported or source changed")
@@ -142,9 +152,15 @@ def prepare(tree: Path) -> tuple[str, dict]:
     updated = body.replace(KSOFTIRQD_ANCHOR, KSOFTIRQD_ANCHOR + declare, 1)
     updated = updated.replace(NAME_ANCHOR, NAME_ANCHOR + "\n" + runners, 1)
     updated = updated.replace(WAKE_ANCHOR, WAKE_ANCHOR + "\n" + wake + nonrt, 1)
+    updated = updated.replace(
+        INVOKE_ANCHOR,
+        INVOKE_ANCHOR.replace("\tif (!force_irqthreads) {",
+                              invoke_guard + "\tif (!force_irqthreads) {"),
+        1,
+    )
     # There must be the one real #else already carried by the partial patch.
-    if updated.count("#ifndef CONFIG_PREEMPT_RT_FULL") != 1:
-        raise ValueError("Expected one restored RT conditional")
+    if updated.count("#ifndef CONFIG_PREEMPT_RT_FULL") != 2:
+        raise ValueError("Expected both restored RT conditionals")
     if updated.count(RT_ELSE) != 1:
         raise ValueError("Unexpected second non-RT to RT transition")
     balance = audit_preprocessor_balance(updated)
@@ -152,7 +168,8 @@ def prepare(tree: Path) -> tuple[str, dict]:
         **balance,
         "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS",
         "applied": False,
-        "original_rejected_hunks_consumed": 3,
+        "original_rejected_hunks_consumed": 4,
+        "stage39_invoke_softirq_guard_restored": True,
         "rt_ktimer_worker_declaration_restored": True,
         "rt_nohz_runner_tracking_restored": True,
         "rt_vector_handler_restored": True,
