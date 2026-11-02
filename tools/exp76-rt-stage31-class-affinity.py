@@ -101,6 +101,7 @@ def main() -> None:
         "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
         "applied": args.mode == "apply",
         "replaced_fragments": EXPECTED,
+        "stage32_fair_numa_affinity_reconciled": True,
         "updated_source_paths": sorted(replacements),
         "vendor_embedded_cpus_allowed_preserved": True,
         "remaining_rejected_files": remaining,
