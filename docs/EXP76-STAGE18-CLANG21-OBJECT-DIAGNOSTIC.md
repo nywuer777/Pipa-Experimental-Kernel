@@ -439,3 +439,13 @@ O port também acrescenta `rq->nr_pinned` sob o mesmo contrato RT/SMP e declara 
 **Estado:** a última CI publicada na branch de evidências ainda é `41464488427`, que falhou no fixture Stage42. A Stage43 e a Stage44 precisam confirmar execução na CI; a correção de escopo foi verificada textualmente na E404 mas não constitui evidência de compilação. O último conjunto de objetos válido anterior ao port de migração permanece 11/12; a CI Stage41 falhou em `core.o`, e `cpu.o` nem foi tentado. Persistem 64 rejeitos do patch RT, e o kernel completo continua não compilado.
 
 `EXP76_STAGE44_SOURCE=COMMITTED`; `EXP76_STAGE44_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+### Evidência Stage43 obtida durante o port Stage44
+
+Execução `41466506172`, commit `0ab9f979e57c5a07b309d56004a140167d5e3c95`: a etapa de teste `Validate object-only diagnostic scripts` passou, incluindo `EXP76_STAGE43_HOTPLUG_PIN_CALL_SITES_REGRESSIONS=11_PASS`. A auditoria real passou pelo Stage41 e falhou precisamente em `tools/exp76-rt-stage42-hotplug-tlb.py:124`:
+
+```text
+ValueError: kernel/cpu.c: expected one '\tirq_lock_sparse();\n\n', found 2
+```
+
+Essa observação confirma que a correção Stage44 aborda o erro real da Stage43, e não apenas um risco hipotético. O Stage44 ainda depende de seu próprio job Clang21 para provar o port de hotplug. Nenhuma compilação de objetos adicionais foi realizada no Stage43 porque a auditoria interrompeu a preparação. `KERNEL_BUILT=false`; `FLASH_READY=false`.
