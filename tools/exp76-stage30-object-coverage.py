@@ -115,8 +115,6 @@ def main() -> None:
     clang = args.clang_bin.resolve()
     if not (kernel / ".git").is_dir():
         raise ValueError("Expected pinned E404 trial Git checkout")
-    if not (output / "include/generated/asm-offsets.h").is_file():
-        raise ValueError("arm64 make prepare must complete before Stage30")
     if not (clang / "clang").is_file() or not (clang / "ld.lld").is_file():
         raise ValueError("Pinned Clang21 tools absent")
     if args.timeout < 10 or args.timeout > 180:
@@ -125,6 +123,8 @@ def main() -> None:
     core_file = kernel / "kernel/sched/core.c"
     contract = inspect_migration(core_file.read_text(encoding="utf-8"))
     ready = baseline_passed(args.baseline_report)
+    if ready and not (output / "include/generated/asm-offsets.h").is_file():
+        raise ValueError("Three baseline objects passed but generated asm-offsets.h is absent")
     targets = {}
     if ready:
         env = dict(os.environ)
