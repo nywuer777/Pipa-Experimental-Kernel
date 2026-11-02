@@ -69,6 +69,10 @@ def main() -> None:
             "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION",
             "remaining_rejected_files": 64, "applied": True,
         })
+        put(artifact / "exp76-rt-report" / "stage28" / "stage28-status.json", {
+            "stage": "EXP76_STAGE28_RT_TASK_STATE_LOCKED_HELPER_RESTORED",
+            "remaining_rejected_files": 64, "applied": True,
+        })
         failed = invoke(artifact, evidence, 122, "success")
         assert failed["artifact_present"] is True
         assert failed["preparation"]["completed"] is False
@@ -76,6 +80,8 @@ def main() -> None:
         assert failed["stages"]["stage21"]["remaining_rejected_files"] == 64
         assert failed["stages"]["stage26"]["applied"] is True
         assert failed["stages"]["stage27"]["remaining_rejected_files"] == 64
+        assert failed["stages"]["stage28"]["applied"] is True
+        assert failed["stages"]["stage28"]["remaining_rejected_files"] == 64
         assert failed["run_url"].endswith("/122")
         assert failed["kernel_built"] is False
         latest = evidence / "ci-evidence" / "clang21-latest.json"
