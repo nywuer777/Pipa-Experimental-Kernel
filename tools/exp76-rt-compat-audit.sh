@@ -452,6 +452,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE36=RT_PINNING_LIFECYCLE_INVENTORIED; CPU_NR_PINNED_RUNTIME_MISSING=true; FLASH_READY=false' | tee "$REPORT/stage36-gate.txt"
 
 
+# Stage38: RT patch applied its non-RT/RT #else in softirq.c, but
+# the matching #ifndef and helper definitions are in 3 rejected hunks.
+# Recover those actual upstream definitions, not an empty compatibility shim.
+python3 tools/exp76-rt-stage38-softirq-entry.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage38" \
+    --mode apply | tee "$REPORT/stage38-softirq-entry.log"
+test -f "$REPORT/stage38/stage38-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE38=SOFTIRQ_RT_ENTRY_GUARDS_PORTED; SOFTIRQ_RUNTIME_VERIFIED=false; FLASH_READY=false' | tee "$REPORT/stage38-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
