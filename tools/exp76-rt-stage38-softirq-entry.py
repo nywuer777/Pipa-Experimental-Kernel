@@ -90,6 +90,37 @@ def source_sections(rejected: str) -> tuple[str, str, str, str]:
     return declaration, runners, wake_and_guard, nonrt_dispatch
 
 
+def audit_preprocessor_balance(body: str) -> dict:
+    """Reject any unmatched or duplicated #else in complete softirq.c."""
+    stack: list[tuple[int, bool]] = []
+    directives = 0
+    for number, line in enumerate(body.splitlines(), 1):
+        found = re.match(r"^\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b", line)
+        if not found:
+            continue
+        directive = found.group(1)
+        directives += 1
+        if directive in ("if", "ifdef", "ifndef"):
+            stack.append((number, False))
+        elif directive in ("else", "elif"):
+            if not stack:
+                raise ValueError(f"softirq.c:{number}: #{directive} without #if")
+            start, had_else = stack[-1]
+            if had_else:
+                raise ValueError(f"softirq.c:{number}: #{directive} after #else at {start}")
+            if directive == "else":
+                stack[-1] = (start, True)
+        elif directive == "endif":
+            if not stack:
+                raise ValueError(f"softirq.c:{number}: #endif without #if")
+            stack.pop()
+    if stack:
+        raise ValueError("softirq.c: unterminated conditional starting at "
+                         + str(stack[-1][0]))
+    return {"conditional_directives_checked": directives,
+            "preprocessor_branches_balanced": True}
+
+
 def prepare(tree: Path) -> tuple[str, dict]:
     for name in (SOFTIRQ, REJECT, PENDING):
         if not (tree / name).is_file():
@@ -116,7 +147,9 @@ def prepare(tree: Path) -> tuple[str, dict]:
         raise ValueError("Expected one restored RT conditional")
     if updated.count(RT_ELSE) != 1:
         raise ValueError("Unexpected second non-RT to RT transition")
+    balance = audit_preprocessor_balance(updated)
     return updated, {
+        **balance,
         "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS",
         "applied": False,
         "original_rejected_hunks_consumed": 3,
