@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Python 3 / GitHub Actions Ubuntu 24.04 / EXP76 Stage46 cross-subsystem regression / NO FLASH
-"""Exercise gated nine-object compilation and reject accidental kernel image/link."""
+"""Exercise RT Kbuild-aware ten-object diagnostics with no link or flash."""
 from __future__ import annotations
 
 import json
@@ -46,6 +46,16 @@ def setup(root: Path) -> tuple[Path, Path, Path, Path, Path, Path]:
     )
     make.chmod(0o755)
     (kernel / ".git").mkdir(parents=True)
+    write(kernel / "kernel/locking/Makefile", (
+        "obj-y += semaphore.o percpu-rwsem.o\n"
+        "ifneq ($(CONFIG_PREEMPT_RT_FULL),y)\n"
+        "obj-y += mutex.o\n"
+        "obj-$(CONFIG_DEBUG_MUTEXES) += mutex-debug.o\n"
+        "obj-y += rwsem.o\n"
+        "endif\n"
+        "obj-$(CONFIG_PREEMPT_RT_FULL) += "
+        "mutex-rt.o rwsem-rt.o rwlock-rt.o\n"
+    ))
     for target in TARGETS:
         write(kernel / (target[:-2] + ".c"), "/* pinned E404 fixture */\n")
     for i in range(64):
@@ -84,7 +94,14 @@ def run(args: tuple[Path, ...]) -> dict:
 
 
 def main() -> None:
-    assert len(TARGETS) == 9 and len(set(TARGETS)) == 9
+    assert len(TARGETS) == 10 and len(set(TARGETS)) == 10
+    assert all(name in TARGETS for name in (
+        "kernel/locking/mutex-rt.o",
+        "kernel/locking/rwsem-rt.o",
+        "kernel/locking/rwlock-rt.o",
+    ))
+    assert "kernel/locking/mutex.o" not in TARGETS
+    assert "kernel/locking/rwsem.o" not in TARGETS
     assert set(TARGETS).isdisjoint(PRIOR)
     assert all(t.endswith(".o") and "built-in" not in t for t in TARGETS)
     with tempfile.TemporaryDirectory() as d:
@@ -93,8 +110,10 @@ def main() -> None:
         assert gate_prior(good[3], good[4])
         report = run(good)
         assert report["baseline_12_objects_compiled"] is True
-        assert report["objects_attempted"] == 9
-        assert report["objects_compiled"] == 9
+        assert report["objects_attempted"] == 10
+        assert report["objects_compiled"] == 10
+        assert report["rt_locking_targets_match_kbuild"] is True
+        assert report["legacy_mutex_rwsem_objects_excluded"] is True
         assert report["all_cross_objects_compiled"] is True
         assert report["remaining_rejected_files"] == 64
         assert report["link_performed"] is False
@@ -122,8 +141,8 @@ def main() -> None:
             result = run(failed)
         finally:
             del os.environ["EXP76_TEST_FAIL_TARGET"]
-        assert result["objects_attempted"] == 9
-        assert result["objects_compiled"] == 8
+        assert result["objects_attempted"] == 10
+        assert result["objects_compiled"] == 9
         assert result["all_cross_objects_compiled"] is False
         fault = result["targets"]["kernel/irq/manage.o"]
         assert fault["exit_code"] == 2 and not fault["compiled"]
@@ -141,6 +160,21 @@ def main() -> None:
         write(preexisting_image[1] / "vmlinux", "forbidden\n")
         expect_fail(lambda: run(preexisting_image), "Forbidden boot/link artifact")
 
+        legacy_makefile = setup(root / "legacy-makefile")
+        write(legacy_makefile[0] / "kernel/locking/Makefile",
+              "obj-y += mutex.o semaphore.o rwsem.o percpu-rwsem.o\n")
+        expect_fail(lambda: run(legacy_makefile),
+                    "PREEMPT_RT Kbuild must exclude legacy mutex/rwsem")
+
+        bad_rt_makefile = setup(root / "missing-rt-rwlock")
+        p = bad_rt_makefile[0] / "kernel/locking/Makefile"
+        write(p, p.read_text().replace(
+            "mutex-rt.o rwsem-rt.o rwlock-rt.o",
+            "mutex-rt.o rwsem-rt.o",
+        ))
+        expect_fail(lambda: run(bad_rt_makefile),
+                    "PREEMPT_RT Kbuild must exclude legacy mutex/rwsem")
+
         no_source = setup(root / "missing-source")
         (no_source[0] / (TARGETS[0][:-2] + ".c")).unlink()
         expect_fail(lambda: run(no_source), "Missing E404 source")
@@ -148,13 +182,15 @@ def main() -> None:
         not_allowed = setup(root / "disallowed")
         env = dict(os.environ)
         env["PATH"] = str(not_allowed[5]) + os.pathsep + env.get("PATH", "")
-        for item in ("vmlinux", "Image", "boot.img", "kernel/sched/core.o"):
+        for item in ("vmlinux", "Image", "boot.img",
+                     "kernel/sched/core.o",
+                     "kernel/locking/mutex.o", "kernel/locking/rwsem.o"):
             expect_fail(
                 lambda item=item: compile_one(not_allowed[0], not_allowed[1],
                                              not_allowed[2], item, env, 20),
                 "Disallowed object target",
             )
-    print("EXP76_STAGE46_CROSS_SUBSYSTEM_REGRESSIONS=9_PASS; FLASH_READY=false")
+    print("EXP76_STAGE49_RT_LOCKING_KBUILD_REGRESSIONS=11_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
