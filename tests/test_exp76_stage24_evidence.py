@@ -111,6 +111,10 @@ def main() -> None:
             "stage": "EXP76_STAGE36_RT_CPU_PINNING_CONTRACT_INVENTORY",
             "remaining_rejected_files": 64, "applied": None,
         })
+        put(artifact / "exp76-rt-report" / "stage38" / "stage38-status.json", {
+            "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS",
+            "remaining_rejected_files": 64, "applied": True,
+        })
         failed = invoke(artifact, evidence, 122, "success")
         assert failed["artifact_present"] is True
         assert failed["preparation"]["completed"] is False
@@ -130,6 +134,8 @@ def main() -> None:
         assert failed["stages"]["stage35"]["remaining_rejected_files"] == 64
         assert failed["stages"]["stage36"]["present"] is True
         assert failed["stages"]["stage36"]["remaining_rejected_files"] == 64
+        assert failed["stages"]["stage38"]["applied"] is True
+        assert failed["stages"]["stage38"]["remaining_rejected_files"] == 64
         assert failed["extra_object_coverage"]["objects_attempted"] == 9
         assert failed["extra_object_coverage"]["objects_compiled"] == 3
         assert failed["extra_object_coverage"]["targets"]["kernel/sched/rt.o"]["compiled"] is False
