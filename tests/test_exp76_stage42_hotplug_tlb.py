@@ -42,6 +42,8 @@ CPU = (
     '\n\t\treturn err;\n\t}\n'
     + D["SUCCESS_ANCHOR"] +
     '\n\tirq_unlock_sparse();\n\treturn 0;\n}\n'
+    + D["CPU_END_MARKER"] +
+    '{\n\treturn;\n}\n'
 )
 
 
@@ -92,6 +94,9 @@ def main() -> None:
         assert "if (cpu_nr_pinned(cpu))" in cpu
         assert cpu.startswith(CPU_BRINGUP)
         assert cpu.count(D["HOTPLUG_SETUP"]) == 2
+        assert cpu.split(D["CPU_END_MARKER"], 1)[1] == (
+            CPU.split(D["CPU_END_MARKER"], 1)[1])
+        assert cpu.index("retry_pinned_cpu:") < cpu.index(D["CPU_END_MARKER"])
         assert cpu.index("retry_pinned_cpu:") > cpu.index(D["CPU_FUNC"])
         assert "retry_pinned_cpu:" not in cpu.split(D["CPU_FUNC"], 1)[0]
         # An unported source has only the stopper check; the RT loop
@@ -156,6 +161,8 @@ def main() -> None:
         assert (upstream / D["CPU"]).read_text() == upstream_cpu
         assert upstream_cpu.startswith(CPU_BRINGUP)
         assert upstream_cpu.count(D["HOTPLUG_SETUP"]) == 2
+        assert (upstream / D["CPU"]).read_text().split(
+            D["CPU_END_MARKER"], 1)[1] == CPU.split(D["CPU_END_MARKER"], 1)[1]
         assert "again:" not in upstream_cpu.split(D["CPU_FUNC"], 1)[0]
         assert upstream_cpu.count("cpu_nr_pinned(cpu)") == 2
         assert upstream_cpu.count("nr_pinned = cpu_nr_pinned(cpu);") == 1
@@ -193,10 +200,40 @@ def main() -> None:
 
         duplicated_takedown_lock = base / "duplicated-takedown-lock"
         fixture(duplicated_takedown_lock)
-        put(duplicated_takedown_lock, D["CPU"], CPU + D["HOTPLUG_SETUP"])
+        put(duplicated_takedown_lock, D["CPU"], CPU.replace(
+            D["SUCCESS_ANCHOR"],
+            D["HOTPLUG_SETUP"] + D["SUCCESS_ANCHOR"], 1))
         invalid = run(duplicated_takedown_lock)
         assert invalid.returncode != 0
         assert "expected one" in invalid.stderr
+
+        # A later function may reuse the same sparse IRQ lock and
+        # stopper call. Do not treat those as part of takedown_cpu.
+        later_function = base / "later-hotplug-function"
+        fixture(later_function)
+        later_tail = (
+            "\nstatic void another_hotplug_callback(void)\n{\n"
+            + D["HOTPLUG_SETUP"] + D["STOP_CALL"] + "}\n"
+        )
+        put(later_function, D["CPU"], CPU + later_tail)
+        checked = run(later_function)
+        assert checked.returncode == 0, checked.stderr
+        result = (later_function / D["CPU"]).read_text()
+        assert result.split(D["CPU_END_MARKER"], 1)[1] == (
+            CPU + later_tail).split(D["CPU_END_MARKER"], 1)[1]
+        assert result.count("retry_pinned_cpu:") == 1
+
+        # Moving the true stop-machine call outside takedown must be
+        # rejected even if an identical call remains elsewhere.
+        missing_local_stopper = base / "stopper-outside-takedown"
+        fixture(missing_local_stopper)
+        misplaced = CPU.replace(D["STOP_CALL"], "\t/* missing stopper */\n")
+        put(missing_local_stopper, D["CPU"],
+            misplaced + "\nstatic void unrelated(void)\n{\n"
+            + D["STOP_CALL"] + "}\n")
+        invalid = run(missing_local_stopper)
+        assert invalid.returncode != 0
+        assert "::takedown_cpu" in invalid.stderr
 
         second = run(good)
         assert second.returncode != 0  # not an idempotent silent port
@@ -230,7 +267,7 @@ def main() -> None:
         (short_rejects / "pending/r00.rej").unlink()
         assert run(short_rejects).returncode != 0
 
-    print("EXP76_STAGE44_SCOPED_HOTPLUG_REGRESSIONS=12_PASS; FLASH_READY=false")
+    print("EXP76_STAGE45_BOUNDED_HOTPLUG_REGRESSIONS=14_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
