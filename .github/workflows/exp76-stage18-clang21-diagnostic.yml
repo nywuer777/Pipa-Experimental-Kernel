@@ -23,6 +23,8 @@ on:
       - 'tests/test_exp76_stage28_task_state.py'
       - 'tools/exp76-rt-stage29-migration-abi.py'
       - 'tests/test_exp76_stage29_migration_abi.py'
+      - 'tools/exp76-stage30-object-coverage.py'
+      - 'tests/test_exp76_stage30_object_coverage.py'
   workflow_dispatch:
 
 permissions:
@@ -61,6 +63,9 @@ jobs:
           python3 tests/test_exp76_stage28_task_state.py
           python3 -m py_compile tools/exp76-rt-stage29-migration-abi.py
           python3 tests/test_exp76_stage29_migration_abi.py
+          python3 -m py_compile tools/exp76-stage30-object-coverage.py
+          python3 tests/test_exp76_stage30_object_coverage.py
+          ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
           echo 'EXP76_STAGE18_NO_FLASH_CODE_GATE=PASS'
@@ -131,6 +136,19 @@ jobs:
           set -euo pipefail
           bash tools/exp76-stage18-clang21-object-diagnostic.sh
 
+      - name: Compile additional RT scheduler, locking and hotplug objects (NONFLASH)
+        shell: bash
+        timeout-minutes: 27
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage30-object-coverage.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage30-report \
+            --baseline-report exp76-stage18-report/OBJECT_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 140
+
       - name: Publish readable CI summary even when compiler fails
         if: always()
         shell: bash
@@ -168,6 +186,24 @@ jobs:
               if error_lines:
                   lines += ['', 'First PREPARE errors:', '']
                   lines += ['    ' + str(item)[:300] for item in error_lines]
+          extra_path = Path('exp76-stage30-report/OBJECT_COVERAGE.json')
+          if extra_path.is_file():
+              extra = json.loads(extra_path.read_text(encoding='utf-8'))
+              lines += ['', '### RT object coverage (additional targets)', '']
+              lines += [
+                  f"Objects attempted: {extra.get('objects_attempted')}",
+                  f"Objects compiled: {extra.get('objects_compiled')}",
+                  '| Object | Compiled | Exit code |',
+                  '|---|---|---|',
+              ]
+              for name, item in (extra.get('targets') or {}).items():
+                  lines.append(f"| {name} | {item.get('compiled')} | {item.get('exit_code')} |")
+              contract = extra.get('migration_contract') or {}
+              lines += [
+                  '',
+                  f"migrate_disabled_sched missing definition: {contract.get('migrate_disabled_sched_missing_local_definition')}",
+                  'RT runtime contract verified: false',
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -181,6 +217,7 @@ jobs:
           name: exp76-stage18-clang21-NONFLASH-diagnostic
           path: |
             exp76-stage18-report/
+            exp76-stage30-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/
