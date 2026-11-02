@@ -73,7 +73,7 @@ def run_object(kernel: Path, output: Path, report: Path, name: str,
                env: dict[str, str], timeout: int) -> dict:
     if name not in EXTRA_OBJECTS or not name.endswith(".o"):
         raise ValueError("Unexpected build target: " + name)
-    if not (kernel / name[:-2] + ".c").is_file():
+    if not (kernel / (name[:-2] + ".c")).is_file():
         raise ValueError("Pinned E404 object source missing: " + name)
     log_file = report / (name.replace("/", "_") + ".log")
     command = [
