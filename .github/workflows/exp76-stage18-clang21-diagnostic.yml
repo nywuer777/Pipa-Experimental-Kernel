@@ -10,6 +10,8 @@ on:
       - 'tests/test_exp76_stage22_prepare_parser.py'
       - 'tools/exp76-stage23-prepare-gate.py'
       - 'tests/test_exp76_stage23_prepare_gate.py'
+      - 'tools/exp76-stage24-collect-ci-evidence.py'
+      - 'tests/test_exp76_stage24_evidence.py'
       - 'tools/exp76-rt-stage19-header-fixes.py'
       - 'tools/exp76-rt-stage20-headers.py'
       - 'tools/exp76-rt-stage21-rcu-include.py'
@@ -39,6 +41,8 @@ jobs:
           python3 tests/test_exp76_stage22_prepare_parser.py
           python3 -m py_compile tools/exp76-stage23-prepare-gate.py
           python3 tests/test_exp76_stage23_prepare_gate.py
+          python3 -m py_compile tools/exp76-stage24-collect-ci-evidence.py
+          python3 tests/test_exp76_stage24_evidence.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
           echo 'EXP76_STAGE18_NO_FLASH_CODE_GATE=PASS'
@@ -120,3 +124,61 @@ jobs:
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
+
+  publish-ci-evidence:
+    # Separate privilege boundary: the kernel compiler job is read-only.
+    # The publisher writes bounded JSON only to exp76-ci-evidence.
+    if: always()
+    needs: clang21-object-diagnostic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout pinned source for bounded evidence collector
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Obtain object diagnostic artifact from this run
+        if: always()
+        id: artifact_download
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-stage18-clang21-NONFLASH-diagnostic
+          path: incoming
+
+      - name: Checkout isolated CI evidence branch
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          ref: exp76-ci-evidence
+          path: evidence
+
+      - name: Publish run summary to isolated branch (NO FLASH)
+        if: always()
+        shell: bash
+        env:
+          BUILD_JOB_CONCLUSION: ${{ needs.clang21-object-diagnostic.result }}
+        run: |
+          set -euo pipefail
+          test -d evidence/.git
+          test -f source/tools/exp76-stage24-collect-ci-evidence.py
+          python3 source/tests/test_exp76_stage24_evidence.py
+          python3 source/tools/exp76-stage24-collect-ci-evidence.py \
+            --artifact-root incoming \
+            --evidence-root evidence \
+            --repo "$GITHUB_REPOSITORY" \
+            --source-sha "$GITHUB_SHA" \
+            --run-id "$GITHUB_RUN_ID" \
+            --job-conclusion "$BUILD_JOB_CONCLUSION"
+          git -C evidence config user.name 'github-actions[bot]'
+          git -C evidence config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C evidence add ci-evidence/
+          if ! git -C evidence diff --cached --quiet; then
+            git -C evidence commit -m "ci(exp76): record Clang21 evidence run $GITHUB_RUN_ID"
+            git -C evidence push origin HEAD:exp76-ci-evidence
+          fi
+          echo 'EXP76_STAGE24_EVIDENCE=PUBLISHED; SOURCE_BRANCH_UNTOUCHED=true; FLASH_READY=false'
