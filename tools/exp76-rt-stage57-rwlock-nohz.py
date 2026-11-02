@@ -20,6 +20,14 @@ from pathlib import Path
 RT_RWLOCK = "include/linux/rwlock_rt.h"
 INTERRUPT = "include/linux/interrupt.h"
 NONRT_RWLOCK = "include/linux/rwlock.h"
+NONRT_RWLOCK_GUARD = (
+    "#ifdef arch_rwlock_is_contended\n"
+    "#define rwlock_is_contended(lock) \\\n"
+    "\t arch_rwlock_is_contended(&(lock)->raw_lock)\n"
+    "#else\n"
+    "#define rwlock_is_contended(lock)\t((void)(lock), 0)\n"
+    "#endif /* arch_rwlock_is_contended */\n"
+)
 RT_TYPE = "include/linux/rwlock_types_rt.h"
 RT_MUTEX = "include/linux/rtmutex.h"
 ZS = "mm/zsmalloc.c"
@@ -80,8 +88,10 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
     single(rr, RWLOCK_ANCHOR, "RT rwlock tail API")
     if "rwlock_is_contended" in rr:
         raise ValueError("RT rwlock contention helper already defined")
-    single(files[NONRT_RWLOCK], "#define rwlock_is_contended(lock)",
-           "Pinned nonRT rwlock contention contract")
+    # E404 legitimately has TWO declarations: arch-specific and generic
+    # fallback. Pin the entire #if/#else contract, not an ambiguous token.
+    single(files[NONRT_RWLOCK], NONRT_RWLOCK_GUARD,
+           "Pinned nonRT rwlock contention branches")
     for name, marker in (
         (RT_TYPE, "typedef struct rt_rw_lock rwlock_t;"),
         (RT_TYPE, "struct rt_mutex\t\trtmutex;"),

@@ -26,8 +26,7 @@ def fixture(root: Path) -> Path:
     put(tree, M["RT_RWLOCK"], "/* RT lock E404 */\n" + M["RWLOCK_ANCHOR"])
     put(tree, M["INTERRUPT"], "/* softirq public declarations */\n"
         + M["INTERRUPT_ANCHOR"])
-    put(tree, M["NONRT_RWLOCK"],
-        "#define rwlock_is_contended(lock) ((void)(lock), 0)\n")
+    put(tree, M["NONRT_RWLOCK"], M["NONRT_RWLOCK_GUARD"])
     put(tree, M["RT_TYPE"],
         "typedef struct rt_rw_lock rwlock_t;\n"
         "struct rt_rw_lock {\n\tstruct rt_mutex\t\trtmutex;\n};\n")
@@ -98,6 +97,16 @@ def main() -> None:
         (missing_nonrt / M["NONRT_RWLOCK"]).write_text("/* removed API */\n")
         should_fail(lambda: prepare(missing_nonrt), "nonRT rwlock")
 
+        missing_branch = fixture(base / "missing-arch-branch")
+        (missing_branch / M["NONRT_RWLOCK"]).write_text(
+            "#define rwlock_is_contended(lock) ((void)(lock), 0)\n")
+        should_fail(lambda: prepare(missing_branch), "nonRT rwlock")
+
+        wrong_fallback = fixture(base / "wrong-fallback")
+        p = wrong_fallback / M["NONRT_RWLOCK"]
+        p.write_text(p.read_text().replace("((void)(lock), 0)", "(1)"))
+        should_fail(lambda: prepare(wrong_fallback), "nonRT rwlock")
+
         bad_int = fixture(base / "missing-anchor")
         (bad_int / M["INTERRUPT"]).write_text("/* missing declarations */\n")
         should_fail(lambda: prepare(bad_int), "Softirq public")
@@ -117,7 +126,7 @@ def main() -> None:
         bad_mode = fixture(base / "bad-mode")
         should_fail(lambda: execute(bad_mode, base / "bad", "flash"),
                     "only permits verify/apply")
-    print("EXP76_STAGE57_RWLOCK_NOHZ_REGRESSIONS=10_PASS; KERNEL_BUILT=false; FLASH_READY=false")
+    print("EXP76_STAGE57_RWLOCK_NOHZ_REGRESSIONS=12_PASS; KERNEL_BUILT=false; FLASH_READY=false")
 
 
 if __name__ == "__main__":
