@@ -62,7 +62,13 @@ def inspect(tree: Path) -> dict:
     rejected_core = (tree / CORE_REJECT).read_text(encoding="utf-8")
     rejected_rq = (tree / RQ_REJECT).read_text(encoding="utf-8")
     for needle in REQUIRED_REJECT_MARKERS:
-        require_one(rejected_core, needle, CORE_REJECT)
+        expected = 3 if "migrate_disabled_sched" in needle else (
+            2 if needle in ("+void migrate_disable(void)", "+void migrate_enable(void)")
+            else 1
+        )
+        seen = rejected_core.count(needle)
+        if seen != expected:
+            raise ValueError(f"{CORE_REJECT}: expected {expected} {needle!r}, saw {seen}")
     require_one(rejected_rq, PINNED_RQ_FIELD, RQ_REJECT)
 
     core = (tree / CORE).read_text(encoding="utf-8")
@@ -75,7 +81,10 @@ def inspect(tree: Path) -> dict:
     if cpu.count("cpu_nr_pinned(cpu)") != 2:
         raise ValueError("kernel/cpu.c hotplug calls unexpectedly changed")
     for marker in PREEMPT_DECLARATIONS:
-        require_one(preempt, marker, PREEMPT)
+        count = preempt.count(marker)
+        expected = 2 if marker.startswith("extern") else 1
+        if count != expected:
+            raise ValueError(f"{PREEMPT}: expected {expected} {marker!r}, saw {count}")
     for marker in ("cpumask_t\t\t\tcpus_allowed;",
                    "cpumask_t\t\t\tcpus_requested;",
                    "int\t\t\t\tmigrate_disable;",
