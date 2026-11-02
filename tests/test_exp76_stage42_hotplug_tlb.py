@@ -91,6 +91,63 @@ def main() -> None:
         assert result["migration_hotplug_runtime_verified"] is False
         assert result["kernel_built"] is False and result["flash_ready"] is False
 
+        # Stage42: CPU hotplug may already have been completely patched
+        # by the official RT patch. Reuse that code without duplication.
+        upstream = base / "preexisting-upstream"
+        fixture(upstream)
+        vendor_cpu = (upstream / D["CPU"]).read_text()
+        upstream_wait = D["HOTPLUG_RT_WAIT"]
+        upstream_wait = upstream_wait.replace(
+            "WARN_ON_ONCE(READ_ONCE(takedown_cpu_task));",
+            "WARN_ON_ONCE(takedown_cpu_task);"
+        ).replace(
+            "WRITE_ONCE(takedown_cpu_task, current);",
+            "takedown_cpu_task = current;"
+        ).replace("retry_pinned_cpu:", "again:").replace(
+            "__set_current_state(TASK_RUNNING);", "set_current_state(TASK_RUNNING);"
+        )
+        upstream_cpu = vendor_cpu.replace(
+            D["CPU_FUNC"], D["CPU_THREAD_GLOBAL"] + D["CPU_FUNC"], 1
+        ).replace(
+            D["HOTPLUG_SETUP"], D["HOTPLUG_SETUP"] + upstream_wait, 1
+        ).replace(
+            D["STOP_CALL"],
+            D["STOP_CALL"] + D["STOP_RETRY"].replace(
+                "retry_pinned_cpu", "again"
+            ),
+            1,
+        ).replace(
+            D["FAIL_ANCHOR"],
+            D["FAIL_REPLACEMENT"].replace(
+                "WRITE_ONCE(takedown_cpu_task, NULL);",
+                "takedown_cpu_task = NULL;"
+            ),
+            1,
+        ).replace(
+            D["SUCCESS_ANCHOR"],
+            D["SUCCESS_REPLACEMENT"].replace(
+                "WRITE_ONCE(takedown_cpu_task, NULL);",
+                "takedown_cpu_task = NULL;"
+            ),
+            1,
+        )
+        put(upstream, D["CPU"], upstream_cpu)
+        kept = run(upstream)
+        assert kept.returncode == 0, kept.stderr
+        assert (upstream / D["CPU"]).read_text() == upstream_cpu
+        assert (upstream / D["CORE"]).read_text() != CORE
+        existing_report = json.loads(
+            (upstream / "report/stage42-status.json").read_text())
+        assert existing_report["preexisting_upstream_hotplug_reused"] is True
+
+        incomplete_upstream = base / "incomplete-upstream"
+        fixture(incomplete_upstream)
+        put(incomplete_upstream, D["CPU"], upstream_cpu.replace(
+            "takedown_cpu_task = NULL;", "", 1
+        ))
+        assert run(incomplete_upstream).returncode != 0
+        assert (incomplete_upstream / D["CORE"]).read_text() == CORE
+
         second = run(good)
         assert second.returncode != 0  # not an idempotent silent port
 
@@ -123,7 +180,7 @@ def main() -> None:
         (short_rejects / "pending/r00.rej").unlink()
         assert run(short_rejects).returncode != 0
 
-    print("EXP76_STAGE42_HOTPLUG_TLB_REGRESSIONS=7_PASS; FLASH_READY=false")
+    print("EXP76_STAGE42_HOTPLUG_TLB_REGRESSIONS=9_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
