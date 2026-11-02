@@ -103,6 +103,7 @@ jobs:
           python3 tests/test_exp76_stage42_hotplug_tlb.py
           python3 -m py_compile tools/exp76-stage46-cross-subsystem-coverage.py
           python3 tests/test_exp76_stage46_cross_subsystem.py
+          echo 'EXP76_STAGE49_RT_LOCKING_KBUILD_TARGETS=10; LINK=false'
           python3 -m py_compile tools/exp76-rt-stage47-rcu-workqueue.py
           python3 tests/test_exp76_stage47_rcu_workqueue.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
@@ -198,7 +199,7 @@ jobs:
             --clang-bin android-clang-prebuilt/clang-r563880c/bin \
             --timeout 140
 
-      - name: Compile 9 cross-subsystem RT objects (21 selected total, NO LINK)
+      - name: Compile 10 RT Kbuild-selected cross-subsystem objects (22 selected total, NO LINK)
         shell: bash
         timeout-minutes: 26
         run: |
