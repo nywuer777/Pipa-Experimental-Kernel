@@ -1,0 +1,232 @@
+{
+  "artifact_present": true,
+  "cross_subsystem_coverage": null,
+  "extra_object_coverage": {
+    "all_extra_objects_compiled": false,
+    "baseline_3_objects_compiled": false,
+    "migration_contract": {
+      "migrate_disabled_sched_declarations": 1,
+      "migrate_disabled_sched_definitions": 3,
+      "migrate_disabled_sched_missing_local_definition": false,
+      "migration_entrypoint_definitions_in_core": 4,
+      "runtime_migration_contract_verified": false
+    },
+    "objects_attempted": 0,
+    "objects_compiled": 0,
+    "stage": "EXP76_STAGE30_RT_OBJECT_COVERAGE_NONFLASH",
+    "targets": {
+      "kernel/cpu.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/locking/rtmutex.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/sched/deadline.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/sched/fair.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/sched/idle.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/sched/rt.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/sched/stop_task.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/softirq.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      },
+      "kernel/time/timer.o": {
+        "attempted": false,
+        "compiled": false,
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
+      }
+    }
+  },
+  "flash_ready": false,
+  "job_conclusion": "failure",
+  "kernel_built": false,
+  "kernel_subtree_diagnostic": null,
+  "preparation": {
+    "completed": false,
+    "errors_excerpt": [
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/rwlock_rt.h:123:2: error: implicit declaration of function '_raw_spin_lock_irqsave' [-Werror,-Wimplicit-function-declaration]",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/rwlock_rt.h:125:2: error: implicit declaration of function '_raw_spin_unlock_irqrestore' [-Werror,-Wimplicit-function-declaration]",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/spinlock_api_smp.h:32:26: error: conflicting types for '_raw_spin_lock_irqsave'",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/spinlock_api_smp.h:43:1: error: conflicting types for '_raw_spin_unlock_irqrestore'",
+      "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/./Kbuild:56: arch/arm64/kernel/asm-offsets.s] Error 1",
+      "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1293: prepare0] Error 2",
+      "make: *** [Makefile:153: sub-make] Error 2"
+    ],
+    "first_error_context": "  WRAP    arch/arm64/include/generated/asm/unaligned.h\n  WRAP    arch/arm64/include/generated/asm/user.h\n  WRAP    arch/arm64/include/generated/asm/vga.h\n  CC      kernel/bounds.s\n  UPD     include/generated/timeconst.h\n  UPD     include/generated/bounds.h\n  CC      arch/arm64/kernel/asm-offsets.s\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/arch/arm64/kernel/asm-offsets.c:22:\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/sched.h:14:\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/pid.h:6:\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/wait.h:9:\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/spinlock.h:303:\n/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/rwlock_rt.h:123:2: error: implicit declaration of function '_raw_spin_lock_irqsave' [-Werror,-Wimplicit-function-declaration]\n  123 |         raw_spin_lock_irqsave(&mutex->wait_lock, flags);\n      |         ^\n/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/spinlock.h:242:11: note: expanded from macro 'raw_spin_lock_irqsave'\n  242 |                 flags = _raw_spin_lock_irqsave(lock);   \\\n      |                         ^\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/arch/arm64/kernel/asm-offsets.c:22:\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/sched.h:14:\nIn file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/pid.h:6:",
+    "gate_exit_code": 2,
+    "make_exit_code": 2,
+    "missing_headers": [
+      "include/generated/asm-offsets.h"
+    ]
+  },
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "run_id": 41511936260,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41511936260",
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "source_sha": "029f1dc4350e94f0cb8e26578407e3406fe5a021",
+  "stages": {
+    "stage19": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 65,
+      "stage": "EXP76_RT_STAGE19_COMPILER_HEADER_FIXES"
+    },
+    "stage20": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE20_SWAP_LOCALLOCK_AND_PERCPU_RWSEM_ABI"
+    },
+    "stage21": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED"
+    },
+    "stage26": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE26_E404_ARM64_FORK_VALUE_AFFINITY"
+    },
+    "stage27": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION"
+    },
+    "stage28": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE28_RT_TASK_STATE_LOCKED_HELPER_RESTORED"
+    },
+    "stage29": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE29_E404_RT_MIGRATION_TASK_ABI"
+    },
+    "stage31": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY"
+    },
+    "stage34": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED"
+    },
+    "stage35": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE35_RT_MIGHT_SLEEP_NO_STATE_CHECK"
+    },
+    "stage36": {
+      "applied": null,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE36_RT_CPU_PINNING_CONTRACT_INVENTORY"
+    },
+    "stage38": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS"
+    },
+    "stage40": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE40_RT_SLEEPING_LOCK_TASK_ABI"
+    },
+    "stage41": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE41_RT_MIGRATION_LIFECYCLE_E404"
+    },
+    "stage42": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE42_RT_CPU_HOTPLUG_PIN_DRAIN_ARM64_TLB"
+    },
+    "stage47": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE47_RCU_PREPROCESSOR_AND_WORKQUEUE_RAW_LOCK"
+    }
+  },
+  "status": "EXP76_STAGE22=PREPARE_FAILED_OBJECTS_NOT_ATTEMPTED; KERNEL_BUILT=false; FLASH_READY=false",
+  "targets": {
+    "kernel_fork.o": {
+      "attempted": false,
+      "compiled": false,
+      "errors_excerpt": [],
+      "exit_code": null,
+      "skip_reason": "BLOCKED_BY_PREPARE"
+    },
+    "kernel_sched_core.o": {
+      "attempted": false,
+      "compiled": false,
+      "errors_excerpt": [],
+      "exit_code": null,
+      "skip_reason": "BLOCKED_BY_PREPARE"
+    },
+    "kernel_sched_cpupri.o": {
+      "attempted": false,
+      "compiled": false,
+      "errors_excerpt": [],
+      "exit_code": null,
+      "skip_reason": "BLOCKED_BY_PREPARE"
+    }
+  }
+}
