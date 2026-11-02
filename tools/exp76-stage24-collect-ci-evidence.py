@@ -68,6 +68,29 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
                 "skip_reason": value.get("skip_reason"),
                 "errors_excerpt": bounded_lines(value.get("errors_excerpt"), 12),
             }
+    coverage = read_json(artifact / "exp76-stage30-report" / "OBJECT_COVERAGE.json")
+    extra_objects = None
+    if coverage is not None:
+        entries = {}
+        for name, value in (coverage.get("targets") or {}).items():
+            if not isinstance(value, dict):
+                continue
+            entries[str(name)[:80]] = {
+                "attempted": value.get("attempted"),
+                "compiled": value.get("compiled") is True,
+                "exit_code": value.get("exit_code"),
+                "skip_reason": value.get("skip_reason"),
+                "errors_excerpt": bounded_lines(value.get("errors_excerpt"), 12),
+            }
+        extra_objects = {
+            "stage": str(coverage.get("stage") or "")[:120],
+            "baseline_3_objects_compiled": coverage.get("baseline_3_objects_compiled") is True,
+            "objects_attempted": coverage.get("objects_attempted"),
+            "objects_compiled": coverage.get("objects_compiled"),
+            "all_extra_objects_compiled": coverage.get("all_extra_objects_compiled") is True,
+            "migration_contract": coverage.get("migration_contract"),
+            "targets": entries,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -94,6 +117,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "artifact_present": artifact.is_dir() and (obj is not None or prep is not None),
         "preparation": preparation,
         "targets": targets,
+        "extra_object_coverage": extra_objects,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
