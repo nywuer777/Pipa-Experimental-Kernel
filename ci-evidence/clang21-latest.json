@@ -1,5 +1,121 @@
 {
   "artifact_present": true,
+  "cross_subsystem_coverage": {
+    "all_cross_objects_compiled": false,
+    "baseline_12_objects_compiled": true,
+    "link_performed": false,
+    "objects_attempted": 9,
+    "objects_compiled": 4,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE46_RT_CROSS_SUBSYSTEM_OBJECTS_NONFLASH",
+    "targets": {
+      "kernel/irq/manage.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/mutex.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.h:21:52: warning: declaration of 'struct mutex_waiter' will not be visible outside of this function [-Wvisibility]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:39:1: error: expected identifier or '('",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:39:1: error: while loop outside of a function",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:84:34: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/locking/rwsem.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:191:24: error: no member named 'owner' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:196:24: error: no member named 'owner' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:204:32: error: no member named 'owner' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:221:27: error: no member named 'owner' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:223:24: error: no member named 'owner' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:307:21: error: no member named 'wait_list' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:320:8: error: no member named 'm_count' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:325:11: error: no member named 'm_count' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:331:10: error: no member named 'm_count' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:356:47: error: no member named 'owner' in 'struct rw_semaphore'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:363:12: error: expected ';' at end of declaration",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:363:42: error: no member named 'owner' in 'struct rw_semaphore'"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/locking/spinlock.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/rcu/tree.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/rcu/tree_plugin.h:1248:2: error: unterminated conditional directive",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/rcu/tree.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/rcu/tree.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/rcu/update.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/rcu/update.c:255:2: error: unterminated conditional directive",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/rcu/update.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/rcu/update.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/sched/swait.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/wait.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/workqueue.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/workqueue.c:888:16: error: incompatible pointer types passing 'raw_spinlock_t *' (aka 'struct raw_spinlock *') to parameter of type 'spinlock_t *' (aka 'struct spinlock *') [-Werror,-Wincompatible-pointer-types]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/workqueue.c:907:18: error: incompatible pointer types passing 'raw_spinlock_t *' (aka 'struct raw_spinlock *') to parameter of type 'spinlock_t *' (aka 'struct spinlock *') [-Werror,-Wincompatible-pointer-types]",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/workqueue.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/workqueue.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      }
+    }
+  },
   "extra_object_coverage": {
     "all_extra_objects_compiled": true,
     "baseline_3_objects_compiled": true,
@@ -91,10 +207,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41469980009,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41469980009",
+  "run_id": 41472504082,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41472504082",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "9bd5a317c7099a0c7677b2db912bf48ef515f3b5",
+  "source_sha": "cc59515fe4312de6632169bf971c234f230900d9",
   "stages": {
     "stage19": {
       "applied": true,
