@@ -346,3 +346,21 @@ O patch RT parcialmente aplicado inseriu `#else /* !PREEMPT_RT_FULL */` e os han
 **Limites:** o Stage38 não afirma compilação de `softirq.o` antes de receber o novo log Clang21. O conjunto completo de 64 rejeições RT e a verificação de runtime continuam pendentes, incluindo `migrate_disable/enable`, `migrate_disabled_sched`, `rq->nr_pinned` e o hotplug em `kernel/cpu.c`. Sem `vmlinux`, `Image`, `boot.img` ou alteração do dispositivo.
 
 `EXP76_STAGE38_SOURCE=COMMITTED`; `EXP76_STAGE38_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage39 — segunda guarda RT em `invoke_softirq`: CI Stage38 corrigida
+
+**Falha real:** a execução Clang21 `41448935481` sobre `e32defde3e9b5b3f10c8a6ea2140fe0679b91d88` passou em `EXP76_STAGE38_SOFTIRQ_ENTRY_REGRESSIONS=7_PASS` e concluiu Stage36, mas o port de `softirq.c` interrompeu a auditoria com:
+
+```text
+ValueError: softirq.c:895: #else without #if
+```
+
+A Stage38 recuperou os três primeiros hunks rejeitados de `kernel/softirq.c.rej` e, com isso, restaurou o primeiro `#ifndef CONFIG_PREEMPT_RT_FULL`. A segunda guarda, dentro da função `invoke_softirq()`, está no **sexto hunk** rejeitado (`@@ -359,6 +831,7 @@ void irq_enter(void)`). A árvore E404 original contém `if (!force_irqthreads)` nesse ponto, enquanto o hunk RT original descreve um contexto de `ksoftirqd_running()`. Copiar o hunk literalmente não funciona; a diretiva é portada mantendo o corpo vendor e o `#else /* PREEMPT_RT_FULL */` já aplicado.
+
+Stage39 atualiza `tools/exp76-rt-stage38-softirq-entry.py` para exigir exatamente o sexto hunk original, a função E404 `invoke_softirq()` e o segundo `#else` RT já presente. Insere `#ifndef CONFIG_PREEMPT_RT_FULL` imediatamente antes de `if (!force_irqthreads)`. A saída passa a exigir **duas** guardas restauradas e comprova o balanceamento de todas as diretivas pré-processadas antes de alterar a fonte. O manifesto `stage38-status.json` registra `original_rejected_hunks_consumed=4` e `stage39_invoke_softirq_guard_restored=true`.
+
+A regressão `tests/test_exp76_stage38_softirq_entry.py` usa um segundo `invoke_softirq` sintético com o `#else` RT preexistente, verifica a guarda emparelhada e adiciona casos de rejeito divergente e contexto vendor alterado. A ferramenta não suprime erros de Clang nem substitui funções ausentes por stubs.
+
+**Evidência pendente:** o Stage38 não executou a compilação de objetos após o erro de auditoria. Stage39 ainda precisa confirmar a auditoria e gerar um novo diagnóstico Clang21 de `kernel/softirq.o`. O último resultado de compilação preservado permanece 3/3 objetos base, 7/9 adicionais, com 64 rejeitos RT. `cpu.o` e o runtime de migração seguem pendentes.
+
+`EXP76_STAGE39_SOURCE=COMMITTED`; `EXP76_STAGE39_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
