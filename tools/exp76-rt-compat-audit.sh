@@ -638,6 +638,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE59=KTHREAD_WORKER_RAW_AND_PROC_AFFINITY_E404_PORTED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage59-gate.txt"
 
 
+# Stage60: exact E404 futex hrtimer_sleeper four-argument RT ABI and
+# rejected hb2 declaration; retain upstream PI requeue locking and
+# all 64 RT rejects as evidence, never construct a boot image.
+python3 tools/exp76-rt-stage60-futex.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage60" \
+    --mode apply | tee "$REPORT/stage60-futex.log"
+test -f "$REPORT/stage60/stage60-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE60=FUTEX_RT_SLEEPER_HB2_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage60-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
