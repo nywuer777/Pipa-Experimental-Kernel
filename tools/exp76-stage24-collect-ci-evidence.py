@@ -91,6 +91,34 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "migration_contract": coverage.get("migration_contract"),
             "targets": entries,
         }
+    extended = read_json(
+        artifact / "exp76-stage46-report" / "OBJECT_COVERAGE_CROSS_SUBSYSTEM.json"
+    )
+    cross_objects = None
+    if extended is not None:
+        entries = {}
+        for name, value in (extended.get("targets") or {}).items():
+            if not isinstance(value, dict):
+                continue
+            entries[str(name)[:80]] = {
+                "attempted": value.get("attempted") is True,
+                "compiled": value.get("compiled") is True,
+                "exit_code": value.get("exit_code"),
+                "skip_reason": value.get("skip_reason"),
+                "errors_excerpt": bounded_lines(value.get("errors_excerpt"), 12),
+            }
+        cross_objects = {
+            "stage": str(extended.get("stage") or "")[:120],
+            "baseline_12_objects_compiled":
+                extended.get("baseline_12_objects_compiled") is True,
+            "objects_attempted": extended.get("objects_attempted"),
+            "objects_compiled": extended.get("objects_compiled"),
+            "all_cross_objects_compiled":
+                extended.get("all_cross_objects_compiled") is True,
+            "remaining_rejected_files": extended.get("remaining_rejected_files"),
+            "link_performed": extended.get("link_performed") is True,
+            "targets": entries,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -118,6 +146,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "preparation": preparation,
         "targets": targets,
         "extra_object_coverage": extra_objects,
+        "cross_subsystem_coverage": cross_objects,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
