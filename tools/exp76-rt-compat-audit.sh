@@ -397,6 +397,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE29=RT_TASK_FIELDS_AND_FORK_INIT_ONLY; REJECTED_FILES=64; RT_MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false' | tee "$REPORT/stage29-gate.txt"
 
 
+# Stage31: RT class patch changes task affinity to cpus_ptr even though E404
+# has embedded cpus_allowed. Restore only those exact rt/fair/deadline sites.
+python3 tools/exp76-rt-stage31-class-affinity.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage31" \
+    --mode apply | tee "$REPORT/stage31-class-affinity.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage31/stage31-status.json"
+test -f "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE31=VENDOR_SCHED_CLASSES_AFFINITY; REJECTED_FILES=64; MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false' | tee "$REPORT/stage31-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
