@@ -37,12 +37,22 @@ FRAGMENTS = (
     (
         "cpumask_test_cpu(arg->dst_cpu, arg->src_task->cpus_ptr)",
         "cpumask_test_cpu(arg->dst_cpu, &arg->src_task->cpus_allowed)",
-        2,
+        1,
     ),
     (
         "cpumask_test_cpu(arg->src_cpu, arg->dst_task->cpus_ptr)",
         "cpumask_test_cpu(arg->src_cpu, &arg->dst_task->cpus_allowed)",
-        2,
+        1,
+    ),
+    (
+        "cpumask_test_cpu(arg.dst_cpu, arg.src_task->cpus_ptr)",
+        "cpumask_test_cpu(arg.dst_cpu, &arg.src_task->cpus_allowed)",
+        1,
+    ),
+    (
+        "cpumask_test_cpu(arg.src_cpu, arg.dst_task->cpus_ptr)",
+        "cpumask_test_cpu(arg.src_cpu, &arg.dst_task->cpus_allowed)",
+        1,
     ),
     (
         "cpumask_subset(span, p->cpus_ptr)",
