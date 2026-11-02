@@ -328,3 +328,21 @@ Stage37 separa `reject_count` de `declaration_count` e utiliza somente o primeir
 **Verificação adicional:** os marcadores RT do rejeito `kernel/sched/core.c.rej` e o campo `nr_pinned` do rejeito `kernel/sched/sched.h.rej` foram comparados com o pacote original de auditoria E404: a cardinalidade usada pelo Stage36 está consistente. O próximo teste real da auditoria ainda depende da CI Stage37.
 
 Nenhuma modificação na lógica do scheduler, ABI da E404, `cpu_nr_pinned`, migração ou `softirq` ocorre neste stage. Os 64 arquivos rejeitados permanecem pendentes. `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage38 — reconstituição da entrada RT do `softirq.c` com rejeitos reais
+
+**Evidência Stage37:** a execução `41446901762`, SHA `e0f49beca67d885e43ffaca8d2c385f873deda1a`, confirmou que a auditoria Stage36 registrou **64 rejeitos**, os três objetos iniciais compilaram e os objetos adicionais chegaram a **7/9**. `kernel/locking/rtmutex.o` passou depois do port de `might_sleep_no_state_check()` da Stage35. Os dois objetos ainda sem compilação são `kernel/cpu.o` (ausência do ciclo real de `cpu_nr_pinned`) e `kernel/softirq.o`.
+
+O patch RT parcialmente aplicado inseriu `#else /* !PREEMPT_RT_FULL */` e os handlers RT no `kernel/softirq.c`, mas os trechos que definiam o `#ifndef CONFIG_PREEMPT_RT_FULL` correspondente, `ktimer_softirqd` e os helpers de execução de vetores permaneceram em `kernel/softirq.c.rej`. Consequências da CI anterior incluíam `#else without #if`, definições duplicadas de `__local_bh_enable`, chamadas conflitantes e ausência de `handle_softirq` e `softirq_set_runner`.
+
+**Port Stage38:** `tools/exp76-rt-stage38-softirq-entry.py` extrai diretamente os **três primeiros hunks rejeitados** da E404 fixada, com pré-condições exatas de fonte:
+- preserva o registro `ktimer_softirqd`, máscara `TIMER_SOFTIRQS`, `softirq_check_pending_idle`, rastreadores por CPU e proteção contra avisos NOHZ falsos;
+- restaura `wakeup_timer_softirqd` e `handle_softirq` a partir do rejeito, sem inserir uma implementação vazia;
+- restabelece o `#ifndef CONFIG_PREEMPT_RT_FULL` antes da seção de softirqs convencional, incluindo os helpers não RT `ksoftirqd_softirq_pending`, `handle_pending_softirqs` e `run_ksoftirqd`, mantendo o `#else` RT já aplicado;
+- valida a estrutura completa de diretivas `#if/#ifdef/#ifndef/#elif/#else/#endif` do arquivo modificado, falhando em qualquer `#else` órfão ou `#endif` excedente.
+
+`tests/test_exp76_stage38_softirq_entry.py` exercita verificação sem escrita, aplicação com fragmentos originais, marcador RT ausente, hunk divergente, aplicação duplicada, número de rejeitos divergente, âncora de fonte ausente e estrutura de pré-processador inválida. O manifesto `stage38-status.json` mantém `full_softirq_semantics_verified=false` e `flash_ready=false`.
+
+**Limites:** o Stage38 não afirma compilação de `softirq.o` antes de receber o novo log Clang21. O conjunto completo de 64 rejeições RT e a verificação de runtime continuam pendentes, incluindo `migrate_disable/enable`, `migrate_disabled_sched`, `rq->nr_pinned` e o hotplug em `kernel/cpu.c`. Sem `vmlinux`, `Image`, `boot.img` ou alteração do dispositivo.
+
+`EXP76_STAGE38_SOURCE=COMMITTED`; `EXP76_STAGE38_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
