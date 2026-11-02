@@ -123,8 +123,10 @@ def prepare(tree: Path) -> tuple[str, str]:
     one(cpu, CPU_FUNC, CPU)
     one(cpu, HOTPLUG_SETUP, CPU)
     one(cpu, STOP_CALL, CPU)
-    if cpu.count("cpu_nr_pinned(cpu)") != 2:
-        raise ValueError("Both original CPU pin consumers must remain")
+    # The RT patch has one stopper call before the wait loop, and two
+    # total only after its wait loop is applied. Check semantic call sites,
+    # not a constant that assumes the source has one particular stage state.
+    one(cpu, "if (cpu_nr_pinned(cpu))", CPU)
     if "extern struct task_struct *takedown_cpu_task;" in core:
         raise ValueError("Core hotplug declaration already added")
     if "if (cpu_nr_pinned(cpu))" not in cpu:
@@ -147,6 +149,11 @@ def prepare(tree: Path) -> tuple[str, str]:
         )
         for marker in once_existing:
             one(cpu, marker, CPU)
+        if cpu.count("cpu_nr_pinned(cpu)") != 2:
+            raise ValueError("Complete RT hotplug requires stopper and polling call sites")
+        if cpu.count("nr_pinned = cpu_nr_pinned(cpu);") != 1:
+            raise ValueError("RT pin-drain loop must poll the tracked runqueue")
+        one(cpu, "if (nr_pinned == 0)", CPU)
         if cpu.count("takedown_cpu_task = NULL;") != 2:
             raise ValueError("Upstream RT hotplug task must be cleared on failure and success")
         if "again:" not in cpu:
@@ -155,6 +162,8 @@ def prepare(tree: Path) -> tuple[str, str]:
             raise ValueError("Upstream RT hotplug conditional missing")
         cpu_out = cpu
     else:
+        if cpu.count("cpu_nr_pinned(cpu)") != 1:
+            raise ValueError("Unported RT hotplug must have only the stopper pin check")
         one(cpu, FAIL_ANCHOR, CPU)
         one(cpu, SUCCESS_ANCHOR, CPU)
         cpu_out = cpu.replace(CPU_FUNC, CPU_THREAD_GLOBAL + CPU_FUNC, 1)
