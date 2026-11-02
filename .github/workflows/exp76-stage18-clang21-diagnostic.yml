@@ -149,7 +149,7 @@ jobs:
           clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
           rm -rf .git
 
-      - name: Prepare Stage47 RT RCU and workqueue from pinned rejects
+      - name: Prepare Stage48 hunk-scoped RCU rejects and RT workqueue
         shell: bash
         timeout-minutes: 35
         run: |
@@ -176,7 +176,7 @@ jobs:
           test -f exp76-rt-report/stage47/stage47-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
-          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE47_RCU_WORKER_RAW_LOCK'
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE48_RCU_HUNK_SCOPED'
 
       - name: Run arm64 prepare gate, then compile only selected scheduler objects
         shell: bash
