@@ -15,7 +15,7 @@ SCRIPT = ROOT / "tools" / "exp76-rt-stage31-class-affinity.py"
 CODE = runpy.run_path(str(SCRIPT), run_name="exp76_stage31_fixture")
 FRAGMENTS = CODE["REPLACEMENTS"]
 FIELDS = CODE["BASELINE_FIELDS"]
-assert sum(len(v) for v in FRAGMENTS.values()) == 7
+assert sum(len(v) for v in FRAGMENTS.values()) == 9
 
 
 def put(root: Path, path: str, content: str) -> None:
@@ -64,7 +64,7 @@ def main() -> None:
             assert (good / path).read_text() == expected
             assert "->cpus_ptr" not in expected
         result = json.loads((good / "report/stage31-status.json").read_text())
-        assert result["replaced_fragments"] == 7
+        assert result["replaced_fragments"] == 9
         assert result["remaining_rejected_files"] == 64
         assert result["migration_runtime_implemented"] is False
         assert result["kernel_built"] is False and result["flash_ready"] is False
@@ -97,7 +97,25 @@ def main() -> None:
         name = "kernel/sched/fair.c"
         put(partial, name, source[name] + "\n" + FRAGMENTS[name][0][1] + "\n")
         assert invoke(partial, "apply").returncode != 0
-    print("EXP76_STAGE31_CLASS_AFFINITY_REGRESSIONS=7_PASS; FLASH_READY=false")
+
+        # Stage32: the Stage31 synthetic fixture had omitted two RT NUMA sites.
+        # Both are mandatory and must retain one exact location each.
+        numa_missing = base / "numa-missing"
+        source = setup(numa_missing)
+        name = "kernel/sched/fair.c"
+        rt_numa = "cpumask_test_cpu(env->src_cpu, cur->cpus_ptr)"
+        assert rt_numa in source[name]
+        put(numa_missing, name, source[name].replace(rt_numa, "stale_numa_affinity()"))
+        assert invoke(numa_missing, "apply").returncode != 0
+        assert (numa_missing / name).read_text() != (good / name).read_text()
+
+        numa_duplicate = base / "numa-duplicate"
+        source = setup(numa_duplicate)
+        rt_numa2 = "cpumask_test_cpu(cpu, env->p->cpus_ptr)"
+        assert rt_numa2 in source[name]
+        put(numa_duplicate, name, source[name] + rt_numa2 + "\n")
+        assert invoke(numa_duplicate, "apply").returncode != 0
+    print("EXP76_STAGE32_FAIR_NUMA_REGRESSIONS=9_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
