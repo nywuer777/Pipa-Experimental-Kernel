@@ -1,106 +1,15 @@
 {
-  "artifact_present": true,
-  "extra_object_coverage": {
-    "all_extra_objects_compiled": false,
-    "baseline_3_objects_compiled": true,
-    "migration_contract": {
-      "migrate_disabled_sched_declarations": 1,
-      "migrate_disabled_sched_definitions": 0,
-      "migrate_disabled_sched_missing_local_definition": true,
-      "migration_entrypoint_definitions_in_core": 0,
-      "runtime_migration_contract_verified": false
-    },
-    "objects_attempted": 9,
-    "objects_compiled": 8,
-    "stage": "EXP76_STAGE30_RT_OBJECT_COVERAGE_NONFLASH",
-    "targets": {
-      "kernel/cpu.o": {
-        "attempted": true,
-        "compiled": false,
-        "errors_excerpt": [
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/cpu.c:886:6: error: implicit declaration of function 'cpu_nr_pinned' [-Werror,-Wimplicit-function-declaration]",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/cpu.c:948:15: error: implicit declaration of function 'cpu_nr_pinned' [-Werror,-Wimplicit-function-declaration]",
-          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/cpu.o] Error 1",
-          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/cpu.o] Error 2",
-          "make: *** [Makefile:153: sub-make] Error 2"
-        ],
-        "exit_code": 2,
-        "skip_reason": null
-      },
-      "kernel/locking/rtmutex.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      },
-      "kernel/sched/deadline.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      },
-      "kernel/sched/fair.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      },
-      "kernel/sched/idle.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      },
-      "kernel/sched/rt.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      },
-      "kernel/sched/stop_task.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      },
-      "kernel/softirq.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      },
-      "kernel/time/timer.o": {
-        "attempted": true,
-        "compiled": true,
-        "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
-      }
-    }
-  },
+  "artifact_present": false,
+  "extra_object_coverage": null,
   "flash_ready": false,
-  "job_conclusion": "success",
+  "job_conclusion": "failure",
   "kernel_built": false,
-  "preparation": {
-    "completed": true,
-    "errors_excerpt": [],
-    "first_error_context": "  UPD     include/generated/bounds.h\n  CC      arch/arm64/kernel/asm-offsets.s\n  UPD     include/generated/asm-offsets.h\n  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh\n  LDS     arch/arm64/kernel/vdso/vdso.lds\n  CC      arch/arm64/kernel/vdso/vgettimeofday.o\n  AS      arch/arm64/kernel/vdso/note.o\n  AS      arch/arm64/kernel/vdso/sigreturn.o\n  LD      arch/arm64/kernel/vdso/vdso.so.dbg\n  VDSOSYM include/generated/vdso-offsets.h\n  LDS     arch/arm64/kernel/vdso32/vdso.lds\n  CC32    arch/arm64/kernel/vdso32/note.o\n  CC32    arch/arm64/kernel/vdso32/vgettimeofday.o\n  AS32    arch/arm64/kernel/vdso32/sigreturn.o\n  HOSTCC  arch/arm64/kernel/vdso32/../../../arm/vdso/vdsomunge\n  LD32    arch/arm64/kernel/vdso32/vdso.so.raw\n  MUNGE   arch/arm64/kernel/vdso32/vdso.so.dbg\n  VDSOSYM include/generated/vdso32-offsets.h\nmake[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'\nmake: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
-    "gate_exit_code": 0,
-    "make_exit_code": 0,
-    "missing_headers": []
-  },
+  "preparation": null,
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41450161880,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41450161880",
+  "run_id": 41451437668,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41451437668",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "2cbe9950e55df391a595226949abdcf1d9797ee3",
+  "source_sha": "eacae7dfb2495c852e1e5d664d066f3ba1a74fdf",
   "stages": {
     "stage19": {
       "applied": true,
@@ -173,32 +82,14 @@
       "present": true,
       "remaining_rejected_files": 64,
       "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS"
+    },
+    "stage40": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
     }
   },
-  "status": "EXP76_STAGE22=PREPARE_PASS_OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false",
-  "targets": {
-    "kernel_fork.o": {
-      "attempted": true,
-      "compiled": true,
-      "errors_excerpt": [],
-      "exit_code": 0,
-      "skip_reason": null
-    },
-    "kernel_sched_core.o": {
-      "attempted": true,
-      "compiled": true,
-      "errors_excerpt": [
-        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:4732:13: warning: function 'migrate_disabled_sched' has internal linkage but is not defined [-Wundefined-internal]"
-      ],
-      "exit_code": 0,
-      "skip_reason": null
-    },
-    "kernel_sched_cpupri.o": {
-      "attempted": true,
-      "compiled": true,
-      "errors_excerpt": [],
-      "exit_code": 0,
-      "skip_reason": null
-    }
-  }
+  "status": null,
+  "targets": {}
 }
