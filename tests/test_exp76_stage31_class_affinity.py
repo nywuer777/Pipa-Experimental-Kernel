@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Python 3 / GitHub Actions Ubuntu / EXP76 Stage31 scheduler class ABI regression / NO FLASH
-"""Exercise seven precise PREEMPT_RT cpus_ptr conversions and fail-closed gates."""
+"""Exercise 12 sourced RT and pre-existing E404 affinity fragments and drift gates."""
 from __future__ import annotations
 
 import json
@@ -15,7 +15,7 @@ SCRIPT = ROOT / "tools" / "exp76-rt-stage31-class-affinity.py"
 CODE = runpy.run_path(str(SCRIPT), run_name="exp76_stage31_fixture")
 FRAGMENTS = CODE["REPLACEMENTS"]
 FIELDS = CODE["BASELINE_FIELDS"]
-assert sum(len(v) for v in FRAGMENTS.values()) == 9
+assert sum(len(v) for v in FRAGMENTS.values()) == 12
 
 
 def put(root: Path, path: str, content: str) -> None:
@@ -64,8 +64,9 @@ def main() -> None:
             assert (good / path).read_text() == expected
             assert "->cpus_ptr" not in expected
         result = json.loads((good / "report/stage31-status.json").read_text())
-        assert result["replaced_fragments"] == 9
+        assert result["replaced_fragments"] == 12
         assert result["stage32_fair_numa_affinity_reconciled"] is True
+        assert result["stage33_preexisting_vendor_fair_cpus_ptr_reconciled"] is True
         assert result["remaining_rejected_files"] == 64
         assert result["migration_runtime_implemented"] is False
         assert result["kernel_built"] is False and result["flash_ready"] is False
@@ -116,7 +117,25 @@ def main() -> None:
         assert rt_numa2 in source[name]
         put(numa_duplicate, name, source[name] + rt_numa2 + "\n")
         assert invoke(numa_duplicate, "apply").returncode != 0
-    print("EXP76_STAGE32_FAIR_NUMA_REGRESSIONS=9_PASS; FLASH_READY=false")
+
+        # Stage33: these snippets originate in the PINNED vendor E404
+        # fair.c before the PREEMPT_RT partial patch. They were absent
+        # from the Stage31/32 patch-diff-only test fixture.
+        vendor_smt = "for_each_cpu_and(cpu, cpu_smt_mask(target), p->cpus_ptr)"
+        vendor_comment1 = " * 3) cannot be migrated to this CPU due to cpus_ptr, or"
+        vendor_comment2 = " * isn't true due to cpus_ptr constraints and the like."
+        for fragment, case in (
+            (vendor_smt, "smt"),
+            (vendor_comment1, "migration-comment"),
+            (vendor_comment2, "imbalance-comment"),
+        ):
+            source_dir = base / ("vendor-" + case)
+            sources = setup(source_dir)
+            assert fragment in sources[name], case
+            put(source_dir, name, sources[name].replace(fragment, "STALE_VENDOR_FRAGMENT"))
+            assert invoke(source_dir, "apply").returncode != 0
+            assert (source_dir / name).read_text() == sources[name].replace(fragment, "STALE_VENDOR_FRAGMENT")
+    print("EXP76_STAGE33_VENDOR_FAIR_REGRESSIONS=12_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
