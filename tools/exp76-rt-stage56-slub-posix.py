@@ -83,7 +83,8 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
     one(bug, WARN_ANCHOR, "E404 asm-generic warning macro insertion")
     if "WARN_ON_ONCE_NONRT" in bug:
         raise ValueError("WARN_ON_ONCE_NONRT already defined")
-    one(bug, "# define WARN_ON_SMP(x)", "Warning macro presence")
+    if bug.count("# define WARN_ON_SMP(x)") != 2:
+        raise ValueError("Expected SMP and nonSMP warning branches")
     if not ("#ifdef CONFIG_PREEMPT_RT_BASE" in timer and
             "WARN_ON_ONCE_NONRT(!irqs_disabled());" in timer):
         raise ValueError("E404 RT threaded POSIX timer warning consumer missing")

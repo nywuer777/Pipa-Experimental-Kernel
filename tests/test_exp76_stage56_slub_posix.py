@@ -26,6 +26,7 @@ def fixture(root: Path) -> Path:
     write(tree, M["SLUB"], "static struct page *allocate_slab(struct kmem_cache *s, gfp_t flags, int node)\n{\n"
           + M["SLUB_OLD"] + "body();\n" + M["SLUB_EXIT"] + "}\n")
     write(tree, M["BUG"], "# define WARN_ON_SMP(x)\tWARN_ON(x)\n"
+          "# define WARN_ON_SMP(x)\t({0;})\n"
           + M["WARN_ANCHOR"])
     write(tree, M["TIMER"],
           "#ifdef CONFIG_PREEMPT_RT_BASE\n"
