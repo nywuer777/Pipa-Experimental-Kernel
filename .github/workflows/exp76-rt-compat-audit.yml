@@ -40,6 +40,8 @@ on:
       - 'tests/test_exp76_stage29_migration_abi.py'
       - 'tools/exp76-rt-stage31-class-affinity.py'
       - 'tests/test_exp76_stage31_class_affinity.py'
+      - 'tools/exp76-rt-stage34-timer-swork.py'
+      - 'tests/test_exp76_stage34_timer_swork.py'
       - 'tools/exp76-export-partial-source.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
@@ -100,6 +102,8 @@ jobs:
           python3 tests/test_exp76_stage29_migration_abi.py
           python3 -m py_compile tools/exp76-rt-stage31-class-affinity.py
           python3 tests/test_exp76_stage31_class_affinity.py
+          python3 -m py_compile tools/exp76-rt-stage34-timer-swork.py
+          python3 tests/test_exp76_stage34_timer_swork.py
           python3 -m py_compile tools/exp76-export-partial-source.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
