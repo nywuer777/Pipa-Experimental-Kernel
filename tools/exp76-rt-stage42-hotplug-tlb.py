@@ -85,7 +85,8 @@ HOOK_OPTIONAL = (
     "\t\ttlb_migrate_finish(p->mm);\n"
     "#endif\n"
 )
-CORE_DECL_MARKER = "#if defined(CONFIG_SMP) && defined(CONFIG_PREEMPT_RT_BASE)\n"
+CORE_DECL_MARKER = ("#if defined(CONFIG_SMP) && defined(CONFIG_PREEMPT_RT_BASE)\n\n"
+                    "static inline void\nupdate_nr_migratory(struct task_struct *p, long delta)\n")
 CORE_EXTERN = (
     "#if defined(CONFIG_PREEMPT_RT_BASE) && defined(CONFIG_HOTPLUG_CPU)\n"
     "extern struct task_struct *takedown_cpu_task;\n"
