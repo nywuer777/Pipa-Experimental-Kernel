@@ -119,6 +119,31 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "link_performed": extended.get("link_performed") is True,
             "targets": entries,
         }
+    archive = read_json(
+        artifact / "exp76-stage50-report" / "KERNEL_SUBTREE_DIAGNOSTIC.json"
+    )
+    kernel_subtree = None
+    if archive is not None:
+        kernel_subtree = {
+            "stage": str(archive.get("stage") or "")[:120],
+            "target": str(archive.get("target") or "")[:80],
+            "baseline_22_objects_compiled":
+                archive.get("baseline_22_objects_compiled") is True,
+            "attempted": archive.get("attempted") is True,
+            "exit_code": archive.get("exit_code"),
+            "archive_created": archive.get("archive_created") is True,
+            "archive_bytes": archive.get("archive_bytes"),
+            "skip_reason": str(archive.get("skip_reason") or "")[:120] or None,
+            "errors_excerpt": bounded_lines(archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files": archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -147,6 +172,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "targets": targets,
         "extra_object_coverage": extra_objects,
         "cross_subsystem_coverage": cross_objects,
+        "kernel_subtree_diagnostic": kernel_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
