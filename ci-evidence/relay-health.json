@@ -3,8 +3,8 @@
   "flash_ready": false,
   "kernel_compiled": false,
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41443538606,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41443538606",
+  "run_id": 41444634460,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41444634460",
   "schema": "EXP76_STAGE25_RELAY_SMOKE_V1",
-  "source_sha": "cdfa1c11bf4c1cb00aba7ce8faacfffd50a11c76"
+  "source_sha": "46c11ae2683e06fa587bf45ace7e26cd3a8acc37"
 }
