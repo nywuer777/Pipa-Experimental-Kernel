@@ -46,6 +46,8 @@ on:
       - 'tests/test_exp76_stage35_might_sleep.py'
       - 'tools/exp76-stage36-migration-contract.py'
       - 'tests/test_exp76_stage36_migration_contract.py'
+      - 'tools/exp76-rt-stage38-softirq-entry.py'
+      - 'tests/test_exp76_stage38_softirq_entry.py'
       - 'tools/exp76-export-partial-source.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
@@ -112,6 +114,8 @@ jobs:
           python3 tests/test_exp76_stage35_might_sleep.py
           python3 -m py_compile tools/exp76-stage36-migration-contract.py
           python3 tests/test_exp76_stage36_migration_contract.py
+          python3 -m py_compile tools/exp76-rt-stage38-softirq-entry.py
+          python3 tests/test_exp76_stage38_softirq_entry.py
           python3 -m py_compile tools/exp76-export-partial-source.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
