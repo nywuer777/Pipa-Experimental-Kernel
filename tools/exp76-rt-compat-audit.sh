@@ -624,6 +624,20 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE58=RT_RWLOCK_QUERY_OUT_OF_LINE; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage58-gate.txt"
 
 
+# Stage59: complete two source-confirmed RT ABI adapters.  RT converts the
+# kthread worker lock to raw_spinlock_t but leaves four E404 worker_fn
+# operations on the ordinary spinlock API; proc status uses the missing
+# task->cpus_ptr in place of E404's cpus_allowed member.
+python3 tools/exp76-rt-stage59-kthread-proc.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage59" \
+    --mode apply | tee "$REPORT/stage59-kthread-proc.log"
+test -f "$REPORT/stage59/stage59-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE59=KTHREAD_WORKER_RAW_AND_PROC_AFFINITY_E404_PORTED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage59-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.

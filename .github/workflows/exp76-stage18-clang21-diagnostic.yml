@@ -63,6 +63,8 @@ on:
       - 'tests/test_exp76_stage57_rwlock_nohz.py'
       - 'tools/exp76-rt-stage58-rwlock-outofline.py'
       - 'tests/test_exp76_stage58_rwlock_outofline.py'
+      - 'tools/exp76-rt-stage59-kthread-proc.py'
+      - 'tests/test_exp76_stage59_kthread_proc.py'
   workflow_dispatch:
 
 permissions:
@@ -142,6 +144,8 @@ jobs:
           python3 tests/test_exp76_stage57_rwlock_nohz.py
           python3 -m py_compile tools/exp76-rt-stage58-rwlock-outofline.py
           python3 tests/test_exp76_stage58_rwlock_outofline.py
+          python3 -m py_compile tools/exp76-rt-stage59-kthread-proc.py
+          python3 tests/test_exp76_stage59_kthread_proc.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -219,6 +223,7 @@ jobs:
           test -f exp76-rt-report/stage56/stage56-status.json
           test -f exp76-rt-report/stage57/stage57-status.json
           test -f exp76-rt-report/stage58/stage58-status.json
+          test -f exp76-rt-report/stage59/stage59-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
           echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE48_RCU_HUNK_SCOPED'
@@ -424,6 +429,16 @@ jobs:
                   f"Waiter lock preserved: {s58.get('raw_spinlock_query_and_unlock_preserved')}",
                   f"RT rejects: {s58.get('remaining_rejected_files')}",
               ]
+          stage59_file = Path('exp76-rt-report/stage59/stage59-status.json')
+          if stage59_file.is_file():
+              s59 = json.loads(stage59_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage59 RT kthread worker and E404 /proc affinity (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s59.get('applied')}",
+                  f"Raw worker lock operations reconciled: {s59.get('worker_lock_ops_reconciled')}",
+                  f"Proc mask references restored: {s59.get('proc_affinity_mask_references_restored')}",
+                  f"Remaining RT rejects: {s59.get('remaining_rejected_files')}",
+              ]
           subtree_file = Path('exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json')
           if subtree_file.is_file():
               subtree = json.loads(subtree_file.read_text(encoding='utf-8'))
@@ -481,6 +496,7 @@ jobs:
             exp76-rt-report/stage56/
             exp76-rt-report/stage57/
             exp76-rt-report/stage58/
+            exp76-rt-report/stage59/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
