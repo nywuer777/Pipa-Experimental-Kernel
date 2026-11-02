@@ -34,7 +34,6 @@ CPU = (
     '\n\t\treturn err;\n\t}\n'
     + D["SUCCESS_ANCHOR"] +
     '\n\tirq_unlock_sparse();\n\treturn 0;\n}\n'
-    'int unused(void) { return cpu_nr_pinned(cpu); }\n'
 )
 
 
@@ -83,6 +82,10 @@ def main() -> None:
         assert "goto retry_pinned_cpu;" in cpu
         assert "if (err == -EAGAIN)" in cpu
         assert "if (cpu_nr_pinned(cpu))" in cpu
+        # An unported source has only the stopper check; the RT loop
+        # adds exactly one second call. Do not allow phantom consumers.
+        assert CPU.count("cpu_nr_pinned(cpu)") == 1
+        assert cpu.count("cpu_nr_pinned(cpu)") == 2
         assert "extern struct task_struct *takedown_cpu_task;" in core
         assert "#ifdef tlb_migrate_finish" in core
         assert core.count("tlb_migrate_finish(p->mm);") == 1
@@ -135,10 +138,20 @@ def main() -> None:
         kept = run(upstream)
         assert kept.returncode == 0, kept.stderr
         assert (upstream / D["CPU"]).read_text() == upstream_cpu
+        assert upstream_cpu.count("cpu_nr_pinned(cpu)") == 2
+        assert upstream_cpu.count("nr_pinned = cpu_nr_pinned(cpu);") == 1
         assert (upstream / D["CORE"]).read_text() != CORE
         existing_report = json.loads(
             (upstream / "report/stage42-status.json").read_text())
         assert existing_report["preexisting_upstream_hotplug_reused"] is True
+
+        phantom_consumer = base / "phantom-consumer"
+        fixture(phantom_consumer)
+        put(phantom_consumer, D["CPU"], upstream_cpu
+            + "\nint unexpected_pin_reader(void) { return cpu_nr_pinned(cpu); }\n")
+        rejected = run(phantom_consumer)
+        assert rejected.returncode != 0
+        assert "Complete RT hotplug requires stopper and polling call sites" in rejected.stderr
 
         incomplete_upstream = base / "incomplete-upstream"
         fixture(incomplete_upstream)
@@ -180,7 +193,7 @@ def main() -> None:
         (short_rejects / "pending/r00.rej").unlink()
         assert run(short_rejects).returncode != 0
 
-    print("EXP76_STAGE42_HOTPLUG_TLB_REGRESSIONS=9_PASS; FLASH_READY=false")
+    print("EXP76_STAGE43_HOTPLUG_PIN_CALL_SITES_REGRESSIONS=10_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
