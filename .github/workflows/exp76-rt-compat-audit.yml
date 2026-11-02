@@ -54,6 +54,8 @@ on:
       - 'tests/test_exp76_stage41_migration_lifecycle.py'
       - 'tools/exp76-rt-stage42-hotplug-tlb.py'
       - 'tests/test_exp76_stage42_hotplug_tlb.py'
+      - 'tools/exp76-rt-stage47-rcu-workqueue.py'
+      - 'tests/test_exp76_stage47_rcu_workqueue.py'
       - 'tools/exp76-export-partial-source.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
@@ -128,6 +130,8 @@ jobs:
           python3 tests/test_exp76_stage41_migration_lifecycle.py
           python3 -m py_compile tools/exp76-rt-stage42-hotplug-tlb.py
           python3 tests/test_exp76_stage42_hotplug_tlb.py
+          python3 -m py_compile tools/exp76-rt-stage47-rcu-workqueue.py
+          python3 tests/test_exp76_stage47_rcu_workqueue.py
           python3 -m py_compile tools/exp76-export-partial-source.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
