@@ -1,0 +1,74 @@
+{
+  "artifact_present": true,
+  "flash_ready": false,
+  "job_conclusion": "success",
+  "kernel_built": false,
+  "preparation": {
+    "completed": true,
+    "errors_excerpt": [],
+    "first_error_context": "  UPD     include/generated/bounds.h\n  CC      arch/arm64/kernel/asm-offsets.s\n  UPD     include/generated/asm-offsets.h\n  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh\n  LDS     arch/arm64/kernel/vdso/vdso.lds\n  CC      arch/arm64/kernel/vdso/vgettimeofday.o\n  AS      arch/arm64/kernel/vdso/note.o\n  AS      arch/arm64/kernel/vdso/sigreturn.o\n  LD      arch/arm64/kernel/vdso/vdso.so.dbg\n  VDSOSYM include/generated/vdso-offsets.h\n  LDS     arch/arm64/kernel/vdso32/vdso.lds\n  CC32    arch/arm64/kernel/vdso32/note.o\n  CC32    arch/arm64/kernel/vdso32/vgettimeofday.o\n  AS32    arch/arm64/kernel/vdso32/sigreturn.o\n  HOSTCC  arch/arm64/kernel/vdso32/../../../arm/vdso/vdsomunge\n  LD32    arch/arm64/kernel/vdso32/vdso.so.raw\n  MUNGE   arch/arm64/kernel/vdso32/vdso.so.dbg\n  VDSOSYM include/generated/vdso32-offsets.h\nmake[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'\nmake: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
+    "gate_exit_code": 0,
+    "make_exit_code": 0,
+    "missing_headers": []
+  },
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "run_id": 41377489861,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41377489861",
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "source_sha": "c7fc10cc88c80c6af78d3a64fb4d2d99e98adab7",
+  "stages": {
+    "stage19": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 65,
+      "stage": "EXP76_RT_STAGE19_COMPILER_HEADER_FIXES"
+    },
+    "stage20": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE20_SWAP_LOCALLOCK_AND_PERCPU_RWSEM_ABI"
+    },
+    "stage21": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED"
+    }
+  },
+  "status": "EXP76_STAGE22=PREPARE_PASS_OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false",
+  "targets": {
+    "kernel_fork.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    },
+    "kernel_sched_core.o": {
+      "attempted": true,
+      "compiled": false,
+      "errors_excerpt": [
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:1855:32: error: no member named 'cpus_ptr' in 'struct task_struct'",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:1995:19: error: no member named 'cpus_mask' in 'struct task_struct'",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:1996:9: error: no member named 'cpus_ptr' in 'struct task_struct'",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:1996:25: error: no member named 'cpus_mask' in 'struct task_struct'",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:2003:12: error: no member named 'migrate_disable' in 'struct task_struct'",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:2393:24: error: implicit declaration of function 'check_task_state' [-Werror,-Wimplicit-function-declaration]",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:5860:33: error: no member named 'cpus_ptr' in 'struct task_struct'",
+        "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/sched/core.o] Error 1",
+        "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/sched/core.o] Error 2",
+        "make: *** [Makefile:153: sub-make] Error 2"
+      ],
+      "exit_code": 2,
+      "skip_reason": null
+    },
+    "kernel_sched_cpupri.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    }
+  }
+}

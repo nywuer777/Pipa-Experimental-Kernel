@@ -12,10 +12,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41376879585,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41376879585",
+  "run_id": 41377489861,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41377489861",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "7babaa635098cc114e73eb25f6703b48516d1e57",
+  "source_sha": "c7fc10cc88c80c6af78d3a64fb4d2d99e98adab7",
   "stages": {
     "stage19": {
       "applied": true,
@@ -40,17 +40,9 @@
   "targets": {
     "kernel_fork.o": {
       "attempted": true,
-      "compiled": false,
-      "errors_excerpt": [
-        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/fork.c:909:12: error: no member named 'cpus_ptr' in 'struct task_struct'",
-        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/fork.c:909:31: error: no member named 'cpus_mask' in 'struct task_struct'",
-        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/fork.c:910:8: error: no member named 'cpus_ptr' in 'struct task_struct'",
-        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/fork.c:910:25: error: no member named 'cpus_mask' in 'struct task_struct'",
-        "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/fork.o] Error 1",
-        "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/fork.o] Error 2",
-        "make: *** [Makefile:153: sub-make] Error 2"
-      ],
-      "exit_code": 2,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
       "skip_reason": null
     },
     "kernel_sched_core.o": {
