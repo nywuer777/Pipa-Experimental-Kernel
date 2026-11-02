@@ -598,6 +598,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE56=SLUB_IRQ_AND_POSIX_NONRT_WARNING_ABI; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage56-gate.txt"
 
 
+# Stage57: RT rwlock.h lacks the nonRT rwlock_is_contended() contract,
+# and tick-sched.c uses the Stage38 softirq checker without a prototype.
+# Check waiter-tree state under its raw wait_lock; export NOHZ prototype.
+python3 tools/exp76-rt-stage57-rwlock-nohz.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage57" \
+    --mode apply | tee "$REPORT/stage57-rwlock-nohz.log"
+test -f "$REPORT/stage57/stage57-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE57=RT_RWLOCK_NOHZ_SOFTIRQ_DECLARED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage57-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
