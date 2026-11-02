@@ -257,3 +257,17 @@ Os testes `tests/test_exp76_stage31_class_affinity.py` passaram a exigir os nove
 **Estado de evidência:** Stage31 falhou na auditoria e **não** produziu novos objetos. O placar real anterior permanece `3/3` objetos base e `2/9` objetos adicionais. As próximas saídas precisam validar se o Stage32 desbloqueia a auditoria e permite compilar `rt.o`, `fair.o` e `deadline.o`.
 
 `EXP76_STAGE32_SOURCE=COMMITTED`; `EXP76_STAGE32_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage33 — três referências cpus_ptr preexistentes na E404, não no patch RT
+
+**Falha real Stage32:** Clang21 run `41392088296`, commit `53b56b6a4cb3ed587443ae19381696a72e314382`, com testes `EXP76_STAGE32_FAIR_NUMA_REGRESSIONS=9_PASS`, mas auditoria `Stage31` interrompida por `ValueError: kernel/sched/fair.c: unrecognized remaining RT affinity reference`. A compilação dos objetos foi ignorada pelo job após a falha; não há um novo placar de Clang.
+
+O exame da árvore E404 original no commit fixado `fed88a6024cd4d46c52eda607a95d97d7371ba81` confirmou **três** outras ocorrências de `cpus_ptr` em `kernel/sched/fair.c` anteriores ao RT: a expressão `for_each_cpu_and(cpu, cpu_smt_mask(target), p->cpus_ptr)` de `select_idle_smt()`, o comentário `cannot be migrated ... due to cpus_ptr` e o comentário `isn't true due to cpus_ptr constraints`. Nenhuma dessas ocorrências fazia parte do diff parcial de Stage19 utilizado como fonte das substituições Stage31/32.
+
+O script de port `tools/exp76-rt-stage31-class-affinity.py` agora contém **12 fragmentos exatos** (nove expressões C e três comentários), dos quais nove vêm do RT e três já existiam na E404. A máscara embutida `cpus_allowed` é usada no caminho SMT; os comentários também passam a referir a mesma ABI. O gate final verifica tokens `cpus_ptr`/`cpus_mask` em todas as linhas dos três arquivos, reporta até oito linhas de contexto se restarem ocorrências e nunca escreve parcialmente o port se houver divergência.
+
+O teste `tests/test_exp76_stage31_class_affinity.py` agora inclui as três ocorrências da E404 como fixtures independentes e falha na ausência de qualquer uma. No manifesto `stage31-status.json`, `stage33_preexisting_vendor_fair_cpus_ptr_reconciled=true` registra a correção aplicada. O Stage33 usa os workflows existentes; não altera parâmetros do dispositivo nem as rotinas de migração e locking do kernel.
+
+O último resultado *válido* de compilação continua sendo Stage30: **3/3 objetos base e 2/9 objetos extras**, com 64 rejeitos RT, até nova execução com Stage33. `KERNEL_BUILT=false`; `FLASH_READY=false`; EXP75 preservado.
+
+`EXP76_STAGE33_SOURCE=COMMITTED`; `EXP76_STAGE33_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`.
