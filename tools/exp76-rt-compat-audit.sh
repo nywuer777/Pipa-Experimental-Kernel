@@ -493,6 +493,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE41=RT_MIGRATION_E404_PORT_APPLIED; MIGRATION_RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage41-gate.txt"
 
 
+# Stage42: complete RT hotplug handshake that Stage41 upstream migrate_enable
+# expects: takedown_cpu_task task pointer, sleep/retry pin-drain and guarded
+# arm64 TLB migration hook; no stubbed hotplug worker or artificial TLB function.
+python3 tools/exp76-rt-stage42-hotplug-tlb.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage42" \
+    --mode apply | tee "$REPORT/stage42-hotplug-tlb.log"
+test -f "$REPORT/stage42/stage42-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE42=HOTPLUG_PIN_DRAIN_TLB_ARCH_GUARD; HOTPLUG_RUNTIME_VERIFIED=false; FLASH_READY=false' | tee "$REPORT/stage42-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
