@@ -139,3 +139,15 @@ O conector GitHub utilizado não lista todas as execuções originadas por `push
 A meta permanece em 64 rejeições pendentes, e a semântica do scheduler ainda precisa de revisão. A publicação do canal é uma mudança de observabilidade; ela não prova que `make prepare` passou e não produz `Image`, `vmlinux` nem `boot.img`.
 
 `EXP76_STAGE24_EVIDENCE_SOURCE=COMMITTED`; `EXP76_STAGE24_CI=UNVERIFIED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage25 — smoke do canal de evidências e resumo direto da CI
+
+O arquivo `ci-evidence/clang21-latest.json` não estava presente na última consulta após o Stage24. Sem esse arquivo e sem um ID de run posterior confirmado, não há resultado novo de `make prepare`, `asm-offsets.s` ou dos três objetos.
+
+Para separar problemas de publicação de problemas de compilação, foi criado o workflow leve `.github/workflows/exp76-stage25-relay-smoke.yml`. Ele não baixa Clang nem executa `make`: roda os três testes do coletor Stage24 e, após sucesso, tenta publicar `ci-evidence/relay-health.json` e `ci-evidence/relay-runs/<run_id>.json` no branch isolado `exp76-ci-evidence`.
+
+O workflow principal `exp76-stage18-clang21-diagnostic.yml` passou a disponibilizar também um resumo `GITHUB_STEP_SUMMARY` com estado de `prepare`, códigos dos objetos e primeiras mensagens de erro, independente da escrita no branch de evidências. O job de compilação tem permissão explícita `contents: read`, enquanto o job de publicação mantém `contents: write`.
+
+Se o heartbeat `relay-health.json` não aparecer, a publicação continua não demonstrada. Se aparecer, confirma a rota básica de escrita, não o funcionamento completo do compilador. A meta de rejeitos permanece 64 e nenhuma instalação/flash foi autorizada.
+
+`EXP76_STAGE25_SOURCE=COMMITTED`; `EXP76_STAGE25_RELAY=UNVERIFIED`; `EXP76_STAGE25_CLANG21=UNVERIFIED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
