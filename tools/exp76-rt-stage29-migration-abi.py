@@ -48,7 +48,9 @@ FORK_RT_INIT = """#if defined(CONFIG_SMP) && defined(CONFIG_PREEMPT_RT_BASE)
 #endif
 """
 RT_CORE = "return p->migrate_disable;"
-UPSTREAM_REJECT_MARKER = "+\tint\t\t\t\tmigrate_disable;"
+UPSTREAM_REJECT_MARKER = ("+#if defined(CONFIG_SMP) && defined(CONFIG_PREEMPT_RT_BASE)\n"
+                          "+\tint\t\t\t\tmigrate_disable;\n"
+                          "+\tbool\t\t\t\tmigrate_disable_scheduled;")
 
 
 def once(body: str, needle: str, label: str) -> None:
@@ -67,8 +69,6 @@ def prepare(tree: Path) -> tuple[str, str]:
 
     rejected = (tree / REJECT).read_text(encoding="utf-8")
     once(rejected, UPSTREAM_REJECT_MARKER, REJECT)
-    once(rejected, "+\tbool\t\t\t\tmigrate_disable_scheduled;", REJECT)
-    once(rejected, "+\tint\t\t\t\tsleeping_lock;", REJECT) if False else None
     sched = (tree / SCHED).read_text(encoding="utf-8")
     once(sched, FIELDS_ANCHOR, SCHED)
     if re.search(r"\b(?:int|bool)\s+(?:migrate_disable|migrate_disable_scheduled|pinned_on_cpu)\s*;", sched):
