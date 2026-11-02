@@ -11,7 +11,7 @@
       "runtime_migration_contract_verified": false
     },
     "objects_attempted": 9,
-    "objects_compiled": 6,
+    "objects_compiled": 7,
     "stage": "EXP76_STAGE30_RT_OBJECT_COVERAGE_NONFLASH",
     "targets": {
       "kernel/cpu.o": {
@@ -29,14 +29,9 @@
       },
       "kernel/locking/rtmutex.o": {
         "attempted": true,
-        "compiled": false,
-        "errors_excerpt": [
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rtmutex.c:974:2: error: implicit declaration of function 'might_sleep_no_state_check' [-Werror,-Wimplicit-function-declaration]",
-          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/locking/rtmutex.o] Error 1",
-          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/locking/rtmutex.o] Error 2",
-          "make: *** [Makefile:153: sub-make] Error 2"
-        ],
-        "exit_code": 2,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
         "skip_reason": null
       },
       "kernel/sched/deadline.o": {
@@ -115,10 +110,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41440311252,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41440311252",
+  "run_id": 41443538579,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41443538579",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "89f0e312fe2c50f0111c1c7c5eb859385ab0f9b5",
+  "source_sha": "cdfa1c11bf4c1cb00aba7ce8faacfffd50a11c76",
   "stages": {
     "stage19": {
       "applied": true,
@@ -173,6 +168,12 @@
       "present": true,
       "remaining_rejected_files": 64,
       "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED"
+    },
+    "stage35": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE35_RT_MIGHT_SLEEP_NO_STATE_CHECK"
     }
   },
   "status": "EXP76_STAGE22=PREPARE_PASS_OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false",
