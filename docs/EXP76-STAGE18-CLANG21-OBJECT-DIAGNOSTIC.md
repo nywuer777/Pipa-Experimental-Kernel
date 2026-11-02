@@ -223,3 +223,19 @@ A saída `exp76-stage30-report/OBJECT_COVERAGE.json` distingue os objetos tentad
 **Ainda pendente:** resta portar o contrato PREEMPT_RT completo de `migrate_disable/enable`, `migrate_disabled_sched`, `rq->nr_pinned`, regras de hotplug, `sleeping_lock` e todos os demais rejeitos RT. Sucesso do Stage30 significa cobertura parcial de objetos, nunca kernel completo ou flash autorizado.
 
 `EXP76_STAGE30_SOURCE=COMMITTED`; `EXP76_STAGE30_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage31 — compatibilidade dos escalonadores RT, CFS e deadline com E404
+
+**Evidência real Stage30:** execução `41386243228` no commit `6b78ce3a45366046caec4b1d0b67fc08c61a0152`. Os três objetos base compilaram e `make prepare` passou. Dos nove objetos adicionais, `kernel/sched/idle.o` e `kernel/sched/stop_task.o` compilaram. `rt.o` (2 erros), `fair.o` (1 erro) e `deadline.o` (3 erros) falharam em campos `cpus_ptr` não existentes em `task_struct` da E404; `cpu.o` não encontrou `cpu_nr_pinned`; `rtmutex.o` não encontrou `might_sleep_no_state_check`; `timer.o` não encontrou `timer_update_work`. `softirq.o` apresentou múltiplos erros de conflito de API e pré-processamento (inclusive `#else without #if`).
+
+A árvore E404 `fed88a6024cd4d46c52eda607a95d97d7371ba81` possui `cpumask_t cpus_allowed` embutida e não possui `cpus_ptr`. A diff parcial RT Stage19 mostrou que somente **seis expressões de código** (duas em `rt.c`, uma em `fair.c`, três em `deadline.c`) e **um comentário** foram alterados para essa ABI incompatível.
+
+`tools/exp76-rt-stage31-class-affinity.py` substitui exatamente esses sete fragmentos, restaura o comentário referente a `cpus_allowed`, exige a estrutura vendor e preserva as 64 rejeições. Nenhuma alteração é feita nos estados de migração, na política de scheduler ou nos locks. Os sete cenários de `tests/test_exp76_stage31_class_affinity.py` verificam modo sem escrita, aplicação, expressão ausente, troca da ABI, rejeito faltante, expressão duplicada e fonte parcialmente alterada.
+
+O pipeline Clang 21 mantém o gate base 3/3 e executa os nove objetos adicionais; o coletor persiste o manifesto Stage31 no branch `exp76-ci-evidence`.
+
+**Limites:** a correção não resolve `cpu_nr_pinned`, `might_sleep_no_state_check`, `timer_update_work`, `softirq`, `migrate_disabled_sched` nem o restante da árvore RT. Ainda não existe kernel completo, link `vmlinux`, boot.img ou autorização de flash.
+
+Evidência: https://github.com/nywuer777/Pipa-Experimental-Kernel/blob/exp76-ci-evidence/ci-evidence/clang21-latest.json
+
+`EXP76_STAGE31_SOURCE=COMMITTED`; `EXP76_STAGE31_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
