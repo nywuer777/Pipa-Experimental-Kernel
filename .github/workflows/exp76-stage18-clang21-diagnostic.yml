@@ -21,6 +21,8 @@ on:
       - 'tests/test_exp76_stage27_core_affinity.py'
       - 'tools/exp76-rt-stage28-task-state.py'
       - 'tests/test_exp76_stage28_task_state.py'
+      - 'tools/exp76-rt-stage29-migration-abi.py'
+      - 'tests/test_exp76_stage29_migration_abi.py'
   workflow_dispatch:
 
 permissions:
@@ -57,6 +59,8 @@ jobs:
           python3 tests/test_exp76_stage27_core_affinity.py
           python3 -m py_compile tools/exp76-rt-stage28-task-state.py
           python3 tests/test_exp76_stage28_task_state.py
+          python3 -m py_compile tools/exp76-rt-stage29-migration-abi.py
+          python3 tests/test_exp76_stage29_migration_abi.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
           echo 'EXP76_STAGE18_NO_FLASH_CODE_GATE=PASS'
@@ -100,7 +104,7 @@ jobs:
           clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
           rm -rf .git
 
-      - name: Prepare Stage28 source using pinned official RT/E404 patch audit
+      - name: Prepare Stage29 source using pinned official RT/E404 patch audit
         shell: bash
         timeout-minutes: 35
         run: |
@@ -115,9 +119,10 @@ jobs:
           test -f exp76-rt-report/stage26/stage26-status.json
           test -f exp76-rt-report/stage27/stage27-status.json
           test -f exp76-rt-report/stage28/stage28-status.json
+          test -f exp76-rt-report/stage29/stage29-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
-          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE28_64_REJECTS'
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE29_64_REJECTS'
 
       - name: Run arm64 prepare gate, then compile only selected scheduler objects
         shell: bash
@@ -184,6 +189,7 @@ jobs:
             exp76-rt-report/stage26/
             exp76-rt-report/stage27/
             exp76-rt-report/stage28/
+            exp76-rt-report/stage29/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
