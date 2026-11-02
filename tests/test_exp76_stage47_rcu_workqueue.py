@@ -134,9 +134,9 @@ def main() -> None:
         assert plugin.count(M["PLUGIN_INSERT"]) == 1
         assert work.count(M["WORK_LOCK_RT"]) == 1
         assert work.count(M["WORK_UNLOCK_RT"]) == 1
-        assert "void unrelated_workqueue_function(void) {\n"
-        assert work.endswith(WORK.split("void unrelated_workqueue_function", 1)[1]
-                             .join(["void unrelated_workqueue_function", ""]))
+        assert "void unrelated_workqueue_function(void) {\n" in work
+        assert work.split("void unrelated_workqueue_function(void)", 1)[1] == (
+            WORK.split("void unrelated_workqueue_function(void)", 1)[1])
         result = json.loads((good / "report/stage47-status.json").read_text())
         assert result["remaining_rejected_files"] == 64
         assert result["rcu_postpatch_preprocessor_balanced"] is True
