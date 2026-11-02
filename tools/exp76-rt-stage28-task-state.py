@@ -51,7 +51,7 @@ def prepare(tree: Path) -> str:
     sched = (tree / SCHED).read_text(encoding="utf-8")
     exactly(sched, "\tvolatile long\t\t\tsaved_state;", 1, SCHED)
     exactly(sched, "\tvolatile long\t\t\tstate;", 1, SCHED)
-    exactly(sched, "raw_spinlock_t\t\tpi_lock;", 1, SCHED)
+    exactly(sched, "\traw_spinlock_t\t\t\tpi_lock;", 1, SCHED)
 
     core = (tree / CORE).read_text(encoding="utf-8")
     exactly(core, ANCHOR, 1, CORE)
