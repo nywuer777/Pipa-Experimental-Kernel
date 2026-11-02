@@ -25,10 +25,10 @@ def fixture(base: Path) -> Path:
     tree = base / "trial"
     (tree / ".git").mkdir(parents=True)
     put(tree, M["KTHREAD_HEADER"],
-        "struct kthread_worker {\\n\traw_spinlock_t\t\tlock;\\n};\n"
+        "struct kthread_worker {\n\traw_spinlock_t\t\tlock;\n};\n"
         ".lock = __RAW_SPIN_LOCK_UNLOCKED((worker).lock)\n")
-    put(tree, M["SCHED"], "struct task_struct {\\n"
-        "\tcpumask_t\t\t\tcpus_allowed;\\n};\n")
+    put(tree, M["SCHED"], "struct task_struct {\n"
+        "\tcpumask_t\t\t\tcpus_allowed;\n};\n")
     worker = (
         M["WORKER_PREFIX"]
         + "{\nrepeat:\n\tif (kthread_should_stop()) {\n"
