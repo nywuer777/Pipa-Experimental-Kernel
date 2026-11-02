@@ -55,9 +55,9 @@ def inspect(tree: Path) -> dict:
               PREEMPT, CPU_PRI_REJECT):
         if not (tree / p).is_file():
             raise ValueError("Pinned E404 RT source prerequisite missing: " + p)
-    count = len(list(tree.rglob("*.rej")))
-    if count != 64:
-        raise ValueError(f"Stage36 expects 64 unresolved RT rejects, got {count}")
+    reject_count = len(list(tree.rglob("*.rej")))
+    if reject_count != 64:
+        raise ValueError(f"Stage36 expects 64 unresolved RT rejects, got {reject_count}")
 
     rejected_core = (tree / CORE_REJECT).read_text(encoding="utf-8")
     rejected_rq = (tree / RQ_REJECT).read_text(encoding="utf-8")
@@ -81,10 +81,10 @@ def inspect(tree: Path) -> dict:
     if cpu.count("cpu_nr_pinned(cpu)") != 2:
         raise ValueError("kernel/cpu.c hotplug calls unexpectedly changed")
     for marker in PREEMPT_DECLARATIONS:
-        count = preempt.count(marker)
+        declaration_count = preempt.count(marker)
         expected = 2 if marker.startswith("extern") else 1
-        if count != expected:
-            raise ValueError(f"{PREEMPT}: expected {expected} {marker!r}, saw {count}")
+        if declaration_count != expected:
+            raise ValueError(f"{PREEMPT}: expected {expected} {marker!r}, saw {declaration_count}")
     for marker in ("cpumask_t\t\t\tcpus_allowed;",
                    "cpumask_t\t\t\tcpus_requested;",
                    "int\t\t\t\tmigrate_disable;",
@@ -129,7 +129,7 @@ def inspect(tree: Path) -> dict:
             "kernel/cpu.c: preserve hotplug -EAGAIN and task wakeup behavior",
             "include/linux/sched.h: preserve E404 embedded cpus_allowed/cpus_requested masks",
         ],
-        "remaining_rejected_files": count,
+        "remaining_rejected_files": reject_count,
         "kernel_built": False,
         "flash_ready": False,
     }
