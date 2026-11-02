@@ -53,6 +53,8 @@ on:
       - 'tests/test_exp76_stage52_cgroup_cpuset.py'
       - 'tools/exp76-rt-stage53-lru-cpudl.py'
       - 'tests/test_exp76_stage53_lru_cpudl.py'
+      - 'tools/exp76-rt-stage54-posix-timers.py'
+      - 'tests/test_exp76_stage54_posix_timers.py'
   workflow_dispatch:
 
 permissions:
@@ -122,6 +124,8 @@ jobs:
           python3 tests/test_exp76_stage52_cgroup_cpuset.py
           python3 -m py_compile tools/exp76-rt-stage53-lru-cpudl.py
           python3 tests/test_exp76_stage53_lru_cpudl.py
+          python3 -m py_compile tools/exp76-rt-stage54-posix-timers.py
+          python3 tests/test_exp76_stage54_posix_timers.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -194,6 +198,7 @@ jobs:
           test -f exp76-rt-report/stage51/stage51-status.json
           test -f exp76-rt-report/stage52/stage52-status.json
           test -f exp76-rt-report/stage53/stage53-status.json
+          test -f exp76-rt-report/stage54/stage54-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
           echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE48_RCU_HUNK_SCOPED'
@@ -349,6 +354,16 @@ jobs:
                   f"E404 deadline cpus_allowed restored: {s53.get('deadline_cpus_allowed_abi_restored')}",
                   f"Remaining RT rejects: {s53.get('remaining_rejected_files')}",
               ]
+          stage54_file = Path('exp76-rt-report/stage54/stage54-status.json')
+          if stage54_file.is_file():
+              s54 = json.loads(stage54_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage54 POSIX RT timer ABI (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s54.get('applied')}",
+                  f"Timer RCU head moved: {s54.get('timer_rcu_head_out_of_union')}",
+                  f"Expiry helper linked: {s54.get('posix_timer_lifetime_wait_helper_defined')}",
+                  f"Remaining RT reject files: {s54.get('remaining_rejected_files')}",
+              ]
           subtree_file = Path('exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json')
           if subtree_file.is_file():
               subtree = json.loads(subtree_file.read_text(encoding='utf-8'))
@@ -401,6 +416,7 @@ jobs:
             exp76-rt-report/stage51/
             exp76-rt-report/stage52/
             exp76-rt-report/stage53/
+            exp76-rt-report/stage54/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
