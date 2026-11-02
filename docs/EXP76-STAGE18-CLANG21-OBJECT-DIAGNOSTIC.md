@@ -300,3 +300,19 @@ O rejeito `include/linux/kernel.h.rej` na árvore E404 contém **duas definiçõ
 **Limites:** mesmo se `rtmutex.o` compilar, não há prova de locking funcional, ciclo de migração completo, kernel linkável, inicialização/boot ou integridade PREEMPT_RT. `cpu.o`, `softirq.o`, `migrate_disabled_sched` e as demais rejeições permanecem tarefas distintas.
 
 `EXP76_STAGE35_SOURCE=COMMITTED`; `EXP76_STAGE35_CI=UNVERIFIED`; `EXP76_RT_REJECTS=64`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage36 — contrato de migração real e proteção contra `cpu_nr_pinned()` fictício
+
+**Evidência disponível ao iniciar:** execução `41440311252` (Stage34) com `make prepare` PASS, `3/3` objetos base e `6/9` objetos adicionais compilados. O Stage35 restaurou `might_sleep_no_state_check()` e foi publicado no commit `cdfa1c11bf4c1cb00aba7ce8faacfffd50a11c76`, mas o relatório de Clang21 desse commit ainda não estava disponível ao iniciar Stage36. Em particular, não se afirma que `rtmutex.o` já compilou.
+
+A chamada `cpu_nr_pinned(cpu)` em dois pontos do hotplug `kernel/cpu.c` faz parte de um contrato maior do RT-140. O rejeito real `kernel/sched/core.c.rej` contém as implementações de `migrate_disable()`, `migrate_disabled_sched()`, `migrate_enable()` e `cpu_nr_pinned()`. O `migrate_disable()` incrementa `this_rq()->nr_pinned` na primeira entrada; `migrate_enable()` decrementa o contador, acorda a tarefa responsável por derrubar a CPU quando necessário e pode agendar migração efetiva. O rejeito `kernel/sched/sched.h.rej` acrescenta o campo `rq->nr_pinned` sob `CONFIG_PREEMPT_RT_BASE && CONFIG_SMP`.
+
+**Incompatibilidade obrigatória:** os helpers upstream alteram `p->cpus_ptr` e `p->cpus_mask` para fixar e restaurar a afinidade. A E404 conserva `cpus_allowed` e `cpus_requested` embutidos, e esse algoritmo deve ser portado por inteiro antes de habilitar o ciclo; simplesmente acrescentar `cpu_nr_pinned() { return 0; }` ou declarar um `rq->nr_pinned` nunca mantido mascararia o risco de hotplug e não é solução.
+
+`tools/exp76-stage36-migration-contract.py` é uma **auditoria somente de leitura da fonte**: exige cardinalidades verificadas dos trechos originais rejeitados, as duas chamadas em `cpu.c`, os campos RT previamente introduzidos no `task_struct`, as declarações correspondentes em `preempt.h` e 64 rejeitos pendentes. Se alguém adicionar apenas um helper, uma definição isolada ou o contador sem completar o ciclo, o gate falha e exige nova auditoria. O JSON `stage36-status.json` lista os sete componentes pendentes e registra explicitamente `cross_file_runtime_contract_complete=false`.
+
+`tests/test_exp76_stage36_migration_contract.py` cobre execução sem escrita, manifesto positivo e cinco cenários de drift além da contagem errada de rejeitos. Os workflows de auditoria e Clang21 incluem este gate antes de gerar o patch parcial, e o relay Stage24 registra o resultado no branch `exp76-ci-evidence`. Nenhuma semântica de migração foi alterada no Stage36.
+
+**Pendências reais:** `cpu.o` depende do ciclo completo; `softirq.o` depende de revisão de API/preprocessador; `migrate_disabled_sched` permanece sem definição em `core.o` até o port verdadeiro; a resolução das 64 rejeições ainda é necessária. Nenhum `Image`, `boot.img`, `vmlinux` ou flash foi produzido.
+
+`EXP76_STAGE36_SOURCE=COMMITTED`; `EXP76_STAGE36_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
