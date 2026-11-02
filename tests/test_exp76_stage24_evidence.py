@@ -99,6 +99,10 @@ def main() -> None:
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
         })
+        put(artifact / "exp76-rt-report" / "stage34" / "stage34-status.json", {
+            "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED",
+            "remaining_rejected_files": 64, "applied": True,
+        })
         failed = invoke(artifact, evidence, 122, "success")
         assert failed["artifact_present"] is True
         assert failed["preparation"]["completed"] is False
@@ -112,6 +116,8 @@ def main() -> None:
         assert failed["stages"]["stage29"]["remaining_rejected_files"] == 64
         assert failed["stages"]["stage31"]["applied"] is True
         assert failed["stages"]["stage31"]["remaining_rejected_files"] == 64
+        assert failed["stages"]["stage34"]["applied"] is True
+        assert failed["stages"]["stage34"]["remaining_rejected_files"] == 64
         assert failed["extra_object_coverage"]["objects_attempted"] == 9
         assert failed["extra_object_coverage"]["objects_compiled"] == 3
         assert failed["extra_object_coverage"]["targets"]["kernel/sched/rt.o"]["compiled"] is False
