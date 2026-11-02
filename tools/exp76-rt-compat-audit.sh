@@ -425,6 +425,20 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE34=TIMER_SWORK_QUEUE_AND_INIT_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false' | tee "$REPORT/stage34-gate.txt"
 
 
+# Stage35: restore exact two macro definitions from kernel.h.rej for
+# PREEMPT_RT rtmutex's might_sleep_no_state_check() call. Preserve the
+# special ___might_sleep debug semantics and non-debug might_resched.
+python3 tools/exp76-rt-stage35-might-sleep.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage35" \
+    --mode apply | tee "$REPORT/stage35-might-sleep.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage35/stage35-status.json"
+test -f "$ROOT/exp76-trial-overlay/include/linux/kernel.h.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE35=KERNEL_SLEEP_CHECK_MACROS_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false' | tee "$REPORT/stage35-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
