@@ -1,0 +1,10 @@
+{
+  "collector_regression": "success",
+  "flash_ready": false,
+  "kernel_compiled": false,
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "run_id": 41448935400,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41448935400",
+  "schema": "EXP76_STAGE25_RELAY_SMOKE_V1",
+  "source_sha": "e32defde3e9b5b3f10c8a6ea2140fe0679b91d88"
+}
