@@ -24,6 +24,7 @@ test -f "$ROOT/exp76-rt-report/stage36/stage36-status.json"
 test -f "$ROOT/exp76-rt-report/stage38/stage38-status.json"
 test -f "$ROOT/exp76-rt-report/stage40/stage40-status.json"
 test -f "$ROOT/exp76-rt-report/stage41/stage41-status.json"
+test -f "$ROOT/exp76-rt-report/stage42/stage42-status.json"
 test -x "$CLANG/clang"
 test -x "$CLANG/ld.lld"
 
