@@ -1,11 +1,11 @@
 {
   "artifact_present": true,
   "cross_subsystem_coverage": {
-    "all_cross_objects_compiled": false,
+    "all_cross_objects_compiled": true,
     "baseline_12_objects_compiled": true,
     "link_performed": false,
-    "objects_attempted": 9,
-    "objects_compiled": 7,
+    "objects_attempted": 10,
+    "objects_compiled": 10,
     "remaining_rejected_files": 64,
     "stage": "EXP76_STAGE46_RT_CROSS_SUBSYSTEM_OBJECTS_NONFLASH",
     "targets": {
@@ -16,44 +16,25 @@
         "exit_code": 0,
         "skip_reason": null
       },
-      "kernel/locking/mutex.o": {
+      "kernel/locking/mutex-rt.o": {
         "attempted": true,
-        "compiled": false,
-        "errors_excerpt": [
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.h:21:52: warning: declaration of 'struct mutex_waiter' will not be visible outside of this function [-Wvisibility]",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:39:1: error: expected identifier or '('",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:39:1: error: while loop outside of a function",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:84:34: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:110:44: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/mutex.c:144:45: error: no member named 'owner' in 'struct mutex'"
-        ],
-        "exit_code": 2,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
         "skip_reason": null
       },
-      "kernel/locking/rwsem.o": {
+      "kernel/locking/rwlock-rt.o": {
         "attempted": true,
-        "compiled": false,
-        "errors_excerpt": [
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:191:24: error: no member named 'owner' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:196:24: error: no member named 'owner' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:204:32: error: no member named 'owner' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:221:27: error: no member named 'owner' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:223:24: error: no member named 'owner' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:307:21: error: no member named 'wait_list' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:320:8: error: no member named 'm_count' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:325:11: error: no member named 'm_count' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:331:10: error: no member named 'm_count' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:356:47: error: no member named 'owner' in 'struct rw_semaphore'",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:363:12: error: expected ';' at end of declaration",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rwsem.c:363:42: error: no member named 'owner' in 'struct rw_semaphore'"
-        ],
-        "exit_code": 2,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/rwsem-rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
         "skip_reason": null
       },
       "kernel/locking/spinlock.o": {
@@ -191,10 +172,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41479007890,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41479007890",
+  "run_id": 41480242264,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41480242264",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "fa7e4e15561b7d98fa98b416b758dee21d81bb74",
+  "source_sha": "4f04ff7c16aba0d7ce3218bb72189cef31631c6b",
   "stages": {
     "stage19": {
       "applied": true,
