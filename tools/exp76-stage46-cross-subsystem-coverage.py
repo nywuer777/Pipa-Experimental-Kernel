@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Python 3 / GitHub Actions Ubuntu 24.04 / EXP76 Clang21 cross-subsystem object diagnostics / NO FLASH
-"""Compile nine more RT-sensitive objects only after all 12 earlier objects pass.
+"""Compile ten RT-active objects only after all 12 earlier objects pass.
 
 Exact object targets, no aggregate link, no kernel boot products, and bounded
 per-object logs. A success is object compilation, NOT a runnable RT kernel.
@@ -29,8 +29,9 @@ PRIOR_TARGETS = (
 CROSS_TARGETS = (
     "kernel/sched/wait.o",
     "kernel/sched/swait.o",
-    "kernel/locking/mutex.o",
-    "kernel/locking/rwsem.o",
+    "kernel/locking/mutex-rt.o",
+    "kernel/locking/rwsem-rt.o",
+    "kernel/locking/rwlock-rt.o",
     "kernel/locking/spinlock.o",
     "kernel/rcu/update.o",
     "kernel/rcu/tree.o",
@@ -96,6 +97,31 @@ def gate_prior(baseline_file: Path, coverage_file: Path) -> bool:
     )
 
 
+def validate_rt_locking_makefile(makefile: str) -> None:
+    """Require the pinned RT Kbuild policy, not legacy mutex/rwsem objects."""
+    nonrt = (
+        "ifneq ($(CONFIG_PREEMPT_RT_FULL),y)\n"
+        "obj-y += mutex.o\n"
+        "obj-$(CONFIG_DEBUG_MUTEXES) += mutex-debug.o\n"
+        "obj-y += rwsem.o\n"
+        "endif\n"
+    )
+    active_rt = (
+        "obj-$(CONFIG_PREEMPT_RT_FULL) += "
+        "mutex-rt.o rwsem-rt.o rwlock-rt.o"
+    )
+    if makefile.count(nonrt) != 1 or makefile.count(active_rt) != 1:
+        raise ValueError(
+            "PREEMPT_RT Kbuild must exclude legacy mutex/rwsem and "
+            "select mutex-rt/rwsem-rt/rwlock-rt"
+        )
+    if "obj-y += mutex.o semaphore.o rwsem.o percpu-rwsem.o" in makefile:
+        raise ValueError("Vendor legacy RT locking Kbuild assignment still present")
+    for forbidden in ("kernel/locking/mutex.o", "kernel/locking/rwsem.o"):
+        if forbidden in CROSS_TARGETS:
+            raise ValueError("Legacy locking object cannot be in RT coverage")
+
+
 def compile_one(kernel: Path, out: Path, report: Path, target: str,
                 environment: dict[str, str], timeout: int) -> dict:
     if target not in CROSS_TARGETS or not target.endswith(".o"):
@@ -137,7 +163,7 @@ def execute(kernel: Path, out: Path, report: Path, baseline_file: Path,
             coverage_file: Path, clang_bin: Path, timeout: int) -> dict:
     if timeout < 15 or timeout > 150:
         raise ValueError("Unsupported per-object timeout")
-    if len(CROSS_TARGETS) != len(set(CROSS_TARGETS)) or len(CROSS_TARGETS) != 9:
+    if len(CROSS_TARGETS) != len(set(CROSS_TARGETS)) or len(CROSS_TARGETS) != 10:
         raise ValueError("Unexpected cross-subsystem target list")
     if not (kernel / ".git").is_dir():
         raise ValueError("Expected isolated E404 git checkout")
@@ -151,6 +177,9 @@ def execute(kernel: Path, out: Path, report: Path, baseline_file: Path,
         raise ValueError("Missing arm64 make prepare generated offsets")
     if len(list(kernel.rglob("*.rej"))) != 64:
         raise ValueError("Expected 64 still-rejected RT files")
+    validate_rt_locking_makefile(
+        (kernel / "kernel/locking/Makefile").read_text(encoding="utf-8")
+    )
     for target in CROSS_TARGETS:
         if not (kernel / (target[:-2] + ".c")).is_file():
             raise ValueError("Missing E404 source: " + target)
@@ -181,6 +210,8 @@ def execute(kernel: Path, out: Path, report: Path, baseline_file: Path,
         "objects_attempted": sum(v["attempted"] for v in targets.values()),
         "objects_compiled": completed,
         "all_cross_objects_compiled": good and completed == len(CROSS_TARGETS),
+        "rt_locking_targets_match_kbuild": True,
+        "legacy_mutex_rwsem_objects_excluded": True,
         "remaining_rejected_files": 64,
         "compiler": "Pinned Android Clang 21",
         "link_performed": False,
