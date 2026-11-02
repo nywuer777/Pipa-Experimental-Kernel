@@ -364,3 +364,23 @@ A regressão `tests/test_exp76_stage38_softirq_entry.py` usa um segundo `invoke_
 **Evidência pendente:** o Stage38 não executou a compilação de objetos após o erro de auditoria. Stage39 ainda precisa confirmar a auditoria e gerar um novo diagnóstico Clang21 de `kernel/softirq.o`. O último resultado de compilação preservado permanece 3/3 objetos base, 7/9 adicionais, com 64 rejeitos RT. `cpu.o` e o runtime de migração seguem pendentes.
 
 `EXP76_STAGE39_SOURCE=COMMITTED`; `EXP76_STAGE39_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage40 — `task_struct.sleeping_lock` RT e inicialização em fork
+
+**Contexto da fonte:** o rejeito oficial `include/linux/sched.h.rej` do patch `4.19.325-rt140` contém `int sleeping_lock;` exclusivamente sob `CONFIG_PREEMPT_RT_FULL`. A fonte E404 fixada conserva `cpus_allowed` e `cpus_requested` embutidos, sem `sleeping_lock`. O código de tratamento RT de `kernel/softirq.c`, restaurado dos rejeitos em Stage38/39, inclui `softirq_check_runner_tsk()` e lê `tsk->sleeping_lock` sob `tsk->pi_lock`. O campo falta na estrutura da E404 e deve ser portado antes de compilar esse caminho.
+
+**Port Stage40:** `tools/exp76-rt-stage40-sleeping-lock.py` exige a ocorrência exata do campo no rejeito oficial, a leitura correspondente em `softirq.c`, o bloco de migração do Stage29 em `include/linux/sched.h`, a inicialização anterior de `migrate_disable` em `kernel/sched/core.c` e a contagem de 64 rejeitos RT. Insere somente:
+
+```c
+#ifdef CONFIG_PREEMPT_RT_FULL
+	int sleeping_lock;
+#endif
+```
+
+no `task_struct`, e inicializa `p->sleeping_lock = 0;` sob o mesmo `#ifdef` em `__sched_fork()`. Preserva a ABI vendor `cpus_allowed/cpus_requested` e evita copiar um valor de lock ativo para uma tarefa recém-criada. O teste `tests/test_exp76_stage40_sleeping_lock.py` cobre verificação sem escrita, aplicação positiva, rejeito alterado, ausência do leitor RT, inicialização duplicada, afinidade modificada, âncora do task ausente e número de rejeitos incorreto.
+
+Os workflows de compatibilidade e diagnóstico Clang21 executam o script após Stage39. `stage40-status.json` é integrado ao relay de CI e diferencia campo aplicado de confirmação de compilação e validação de runtime.
+
+**Estado de evidência no momento da publicação:** a última compilação realmente confirmada segue em `3/3` objetos base e `7/9` adicionais, com 64 rejeitos RT. O Stage39 foi publicado no commit `2cbe9950e55df391a595226949abdcf1d9797ee3`, mas sua CI ainda não consta do relatório mais recente. O Stage40 não comprova a correção do `softirq.o`, que depende de outros ramos RT e de semântica completa de locks e interrupções; também não resolve o ciclo de `cpu_nr_pinned`.
+
+`EXP76_STAGE40_SOURCE=COMMITTED`; `EXP76_STAGE40_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
