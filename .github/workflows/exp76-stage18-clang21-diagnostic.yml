@@ -129,7 +129,7 @@ jobs:
           clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
           rm -rf .git
 
-      - name: Prepare Stage38 source using pinned official RT/E404 patch audit
+      - name: Prepare Stage39 dual-guard softirq from pinned official RT/E404 patch
         shell: bash
         timeout-minutes: 35
         run: |
@@ -152,7 +152,7 @@ jobs:
           test -f exp76-rt-report/stage38/stage38-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
-          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE38_64_REJECTS'
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE39_DUAL_SOFTIRQ_GUARD'
 
       - name: Run arm64 prepare gate, then compile only selected scheduler objects
         shell: bash
