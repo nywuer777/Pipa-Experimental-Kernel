@@ -83,15 +83,20 @@ def prepare(root: Path) -> tuple[str, str]:
     one(sched, SCHED_ANCHOR, SCHED)
     one(core, CORE_ANCHOR, CORE)
     one(softirq, "tsk->sleeping_lock", SOFTIRQ)
-    if re.search(r"\bint\s+sleeping_lock\s*;", sched):
-        raise ValueError("task_struct sleeping_lock already defined")
-    if "p->sleeping_lock = 0;" in core:
-        raise ValueError("scheduler fork already initializes sleeping_lock")
+    # Accept a preexisting field only when its exact RT guard is unique.
+    field = "#ifdef CONFIG_PREEMPT_RT_FULL\n\tint\t\t\t\tsleeping_lock;\n#endif"
+    declarations = len(re.findall(r"\bint\s+sleeping_lock\s*;", sched))
+    existing_field = field in sched
+    if declarations != int(existing_field) or sched.count(field) > 1:
+        raise ValueError("ambiguous sleeping_lock field declaration")
+    initializers = core.count("p->sleeping_lock = 0;")
+    if initializers > 1 or (initializers and not existing_field):
+        raise ValueError("inconsistent sleeping_lock fork initialization")
     if re.search(r"\bcpus_ptr\s*;", sched) or re.search(r"\bcpus_mask\s*;", sched):
         raise ValueError("Incompatible upstream RT cpumask ABI")
     return (
-        sched.replace(SCHED_ANCHOR, SCHED_REPLACEMENT, 1),
-        core.replace(CORE_ANCHOR, CORE_REPLACEMENT, 1),
+        sched if existing_field else sched.replace(SCHED_ANCHOR, SCHED_REPLACEMENT, 1),
+        core if initializers else core.replace(CORE_ANCHOR, CORE_REPLACEMENT, 1),
     )
 
 
