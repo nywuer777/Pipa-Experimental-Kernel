@@ -2,7 +2,7 @@
 # Python 3 / GitHub Actions Ubuntu 24.04 / EXP76 Stage31 vendor scheduler affinity ABI / NO FLASH
 """Port PREEMPT_RT cpus_ptr references in rt/fair/deadline to E404 cpus_allowed.
 
-These seven exact text changes (six C expressions and one documentation
+These nine exact text changes (eight C expressions and one documentation
 comment) restore the vendor's embedded task_struct cpumask ABI, as already
 validated for sched/core.c in Stage27. No migration policy/lock changes.
 """
@@ -29,6 +29,10 @@ REPLACEMENTS: dict[str, tuple[tuple[str, str], ...]] = {
          "cpumask_test_cpu(lowest_rq->cpu, &task->cpus_allowed)"),
     ),
     "kernel/sched/fair.c": (
+        ("cpumask_test_cpu(env->src_cpu, cur->cpus_ptr)",
+         "cpumask_test_cpu(env->src_cpu, &cur->cpus_allowed)"),
+        ("cpumask_test_cpu(cpu, env->p->cpus_ptr)",
+         "cpumask_test_cpu(cpu, &env->p->cpus_allowed)"),
         ("cpumask_intersects(sched_domain_span(sd), p->cpus_ptr)",
          "cpumask_intersects(sched_domain_span(sd), &p->cpus_allowed)"),
         (" * groups is inadequate due to ->cpus_ptr constraints.",
