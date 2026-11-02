@@ -15,8 +15,8 @@ from pathlib import Path
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-STAGES = ("stage19", "stage20", "stage21")
-STAGE_FILENAMES = ("stage19-status.json", "stage20-status.json", "stage21-status.json")
+STAGES = ("stage19", "stage20", "stage21", "stage26", "stage27")
+STAGE_FILENAMES = ("stage19-status.json", "stage20-status.json", "stage21-status.json", "stage26-status.json", "stage27-status.json")
 
 
 def read_json(path: Path) -> dict | None:
