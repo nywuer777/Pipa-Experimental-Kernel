@@ -57,7 +57,8 @@ def fixture(root: Path) -> Path:
         "+\tstruct futex_hash_bucket *hb, *hb2;\n"
     )
     put(trial, M["REJECT"], rej)
-    M["REJECT_HASH"] = hashlib.sha256(rej.encode()).hexdigest()
+    # runpy.run_path returns a globals copy; prepare reads its own function globals.
+    prepare.__globals__["REJECT_HASH"] = hashlib.sha256(rej.encode()).hexdigest()
     put(trial, "kernel/sched/cpupri.c.rej", "outstanding\n")
     for i in range(62):
         put(trial, f"rejects/pending-{i:02d}.rej", "unresolved\n")
