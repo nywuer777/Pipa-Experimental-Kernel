@@ -91,10 +91,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41468167035,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41468167035",
+  "run_id": 41469980009,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41469980009",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "f3df27a047022edac8873c5f4f624ed514c6f952",
+  "source_sha": "9bd5a317c7099a0c7677b2db912bf48ef515f3b5",
   "stages": {
     "stage19": {
       "applied": true,
