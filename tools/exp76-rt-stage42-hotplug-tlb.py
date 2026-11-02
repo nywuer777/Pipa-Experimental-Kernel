@@ -158,17 +158,18 @@ def prepare(tree: Path) -> tuple[str, str]:
         for marker in once_existing:
             # The shared task pointer lives before takedown_cpu; every
             # wait, poll, retry and wakeup marker must be inside it.
-            owner = cpu if marker == "struct task_struct *takedown_cpu_task;" else takedown_body
+            owner = (before_takedown
+                     if marker == "struct task_struct *takedown_cpu_task;"
+                     else takedown_body)
             one(owner, marker, CPU + "::RT hotplug")
         if cpu.count("cpu_nr_pinned(cpu)") != 2:
             raise ValueError("Complete RT hotplug requires stopper and polling call sites")
         if cpu.count("nr_pinned = cpu_nr_pinned(cpu);") != 1:
             raise ValueError("RT pin-drain loop must poll the tracked runqueue")
         one(takedown_body, "if (nr_pinned == 0)", CPU + "::takedown_cpu")
-        if cpu.count("takedown_cpu_task = NULL;") != 2:
-            raise ValueError("Upstream RT hotplug task must be cleared on failure and success")
-        if "again:" not in cpu:
-            raise ValueError("Upstream RT hotplug retry target missing")
+        if takedown_body.count("takedown_cpu_task = NULL;") != 2:
+            raise ValueError("Upstream RT hotplug must clear task on failure and success")
+        one(takedown_body, "again:", CPU + "::takedown_cpu")
         if "#ifdef CONFIG_PREEMPT_RT_BASE" not in cpu:
             raise ValueError("Upstream RT hotplug conditional missing")
         cpu_out = cpu
