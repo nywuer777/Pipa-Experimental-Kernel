@@ -121,6 +121,8 @@ def main() -> None:
         assert "static void rt_bh(void)" in source
         manifest = json.loads((good / "report/stage38-status.json").read_text())
         assert manifest["original_rejected_hunks_consumed"] == 3
+        assert manifest["preprocessor_branches_balanced"] is True
+        assert manifest["conditional_directives_checked"] >= 9
         assert manifest["remaining_rejected_files"] == 64
         assert manifest["full_softirq_semantics_verified"] is False
         assert not manifest["kernel_built"] and not manifest["flash_ready"]
@@ -149,11 +151,18 @@ def main() -> None:
         (invalid / "pending/00.rej").unlink()
         assert run(invalid, "apply").returncode != 0
 
+        orphan_endif = base / "extra-endif"
+        seed(orphan_endif)
+        put(orphan_endif, M["SOFTIRQ"], BODY + "
+#endif /* stray */
+")
+        assert run(orphan_endif, "apply").returncode != 0
+
         split = base / "missing-name-anchor"
         seed(split)
         put(split, M["SOFTIRQ"], BODY.replace(NAME, "const char * wrong_name;"))
         assert run(split, "apply").returncode != 0
-    print("EXP76_STAGE38_SOFTIRQ_ENTRY_REGRESSIONS=6_PASS; FLASH_READY=false")
+    print("EXP76_STAGE38_SOFTIRQ_ENTRY_REGRESSIONS=7_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
