@@ -151,6 +151,12 @@ def main() -> None:
             "remaining_rejected_files": 64, "applied": True,
             "migration_hotplug_runtime_verified": False,
         })
+        put(artifact / "exp76-rt-report" / "stage47" / "stage47-status.json", {
+            "stage": "EXP76_STAGE47_RCU_PREPROCESSOR_AND_WORKQUEUE_RAW_LOCK",
+            "remaining_rejected_files": 64, "applied": True,
+            "rcu_postpatch_preprocessor_balanced": True,
+            "workqueue_sleeping_pair_ported": True,
+        })
         failed = invoke(artifact, evidence, 122, "success")
         assert failed["artifact_present"] is True
         assert failed["preparation"]["completed"] is False
@@ -181,6 +187,9 @@ def main() -> None:
         assert failed["stages"]["stage42"]["present"] is True
         assert failed["stages"]["stage42"]["applied"] is True
         assert failed["stages"]["stage42"]["remaining_rejected_files"] == 64
+        assert failed["stages"]["stage47"]["present"] is True
+        assert failed["stages"]["stage47"]["applied"] is True
+        assert failed["stages"]["stage47"]["remaining_rejected_files"] == 64
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
