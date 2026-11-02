@@ -85,8 +85,14 @@ def prepare(root: Path) -> dict[str, str]:
             if vendor in updated:
                 raise ValueError(f"{path}: RT and vendor fragments both present")
             updated = updated.replace(rt, vendor, 1)
-        if re.search(r"->cpus_ptr\b|->cpus_mask\b", updated):
-            raise ValueError(f"{path}: unrecognized remaining RT affinity reference")
+        leftover = [
+            (line_no, line.strip()[:180])
+            for line_no, line in enumerate(updated.splitlines(), 1)
+            if re.search(r"\bcpus_ptr\b|\bcpus_mask\b", line)
+        ]
+        if leftover:
+            raise ValueError(f"{path}: unrecognized remaining RT/vendor affinity "
+                             f"references at {leftover[:8]!r}")
         replacements[path] = updated
     return replacements
 
