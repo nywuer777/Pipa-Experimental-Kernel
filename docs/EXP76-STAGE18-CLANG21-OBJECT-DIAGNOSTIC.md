@@ -173,3 +173,17 @@ O `task_struct` da E404 mantém `cpumask_t cpus_allowed` e `cpumask_t cpus_reque
 O código não substitui usos de `cpus_ptr` em `core.c`, não cria `migrate_disable` fictício e não declara o scheduler funcional. A nova CI deve confirmar se `kernel/fork.o` compila após o ajuste; somente então revisar as próximas incompatibilidades do scheduler core.
 
 `EXP76_STAGE26_SOURCE=COMMITTED`; `EXP76_STAGE26_FORK_OBJECT_CI=PENDING`; `EXP76_RT_REJECT_TARGET=64`; `FLASH_READY=false`.
+
+## Stage27 — reconciliação dos oito pontos de afinidade em core.c
+
+Evidência de partida: o diagnóstico Clang21 mais recente acessível permanece no SHA `7babaa635098cc114e73eb25f6703b48516d1e57`, anterior ao Stage26, com `make prepare=PASS`, `cpupri.o=PASS`, `core.o=FAIL`, `fork.o=FAIL`. Não é confirmação de falha pós-Stage26.
+
+O diff cumulativo do RT `4.19.325-rt140` substituiu a máscara embutida da E404 por referências `cpus_ptr`/`cpus_mask` em `kernel/sched/core.c`, embora `task_struct` E404 mantenha `cpumask_t cpus_allowed` e `cpumask_t cpus_requested`, com `nr_cpus_allowed` atualizado por `set_cpus_allowed_common()`.
+
+O script `tools/exp76-rt-stage27-core-affinity.py` restaura os oito locais de afinidade alterados pelo RT (incluindo variantes `arg->campo` e `arg.campo`) e o comentário de proteção por locks. As substituições são fragmentos completos com cardinalidade exigida, precedidas da verificação do `task_struct` e da correção Stage26 em `fork.c`. O script mantém **64 arquivos `.rej`** e gera `stage27-status.json` antes da exportação do patch parcial.
+
+Os testes `tests/test_exp76_stage27_core_affinity.py` cobrem uma aplicação positiva e falhas controladas por fragmento ausente, mudança da ABI E404 e ausência do ajuste Stage26. O coletor de evidências também foi atualizado para incluir os relatórios Stages 26–27.
+
+**Limites:** `__migrate_disabled` continua referindo `p->migrate_disable`, e `wait_task_inactive` continua referindo `check_task_state` não portado. Por isso, `core.o` pode continuar falhando; sua compilação isolada não provaria segurança de migração nem equivalência PREEMPT_RT. Não há alteração das estruturas de task, bypass de avisos do Clang, kernel completo, boot.img ou flash.
+
+`EXP76_STAGE27_SOURCE=COMMITTED`; `EXP76_STAGE27_CI=UNVERIFIED`; `EXP76_RT_TARGET_REJECTS=64`; `FLASH_READY=false`.
