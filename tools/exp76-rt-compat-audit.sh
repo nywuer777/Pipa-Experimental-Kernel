@@ -545,6 +545,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE52=CGROUP_CSS_AND_CPUSET_RAW_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage52-gate.txt"
 
 
+# Stage53: reconcile the RT-only remote LRU drain with the E404 vendor
+# loop and the absent task_struct cpus_ptr deadline ABI. Preserve vendor
+# pagevec conditions, non-RT per-cpu flush and 64 unresolved RT rejects.
+python3 tools/exp76-rt-stage53-lru-cpudl.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage53" \
+    --mode apply | tee "$REPORT/stage53-lru-cpudl.log"
+test -f "$REPORT/stage53/stage53-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE53=RT_LRU_DRAIN_AND_E404_CPUDEADLINE_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage53-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
