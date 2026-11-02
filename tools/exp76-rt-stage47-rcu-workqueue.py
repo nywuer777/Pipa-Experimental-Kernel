@@ -51,6 +51,18 @@ def one(body: str, marker: str, path: str) -> None:
         raise ValueError(f"{path}: expected one {marker!r}, saw {count}")
 
 
+def require_original_rejected_hunk(contents: str, path: str,
+                                   header: str, anchored_addition: str) -> None:
+    """Match the correct +#endif by original hunk AND adjacent source context.
+
+    update.c.rej also adds +#endif to guard the boot parameter. Counting
+    the bare line across the whole .rej incorrectly rejects valid E404 RT.
+    """
+    one(contents, header, path)
+    hunk = contents.split(header, 1)[1].split("\n@@ ", 1)[0]
+    one(hunk, anchored_addition, path + "::" + header.strip())
+
+
 def unclosed(source: str, name: str) -> list[tuple[int, str]]:
     stack: list[tuple[int, str, bool]] = []
     for line_number, line in enumerate(source.splitlines(), 1):
@@ -89,13 +101,20 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
     rp = (tree / PLUGIN_REJ).read_text(encoding="utf-8")
     rw = (tree / WORK_REJ).read_text(encoding="utf-8")
 
-    # Only original official RT rejected lines can authorize these source edits.
-    for filename, rejected, marker in (
-        (UPDATE_REJ, ru, "+" + "#endif\n"),
-        (PLUGIN_REJ, rp, "+" + PLUGIN_INSERT.strip() + "\n"),
-        (WORK_REJ, rw, "+\traw_spin_lock_irq(&pool->lock);\n"),
-    ):
-        one(rejected, marker, filename)
+    # Match each closer to its original hunk and neighboring context.
+    # The valid update.c.rej has TWO +#endif additions in different hunks:
+    # the first closes rcu_normal_after_boot; the second closes RT lockdep.
+    require_original_rejected_hunk(
+        ru, UPDATE_REJ,
+        "@@ -314,6 +318,7 @@ int rcu_read_lock_bh_held(void)\n",
+        " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\n+#endif\n",
+    )
+    require_original_rejected_hunk(
+        rp, PLUGIN_REJ,
+        "@@ -1559,6 +1448,7 @@ int rcu_needs_cpu(u64 basemono, u64 *nextevt)\n",
+        " \treturn 0;\n }\n+#endif /* #ifndef CONFIG_PREEMPT_RT_FULL */\n",
+    )
+    one(rw, "+\traw_spin_lock_irq(&pool->lock);\n", WORK_REJ)
     one(rw, "+\traw_spin_unlock_irq(&pool->lock);\n", WORK_REJ)
 
     one(u, UPDATE_END, UPDATE)
