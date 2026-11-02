@@ -339,6 +339,20 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE21=E404_RCU_INCLUDE_RESTORED; REJECTED_FILES=64; RCU_RUNTIME_PORT=PENDING; FLASH_READY=false' | tee "$REPORT/stage21-gate.txt"
 
 
+# Stage26: E404 ARM64 uses embedded cpus_allowed/cpus_requested and copies
+# task_struct by value on fork. Drop the obsolete RT cpus_ptr rebasing,
+# without modifying scheduler core migration/affinity semantics.
+python3 tools/exp76-rt-stage26-fork-affinity.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage26" \
+    --mode apply | tee "$REPORT/stage26-fork-affinity.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage26/stage26-status.json"
+test -f "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE26=FORK_VALUE_AFFINITY_RECONCILED; REJECTED_FILES=64; SCHEDULER_CORE_PENDING=true; FLASH_READY=false' | tee "$REPORT/stage26-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
