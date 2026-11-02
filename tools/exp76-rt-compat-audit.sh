@@ -506,6 +506,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE42=HOTPLUG_PIN_DRAIN_TLB_ARCH_GUARD; HOTPLUG_RUNTIME_VERIFIED=false; FLASH_READY=false' | tee "$REPORT/stage42-gate.txt"
 
 
+# Stage47: port bounded RCU #endif hunks and one raw worker sleeping lock.
+# Read all 3 pinned .rej files and validate preprocessor balance BEFORE
+# writing any overlay files; never convert the other workqueue spinlocks.
+python3 tools/exp76-rt-stage47-rcu-workqueue.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage47" \
+    --mode apply | tee "$REPORT/stage47-rcu-workqueue.log"
+test -f "$REPORT/stage47/stage47-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE47=RCU_PREPROCESSOR_AND_WORKER_RAW_LOCK_PORTED; RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage47-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
