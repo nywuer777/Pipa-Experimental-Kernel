@@ -153,9 +153,7 @@ def main() -> None:
 
         orphan_endif = base / "extra-endif"
         seed(orphan_endif)
-        put(orphan_endif, M["SOFTIRQ"], BODY + "
-#endif /* stray */
-")
+        put(orphan_endif, M["SOFTIRQ"], BODY + "\n#endif /* stray */\n")
         assert run(orphan_endif, "apply").returncode != 0
 
         split = base / "missing-name-anchor"
