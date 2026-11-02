@@ -39,6 +39,7 @@ def main() -> None:
         empty = invoke(artifact, evidence, 120, "failure")
         assert empty["artifact_present"] is False
         assert empty["preparation"] is None
+        assert empty["kernel_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -117,6 +118,23 @@ def main() -> None:
                 },
             },
         )
+        put(
+            artifact / "exp76-stage50-report" / "KERNEL_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE50_KERNEL_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "kernel/built-in.a",
+                "baseline_22_objects_compiled": True,
+                "attempted": True,
+                "exit_code": 2,
+                "archive_created": False,
+                "archive_bytes": 0,
+                "errors_excerpt": ["kernel/panic.c:41: error: simulated Kbuild mismatch"],
+                "first_error_context": ["panic.c:39", "panic.c:41: error: simulated Kbuild mismatch"],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -190,6 +208,18 @@ def main() -> None:
         assert failed["stages"]["stage47"]["present"] is True
         assert failed["stages"]["stage47"]["applied"] is True
         assert failed["stages"]["stage47"]["remaining_rejected_files"] == 64
+        subtree = failed["kernel_subtree_diagnostic"]
+        assert subtree["stage"] == "EXP76_STAGE50_KERNEL_SUBTREE_KBUILD_ARCHIVE_NONFLASH"
+        assert subtree["target"] == "kernel/built-in.a"
+        assert subtree["baseline_22_objects_compiled"] is True
+        assert subtree["attempted"] is True
+        assert subtree["exit_code"] == 2
+        assert subtree["archive_created"] is False
+        assert subtree["remaining_rejected_files"] == 64
+        assert "simulated Kbuild mismatch" in subtree["errors_excerpt"][0]
+        assert subtree["full_kernel_link_performed"] is False
+        assert subtree["kernel_built"] is False
+        assert subtree["flash_ready"] is False
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
