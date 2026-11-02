@@ -61,11 +61,21 @@ def main() -> None:
             "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED",
             "remaining_rejected_files": 64, "applied": True,
         })
+        put(artifact / "exp76-rt-report" / "stage26" / "stage26-status.json", {
+            "stage": "EXP76_STAGE26_E404_ARM64_FORK_VALUE_AFFINITY",
+            "remaining_rejected_files": 64, "applied": True,
+        })
+        put(artifact / "exp76-rt-report" / "stage27" / "stage27-status.json", {
+            "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION",
+            "remaining_rejected_files": 64, "applied": True,
+        })
         failed = invoke(artifact, evidence, 122, "success")
         assert failed["artifact_present"] is True
         assert failed["preparation"]["completed"] is False
         assert failed["targets"]["kernel_sched_cpupri.o"]["attempted"] is False
         assert failed["stages"]["stage21"]["remaining_rejected_files"] == 64
+        assert failed["stages"]["stage26"]["applied"] is True
+        assert failed["stages"]["stage27"]["remaining_rejected_files"] == 64
         assert failed["run_url"].endswith("/122")
         assert failed["kernel_built"] is False
         latest = evidence / "ci-evidence" / "clang21-latest.json"
