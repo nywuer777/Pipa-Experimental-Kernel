@@ -2,86 +2,80 @@
   "artifact_present": true,
   "extra_object_coverage": {
     "all_extra_objects_compiled": false,
-    "baseline_3_objects_compiled": true,
+    "baseline_3_objects_compiled": false,
     "migration_contract": {
       "migrate_disabled_sched_declarations": 1,
-      "migrate_disabled_sched_definitions": 0,
-      "migrate_disabled_sched_missing_local_definition": true,
-      "migration_entrypoint_definitions_in_core": 0,
+      "migrate_disabled_sched_definitions": 3,
+      "migrate_disabled_sched_missing_local_definition": false,
+      "migration_entrypoint_definitions_in_core": 4,
       "runtime_migration_contract_verified": false
     },
-    "objects_attempted": 9,
-    "objects_compiled": 8,
+    "objects_attempted": 0,
+    "objects_compiled": 0,
     "stage": "EXP76_STAGE30_RT_OBJECT_COVERAGE_NONFLASH",
     "targets": {
       "kernel/cpu.o": {
-        "attempted": true,
+        "attempted": false,
         "compiled": false,
-        "errors_excerpt": [
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/cpu.c:886:6: error: implicit declaration of function 'cpu_nr_pinned' [-Werror,-Wimplicit-function-declaration]",
-          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/cpu.c:948:15: error: implicit declaration of function 'cpu_nr_pinned' [-Werror,-Wimplicit-function-declaration]",
-          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/cpu.o] Error 1",
-          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/cpu.o] Error 2",
-          "make: *** [Makefile:153: sub-make] Error 2"
-        ],
-        "exit_code": 2,
-        "skip_reason": null
+        "errors_excerpt": [],
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/locking/rtmutex.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/sched/deadline.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/sched/fair.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/sched/idle.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/sched/rt.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/sched/stop_task.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/softirq.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       },
       "kernel/time/timer.o": {
-        "attempted": true,
-        "compiled": true,
+        "attempted": false,
+        "compiled": false,
         "errors_excerpt": [],
-        "exit_code": 0,
-        "skip_reason": null
+        "exit_code": null,
+        "skip_reason": "BASELINE_3_OBJECT_GATE_FAILED"
       }
     }
   },
@@ -97,10 +91,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41455627896,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41455627896",
+  "run_id": 41461128644,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41461128644",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "1a4e831198dac1fed58278e4694c44cf45096f06",
+  "source_sha": "d28286adea4d8a486c5dd39f758d2cb8a8cb221a",
   "stages": {
     "stage19": {
       "applied": true,
@@ -179,6 +173,12 @@
       "present": true,
       "remaining_rejected_files": 64,
       "stage": "EXP76_STAGE40_RT_SLEEPING_LOCK_TASK_ABI"
+    },
+    "stage41": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE41_RT_MIGRATION_LIFECYCLE_E404"
     }
   },
   "status": "EXP76_STAGE22=PREPARE_PASS_OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false",
@@ -192,11 +192,16 @@
     },
     "kernel_sched_core.o": {
       "attempted": true,
-      "compiled": true,
+      "compiled": false,
       "errors_excerpt": [
-        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:4735:13: warning: function 'migrate_disabled_sched' has internal linkage but is not defined [-Wundefined-internal]"
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:9306:6: error: use of undeclared identifier 'takedown_cpu_task'",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:9307:19: error: use of undeclared identifier 'takedown_cpu_task'",
+        "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/core.c:9337:3: error: implicit declaration of function 'tlb_migrate_finish' [-Werror,-Wimplicit-function-declaration]",
+        "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/sched/core.o] Error 1",
+        "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/sched/core.o] Error 2",
+        "make: *** [Makefile:153: sub-make] Error 2"
       ],
-      "exit_code": 0,
+      "exit_code": 2,
       "skip_reason": null
     },
     "kernel_sched_cpupri.o": {
