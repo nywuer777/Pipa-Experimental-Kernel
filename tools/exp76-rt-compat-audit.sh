@@ -410,6 +410,21 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE31=VENDOR_SCHED_CLASSES_AFFINITY; REJECTED_FILES=64; MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false' | tee "$REPORT/stage31-gate.txt"
 
 
+# Stage34: RT partial patch converted timer_update_keys to swork, but
+# its timers_update_nohz() queue/init hunk was rejected by E404 context.
+# Restore the original upstream queue, initcall and explicit swork header.
+# Do not fall back to ordinary workqueues (different PREEMPT_RT semantics).
+python3 tools/exp76-rt-stage34-timer-swork.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage34" \
+    --mode apply | tee "$REPORT/stage34-timer-swork.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage34/stage34-status.json"
+test -f "$ROOT/exp76-trial-overlay/kernel/time/timer.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE34=TIMER_SWORK_QUEUE_AND_INIT_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false' | tee "$REPORT/stage34-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
