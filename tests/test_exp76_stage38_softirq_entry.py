@@ -58,8 +58,11 @@ REJECT = """diff a/kernel/softirq.c b/kernel/softirq.c (rejected hunks)
  context
 @@ -273,36 +471,7 @@
  context
-@@ -359,6 +831,7 @@
- context
+@@ -359,6 +831,7 @@ void irq_enter(void)
+ static inline void invoke_softirq(void)
+ {
++#ifndef CONFIG_PREEMPT_RT_FULL
+ 	if (!force_irqthreads) {
 """
 BODY = (
     KSOFT + "\n" + NAME + "\n"
@@ -70,6 +73,15 @@ BODY = (
     + M["RT_ELSE"] + "\n"
     + "static void rt_bh(void) { handle_softirq(0); softirq_set_runner(0); }\n"
     + "#endif /* PREEMPT_RT_FULL */\n"
+    + "static inline void invoke_softirq(void)\n"
+    + "{\n\n"
+    + "\tif (!force_irqthreads) {\n"
+    + "\t\tserve_nonrt_softirq();\n"
+    + "\t}\n"
+    + M["INVOKE_RT_ELSE"] + "\n"
+    + "\twakeup_softirqd();\n"
+    + "#endif /* PREEMPT_RT_FULL */\n"
+    + "}\n"
 )
 
 
@@ -120,7 +132,11 @@ def main() -> None:
         assert "static void legacy_bh(void)" in source
         assert "static void rt_bh(void)" in source
         manifest = json.loads((good / "report/stage38-status.json").read_text())
-        assert manifest["original_rejected_hunks_consumed"] == 3
+        assert manifest["original_rejected_hunks_consumed"] == 4
+        assert manifest["stage39_invoke_softirq_guard_restored"] is True
+        assert source.count("#ifndef CONFIG_PREEMPT_RT_FULL") == 2
+        assert source.index(M["INVOKE_ANCHOR"].split("\\tif")[0]) < source.rindex("#ifndef CONFIG_PREEMPT_RT_FULL")
+        assert source.rindex("#ifndef CONFIG_PREEMPT_RT_FULL") < source.index(M["INVOKE_RT_ELSE"])
         assert manifest["preprocessor_branches_balanced"] is True
         assert manifest["conditional_directives_checked"] >= 9
         assert manifest["remaining_rejected_files"] == 64
@@ -156,11 +172,26 @@ def main() -> None:
         put(orphan_endif, M["SOFTIRQ"], BODY + "\n#endif /* stray */\n")
         assert run(orphan_endif, "apply").returncode != 0
 
+        missing_invoke_reject = base / "missing-invoke-reject"
+        seed(missing_invoke_reject)
+        put(missing_invoke_reject, M["REJECT"], REJECT.replace(
+            "+#ifndef CONFIG_PREEMPT_RT_FULL\n \tif (!force_irqthreads) {",
+            "+#ifndef CONFIG_PREEMPT_RT_OTHER\n \tif (!force_irqthreads) {",
+        ))
+        assert run(missing_invoke_reject, "apply").returncode != 0
+
+        missing_invoke_source = base / "missing-invoke-source"
+        seed(missing_invoke_source)
+        put(missing_invoke_source, M["SOFTIRQ"], BODY.replace(
+            "\tif (!force_irqthreads) {", "\tif (missing_vendor_condition) {",
+        ))
+        assert run(missing_invoke_source, "apply").returncode != 0
+
         split = base / "missing-name-anchor"
         seed(split)
         put(split, M["SOFTIRQ"], BODY.replace(NAME, "const char * wrong_name;"))
         assert run(split, "apply").returncode != 0
-    print("EXP76_STAGE38_SOFTIRQ_ENTRY_REGRESSIONS=7_PASS; FLASH_READY=false")
+    print("EXP76_STAGE39_SOFTIRQ_DUAL_GUARD_TESTS=9_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
