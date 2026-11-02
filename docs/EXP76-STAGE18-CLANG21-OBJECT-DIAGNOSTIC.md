@@ -381,6 +381,6 @@ no `task_struct`, e inicializa `p->sleeping_lock = 0;` sob o mesmo `#ifdef` em `
 
 Os workflows de compatibilidade e diagnóstico Clang21 executam o script após Stage39. `stage40-status.json` é integrado ao relay de CI e diferencia campo aplicado de confirmação de compilação e validação de runtime.
 
-**Estado de evidência no momento da publicação:** a última compilação realmente confirmada segue em `3/3` objetos base e `7/9` adicionais, com 64 rejeitos RT. O Stage39 foi publicado no commit `2cbe9950e55df391a595226949abdcf1d9797ee3`, mas sua CI ainda não consta do relatório mais recente. O Stage40 não comprova a correção do `softirq.o`, que depende de outros ramos RT e de semântica completa de locks e interrupções; também não resolve o ciclo de `cpu_nr_pinned`.
+**Estado de evidência atualizado:** execução Clang21 `41450161880` sobre Stage39 `2cbe9950e55df391a595226949abdcf1d9797ee3`, com auditoria PASS, `3/3` objetos base e `8/9` adicionais compilados, inclusive `softirq.o`; 64 rejeitos RT persistem. O Stage40 não é a causa desse sucesso já confirmado: restaura a ABI `sleeping_lock` como pré-requisito de outros caminhos de configuração. `kernel/cpu.o` ainda depende do ciclo real de `cpu_nr_pinned` e o kernel completo continua sem link ou validação de runtime.
 
 `EXP76_STAGE40_SOURCE=COMMITTED`; `EXP76_STAGE40_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
