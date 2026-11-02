@@ -519,6 +519,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE47=RCU_PREPROCESSOR_AND_WORKER_RAW_LOCK_PORTED; RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage47-gate.txt"
 
 
+# Stage51: PREEMPT_RT made neigh_hh_output's hh_cache pointer mutable,
+# but E404's vendor skip_cache caller remains const. Fix only its local
+# qualifier under exact source signature, preserving all rejected RT hunks.
+python3 tools/exp76-rt-stage51-neigh-const.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage51" \
+    --mode apply | tee "$REPORT/stage51-neigh-const.log"
+test -f "$REPORT/stage51/stage51-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE51=NEIGH_HH_MUTABLE_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage51-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
