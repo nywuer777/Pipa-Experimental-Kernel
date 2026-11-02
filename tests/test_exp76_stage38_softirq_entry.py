@@ -135,7 +135,7 @@ def main() -> None:
         assert manifest["original_rejected_hunks_consumed"] == 4
         assert manifest["stage39_invoke_softirq_guard_restored"] is True
         assert source.count("#ifndef CONFIG_PREEMPT_RT_FULL") == 2
-        assert source.index(M["INVOKE_ANCHOR"].split("\\tif")[0]) < source.rindex("#ifndef CONFIG_PREEMPT_RT_FULL")
+        assert source.index("static inline void invoke_softirq(void)") < source.rindex("#ifndef CONFIG_PREEMPT_RT_FULL")
         assert source.rindex("#ifndef CONFIG_PREEMPT_RT_FULL") < source.index(M["INVOKE_RT_ELSE"])
         assert manifest["preprocessor_branches_balanced"] is True
         assert manifest["conditional_directives_checked"] >= 9
