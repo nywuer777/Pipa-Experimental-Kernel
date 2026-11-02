@@ -479,6 +479,20 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE40=RT_TASK_SLEEPING_LOCK_REJECT_PORTED; FULL_RT_RUNTIME_VERIFIED=false; FLASH_READY=false' | tee "$REPORT/stage40-gate.txt"
 
 
+# Stage41: the full rejected RT migration lifecycle is ported with a
+# saved E404 cpus_allowed mask, runqueue pin counter and the original
+# asynchronous CPU stopper/hotplug path. Rejects remain 64 NONFLASH.
+# Never equate object compilation to verified migration or hotplug runtime.
+python3 tools/exp76-rt-stage41-migration-lifecycle.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage41" \
+    --mode apply | tee "$REPORT/stage41-migration-lifecycle.log"
+test -f "$REPORT/stage41/stage41-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE41=RT_MIGRATION_E404_PORT_APPLIED; MIGRATION_RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage41-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
