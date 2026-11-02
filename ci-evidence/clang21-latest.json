@@ -1,5 +1,131 @@
 {
   "artifact_present": true,
+  "extra_object_coverage": {
+    "all_extra_objects_compiled": false,
+    "baseline_3_objects_compiled": true,
+    "migration_contract": {
+      "migrate_disabled_sched_declarations": 1,
+      "migrate_disabled_sched_definitions": 0,
+      "migrate_disabled_sched_missing_local_definition": true,
+      "migration_entrypoint_definitions_in_core": 0,
+      "runtime_migration_contract_verified": false
+    },
+    "objects_attempted": 9,
+    "objects_compiled": 2,
+    "stage": "EXP76_STAGE30_RT_OBJECT_COVERAGE_NONFLASH",
+    "targets": {
+      "kernel/cpu.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/cpu.c:886:6: error: implicit declaration of function 'cpu_nr_pinned' [-Werror,-Wimplicit-function-declaration]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/cpu.c:948:15: error: implicit declaration of function 'cpu_nr_pinned' [-Werror,-Wimplicit-function-declaration]",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/cpu.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/cpu.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/locking/rtmutex.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/locking/rtmutex.c:974:2: error: implicit declaration of function 'might_sleep_no_state_check' [-Werror,-Wimplicit-function-declaration]",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/locking/rtmutex.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/locking/rtmutex.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/sched/deadline.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/deadline.c:528:45: error: no member named 'cpus_ptr' in 'struct task_struct'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/deadline.c:1833:31: error: no member named 'cpus_ptr' in 'struct task_struct'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/deadline.c:1983:49: error: no member named 'cpus_ptr' in 'struct task_struct'",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/sched/deadline.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/sched/deadline.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/sched/fair.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/fair.c:7216:52: error: no member named 'cpus_ptr' in 'struct task_struct'",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/sched/fair.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/sched/fair.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/sched/idle.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/rt.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/rt.c:1777:31: error: no member named 'cpus_ptr' in 'struct task_struct'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/sched/rt.c:1930:50: error: no member named 'cpus_ptr' in 'struct task_struct'",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/sched/rt.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/sched/rt.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/sched/stop_task.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/softirq.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:137:13: error: static declaration of '__local_bh_enable' follows non-static declaration",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:157:20: error: too many arguments to function call, expected 0, have 1",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:161:6: error: redefinition of '__local_bh_enable_ip'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:184:3: error: implicit declaration of function 'do_softirq' [-Werror,-Wimplicit-function-declaration]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:329:20: error: too many arguments to function call, expected 0, have 1",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:334:27: error: conflicting types for 'do_softirq'",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:347:3: error: implicit declaration of function 'do_softirq_own_stack' [-Werror,-Wimplicit-function-declaration]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:382:2: error: #else without #if",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:416:2: error: implicit declaration of function 'handle_softirq' [-Werror,-Wimplicit-function-declaration]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:444:3: error: implicit declaration of function 'softirq_set_runner' [-Werror,-Wimplicit-function-declaration]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:455:3: error: implicit declaration of function 'softirq_clr_runner' [-Werror,-Wimplicit-function-declaration]",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/softirq.c:485:6: error: redefinition of '_local_bh_enable'"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      },
+      "kernel/time/timer.o": {
+        "attempted": true,
+        "compiled": false,
+        "errors_excerpt": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/time/timer.c:247:17: error: use of undeclared identifier 'timer_update_work'; did you mean 'timer_update_swork'?",
+          "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: kernel/time/timer.o] Error 1",
+          "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1880: kernel/time/timer.o] Error 2",
+          "make: *** [Makefile:153: sub-make] Error 2"
+        ],
+        "exit_code": 2,
+        "skip_reason": null
+      }
+    }
+  },
   "flash_ready": false,
   "job_conclusion": "success",
   "kernel_built": false,
@@ -12,10 +138,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41385145583,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41385145583",
+  "run_id": 41386243228,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41386243228",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "04ce35fa20c6627a7db6b1b96c9e0ef308a9f922",
+  "source_sha": "6b78ce3a45366046caec4b1d0b67fc08c61a0152",
   "stages": {
     "stage19": {
       "applied": true,
