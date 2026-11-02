@@ -141,7 +141,7 @@ jobs:
           clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
           rm -rf .git
 
-      - name: Prepare Stage42 RT hotplug and TLB integration using pinned official RT/E404 audit
+      - name: Prepare Stage43 corrected RT hotplug callsite audit on pinned E404
         shell: bash
         timeout-minutes: 35
         run: |
@@ -167,7 +167,7 @@ jobs:
           test -f exp76-rt-report/stage42/stage42-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
-          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE42_RT_CPU_HOTPLUG_TLB'
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE43_RT_HOTPLUG_CALLSITES'
 
       - name: Run arm64 prepare gate, then compile only selected scheduler objects
         shell: bash
