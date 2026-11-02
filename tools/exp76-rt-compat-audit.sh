@@ -353,6 +353,19 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE26=FORK_VALUE_AFFINITY_RECONCILED; REJECTED_FILES=64; SCHEDULER_CORE_PENDING=true; FLASH_READY=false' | tee "$REPORT/stage26-gate.txt"
 
 
+# Stage27: restore vendor embedded cpus_allowed ABI at the eight core.c sites
+# changed by RT-140. RT migration-disable and task-state logic remain pending.
+python3 tools/exp76-rt-stage27-core-affinity.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage27" \
+    --mode apply | tee "$REPORT/stage27-core-affinity.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage27/stage27-status.json"
+test -f "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE27=CORE_VENDOR_AFFINITY_RECONCILED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false' | tee "$REPORT/stage27-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
