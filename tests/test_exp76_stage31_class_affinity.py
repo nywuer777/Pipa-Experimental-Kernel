@@ -65,6 +65,7 @@ def main() -> None:
             assert "->cpus_ptr" not in expected
         result = json.loads((good / "report/stage31-status.json").read_text())
         assert result["replaced_fragments"] == 9
+        assert result["stage32_fair_numa_affinity_reconciled"] is True
         assert result["remaining_rejected_files"] == 64
         assert result["migration_runtime_implemented"] is False
         assert result["kernel_built"] is False and result["flash_ready"] is False
