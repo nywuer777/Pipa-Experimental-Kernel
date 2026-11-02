@@ -121,7 +121,10 @@ def prepare(tree: Path) -> tuple[str, str]:
         one(core, token, CORE)
     one(core, CORE_DECL_MARKER, CORE)
     one(cpu, CPU_FUNC, CPU)
-    one(cpu, HOTPLUG_SETUP, CPU)
+    # E404 has irq_lock_sparse() in both bringup and takedown. Only
+    # target the takedown function; never alter the CPU bringup path.
+    before_takedown, takedown_body = cpu.split(CPU_FUNC, 1)
+    one(takedown_body, HOTPLUG_SETUP, CPU + "::takedown_cpu")
     one(cpu, STOP_CALL, CPU)
     # The RT patch has one stopper call before the wait loop, and two
     # total only after its wait loop is applied. Check semantic call sites,
@@ -166,8 +169,11 @@ def prepare(tree: Path) -> tuple[str, str]:
             raise ValueError("Unported RT hotplug must have only the stopper pin check")
         one(cpu, FAIL_ANCHOR, CPU)
         one(cpu, SUCCESS_ANCHOR, CPU)
-        cpu_out = cpu.replace(CPU_FUNC, CPU_THREAD_GLOBAL + CPU_FUNC, 1)
-        cpu_out = cpu_out.replace(HOTPLUG_SETUP, HOTPLUG_SETUP + HOTPLUG_RT_WAIT, 1)
+        # Modify the one takedown invocation, not the earlier bringup
+        # irq_lock_sparse() site (which shares the same two-line text).
+        cpu_out = (before_takedown + CPU_THREAD_GLOBAL + CPU_FUNC
+                   + takedown_body.replace(
+                       HOTPLUG_SETUP, HOTPLUG_SETUP + HOTPLUG_RT_WAIT, 1))
         cpu_out = cpu_out.replace(STOP_CALL, STOP_CALL + STOP_RETRY, 1)
         cpu_out = cpu_out.replace(FAIL_ANCHOR, FAIL_REPLACEMENT, 1)
         cpu_out = cpu_out.replace(SUCCESS_ANCHOR, SUCCESS_REPLACEMENT, 1)
