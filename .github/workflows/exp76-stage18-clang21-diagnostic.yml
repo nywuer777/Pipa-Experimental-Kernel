@@ -26,6 +26,8 @@ concurrency:
 
 jobs:
   clang21-object-diagnostic:
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 100
     env:
@@ -108,6 +110,49 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/exp76-stage18-clang21-object-diagnostic.sh
+
+      - name: Publish readable CI summary even when compiler fails
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / GitHub Actions / EXP76 CI human-readable report / NO FLASH
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path('exp76-stage18-report')
+          source = root / 'OBJECT_DIAGNOSTIC.json'
+          lines = ['### EXP76 Clang 21 diagnostic (NONFLASH)', '']
+          if not source.is_file():
+              lines += [
+                  'No object diagnostic was generated; preparation, toolchain or',
+                  'source-audit steps may have stopped earlier.',
+              ]
+          else:
+              data = json.loads(source.read_text(encoding='utf-8'))
+              p = data.get('preparation') or {}
+              lines += [
+                  f"PREPARE completed: {p.get('completed', 'unknown')}",
+                  f"PREPARE exit code: {p.get('exit_code', 'unknown')}", '',
+                  '| Object | Attempted | Compiled | Exit code |',
+                  '|---|---|---|---|',
+              ]
+              for name, obj in (data.get('targets') or {}).items():
+                  lines.append(
+                      f"| {name} | {obj.get('attempted')} | "
+                      f"{obj.get('compiled')} | {obj.get('exit_code')} |"
+                  )
+              error_lines = (p.get('errors_excerpt') or [])[:8]
+              if error_lines:
+                  lines += ['', 'First PREPARE errors:', '']
+                  lines += ['    ' + str(item)[:300] for item in error_lines]
+          lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
+          output = Path(os.environ['GITHUB_STEP_SUMMARY'])
+          with output.open('a', encoding='utf-8') as stream:
+              stream.write('\n'.join(lines) + '\n')
+          PY
 
       - name: Publish diagnostics only (NO Image, NO boot.img)
         if: always()
