@@ -487,3 +487,21 @@ O script `tools/exp76-rt-stage47-rcu-workqueue.py` exige as três fontes origina
 **Próximos passos:** confirmar a auditoria real Stage47 e a compilação dos nove objetos cross-subsystem no Clang21. Os erros de `mutex.o` (gramática e `struct mutex.owner`) e `rwsem.o` (`owner`, `wait_list`, `m_count`) permanecem para portas RT específicas; nenhum stub, campo artificial ou redução de gate foi adicionado. Continuam 64 rejeitos RT, sem link de `vmlinux`, boot ou flash.
 
 `EXP76_STAGE47_SOURCE=COMMITTED`; `EXP76_STAGE47_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage48 — resolver contagem falsa de `+#endif` em rejeitos RCU oficiais
+
+**Falha comprovada da CI Stage47:** execução Clang21 `41476235637`, SHA `52cd9c1688aafc9adf89d38e8fab486e09dd44bf`. O job passou no gate de testes, incluindo `EXP76_STAGE47_RCU_WORKQUEUE_REGRESSIONS=9_PASS`, instalou Clang21 e aplicou os estágios anteriores, mas a auditoria Stage47 falhou antes do `make prepare`:
+
+```text
+ValueError: kernel/rcu/update.c.rej: expected one '+#endif\n', saw 2
+```
+
+**Causa documentada no rejeito original:** `kernel/rcu/update.c.rej` contém legitimamente dois `+#endif`: um no hunk `@@ -68,8 +69,10 @@ extern int rcu_expedited; /* from sysctl */` que protege `module_param(rcu_normal_after_boot, int, 0)`, e outro no hunk `@@ -314,6 +318,7 @@ int rcu_read_lock_bh_held(void)`, após `EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);`, que fecha a condicional RT de lockdep. Contar `+#endif` globalmente confundia esses fechamentos distintos e rejeitava um patch RT correto.
+
+**Correção Stage48:** `tools/exp76-rt-stage47-rcu-workqueue.py` passa a selecionar o hunk original e exigir a sequência adjacente de fonte **dentro desse hunk**, sem tocar o fechamento da configuração de boot. A validação de `tree_plugin.h.rej` agora também ancora seu próprio hunk `@@ -1559,6 +1448,7 @@ int rcu_needs_cpu` e o par `return 0;` / `+#endif /* #ifndef CONFIG_PREEMPT_RT_FULL */`. Mantém toda a validação de balanceamento dos arquivos RCU e o par de locks raw da workqueue, sem mudar a ABI ou adicionar stubs.
+
+**Reprodução local com os rejeitos oficiais E404 auditados:** o hunk de `update.c.rej` foi encontrado exatamente uma vez e seu fechamento específico exatamente uma vez, apesar dos dois `+#endif` globais; o hunk de `tree_plugin.h.rej` e seu fechamento contextual também foram encontrados exatamente uma vez. `STAGE48_PINNED_REJECT_HUNK_MATCH=2_PASS`. A regressão `tests/test_exp76_stage47_rcu_workqueue.py` agora contém as duas adições válidas no fixture e rejeita tanto fechamento duplicado no hunk de lockdep quanto contexto trocado.
+
+**Pendente:** a execução Clang21 Stage48 precisa confirmar o script inteiro aplicado à árvore real e repetir os nove objetos adicionais Stage46. O último resultado compilado permanece 12/12 objetos anteriores e 4/9 cross-subsystem no Stage46. Os objetos `mutex.o` e `rwsem.o` continuam bloqueados por incompatibilidades estruturais RT, que não são tratados neste estágio. Os 64 rejeitos permanecem; sem `vmlinux`, `Image`, `boot.img` ou flash.
+
+`EXP76_STAGE48_SOURCE=COMMITTED`; `EXP76_STAGE48_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
