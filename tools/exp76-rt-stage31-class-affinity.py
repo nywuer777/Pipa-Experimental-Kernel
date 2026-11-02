@@ -2,8 +2,8 @@
 # Python 3 / GitHub Actions Ubuntu 24.04 / EXP76 Stage31 vendor scheduler affinity ABI / NO FLASH
 """Port PREEMPT_RT cpus_ptr references in rt/fair/deadline to E404 cpus_allowed.
 
-These nine exact text changes (eight C expressions and one documentation
-comment) restore the vendor's embedded task_struct cpumask ABI, as already
+These twelve exact changes (nine C expressions and three comments) restore
+the vendor's embedded task_struct cpumask ABI, as already
 validated for sched/core.c in Stage27. No migration policy/lock changes.
 """
 from __future__ import annotations
@@ -29,6 +29,14 @@ REPLACEMENTS: dict[str, tuple[tuple[str, str], ...]] = {
          "cpumask_test_cpu(lowest_rq->cpu, &task->cpus_allowed)"),
     ),
     "kernel/sched/fair.c": (
+        # These three expressions were already present in pinned vendor E404,
+        # NOT introduced by the RT partial patch; Stage32 missed them.
+        ("for_each_cpu_and(cpu, cpu_smt_mask(target), p->cpus_ptr)",
+         "for_each_cpu_and(cpu, cpu_smt_mask(target), &p->cpus_allowed)"),
+        (" * 3) cannot be migrated to this CPU due to cpus_ptr, or",
+         " * 3) cannot be migrated to this CPU due to cpus_allowed, or"),
+        (" * isn't true due to cpus_ptr constraints and the like.",
+         " * isn't true due to cpus_allowed constraints and the like."),
         ("cpumask_test_cpu(env->src_cpu, cur->cpus_ptr)",
          "cpumask_test_cpu(env->src_cpu, &cur->cpus_allowed)"),
         ("cpumask_test_cpu(cpu, env->p->cpus_ptr)",
@@ -102,6 +110,7 @@ def main() -> None:
         "applied": args.mode == "apply",
         "replaced_fragments": EXPECTED,
         "stage32_fair_numa_affinity_reconciled": True,
+        "stage33_preexisting_vendor_fair_cpus_ptr_reconciled": True,
         "updated_source_paths": sorted(replacements),
         "vendor_embedded_cpus_allowed_preserved": True,
         "remaining_rejected_files": remaining,
