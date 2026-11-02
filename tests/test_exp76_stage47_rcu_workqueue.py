@@ -61,12 +61,24 @@ WORK = (
     "}\n"
 )
 UPDATE_REJ = (
+    "@@ -68,8 +69,10 @@ extern int rcu_expedited; /* from sysctl */\n"
+    " module_param(rcu_normal, int, 0);\n"
+    " static int rcu_normal_after_boot = IS_ENABLED(CONFIG_PREEMPT_RT_FULL);\n"
+    "+#ifndef CONFIG_PREEMPT_RT_FULL\n"
+    " module_param(rcu_normal_after_boot, int, 0);\n"
+    "+#endif\n"
+    " #endif /* #ifndef CONFIG_TINY_RCU */\n"
     "@@ -314,6 +318,7 @@ int rcu_read_lock_bh_held(void)\n"
+    " \treturn in_softirq() || irqs_disabled();\n"
+    " }\n"
     " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\n"
     "+#endif\n"
 )
 PLUGIN_REJ = (
     "@@ -1559,6 +1448,7 @@ int rcu_needs_cpu(u64 basemono, u64 *nextevt)\n"
+    " \t*nextevt = basemono + dj * TICK_NSEC;\n"
+    " \treturn 0;\n"
+    " }\n"
     "+#endif /* #ifndef CONFIG_PREEMPT_RT_FULL */\n"
 )
 WORK_REJ = (
@@ -143,6 +155,27 @@ def main() -> None:
         assert result["kernel_built"] is False and result["flash_ready"] is False
         assert invoke(good).returncode != 0
 
+        # Reproduce actual Stage47 CI: two +#endif additions are valid
+        # in different update.c rejected hunks. A duplicate in the targeted
+        # lockdep hunk is not valid and must fail before any source writes.
+        assert UPDATE_REJ.count("+#endif\\n") == 2
+        wrong_update_hunk = base / "duplicated-update-lockdep-closer"
+        seed(wrong_update_hunk)
+        put(wrong_update_hunk, M["UPDATE_REJ"], UPDATE_REJ.replace(
+            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\\n+#endif\\n",
+            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\\n+#endif\\n"
+            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\\n+#endif\\n",
+        ))
+        fail(wrong_update_hunk, "expected one")
+
+        wrong_update_context = base / "missing-update-context"
+        seed(wrong_update_context)
+        put(wrong_update_context, M["UPDATE_REJ"], UPDATE_REJ.replace(
+            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);",
+            " EXPORT_SYMBOL_GPL(other_rcu_lock);",
+        ))
+        fail(wrong_update_context, "expected one")
+
         wrong_rcu = base / "additional-update-conditional"
         seed(wrong_rcu)
         put(wrong_rcu, M["UPDATE"], "#if 1\n" + UPDATE)
@@ -182,7 +215,7 @@ def main() -> None:
             "\t*nextevt = KTIME_MAX;"))
         fail(changed_plugin, "expected one")
 
-    print("EXP76_STAGE47_RCU_WORKQUEUE_REGRESSIONS=9_PASS; FLASH_READY=false")
+    print("EXP76_STAGE48_RCU_REJECT_HUNK_REGRESSIONS=11_PASS; FLASH_READY=false")
 
 
 if __name__ == "__main__":
