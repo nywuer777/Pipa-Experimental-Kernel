@@ -124,6 +124,11 @@ def main() -> None:
             "remaining_rejected_files": 64, "applied": True,
             "migration_runtime_semantics_verified": False,
         })
+        put(artifact / "exp76-rt-report" / "stage42" / "stage42-status.json", {
+            "stage": "EXP76_STAGE42_RT_CPU_HOTPLUG_PIN_DRAIN_ARM64_TLB",
+            "remaining_rejected_files": 64, "applied": True,
+            "migration_hotplug_runtime_verified": False,
+        })
         failed = invoke(artifact, evidence, 122, "success")
         assert failed["artifact_present"] is True
         assert failed["preparation"]["completed"] is False
@@ -151,6 +156,9 @@ def main() -> None:
         assert failed["stages"]["stage41"]["present"] is True
         assert failed["stages"]["stage41"]["applied"] is True
         assert failed["stages"]["stage41"]["remaining_rejected_files"] == 64
+        assert failed["stages"]["stage42"]["present"] is True
+        assert failed["stages"]["stage42"]["applied"] is True
+        assert failed["stages"]["stage42"]["remaining_rejected_files"] == 64
         assert failed["extra_object_coverage"]["objects_attempted"] == 9
         assert failed["extra_object_coverage"]["objects_compiled"] == 3
         assert failed["extra_object_coverage"]["targets"]["kernel/sched/rt.o"]["compiled"] is False
