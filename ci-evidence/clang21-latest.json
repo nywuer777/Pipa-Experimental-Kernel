@@ -163,6 +163,46 @@
   "flash_ready": false,
   "job_conclusion": "success",
   "kernel_built": false,
+  "kernel_subtree_diagnostic": {
+    "archive_bytes": 0,
+    "archive_created": false,
+    "attempted": true,
+    "baseline_22_objects_compiled": true,
+    "errors_excerpt": [
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/net/neighbour.h:500:26: error: passing 'const struct hh_cache *' to parameter of type 'struct hh_cache *' discards qualifiers [-Werror,-Wincompatible-pointer-types-discards-qualifiers]",
+      "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:307: init/do_mounts.o] Error 1",
+      "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1243: init] Error 2",
+      "make: *** [Makefile:153: sub-make] Error 2"
+    ],
+    "exit_code": 2,
+    "first_error_context": [
+      "  CC      arch/arm64/kernel/debug-monitors.o",
+      "  AS      arch/arm64/kernel/entry.o",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/init/do_mounts.c:22:",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/nfs_fs.h:32:",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/sunrpc/clnt.h:28:",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/net/ipv6.h:16:",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/ipv6.h:94:",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/tcp.h:23:",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/net/sock.h:70:",
+      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/net/dst.h:19:",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/net/neighbour.h:500:26: error: passing 'const struct hh_cache *' to parameter of type 'struct hh_cache *' discards qualifiers [-Werror,-Wincompatible-pointer-types-discards-qualifiers]",
+      "  500 |                 return neigh_hh_output(hh, skb);",
+      "      |                                        ^~",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/net/neighbour.h:454:52: note: passing argument to parameter 'hh' here",
+      "  454 | static inline int neigh_hh_output(struct hh_cache *hh, struct sk_buff *skb)",
+      "      |                                                    ^",
+      "  CC      arch/arm64/kernel/irq.o",
+      "1 error generated."
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "remaining_rejected_files": 64,
+    "skip_reason": null,
+    "stage": "EXP76_STAGE50_KERNEL_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "kernel/built-in.a"
+  },
   "preparation": {
     "completed": true,
     "errors_excerpt": [],
@@ -172,10 +212,10 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41480242264,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41480242264",
+  "run_id": 41482925519,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41482925519",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "4f04ff7c16aba0d7ce3218bb72189cef31631c6b",
+  "source_sha": "4a000dac15e0e15668ec57d174ef9ce28043ddcb",
   "stages": {
     "stage19": {
       "applied": true,
