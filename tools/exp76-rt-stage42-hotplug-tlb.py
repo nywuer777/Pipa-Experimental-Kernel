@@ -123,29 +123,52 @@ def prepare(tree: Path) -> tuple[str, str]:
     one(cpu, CPU_FUNC, CPU)
     one(cpu, HOTPLUG_SETUP, CPU)
     one(cpu, STOP_CALL, CPU)
-    one(cpu, FAIL_ANCHOR, CPU)
-    one(cpu, SUCCESS_ANCHOR, CPU)
     if cpu.count("cpu_nr_pinned(cpu)") != 2:
         raise ValueError("Both original CPU pin consumers must remain")
-    if "takedown_cpu_task" in cpu or "retry_pinned_cpu:" in cpu:
-        raise ValueError("CPU pin-drain handshake already partially ported")
     if "extern struct task_struct *takedown_cpu_task;" in core:
         raise ValueError("Core hotplug declaration already added")
     if "if (cpu_nr_pinned(cpu))" not in cpu:
         raise ValueError("Stop-machine task pin recheck missing")
-    # Ensure target C path is fully guarded and no untracked changes.
-    cpu_out = cpu.replace(CPU_FUNC, CPU_THREAD_GLOBAL + CPU_FUNC, 1)
-    cpu_out = cpu_out.replace(HOTPLUG_SETUP, HOTPLUG_SETUP + HOTPLUG_RT_WAIT, 1)
-    cpu_out = cpu_out.replace(STOP_CALL, STOP_CALL + STOP_RETRY, 1)
-    cpu_out = cpu_out.replace(FAIL_ANCHOR, FAIL_REPLACEMENT, 1)
-    cpu_out = cpu_out.replace(SUCCESS_ANCHOR, SUCCESS_REPLACEMENT, 1)
+
+    # The official RT CPU hunk may already have applied to E404. Its
+    # global wait loop is NOT part of Stage41's rejected core.c hunk.
+    # Reuse it if complete; never overwrite it or silently skip drift.
+    preexisting = "takedown_cpu_task" in cpu or "retry_pinned_cpu:" in cpu
+    if preexisting:
+        once_existing = (
+            "struct task_struct *takedown_cpu_task;",
+            "takedown_cpu_task = current;",
+            "set_current_state(TASK_UNINTERRUPTIBLE);",
+            "nr_pinned = cpu_nr_pinned(cpu);",
+            "schedule();",
+            "set_current_state(TASK_RUNNING);",
+            "if (err == -EAGAIN)",
+            "goto again;",
+        )
+        for marker in once_existing:
+            one(cpu, marker, CPU)
+        if cpu.count("takedown_cpu_task = NULL;") != 2:
+            raise ValueError("Upstream RT hotplug task must be cleared on failure and success")
+        if "again:" not in cpu:
+            raise ValueError("Upstream RT hotplug retry target missing")
+        if "#ifdef CONFIG_PREEMPT_RT_BASE" not in cpu:
+            raise ValueError("Upstream RT hotplug conditional missing")
+        cpu_out = cpu
+    else:
+        one(cpu, FAIL_ANCHOR, CPU)
+        one(cpu, SUCCESS_ANCHOR, CPU)
+        cpu_out = cpu.replace(CPU_FUNC, CPU_THREAD_GLOBAL + CPU_FUNC, 1)
+        cpu_out = cpu_out.replace(HOTPLUG_SETUP, HOTPLUG_SETUP + HOTPLUG_RT_WAIT, 1)
+        cpu_out = cpu_out.replace(STOP_CALL, STOP_CALL + STOP_RETRY, 1)
+        cpu_out = cpu_out.replace(FAIL_ANCHOR, FAIL_REPLACEMENT, 1)
+        cpu_out = cpu_out.replace(SUCCESS_ANCHOR, SUCCESS_REPLACEMENT, 1)
+        if cpu_out.count("WRITE_ONCE(takedown_cpu_task, NULL);") != 2:
+            raise ValueError("Pin drain cleanup must cover failure and success")
+        if cpu_out.count("goto retry_pinned_cpu;") != 1:
+            raise ValueError("Missing -EAGAIN retry loop")
+
     core_out = core.replace(CORE_DECL_MARKER, CORE_EXTERN + CORE_DECL_MARKER, 1)
     core_out = core_out.replace(CORE_HOOK, HOOK_OPTIONAL, 1)
-    for guard in ("WRITE_ONCE(takedown_cpu_task, NULL);",):
-        if cpu_out.count(guard) != 2:
-            raise ValueError("Pin drain cleanup must cover fatal failure and success")
-    if cpu_out.count("goto retry_pinned_cpu;") != 1:
-        raise ValueError("Missing -EAGAIN retry loop")
     if core_out.count("tlb_migrate_finish(p->mm);") != 1:
         raise ValueError("Optional arm64 TLB hook was not preserved")
     return core_out, cpu_out
@@ -168,6 +191,8 @@ def main() -> None:
         "stage": "EXP76_STAGE42_RT_CPU_HOTPLUG_PIN_DRAIN_ARM64_TLB",
         "applied": a.mode == "apply",
         "takedown_cpu_task_lifecycle_ported": a.mode == "apply",
+        "preexisting_upstream_hotplug_reused": a.mode == "apply" and (
+            "WRITE_ONCE(takedown_cpu_task, current);" not in cpu),
         "pinned_task_wait_and_eagain_retry_ported": a.mode == "apply",
         "pin_drain_wakeup_preserved": True,
         "optional_arch_tlb_hook_preserved": True,
