@@ -381,6 +381,22 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_RT_STAGE28=TASK_STATE_HELPER_RESTORED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false' | tee "$REPORT/stage28-gate.txt"
 
 
+# Stage29: the rejected upstream sched.h hunk requires true migration state
+# in task_struct under CONFIG_SMP && CONFIG_PREEMPT_RT_BASE. Preserve the
+# vendor's cpus_allowed/cpus_requested masks and initialize RT-only child
+# fields in __sched_fork. Runtime migrate_disable/enable remains NOT ported.
+python3 tools/exp76-rt-stage29-migration-abi.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage29" \
+    --mode apply | tee "$REPORT/stage29-migration-abi.log"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+test -f "$REPORT/stage29/stage29-status.json"
+test -f "$ROOT/exp76-trial-overlay/include/linux/sched.h.rej"
+test -f "$ROOT/exp76-trial-overlay/kernel/sched/cpupri.c.rej"
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_RT_STAGE29=RT_TASK_FIELDS_AND_FORK_INIT_ONLY; REJECTED_FILES=64; RT_MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false' | tee "$REPORT/stage29-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
