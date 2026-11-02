@@ -158,13 +158,13 @@ def main() -> None:
         # Reproduce actual Stage47 CI: two +#endif additions are valid
         # in different update.c rejected hunks. A duplicate in the targeted
         # lockdep hunk is not valid and must fail before any source writes.
-        assert UPDATE_REJ.count("+#endif\\n") == 2
+        assert UPDATE_REJ.count("+#endif\n") == 2
         wrong_update_hunk = base / "duplicated-update-lockdep-closer"
         seed(wrong_update_hunk)
         put(wrong_update_hunk, M["UPDATE_REJ"], UPDATE_REJ.replace(
-            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\\n+#endif\\n",
-            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\\n+#endif\\n"
-            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\\n+#endif\\n",
+            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\n+#endif\n",
+            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\n+#endif\n"
+            " EXPORT_SYMBOL_GPL(rcu_read_lock_bh_held);\n+#endif\n",
         ))
         fail(wrong_update_hunk, "expected one")
 
