@@ -571,6 +571,21 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE54=POSIX_TIMER_RCU_EXPIRY_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage54-gate.txt"
 
 
+# Stage55: two compiler-proven aggregate Kbuild faults from Stage53:
+# rootdomain irq_work.flags is atomic_t (not unsigned long); Oplus
+# mmap_sem.wait_list is unavailable with the RT rw_semaphore layout.
+# Keep the hard-IRQ flag and the vendor contention test through their
+# source-verified common APIs, without touching the remaining RT rejects.
+python3 tools/exp76-rt-stage55-irq-rwsem.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage55" \
+    --mode apply | tee "$REPORT/stage55-irq-rwsem.log"
+test -f "$REPORT/stage55/stage55-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE55=ATOMIC_IRQ_WORK_VENDOR_RWSEM_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage55-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
