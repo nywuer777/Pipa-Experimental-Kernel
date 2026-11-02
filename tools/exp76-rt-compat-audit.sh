@@ -462,7 +462,7 @@ python3 tools/exp76-rt-stage38-softirq-entry.py \
 test -f "$REPORT/stage38/stage38-status.json"
 test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
 git -C "$ROOT/exp76-trial-overlay" diff --check
-echo 'EXP76_STAGE38=SOFTIRQ_RT_ENTRY_GUARDS_PORTED; SOFTIRQ_RUNTIME_VERIFIED=false; FLASH_READY=false' | tee "$REPORT/stage38-gate.txt"
+echo 'EXP76_STAGE39=SOFTIRQ_RT_DUAL_GUARDS_PORTED; SOFTIRQ_RUNTIME_VERIFIED=false; FLASH_READY=false' | tee "$REPORT/stage38-gate.txt"
 
 
 # Export ALL partial source changes (including new RT files), excluding
