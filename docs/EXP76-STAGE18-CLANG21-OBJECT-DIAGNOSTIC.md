@@ -316,3 +316,15 @@ A chamada `cpu_nr_pinned(cpu)` em dois pontos do hotplug `kernel/cpu.c` faz part
 **Pendências reais:** `cpu.o` depende do ciclo completo; `softirq.o` depende de revisão de API/preprocessador; `migrate_disabled_sched` permanece sem definição em `core.o` até o port verdadeiro; a resolução das 64 rejeições ainda é necessária. Nenhum `Image`, `boot.img`, `vmlinux` ou flash foi produzido.
 
 `EXP76_STAGE36_SOURCE=COMMITTED`; `EXP76_STAGE36_CI=UNVERIFIED`; `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
+
+## Stage37 — correção do contador de rejeitos no relatório de migração
+
+**Falha confirmada:** execução Clang21 `41444634468` sobre `46c11ae2683e06fa587bf45ace7e26cd3a8acc37`. A validação de scripts passou nos Stages anteriores, inclusive `EXP76_STAGE35_MIGHT_SLEEP_REGRESSIONS=8_PASS`, mas `tests/test_exp76_stage36_migration_contract.py` falhou ao comparar `report["remaining_rejected_files"] == 64`. A auditoria e as compilações de objetos foram, por isso, ignoradas. Nenhum objeto novo foi compilado nesse job.
+
+A causa está na própria ferramenta Stage36: a variável local `count` iniciou com o número de arquivos `*.rej`, mas o laço de verificação de `include/linux/preempt.h` reutilizou `count` para ocorrências de declarações. O manifesto saiu com o valor desta última contagem, não com o número de rejeitos. O gate de 64 rejeições **já estava correto**, mas o valor reportado era incorreto.
+
+Stage37 separa `reject_count` de `declaration_count` e utiliza somente o primeiro para `remaining_rejected_files`. O teste positivo agora confronta o manifesto com `len(list(tree.rglob("*.rej")))` e há um caso negativo novo para declarações duplicadas em `preempt.h`. O teste passa a anunciar `EXP76_STAGE37_RT_MIGRATION_CONTRACT=8_PASS` quando executado.
+
+**Verificação adicional:** os marcadores RT do rejeito `kernel/sched/core.c.rej` e o campo `nr_pinned` do rejeito `kernel/sched/sched.h.rej` foram comparados com o pacote original de auditoria E404: a cardinalidade usada pelo Stage36 está consistente. O próximo teste real da auditoria ainda depende da CI Stage37.
+
+Nenhuma modificação na lógica do scheduler, ABI da E404, `cpu_nr_pinned`, migração ou `softirq` ocorre neste stage. Os 64 arquivos rejeitados permanecem pendentes. `EXP75_PERMANENT=PRESERVED`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
