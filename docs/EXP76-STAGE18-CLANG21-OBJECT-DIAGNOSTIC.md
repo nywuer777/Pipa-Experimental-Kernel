@@ -187,3 +187,15 @@ Os testes `tests/test_exp76_stage27_core_affinity.py` cobrem uma aplicação pos
 **Limites:** `__migrate_disabled` continua referindo `p->migrate_disable`, e `wait_task_inactive` continua referindo `check_task_state` não portado. Por isso, `core.o` pode continuar falhando; sua compilação isolada não provaria segurança de migração nem equivalência PREEMPT_RT. Não há alteração das estruturas de task, bypass de avisos do Clang, kernel completo, boot.img ou flash.
 
 `EXP76_STAGE27_SOURCE=COMMITTED`; `EXP76_STAGE27_CI=UNVERIFIED`; `EXP76_RT_TARGET_REJECTS=64`; `FLASH_READY=false`.
+
+## Stage28 — `check_task_state` RT com `pi_lock`
+
+**Evidência real Stage27:** execução Clang 21 `41378222225`, SHA `b16d214971f84b60bfe25d011a20a7a85e7b5b00`. O gate `make prepare` passou; `kernel/sched/cpupri.o` e `kernel/fork.o` passaram; `kernel/sched/core.o` falhou somente por `p->migrate_disable` ausente (`core.c:2002`) e `check_task_state` não declarado (`core.c:2392`). A auditoria confirmou Stages 19, 20, 21, 26 e 27 aplicados com 64 rejeições. Evidência: https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41378222225.
+
+O código RT de `wait_task_inactive()` verifica tanto `task->state` como `task->saved_state`. A aplicação parcial do patch acrescentou o segundo campo em `task_struct` e a chamada `check_task_state()` em `core.c`, mas perdeu a implementação auxiliar. Árvores Linux RT independentes implementam essa função sob `raw_spin_lock_irq(&p->pi_lock)`, comparando ambos os campos antes de `raw_spin_unlock_irq()`.
+
+`tools/exp76-rt-stage28-task-state.py` introduz essa função estática imediatamente antes de `wait_task_inactive`, depois de exigir que `state`, `saved_state` e `pi_lock` existam e tenham o formato esperado na E404. O teste `tests/test_exp76_stage28_task_state.py` cobre aplicação única, campo ausente, lock alterado e duplicação. O script conserva a contagem de **64 rejeitos**.
+
+O erro `migrate_disable` **não é contornado**. O RT necessita campos de estado, sincronização de scheduler e ciclos de desabilitar/habilitar migração; adicionar somente um membro ou um stub que retorne zero produziria compilação sem demonstrar correção. Stage28 mantém esse bloqueio visível até um port íntegro. Nenhuma imagem, módulo instalável ou flash é produzido.
+
+`EXP76_STAGE28_SOURCE=COMMITTED`; `EXP76_STAGE28_CI=UNVERIFIED`; `EXP76_REJECTED_FILES_TARGET=64`; `KERNEL_BUILT=false`; `FLASH_READY=false`.
