@@ -23,6 +23,9 @@ CPU_REJECT = "kernel/sched/core.c.rej"
 OTHER_REJECT = "kernel/sched/cpupri.c.rej"
 
 CPU_FUNC = "static int takedown_cpu(unsigned int cpu)\n"
+# In pinned E404, the next function starts immediately after takedown_cpu.
+# Use this bound so no later function can accidentally absorb RT edits.
+CPU_END_MARKER = "static void cpuhp_complete_idle_dead(void *arg)\n"
 CPU_THREAD_GLOBAL = (
     "#if defined(CONFIG_PREEMPT_RT_BASE) && defined(CONFIG_HOTPLUG_CPU)\n"
     "struct task_struct *takedown_cpu_task;\n"
@@ -123,9 +126,11 @@ def prepare(tree: Path) -> tuple[str, str]:
     one(cpu, CPU_FUNC, CPU)
     # E404 has irq_lock_sparse() in both bringup and takedown. Only
     # target the takedown function; never alter the CPU bringup path.
-    before_takedown, takedown_body = cpu.split(CPU_FUNC, 1)
+    one(cpu, CPU_END_MARKER, CPU)
+    before_takedown, remainder = cpu.split(CPU_FUNC, 1)
+    takedown_body, after_takedown = remainder.split(CPU_END_MARKER, 1)
     one(takedown_body, HOTPLUG_SETUP, CPU + "::takedown_cpu")
-    one(cpu, STOP_CALL, CPU)
+    one(takedown_body, STOP_CALL, CPU + "::takedown_cpu")
     # The RT patch has one stopper call before the wait loop, and two
     # total only after its wait loop is applied. Check semantic call sites,
     # not a constant that assumes the source has one particular stage state.
@@ -151,12 +156,15 @@ def prepare(tree: Path) -> tuple[str, str]:
             "goto again;",
         )
         for marker in once_existing:
-            one(cpu, marker, CPU)
+            # The shared task pointer lives before takedown_cpu; every
+            # wait, poll, retry and wakeup marker must be inside it.
+            owner = cpu if marker == "struct task_struct *takedown_cpu_task;" else takedown_body
+            one(owner, marker, CPU + "::RT hotplug")
         if cpu.count("cpu_nr_pinned(cpu)") != 2:
             raise ValueError("Complete RT hotplug requires stopper and polling call sites")
         if cpu.count("nr_pinned = cpu_nr_pinned(cpu);") != 1:
             raise ValueError("RT pin-drain loop must poll the tracked runqueue")
-        one(cpu, "if (nr_pinned == 0)", CPU)
+        one(takedown_body, "if (nr_pinned == 0)", CPU + "::takedown_cpu")
         if cpu.count("takedown_cpu_task = NULL;") != 2:
             raise ValueError("Upstream RT hotplug task must be cleared on failure and success")
         if "again:" not in cpu:
@@ -167,16 +175,17 @@ def prepare(tree: Path) -> tuple[str, str]:
     else:
         if cpu.count("cpu_nr_pinned(cpu)") != 1:
             raise ValueError("Unported RT hotplug must have only the stopper pin check")
-        one(cpu, FAIL_ANCHOR, CPU)
-        one(cpu, SUCCESS_ANCHOR, CPU)
-        # Modify the one takedown invocation, not the earlier bringup
-        # irq_lock_sparse() site (which shares the same two-line text).
+        one(takedown_body, FAIL_ANCHOR, CPU + "::takedown_cpu")
+        one(takedown_body, SUCCESS_ANCHOR, CPU + "::takedown_cpu")
+        # Only rewrite the bounded takedown function body. Preserve both
+        # the CPU bringup prefix and all later hotplug functions verbatim.
+        patched = takedown_body.replace(
+            HOTPLUG_SETUP, HOTPLUG_SETUP + HOTPLUG_RT_WAIT, 1)
+        patched = patched.replace(STOP_CALL, STOP_CALL + STOP_RETRY, 1)
+        patched = patched.replace(FAIL_ANCHOR, FAIL_REPLACEMENT, 1)
+        patched = patched.replace(SUCCESS_ANCHOR, SUCCESS_REPLACEMENT, 1)
         cpu_out = (before_takedown + CPU_THREAD_GLOBAL + CPU_FUNC
-                   + takedown_body.replace(
-                       HOTPLUG_SETUP, HOTPLUG_SETUP + HOTPLUG_RT_WAIT, 1))
-        cpu_out = cpu_out.replace(STOP_CALL, STOP_CALL + STOP_RETRY, 1)
-        cpu_out = cpu_out.replace(FAIL_ANCHOR, FAIL_REPLACEMENT, 1)
-        cpu_out = cpu_out.replace(SUCCESS_ANCHOR, SUCCESS_REPLACEMENT, 1)
+                   + patched + CPU_END_MARKER + after_takedown)
         if cpu_out.count("WRITE_ONCE(takedown_cpu_task, NULL);") != 2:
             raise ValueError("Pin drain cleanup must cover failure and success")
         if cpu_out.count("goto retry_pinned_cpu;") != 1:
@@ -209,6 +218,7 @@ def main() -> None:
         "preexisting_upstream_hotplug_reused": a.mode == "apply" and (
             "WRITE_ONCE(takedown_cpu_task, current);" not in cpu),
         "pinned_task_wait_and_eagain_retry_ported": a.mode == "apply",
+        "bounded_takedown_function_scope_verified": True,
         "pin_drain_wakeup_preserved": True,
         "optional_arch_tlb_hook_preserved": True,
         "arm64_tlb_hook_absent_in_pinned_e404": True,
