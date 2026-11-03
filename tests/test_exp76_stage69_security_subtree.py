@@ -27,7 +27,7 @@ def fixture(root: Path, *, ipc_enabled: bool = True) -> tuple[Path, ...]:
     write(out / ".config", config)
     prior_ipc = out / "ipc/built-in.a"
     prior_ipc.parent.mkdir(parents=True, exist_ok=True)
-    ipc_data = b"!<thin>\nIPC-OBJECT" if ipc_enabled else b"!<thin>\n"
+    ipc_data = b"!<thin>\nIPC-OBJECT" if ipc_enabled else b"!<arch>\n"
     prior_ipc.write_bytes(ipc_data)
     s68 = root / "s68.json"
     write(s68, json.dumps({

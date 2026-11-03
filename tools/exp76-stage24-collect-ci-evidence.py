@@ -221,6 +221,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "timed_out": ipc_archive.get("timed_out") is True,
             "archive_created": ipc_archive.get("archive_created") is True,
             "archive_bytes": ipc_archive.get("archive_bytes"),
+            "archive_magic_hex": str(ipc_archive.get("archive_magic_hex") or "")[:16],
             "archive_has_members": ipc_archive.get("archive_has_members") is True,
             "enabled_ipc_configs": [
                 str(x)[:64] for x in (ipc_archive.get("enabled_ipc_configs") or [])[:8]

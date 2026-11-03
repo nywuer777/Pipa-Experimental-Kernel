@@ -88,6 +88,10 @@ def fixture(root: Path) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
         "p.parent.mkdir(parents=True, exist_ok=True)\n"
         "if os.environ.get('STAGE68_TEST_EMPTY') == 'yes':\n"
         "    p.write_bytes(b'!<thin>\\n')\n"
+        "elif os.environ.get('STAGE68_TEST_EMPTY') == 'normal':\n"
+        "    p.write_bytes(b'!<arch>\\n')\n"
+        "elif os.environ.get('STAGE68_TEST_EMPTY') == 'invalid':\n"
+        "    p.write_bytes(b'not-an-ar')\n"
         "else:\n"
         "    p.write_bytes(b'!<thin>\\nsynthetic-ipc')\n"
     ))
@@ -151,7 +155,31 @@ def main() -> None:
         assert config_disabled["archive_has_members"] is False
         assert config_disabled["enabled_ipc_configs"] == []
         assert config_disabled["compile_semantics"] == "CONFIG_DISABLED"
+        assert config_disabled["archive_magic_hex"] == b"!<thin>\n".hex()
         assert config_disabled["errors_excerpt"] == []
+
+        disabled_normal = fixture(root / "disabled-normal-ar")
+        write(disabled_normal[1] / ".config", "CONFIG_PREEMPT_RT_FULL=y\n")
+        os.environ["STAGE68_TEST_EMPTY"] = "normal"
+        try:
+            normal_ar = run(disabled_normal)
+        finally:
+            del os.environ["STAGE68_TEST_EMPTY"]
+        assert normal_ar["compile_semantics"] == "CONFIG_DISABLED"
+        assert normal_ar["archive_has_members"] is False
+        assert normal_ar["archive_magic_hex"] == b"!<arch>\n".hex()
+        assert normal_ar["errors_excerpt"] == []
+
+        invalid_header = fixture(root / "invalid-ar-magic")
+        write(invalid_header[1] / ".config", "CONFIG_PREEMPT_RT_FULL=y\n")
+        os.environ["STAGE68_TEST_EMPTY"] = "invalid"
+        try:
+            unrecognized = run(invalid_header)
+        finally:
+            del os.environ["STAGE68_TEST_EMPTY"]
+        assert unrecognized["compile_semantics"] == "ERROR_UNKNOWN_ARCHIVE"
+        assert unrecognized["archive_has_members"] is False
+        assert len(unrecognized["errors_excerpt"]) == 1
 
         invalid_empty = fixture(root / "unexpected-empty")
         os.environ["STAGE68_TEST_EMPTY"] = "yes"
@@ -215,7 +243,7 @@ def main() -> None:
 
         timeout = fixture(root / "timeout")
         reject(lambda: execute(*timeout, 15), "Unsupported Stage68 IPC")
-    print("EXP76_STAGE68_IPC_SUBTREE_REGRESSIONS=15_PASS; KERNEL_BUILT=false; FLASH_READY=false")
+    print("EXP76_STAGE68_IPC_SUBTREE_REGRESSIONS=17_PASS; KERNEL_BUILT=false; FLASH_READY=false")
 
 
 if __name__ == "__main__":

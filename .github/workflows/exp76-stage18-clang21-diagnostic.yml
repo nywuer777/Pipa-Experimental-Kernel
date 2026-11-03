@@ -652,6 +652,7 @@ jobs:
                   f"Top-level directory scope: {ipc_subtree.get('top_level_directory_scope')}",
                   f"Archive created: {ipc_subtree.get('archive_created')}",
                   f"Archive has members: {ipc_subtree.get('archive_has_members')}",
+                  f"Archive magic hex: {ipc_subtree.get('archive_magic_hex')}",
                   f"Compile semantics: {ipc_subtree.get('compile_semantics')}",
                   f"Enabled IPC config: {ipc_subtree.get('enabled_ipc_configs')}",
                   f"Exit code: {ipc_subtree.get('exit_code')}",

@@ -191,6 +191,7 @@ def main() -> None:
                 "timed_out": False,
                 "archive_created": False,
                 "archive_bytes": 0,
+                "archive_magic_hex": "",
                 "archive_has_members": False,
                 "enabled_ipc_configs": ["CONFIG_SYSVIPC"],
                 "compile_semantics": "FAILED",
@@ -344,6 +345,7 @@ def main() -> None:
         assert sec["errors_excerpt"][0].endswith("fixture-only security error")
         assert not sec["kernel_built"] and not sec["flash_ready"]
         assert failed["ipc_subtree_diagnostic"]["compile_semantics"] == "FAILED"
+        assert failed["ipc_subtree_diagnostic"]["archive_magic_hex"] == ""
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

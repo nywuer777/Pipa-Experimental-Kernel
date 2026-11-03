@@ -41,12 +41,13 @@ def prerequisites(stage50: Path, stage66: Path, stage67: Path,
     disabled = (
         semantics == "CONFIG_DISABLED" and not enabled
         and ipc.get("archive_has_members") is False
-        and archive.read_bytes() == STAGE68["EMPTY_THIN_ARCHIVE"]
+        and archive.read_bytes() in STAGE68["EMPTY_AR_HEADERS"]
     )
     compiled = (
         semantics == "OBJECTS_PRESENT" and enabled
         and ipc.get("archive_has_members") is True
-        and physical_size > len(STAGE68["EMPTY_THIN_ARCHIVE"])
+        and physical_size > 8
+        and archive.read_bytes()[:8] in STAGE68["EMPTY_AR_HEADERS"]
     )
     return bool(
         ipc.get("stage") == STAGE68["STAGE"]

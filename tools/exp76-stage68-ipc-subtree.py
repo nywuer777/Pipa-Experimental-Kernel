@@ -25,7 +25,7 @@ TARGET = "ipc/built-in.a"
 SCOPE = "vmlinux-dirs=ipc"
 OUTPUT = "IPC_SUBTREE_DIAGNOSTIC.json"
 IPC_KCONFIG = ("CONFIG_SYSVIPC", "CONFIG_POSIX_MQUEUE", "CONFIG_IPC_NS")
-EMPTY_THIN_ARCHIVE = b"!<thin>\n"
+EMPTY_AR_HEADERS = (b"!<thin>\n", b"!<arch>\n")
 
 
 def prerequisites(stage50: Path, stage66: Path, stage67: Path,
@@ -118,16 +118,15 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
     archive = out / TARGET
     exists = archive.is_file() and archive.stat().st_size > 0
     size = archive.stat().st_size if exists else 0
-    empty_thin = (
-        exists and size == len(EMPTY_THIN_ARCHIVE)
-        and archive.read_bytes() == EMPTY_THIN_ARCHIVE
-    )
-    has_objects = rc == 0 and exists and size > len(EMPTY_THIN_ARCHIVE)
+    magic = archive.read_bytes()[:8] if exists else b""
+    valid_magic = magic in EMPTY_AR_HEADERS
+    empty_ar = exists and size == 8 and valid_magic
+    has_objects = rc == 0 and exists and size > 8 and valid_magic
     if rc != 0 or not exists:
         semantic = "FAILED"
-    elif empty_thin and not enabled_ipc:
+    elif empty_ar and not enabled_ipc:
         semantic = "CONFIG_DISABLED"
-    elif empty_thin:
+    elif empty_ar:
         semantic = "ERROR_EMPTY_WITH_IPC_CONFIG_ENABLED"
     elif has_objects:
         semantic = "OBJECTS_PRESENT"
@@ -145,6 +144,7 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
         "timed_out": rc == 124,
         "archive_created": rc == 0 and exists,
         "archive_bytes": size,
+        "archive_magic_hex": magic.hex(),
         "archive_has_members": has_objects,
         "enabled_ipc_configs": enabled_ipc,
         "compile_semantics": semantic,
