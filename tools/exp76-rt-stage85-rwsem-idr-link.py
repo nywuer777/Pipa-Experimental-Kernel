@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 STAGE = "EXP76_STAGE85_RWSEM_RT_PUBLIC_API_IDR_PRELOAD_END_NONFLASH"
@@ -92,7 +93,7 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
     rt = (tree / RT_RWSEM).read_text(encoding="utf-8")
     header = (tree / RT_HEADER).read_text(encoding="utf-8")
     for item in LOWLEVEL:
-        if item not in rt:
+        if not re.search(r"\b" + re.escape(item) + r"\s*\(", rt):
             raise ValueError("Stage85 RT lower-level implementation missing: " + item)
         if f"{item}(struct rw_semaphore *sem)" not in header:
             raise ValueError("Stage85 RT header signature missing: " + item)
