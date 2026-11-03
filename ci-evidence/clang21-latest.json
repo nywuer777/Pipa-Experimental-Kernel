@@ -127,7 +127,7 @@
       "UTS_MACHINE",
       "UTS_VERSION"
     ],
-    "compile_h_sha256": "2a72ba00995919409e53c3dbb02a3596c3d08b4f7f1415606df35367a1300070",
+    "compile_h_sha256": "d5fe1f90ed87de0b59c7149b6278cf82a33c49b890e8e8cc270b1a99c6b78c5f",
     "compile_h_uts_machine": "\"aarch64\"",
     "errors_excerpt": [],
     "exit_code": 0,
@@ -565,8 +565,8 @@
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
       "   94 |         struct llist_head *list;",
       "      |                            ^~~~",
-      "  CC      kernel/jump_label.o",
       "1 warning generated.",
+      "  CC      kernel/jump_label.o",
       "  CC      kernel/iomem.o",
       "  UPD     kernel/config_data.h",
       "  CC      kernel/configs.o",
@@ -726,9 +726,9 @@
     "errors_excerpt": [],
     "exit_code": 0,
     "first_error_context": [
+      "  CC      net/wireless/nl80211.o",
       "  CC      net/xfrm/xfrm_interface.o",
       "  CC      net/socket.o",
-      "  CC      net/wireless/nl80211.o",
       "  CC      net/compat.o",
       "  CC      net/sysctl_net.o",
       "  CC      net/wireless/mlme.o",
@@ -768,8 +768,488 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41686067306,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41686067306",
+  "rt_reject_hunk_inventory": {
+    "categories": {
+      "architecture": 2,
+      "interrupt_timers": 4,
+      "kernel_mm_headers": 28,
+      "locking_scheduler": 4,
+      "other": 7,
+      "rcu": 8,
+      "subsystem": 11
+    },
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "initial_paths_no_longer_rejected_count": 18,
+    "initial_rejected_path_count": 82,
+    "kernel_built": false,
+    "missing_source_files": [],
+    "priority_sample": [
+      {
+        "first_change_excerpt": [
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+const_debug unsigned int sysctl_sched_nr_migrate = 8;",
+          "+#else",
+          "-\thrtimer_init(&rq->hrtick_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);",
+          "+\thrtimer_init(&rq->hrtick_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL_HARD);"
+        ],
+        "first_hunk_headers": [
+          "@@ -44,7 +44,11 @@ const_debug unsigned int sysctl_sched_features =",
+          "@@ -315,7 +319,7 @@ static void hrtick_rq_init(struct rq *rq)",
+          "@@ -976,7 +1042,7 @@ static int migration_cpu_stop(void *data)"
+        ],
+        "hunk_count": 21,
+        "parse_issues": [],
+        "reject_sha256": "4c3caaa61d2556dc1185d00b199c961494a62dadebd6ed8544b26d2ed7fa4799",
+        "review_category": "locking_scheduler",
+        "review_score": 100,
+        "source": "kernel/sched/core.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\t\tresched_curr(rq_of(cfs_rq));",
+          "+\t\tresched_curr_lazy(rq_of(cfs_rq));",
+          "-\t\tresched_curr(rq_of(cfs_rq));",
+          "+\t\tresched_curr_lazy(rq_of(cfs_rq));"
+        ],
+        "first_hunk_headers": [
+          "@@ -4151,7 +4151,7 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)",
+          "@@ -4175,7 +4175,7 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)",
+          "@@ -4317,7 +4317,7 @@ entity_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr, int queued)"
+        ],
+        "hunk_count": 20,
+        "parse_issues": [],
+        "reject_sha256": "b8c15cc49c3ce680e176b54065795e0bc058b481ca297cb0dff47733d8ff4c2f",
+        "review_category": "locking_scheduler",
+        "review_score": 100,
+        "source": "kernel/sched/fair.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+static void rcu_preempt_qs(void);",
+          "+",
+          "+#endif"
+        ],
+        "first_hunk_headers": [
+          "@@ -244,6 +251,19 @@ void rcu_sched_qs(void)",
+          "@@ -254,6 +274,7 @@ void rcu_bh_qs(void)",
+          "@@ -568,6 +589,7 @@ unsigned long rcu_sched_get_gp_seq(void)"
+        ],
+        "hunk_count": 18,
+        "parse_issues": [],
+        "reject_sha256": "2de3a79ea9ac2eb3f2eb6ac6a603614e591ba84600cd5b6c36ce0298471b9cd2",
+        "review_category": "rcu",
+        "review_score": 95,
+        "source": "kernel/rcu/tree.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-#include <linux/delay.h>",
+          "-#include <linux/gfp.h>",
+          "-#include <linux/oom.h>",
+          "+\tint sleeping_l = 0;",
+          "-\tWARN_ON_ONCE(!preempt && t->rcu_read_lock_nesting > 0);",
+          "+#if defined(CONFIG_PREEMPT_RT_FULL)"
+        ],
+        "first_hunk_headers": [
+          "@@ -24,41 +24,16 @@",
+          "@@ -337,9 +312,13 @@ static void rcu_preempt_note_context_switch(bool preempt)",
+          "@@ -520,7 +499,7 @@ static void rcu_read_unlock_special(struct task_struct *t)"
+        ],
+        "hunk_count": 11,
+        "parse_issues": [],
+        "reject_sha256": "3e1d7208144072ff906f7986d946147d77e7594be21c816eabfc084af032b236",
+        "review_category": "rcu",
+        "review_score": 95,
+        "source": "kernel/rcu/tree_plugin.h"
+      },
+      {
+        "first_change_excerpt": [
+          "-/*",
+          "- * Track online CPUs to guide callback workqueue placement.",
+          "- */",
+          "-\tpreempt_disable();",
+          "-\tif (READ_ONCE(per_cpu(srcu_online, cpu)))",
+          "+\tcpus_read_lock();"
+        ],
+        "first_hunk_headers": [
+          "@@ -460,21 +462,6 @@ static void srcu_gp_start(struct srcu_struct *sp)",
+          "@@ -486,12 +473,12 @@ static bool srcu_queue_delayed_work_on(int cpu, struct workqueue_struct *wq,",
+          "@@ -774,6 +761,8 @@ static void srcu_flip(struct srcu_struct *sp)"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "5844d3c558a15107c85741935c58a49133c307f6e08dcb137c6bab162ad29142",
+        "review_category": "rcu",
+        "review_score": 91,
+        "source": "kernel/rcu/srcutree.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\t\tif (cpumask_any_and(&p->cpus_allowed, vec->mask) >= nr_cpu_ids)",
+          "+\t\tif (cpumask_any_and(p->cpus_ptr, vec->mask) >= nr_cpu_ids)",
+          "-\t\t\tcpumask_and(lowest_mask, &p->cpus_allowed, vec->mask);"
+        ],
+        "first_hunk_headers": [
+          "@@ -98,11 +98,11 @@ int cpupri_find(struct cpupri *cp, struct task_struct *p,"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "46229fc23a4543f28fac12bad645f582a160086cc6d5cb6056b7909c01e53052",
+        "review_category": "locking_scheduler",
+        "review_score": 91,
+        "source": "kernel/sched/cpupri.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+",
+          "+#if defined(CONFIG_PREEMPT_RT_BASE) && defined(CONFIG_SMP)",
+          "+\tint\t\t\tnr_pinned;"
+        ],
+        "first_hunk_headers": [
+          "@@ -915,6 +915,10 @@ struct rq {"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "0c0e1e8ae110ff1db3a088c5936926ef34f55379525798bdb07b6a783ad94e41",
+        "review_category": "locking_scheduler",
+        "review_score": 91,
+        "source": "kernel/sched/sched.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifndef CONFIG_PREEMPT_RT_FULL",
+          "+#endif",
+          "-#ifdef CONFIG_RCU_BOOST",
+          "-#endif /* #ifdef CONFIG_RCU_BOOST */"
+        ],
+        "first_hunk_headers": [
+          "@@ -413,7 +413,9 @@ extern struct list_head rcu_struct_flavors;",
+          "@@ -421,12 +423,10 @@ extern struct rcu_state rcu_preempt_state;",
+          "@@ -449,8 +449,8 @@ static void dump_blkd_tasks(struct rcu_state *rsp, struct rcu_node *rnp,"
+        ],
+        "hunk_count": 3,
+        "parse_issues": [],
+        "reject_sha256": "ad8e175a495d38fc5704db7e85f758fadaffc23b65591e4f836f5ffe75b80eb2",
+        "review_category": "rcu",
+        "review_score": 88,
+        "source": "kernel/rcu/tree.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+#include <linux/rcuwait.h>",
+          "-static int rcu_normal_after_boot;",
+          "+static int rcu_normal_after_boot = IS_ENABLED(CONFIG_PREEMPT_RT_FULL);",
+          "+#ifndef CONFIG_PREEMPT_RT_FULL"
+        ],
+        "first_hunk_headers": [
+          "@@ -53,6 +53,7 @@",
+          "@@ -68,8 +69,10 @@ extern int rcu_expedited; /* from sysctl */",
+          "@@ -314,6 +318,7 @@ int rcu_read_lock_bh_held(void)"
+        ],
+        "hunk_count": 3,
+        "parse_issues": [],
+        "reject_sha256": "98cce60a248d9540dfdccb316138f6f58154618c36ef20dbfb3a77c03d836ae7",
+        "review_category": "rcu",
+        "review_score": 88,
+        "source": "kernel/rcu/update.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-unsigned long rcu_bh_get_gp_seq(void);",
+          "-void rcu_bh_force_quiescent_state(void);",
+          "+",
+          "+#ifdef CONFIG_PREEMPT_RT_FULL"
+        ],
+        "first_hunk_headers": [
+          "@@ -528,7 +528,6 @@ static inline void show_rcu_gp_kthreads(void) { }",
+          "@@ -536,10 +535,18 @@ unsigned long srcu_batches_completed(struct srcu_struct *sp);"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "e6665ce33fc70064e46b04120eecbebae9e64752ad83d06891f871bdd878c210",
+        "review_category": "rcu",
+        "review_score": 87,
+        "source": "kernel/rcu/rcu.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifndef CONFIG_PREEMPT_RT_FULL",
+          "+#else",
+          "+static struct rcu_torture_ops rcu_bh_ops = {",
+          "+\t.ttype\t\t= INVALID_RCU_FLAVOR,"
+        ],
+        "first_hunk_headers": [
+          "@@ -434,6 +434,7 @@ static struct rcu_torture_ops rcu_ops = {",
+          "@@ -475,6 +476,12 @@ static struct rcu_torture_ops rcu_bh_ops = {"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "67f0c43c90faf4829393035b1ba7abe8d8946e401bf0ff6af9b0cb24715200d8",
+        "review_category": "rcu",
+        "review_score": 87,
+        "source": "kernel/rcu/rcutorture.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\tint cpu;",
+          "-\t\tpreempt_disable();",
+          "-\t\tcpu = cpumask_next(rnp->grplo - 1, cpu_online_mask);",
+          "-\t\t/* If all offline, queue the work on an unbound CPU. */"
+        ],
+        "first_hunk_headers": [
+          "@@ -472,7 +472,6 @@ static void sync_rcu_exp_select_node_cpus(struct work_struct *wp)",
+          "@@ -494,13 +493,7 @@ static void sync_rcu_exp_select_cpus(struct rcu_state *rsp,"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "0171ff323693a194700c0dbb04ab8694870ea0bc78c2a06706755060e6b70f80",
+        "review_category": "rcu",
+        "review_score": 87,
+        "source": "kernel/rcu/tree_exp.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+\tselect HAVE_PREEMPT_LAZY",
+          "+config RWSEM_GENERIC_SPINLOCK",
+          "+\tdef_bool PREEMPT_RT_FULL",
+          "+"
+        ],
+        "first_hunk_headers": [
+          "@@ -181,6 +181,7 @@ config X86",
+          "@@ -265,8 +266,11 @@ config ARCH_MAY_HAVE_PC_FDC"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "c8407b58cbdd090df38f08efec1f4ac687a3be17876587bbbecbe3e6669805e0",
+        "review_category": "architecture",
+        "review_score": 82,
+        "source": "arch/x86/Kconfig"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+#define TIMER_SOFTIRQS ((1 << TIMER_SOFTIRQ) | (1 << HRTIMER_SOFTIRQ))",
+          "+DEFINE_PER_CPU(struct task_struct *, ktimer_softirqd);",
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+static void wakeup_timer_softirqd(void)",
+          "+{"
+        ],
+        "first_hunk_headers": [
+          "@@ -56,12 +59,136 @@ EXPORT_PER_CPU_SYMBOL(irq_stat);",
+          "@@ -77,6 +204,38 @@ static void wakeup_softirqd(void)",
+          "@@ -92,6 +251,47 @@ static bool ksoftirqd_running(unsigned long pending)"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "c667be6e853b3aad605f32b556d709c5996bd2c8719029687b079280cb61ca4e",
+        "review_category": "interrupt_timers",
+        "review_score": 81,
+        "source": "kernel/softirq.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\tdepends on KERNEL_MODE_NEON",
+          "+\tdepends on KERNEL_MODE_NEON && !PREEMPT_RT_BASE",
+          "-\tdepends on KERNEL_MODE_NEON"
+        ],
+        "first_hunk_headers": [
+          "@@ -107,13 +107,13 @@ config CRYPTO_AES_ARM64_NEON_BLK"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "313a186927a334940aca6e6ce944adb63d2f0f4ced59ff57f761af3bd28c82c8",
+        "review_category": "architecture",
+        "review_score": 81,
+        "source": "arch/arm64/crypto/Kconfig"
+      },
+      {
+        "first_change_excerpt": [
+          "-\tschedule_work(&timer_update_work);",
+          "+\tswork_queue(&timer_update_swork);",
+          "+static __init int hrtimer_init_thread(void)",
+          "+\t\traw_spin_unlock_irq(&base->lock);",
+          "+\t\traw_spin_lock_irq(&base->lock);"
+        ],
+        "first_hunk_headers": [
+          "@@ -247,9 +246,17 @@ static void timer_update_keys(struct work_struct *work)",
+          "@@ -1304,8 +1311,10 @@ static inline void timer_base_unlock_expiry(struct timer_base *base)",
+          "@@ -1324,7 +1333,7 @@ static void del_timer_wait_running(struct timer_list *timer)"
+        ],
+        "hunk_count": 5,
+        "parse_issues": [],
+        "reject_sha256": "445c341c5ae29d37e08b9cdfd97aea0c2574961690c7f25dacb9548c226792d7",
+        "review_category": "interrupt_timers",
+        "review_score": 80,
+        "source": "kernel/time/timer.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-",
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+",
+          "-\tpool->handle_cachep = kmem_cache_create(\"zs_handle\", ZS_HANDLE_SIZE,",
+          "+\tpool->handle_cachep = kmem_cache_create(\"zs_handle\", ZS_HANDLE_ALLOC_SIZE,"
+        ],
+        "first_hunk_headers": [
+          "@@ -73,9 +74,22 @@",
+          "@@ -325,7 +339,7 @@ static void SetZsPageMovable(struct zs_pool *pool, struct zspage *zspage) {}",
+          "@@ -349,10 +363,27 @@ static void destroy_cache(struct zs_pool *pool)"
+        ],
+        "hunk_count": 9,
+        "parse_issues": [],
+        "reject_sha256": "be10fa2acaf63b1796d576d7c8c0fb96941baaa25a55f8a00cd871aa12baf740",
+        "review_category": "kernel_mm_headers",
+        "review_score": 79,
+        "source": "mm/zsmalloc.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\thrtimer_init_on_stack(&t.timer, clockid, mode);",
+          "+\thrtimer_init_sleeper_on_stack(&t, clockid, mode, current);",
+          "+\tspin_lock_init(&cpu_base->softirq_expiry_lock);"
+        ],
+        "first_hunk_headers": [
+          "@@ -1807,7 +1874,7 @@ long hrtimer_nanosleep(const struct timespec64 *rqtp,",
+          "@@ -1891,6 +1990,7 @@ int hrtimers_prepare_cpu(unsigned int cpu)"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "81c2b115a6b6ded2c64454a30a398a1ed00767e1c148123ad9a0b7ba78dedafb",
+        "review_category": "interrupt_timers",
+        "review_score": 77,
+        "source": "kernel/time/hrtimer.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+#include <asm/kmap_types.h>",
+          "-#define task_is_traced(task)\t\t((task->state & __TASK_TRACED) != 0)",
+          "-",
+          "-#define task_is_stopped_or_traced(task)\t((task->state & (__TASK_STOPPED | __TASK_TRACED)) != 0)"
+        ],
+        "first_hunk_headers": [
+          "@@ -28,6 +28,7 @@",
+          "@@ -101,12 +102,8 @@ struct task_group;",
+          "@@ -223,6 +227,8 @@ extern void io_schedule_finish(int token);"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "00b363fe9d8f3dcfb32aff0d39e758365f6e77e57a114f79776545ad5f169e00",
+        "review_category": "kernel_mm_headers",
+        "review_score": 76,
+        "source": "include/linux/sched.h"
+      },
+      {
+        "first_change_excerpt": [
+          "-static DEFINE_SPINLOCK(quarantine_lock);",
+          "+static DEFINE_RAW_SPINLOCK(quarantine_lock);",
+          "-\t\tspin_lock(&quarantine_lock);",
+          "+\t\traw_spin_lock(&quarantine_lock);"
+        ],
+        "first_hunk_headers": [
+          "@@ -103,7 +103,7 @@ static int quarantine_head;",
+          "@@ -190,7 +190,7 @@ void quarantine_put(struct kasan_free_meta *info, struct kmem_cache *cache)",
+          "@@ -203,7 +203,7 @@ void quarantine_put(struct kasan_free_meta *info, struct kmem_cache *cache)"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "0fdc912c253d78ffb8b032276f07721fc81d71854a8c60bb82375c74adec506e",
+        "review_category": "kernel_mm_headers",
+        "review_score": 76,
+        "source": "mm/kasan/quarantine.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+static DEFINE_PER_CPU(spinlock_t, cpu_timer_expiry_lock) = __SPIN_LOCK_UNLOCKED(cpu_timer_expiry_lock);",
+          "+",
+          "+void cpu_timers_grab_expiry_lock(struct k_itimer *timer)"
+        ],
+        "first_hunk_headers": [
+          "@@ -1135,18 +1139,31 @@ static inline int fastpath_timer_check(struct task_struct *tsk)"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "3f7e605cdefa648198f9a9d578c216d085940c98a9ed5b9748d4c9324aaea932",
+        "review_category": "interrupt_timers",
+        "review_score": 76,
+        "source": "kernel/time/posix-cpu-timers.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\t\thrtimer_init_on_stack(&to->timer, (flags & FLAGS_CLOCKRT) ?",
+          "-\t\t\t\t      CLOCK_REALTIME : CLOCK_MONOTONIC,",
+          "-\t\t\t\t      HRTIMER_MODE_ABS);",
+          "-\t\thrtimer_init_on_stack(&to->timer, CLOCK_REALTIME,",
+          "-\t\t\t\t      HRTIMER_MODE_ABS);",
+          "-\t\thrtimer_init_sleeper(to, current);"
+        ],
+        "first_hunk_headers": [
+          "@@ -2816,10 +2830,9 @@ static int futex_wait(u32 __user *uaddr, unsigned int flags, u32 val,",
+          "@@ -2917,9 +2930,8 @@ static int futex_lock_pi(u32 __user *uaddr, unsigned int flags,",
+          "@@ -3314,7 +3344,7 @@ static int futex_wait_requeue_pi(u32 __user *uaddr, unsigned int flags,"
+        ],
+        "hunk_count": 4,
+        "parse_issues": [],
+        "reject_sha256": "2c00301ce65c3158e68ff0ce3df0b452d29d365016ce05c00a8f28f026d0be0b",
+        "review_category": "kernel_mm_headers",
+        "review_score": 74,
+        "source": "kernel/futex.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+#include <linux/rcuwait.h>",
+          "- * wq_worker_waking_up - a worker is waking up",
+          "+ * wq_worker_running - a worker is running again",
+          "- * @cpu: CPU @task is waking up to"
+        ],
+        "first_hunk_headers": [
+          "@@ -50,6 +50,7 @@",
+          "@@ -843,43 +845,32 @@ static void wake_up_worker(struct worker_pool *pool)",
+          "@@ -888,13 +879,15 @@ struct task_struct *wq_worker_sleeping(struct task_struct *task)"
+        ],
+        "hunk_count": 4,
+        "parse_issues": [],
+        "reject_sha256": "22203be4249fdb5f321b6f2e4b5c01ec34ef14cc2e9eb9a1f555bf5da5ec8e30",
+        "review_category": "kernel_mm_headers",
+        "review_score": 74,
+        "source": "kernel/workqueue.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-static void __irq_work_queue_local(struct irq_work *work)",
+          "+static void __irq_work_queue_local(struct irq_work *work, struct llist_head *list)",
+          "-\t/* If the work is \"lazy\", handle it from next tick if any */",
+          "+\tif (use_lazy_list(work))",
+          "+\t\tlist = &per_cpu(lazy_list, cpu);",
+          "+\telse"
+        ],
+        "first_hunk_headers": [
+          "@@ -57,29 +58,40 @@ void __weak arch_irq_work_raise(void)",
+          "@@ -106,13 +120,18 @@ bool irq_work_queue_on(struct irq_work *work, int cpu)",
+          "@@ -144,8 +162,12 @@ static void irq_work_run_list(struct llist_head *list)"
+        ],
+        "hunk_count": 3,
+        "parse_issues": [],
+        "reject_sha256": "e743e34080a1635d02dc0b6236fd98e0ca20fe5d3007e0fd719ce80ae2cff613",
+        "review_category": "kernel_mm_headers",
+        "review_score": 73,
+        "source": "kernel/irq_work.c"
+      }
+    ],
+    "rejects_deleted": false,
+    "remaining_not_in_initial_manifest": [],
+    "remaining_rejected_files": 64,
+    "resolution_verified": false,
+    "source_modified": false,
+    "stage": "EXP76_STAGE82_OUTSTANDING_RT_REJECT_HUNK_INVENTORY_NONFLASH",
+    "total_added_lines": 1104,
+    "total_rejected_hunks": 209,
+    "total_removed_lines": 506,
+    "unparseable_reject_files": []
+  },
+  "run_id": 41690236398,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41690236398",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
   "security_subtree_diagnostic": {
     "archive_bytes": 2732,
@@ -781,13 +1261,13 @@
     "first_error_context": [
       "  CC      security/selinux/nlmsgtab.o",
       "  CC      security/keys/proc.o",
-      "  CC      security/selinux/netif.o",
       "  CC      security/keys/sysctl.o",
-      "  CC      security/commoncap.o",
+      "  CC      security/selinux/netif.o",
       "  CC      security/selinux/netnode.o",
+      "  CC      security/commoncap.o",
       "  CC      security/selinux/netport.o",
-      "  CC      security/min_addr.o",
       "  CC      security/selinux/ss/ebitmap.o",
+      "  CC      security/min_addr.o",
       "  CC      security/security.o",
       "  CC      security/selinux/ss/hashtab.o",
       "  CC      security/selinux/ss/symtab.o",
@@ -813,7 +1293,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=security"
   },
-  "source_sha": "cfdcb5a5cbac27ef27433b3323a993d49b41a3ed",
+  "source_sha": "0c99fe31fca4032cbded63697631c156001ac826",
   "stages": {
     "stage19": {
       "applied": true,
