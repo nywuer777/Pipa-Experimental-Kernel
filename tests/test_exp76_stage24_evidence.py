@@ -52,6 +52,7 @@ def main() -> None:
         assert empty["functionfs_rt_swait_status"] is None
         assert empty["block_init_subtrees_diagnostic"] is None
         assert empty["rt_reject_hunk_inventory"] is None
+        assert empty["arm64_neon_rt_kconfig_port"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -472,6 +473,27 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-rt-report" / "stage83" / "stage83-status.json", {
+            "stage": "EXP76_STAGE83_ARM64_NEON_CRYPTO_RT_KCONFIG_HUNK_NONFLASH",
+            "target": "arch/arm64/crypto/Kconfig",
+            "applied": True,
+            "rejected_hunks_reviewed": 1,
+            "config_dependencies_patched": [
+                "CRYPTO_CHACHA20_NEON", "CRYPTO_POLY1305_NEON",
+            ],
+            "rt_guard": "!PREEMPT_RT_BASE",
+            "rejected_hunk_sha256": "a" * 64,
+            "nonrt_kernel_mode_neon_preserved": True,
+            "unrelated_arm64_crypto_config_preserved": True,
+            "reject_audit_file_retained": True,
+            "remaining_rejected_files": 64,
+            "semantic_backport_review_pending": True,
+            "original_source_sha256": "b" * 64,
+            "patched_source_sha256": "c" * 64,
+            "full_kernel_link_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -687,6 +709,19 @@ def main() -> None:
         assert not index["resolution_verified"]
         assert not index["source_modified"] and not index["rejects_deleted"]
         assert not index["kernel_built"] and not index["flash_ready"]
+        arm64 = failed["arm64_neon_rt_kconfig_port"]
+        assert arm64["stage"] == "EXP76_STAGE83_ARM64_NEON_CRYPTO_RT_KCONFIG_HUNK_NONFLASH"
+        assert arm64["target"] == "arch/arm64/crypto/Kconfig"
+        assert arm64["applied"] is True
+        assert arm64["config_dependencies_patched"] == [
+            "CRYPTO_CHACHA20_NEON", "CRYPTO_POLY1305_NEON",
+        ]
+        assert arm64["rejected_hunks_reviewed"] == 1
+        assert arm64["rt_guard"] == "!PREEMPT_RT_BASE"
+        assert arm64["reject_audit_file_retained"] is True
+        assert arm64["remaining_rejected_files"] == 64
+        assert arm64["semantic_backport_review_pending"] is True
+        assert not arm64["kernel_built"] and not arm64["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

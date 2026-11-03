@@ -591,6 +591,42 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    arm64_neon_status = read_json(
+        artifact / "exp76-rt-report" / "stage83" / "stage83-status.json"
+    )
+    arm64_neon = None
+    if arm64_neon_status is not None:
+        arm64_neon = {
+            "stage": str(arm64_neon_status.get("stage") or "")[:130],
+            "target": str(arm64_neon_status.get("target") or "")[:130],
+            "applied": arm64_neon_status.get("applied") is True,
+            "rejected_hunks_reviewed":
+                arm64_neon_status.get("rejected_hunks_reviewed"),
+            "config_dependencies_patched": [
+                str(x)[:80] for x in
+                (arm64_neon_status.get("config_dependencies_patched") or [])[:8]
+            ],
+            "rt_guard": str(arm64_neon_status.get("rt_guard") or "")[:80],
+            "rejected_hunk_sha256":
+                str(arm64_neon_status.get("rejected_hunk_sha256") or "")[:64],
+            "nonrt_kernel_mode_neon_preserved":
+                arm64_neon_status.get("nonrt_kernel_mode_neon_preserved") is True,
+            "unrelated_arm64_crypto_config_preserved":
+                arm64_neon_status.get("unrelated_arm64_crypto_config_preserved") is True,
+            "reject_audit_file_retained":
+                arm64_neon_status.get("reject_audit_file_retained") is True,
+            "remaining_rejected_files":
+                arm64_neon_status.get("remaining_rejected_files"),
+            "semantic_backport_review_pending":
+                arm64_neon_status.get("semantic_backport_review_pending") is True,
+            "original_source_sha256":
+                str(arm64_neon_status.get("original_source_sha256") or "")[:64],
+            "patched_source_sha256":
+                str(arm64_neon_status.get("patched_source_sha256") or "")[:64],
+            "full_kernel_link_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -632,6 +668,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "functionfs_rt_swait_status": functionfs_rt,
         "block_init_subtrees_diagnostic": block_init,
         "rt_reject_hunk_inventory": reject_index,
+        "arm64_neon_rt_kconfig_port": arm64_neon,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
