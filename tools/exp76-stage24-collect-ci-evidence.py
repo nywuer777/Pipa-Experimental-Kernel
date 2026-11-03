@@ -200,6 +200,37 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    ipc_archive = read_json(
+        artifact / "exp76-stage68-report" / "IPC_SUBTREE_DIAGNOSTIC.json"
+    )
+    ipc_subtree = None
+    if ipc_archive is not None:
+        ipc_subtree = {
+            "stage": str(ipc_archive.get("stage") or "")[:120],
+            "target": str(ipc_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(ipc_archive.get("top_level_directory_scope") or "")[:80],
+            "prior_kernel_subtree_gate":
+                ipc_archive.get("prior_kernel_subtree_gate") is True,
+            "prior_mm_subtree_gate":
+                ipc_archive.get("prior_mm_subtree_gate") is True,
+            "prior_fs_subtree_gate":
+                ipc_archive.get("prior_fs_subtree_gate") is True,
+            "attempted": ipc_archive.get("attempted") is True,
+            "exit_code": ipc_archive.get("exit_code"),
+            "timed_out": ipc_archive.get("timed_out") is True,
+            "archive_created": ipc_archive.get("archive_created") is True,
+            "archive_bytes": ipc_archive.get("archive_bytes"),
+            "errors_excerpt": bounded_lines(ipc_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                ipc_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files": ipc_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                ipc_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -231,6 +262,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "kernel_subtree_diagnostic": kernel_subtree,
         "mm_subtree_diagnostic": mm_subtree,
         "fs_subtree_diagnostic": fs_subtree,
+        "ipc_subtree_diagnostic": ipc_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

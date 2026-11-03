@@ -42,6 +42,7 @@ def main() -> None:
         assert empty["kernel_subtree_diagnostic"] is None
         assert empty["mm_subtree_diagnostic"] is None
         assert empty["fs_subtree_diagnostic"] is None
+        assert empty["ipc_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -176,6 +177,27 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage68-report" / "IPC_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE68_IPC_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "ipc/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=ipc",
+                "prior_kernel_subtree_gate": True,
+                "prior_mm_subtree_gate": True,
+                "prior_fs_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_bytes": 0,
+                "errors_excerpt": ["ipc/msg.c:77: error: fixture-only IPC error"],
+                "first_error_context": ["ipc/msg.c:77: error: fixture-only IPC error"],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -276,6 +298,15 @@ def main() -> None:
         assert fs["exit_code"] == 2 and fs["archive_created"] is False
         assert fs["errors_excerpt"][0].endswith("fixture-only FS error")
         assert fs["kernel_built"] is False and fs["flash_ready"] is False
+        ipc = failed["ipc_subtree_diagnostic"]
+        assert ipc["target"] == "ipc/built-in.a"
+        assert ipc["top_level_directory_scope"] == "vmlinux-dirs=ipc"
+        assert ipc["prior_kernel_subtree_gate"] is True
+        assert ipc["prior_mm_subtree_gate"] is True
+        assert ipc["prior_fs_subtree_gate"] is True
+        assert ipc["exit_code"] == 2 and ipc["archive_created"] is False
+        assert ipc["errors_excerpt"][0].endswith("fixture-only IPC error")
+        assert ipc["kernel_built"] is False and ipc["flash_ready"] is False
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
