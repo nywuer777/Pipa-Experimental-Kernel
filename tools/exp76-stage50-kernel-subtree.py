@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # Python 3 / Ubuntu 24.04 GitHub Actions / EXP76 Stage50 bounded kernel subtree Kbuild archive / NO FLASH
-"""Build kernel/built-in.a ONLY after 22 RT objects compile.
+"""Build only kernel/built-in.a after all 22 selected RT objects compile.
 
-Kbuild archive is not vmlinux, Image or a bootable kernel. Preserve the
-first actual integrated compile error; never turn failure into success or
-create installable artifacts. The source tree is the isolated E404 overlay.
+Kbuild's unscoped top-level dependencies descend drivers and Wi-Fi even when
+only kernel/built-in.a was requested. Pin E404's dependency mechanism and
+override vmlinux-dirs=kernel to compile only kernel/ and its subdirectories.
+No kernel link, Image, or installation artifact is produced.
 """
 from __future__ import annotations
 
@@ -29,7 +30,14 @@ CROSS = (
     "kernel/irq/manage.o", "kernel/workqueue.o",
 )
 TARGET = "kernel/built-in.a"
+SCOPE = "vmlinux-dirs=kernel"
 OUTPUT = "KERNEL_SUBTREE_DIAGNOSTIC.json"
+ROOT_KBUILD_ANCHORS = (
+    "vmlinux-dirs\t:= $(patsubst %/,%,$(filter %/,",
+    "$(sort $(vmlinux-deps)): $(vmlinux-dirs) ;",
+    "$(vmlinux-dirs): prepare scripts",
+    "$(Q)$(MAKE) $(build)=$@ need-builtin=1",
+)
 BAD_ARTIFACTS = (
     "vmlinux", "vmlinux.o", "System.map", "boot.img",
     "arch/arm64/boot/Image", "arch/arm64/boot/Image.gz",
@@ -121,6 +129,13 @@ def execute(kernel: Path, out: Path, report: Path, baseline: Path,
         raise ValueError("Pinned archive construction rule not found")
     if not (kernel / "kernel/Makefile").is_file():
         raise ValueError("kernel/ Kbuild Makefile is missing")
+    top = kernel / "Makefile"
+    if not top.is_file():
+        raise ValueError("Pinned top-level Kbuild Makefile missing")
+    source = top.read_text(encoding="utf-8")
+    for anchor in ROOT_KBUILD_ANCHORS:
+        if source.count(anchor) != 1:
+            raise ValueError("Pinned top-level Kbuild directory gate missing: " + anchor)
     forbid_images(out)
     ready = all_passed(baseline, prior, cross)
     report.mkdir(parents=True, exist_ok=True)
@@ -128,11 +143,13 @@ def execute(kernel: Path, out: Path, report: Path, baseline: Path,
     info = {
         "stage": "EXP76_STAGE50_KERNEL_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
         "target": TARGET,
+        "top_level_directory_scope": SCOPE,
         "baseline_22_objects_compiled": ready,
         "attempted": ready,
         "exit_code": None,
         "archive_created": False,
         "archive_bytes": 0,
+        "timed_out": False,
         "skip_reason": None if ready else "BASELINE_22_OBJECT_GATE_FAILED",
         "errors_excerpt": [],
         "first_error_context": [],
@@ -151,7 +168,7 @@ def execute(kernel: Path, out: Path, report: Path, baseline: Path,
             "make", "-C", str(kernel), "O=" + str(out), "ARCH=arm64",
             "CC=clang", "LD=ld.lld", "HOSTCC=gcc",
             "CROSS_COMPILE=aarch64-linux-gnu-",
-            "CLANG_TRIPLE=aarch64-linux-gnu-", "-j2", TARGET,
+            "CLANG_TRIPLE=aarch64-linux-gnu-", "-j2", SCOPE, TARGET,
         ]
         log_path = report / "kernel_subtree_make.log"
         with log_path.open("w", encoding="utf-8") as stream:
@@ -169,6 +186,7 @@ def execute(kernel: Path, out: Path, report: Path, baseline: Path,
         created = archive.is_file() and archive.stat().st_size > 0
         info.update({
             "exit_code": rc,
+            "timed_out": rc == 124,
             "archive_created": rc == 0 and created,
             "archive_bytes": archive.stat().st_size if created else 0,
             "errors_excerpt": errors,
@@ -205,6 +223,8 @@ def main() -> None:
         "attempted": status["attempted"],
         "exit_code": status["exit_code"],
         "archive_created": status["archive_created"],
+        "top_level_directory_scope": status["top_level_directory_scope"],
+        "timed_out": status["timed_out"],
         "errors_excerpt": status["errors_excerpt"][:8],
         "kernel_built": False, "flash_ready": False,
     }, indent=2))

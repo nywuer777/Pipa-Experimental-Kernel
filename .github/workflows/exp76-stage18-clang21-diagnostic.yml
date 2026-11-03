@@ -519,9 +519,11 @@ jobs:
               lines += [
                   f"22-object gate passed: {subtree.get('baseline_22_objects_compiled')}",
                   f"Target: {subtree.get('target')}",
+                  f"Top-level directory scope: {subtree.get('top_level_directory_scope')}",
                   f"Archive attempted: {subtree.get('attempted')}",
                   f"Archive created: {subtree.get('archive_created')}",
                   f"Exit code: {subtree.get('exit_code')}",
+                  f"Timed out: {subtree.get('timed_out')}",
               ]
               failures = (subtree.get('errors_excerpt') or [])[:9]
               if failures:

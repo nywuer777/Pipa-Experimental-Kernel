@@ -33,6 +33,8 @@ def setup(root: Path) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
         "# Python 3 / unit test make shim / one archive target only / NO FLASH\n"
         "import os, pathlib, sys\n"
         "assert sys.argv[-1] == 'kernel/built-in.a', sys.argv\n"
+        "assert 'vmlinux-dirs=kernel' in sys.argv, sys.argv\n"
+        "assert not any(x.startswith('vmlinux-dirs=') and x != 'vmlinux-dirs=kernel' for x in sys.argv), sys.argv\n"
         "assert 'vmlinux' not in sys.argv and 'Image' not in sys.argv\n"
         "print('FAKE_KBUILD_KERNEL_ARCHIVE_ONLY')\n"
         "if os.environ.get('EXP76_TEST_ARCHIVE_FAIL') == 'yes':\n"
@@ -48,6 +50,12 @@ def setup(root: Path) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
     write(kernel / "scripts/Makefile.build",
           "$(obj)/built-in.a: $(real-obj-y) FORCE\n")
     write(kernel / "kernel/Makefile", "obj-y += fork.o panic.o\n")
+    write(kernel / "Makefile", (
+        "vmlinux-dirs\t:= $(patsubst %/,%,$(filter %/,\n"
+        "$(sort $(vmlinux-deps)): $(vmlinux-dirs) ;\n"
+        "$(vmlinux-dirs): prepare scripts\n"
+        "\t$(Q)$(MAKE) $(build)=$@ need-builtin=1\n"
+    ))
     write(out / ".config", "CONFIG_PREEMPT_RT_FULL=y\n")
     write(out / "include/generated/asm-offsets.h", "#define E404 1\n")
     for i in range(64):
@@ -97,6 +105,7 @@ def fail(call, message: str) -> None:
 def main() -> None:
     assert len(M["BASE"]) + len(M["PRIOR"]) + len(M["CROSS"]) == 22
     assert M["TARGET"] == "kernel/built-in.a"
+    assert M["SCOPE"] == "vmlinux-dirs=kernel"
     assert "vmlinux" in M["BAD_ARTIFACTS"]
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
@@ -108,6 +117,8 @@ def main() -> None:
         assert done["archive_created"] is True
         assert done["archive_bytes"] > 0
         assert done["target"] == "kernel/built-in.a"
+        assert done["top_level_directory_scope"] == "vmlinux-dirs=kernel"
+        assert done["timed_out"] is False
         assert done["full_kernel_link_performed"] is False
         assert done["kernel_built"] is False and done["flash_ready"] is False
         assert "FAKE_KBUILD_KERNEL_ARCHIVE_ONLY" in (
@@ -161,10 +172,18 @@ def main() -> None:
         write(missing_rule[0] / "scripts/Makefile.build", "no archive rule\n")
         fail(lambda: invoke(missing_rule), "archive construction rule not found")
 
+        missing_top = setup(root / "missing-top-level")
+        (missing_top[0] / "Makefile").unlink()
+        fail(lambda: invoke(missing_top), "top-level Kbuild Makefile missing")
+
+        wrong_root_gate = setup(root / "wrong-top-level-rule")
+        write(wrong_root_gate[0] / "Makefile", "vmlinux-dirs := drivers\n")
+        fail(lambda: invoke(wrong_root_gate), "directory gate missing")
+
         bad_timeout = setup(root / "timeout")
         fail(lambda: execute(*bad_timeout, 15), "Unsupported subtree compile timeout")
 
-    print("EXP76_STAGE50_SUBTREE_ARCHIVE_REGRESSIONS=9_PASS; KERNEL_BUILT=false; FLASH_READY=false")
+    print("EXP76_STAGE50_SUBTREE_ARCHIVE_REGRESSIONS=11_PASS; KERNEL_BUILT=false; FLASH_READY=false")
 
 
 if __name__ == "__main__":
