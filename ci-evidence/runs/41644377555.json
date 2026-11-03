@@ -1,0 +1,119 @@
+{
+  "artifact_present": false,
+  "cross_subsystem_coverage": null,
+  "extra_object_coverage": null,
+  "flash_ready": false,
+  "fs_subtree_diagnostic": null,
+  "ipc_subtree_diagnostic": null,
+  "job_conclusion": "failure",
+  "kernel_built": false,
+  "kernel_subtree_diagnostic": null,
+  "mm_subtree_diagnostic": null,
+  "preparation": null,
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "run_id": 41644377555,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41644377555",
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "security_subtree_diagnostic": null,
+  "source_sha": "38de24b63fee2871a4e86a8c50f8441a97039db8",
+  "stages": {
+    "stage19": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage20": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage21": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage26": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage27": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage28": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage29": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage31": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage34": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage35": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage36": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage38": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage40": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage41": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage42": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage47": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    }
+  },
+  "status": null,
+  "targets": {}
+}
