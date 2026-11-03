@@ -44,6 +44,7 @@ def main() -> None:
         assert empty["fs_subtree_diagnostic"] is None
         assert empty["ipc_subtree_diagnostic"] is None
         assert empty["security_subtree_diagnostic"] is None
+        assert empty["net_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -226,6 +227,29 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage72-report" / "NET_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE72_NET_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "net/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=net",
+                "prior_security_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_has_members": False,
+                "archive_bytes": 0,
+                "archive_inspection_exit_code": None,
+                "archive_members_count": 0,
+                "archive_members_sample": [],
+                "errors_excerpt": ["net/core/dev.c:42: error: fixture-only net error"],
+                "first_error_context": ["net/core/dev.c:42: error: fixture-only net error"],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -346,6 +370,17 @@ def main() -> None:
         assert not sec["kernel_built"] and not sec["flash_ready"]
         assert failed["ipc_subtree_diagnostic"]["compile_semantics"] == "FAILED"
         assert failed["ipc_subtree_diagnostic"]["archive_magic_hex"] == ""
+        net = failed["net_subtree_diagnostic"]
+        assert net["target"] == "net/built-in.a"
+        assert net["top_level_directory_scope"] == "vmlinux-dirs=net"
+        assert net["prior_security_subtree_gate"] is True
+        assert net["archive_created"] is False
+        assert net["archive_has_members"] is False
+        assert net["archive_inspection_exit_code"] is None
+        assert net["archive_members_count"] == 0
+        assert net["archive_members_sample"] == []
+        assert net["errors_excerpt"][0].endswith("fixture-only net error")
+        assert not net["kernel_built"] and not net["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

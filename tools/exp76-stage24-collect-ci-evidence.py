@@ -269,6 +269,41 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    net_archive = read_json(
+        artifact / "exp76-stage72-report" / "NET_SUBTREE_DIAGNOSTIC.json"
+    )
+    net_subtree = None
+    if net_archive is not None:
+        net_subtree = {
+            "stage": str(net_archive.get("stage") or "")[:120],
+            "target": str(net_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(net_archive.get("top_level_directory_scope") or "")[:80],
+            "prior_security_subtree_gate":
+                net_archive.get("prior_security_subtree_gate") is True,
+            "attempted": net_archive.get("attempted") is True,
+            "exit_code": net_archive.get("exit_code"),
+            "timed_out": net_archive.get("timed_out") is True,
+            "archive_created": net_archive.get("archive_created") is True,
+            "archive_has_members": net_archive.get("archive_has_members") is True,
+            "archive_bytes": net_archive.get("archive_bytes"),
+            "archive_inspection_exit_code":
+                net_archive.get("archive_inspection_exit_code"),
+            "archive_members_count": net_archive.get("archive_members_count"),
+            "archive_members_sample": [
+                str(x)[:150] for x in
+                (net_archive.get("archive_members_sample") or [])[:24]
+            ],
+            "errors_excerpt": bounded_lines(net_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                net_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files": net_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                net_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -302,6 +337,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "fs_subtree_diagnostic": fs_subtree,
         "ipc_subtree_diagnostic": ipc_subtree,
         "security_subtree_diagnostic": security_subtree,
+        "net_subtree_diagnostic": net_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
