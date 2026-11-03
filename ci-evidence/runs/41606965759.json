@@ -1,0 +1,342 @@
+{
+  "artifact_present": true,
+  "cross_subsystem_coverage": {
+    "all_cross_objects_compiled": true,
+    "baseline_12_objects_compiled": true,
+    "link_performed": false,
+    "objects_attempted": 10,
+    "objects_compiled": 10,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE46_RT_CROSS_SUBSYSTEM_OBJECTS_NONFLASH",
+    "targets": {
+      "kernel/irq/manage.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/mutex-rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/rwlock-rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/rwsem-rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/spinlock.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/rcu/tree.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/rcu/update.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/swait.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/wait.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/workqueue.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      }
+    }
+  },
+  "extra_object_coverage": {
+    "all_extra_objects_compiled": true,
+    "baseline_3_objects_compiled": true,
+    "migration_contract": {
+      "migrate_disabled_sched_declarations": 1,
+      "migrate_disabled_sched_definitions": 3,
+      "migrate_disabled_sched_missing_local_definition": false,
+      "migration_entrypoint_definitions_in_core": 4,
+      "runtime_migration_contract_verified": false
+    },
+    "objects_attempted": 9,
+    "objects_compiled": 9,
+    "stage": "EXP76_STAGE30_RT_OBJECT_COVERAGE_NONFLASH",
+    "targets": {
+      "kernel/cpu.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/rtmutex.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/deadline.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/fair.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/idle.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/stop_task.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/softirq.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/time/timer.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      }
+    }
+  },
+  "flash_ready": false,
+  "job_conclusion": "success",
+  "kernel_built": false,
+  "kernel_subtree_diagnostic": {
+    "archive_bytes": 13762,
+    "archive_created": false,
+    "attempted": true,
+    "baseline_22_objects_compiled": true,
+    "errors_excerpt": [
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/drivers/oplus/nandswap_core.c:247:16: error: expected expression",
+      "make[3]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:307: drivers/oplus/nandswap_core.o] Error 1",
+      "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:521: drivers/oplus] Error 2",
+      "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1243: drivers] Error 2",
+      "make: *** [Makefile:153: sub-make] Error 2"
+    ],
+    "exit_code": 2,
+    "first_error_context": [
+      "  CC      techpack/video/msm/vidc/msm_cvp_internal.o",
+      "  CC      drivers/of/of_reserved_mem.o",
+      "  CC      drivers/of/of_slimbus.o",
+      "  CC      techpack/video/msm/vidc/msm_smem.o",
+      "  CC      drivers/of/of_batterydata.o",
+      "  CC      drivers/oplus/oplus_project.o",
+      "  CC      techpack/video/msm/vidc/msm_vidc_debug.o",
+      "  CC      drivers/oplus/oemports10t.o",
+      "  CC      techpack/video/msm/vidc/msm_vidc_res_parse.o",
+      "  CC      drivers/oplus/nandswap_core.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/drivers/oplus/nandswap_core.c:247:16: error: expected expression",
+      "  247 |         ntask->lock = __SPIN_LOCK_UNLOCKED(lock);",
+      "      |                       ^",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/include/linux/spinlock_types_rt.h:42:2: note: expanded from macro '__SPIN_LOCK_UNLOCKED'",
+      "   42 |         { .lock = __RT_SPIN_INITIALIZER(name.lock),             \\",
+      "      |         ^",
+      "1 error generated.",
+      "make[3]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:307: drivers/oplus/nandswap_core.o] Error 1"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "remaining_rejected_files": 64,
+    "skip_reason": null,
+    "stage": "EXP76_STAGE50_KERNEL_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "kernel/built-in.a"
+  },
+  "preparation": {
+    "completed": true,
+    "errors_excerpt": [],
+    "first_error_context": "  UPD     include/generated/bounds.h\n  CC      arch/arm64/kernel/asm-offsets.s\n  UPD     include/generated/asm-offsets.h\n  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh\n  LDS     arch/arm64/kernel/vdso/vdso.lds\n  CC      arch/arm64/kernel/vdso/vgettimeofday.o\n  AS      arch/arm64/kernel/vdso/note.o\n  AS      arch/arm64/kernel/vdso/sigreturn.o\n  LD      arch/arm64/kernel/vdso/vdso.so.dbg\n  VDSOSYM include/generated/vdso-offsets.h\n  LDS     arch/arm64/kernel/vdso32/vdso.lds\n  CC32    arch/arm64/kernel/vdso32/note.o\n  CC32    arch/arm64/kernel/vdso32/vgettimeofday.o\n  AS32    arch/arm64/kernel/vdso32/sigreturn.o\n  HOSTCC  arch/arm64/kernel/vdso32/../../../arm/vdso/vdsomunge\n  LD32    arch/arm64/kernel/vdso32/vdso.so.raw\n  MUNGE   arch/arm64/kernel/vdso32/vdso.so.dbg\n  VDSOSYM include/generated/vdso32-offsets.h\nmake[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'\nmake: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
+    "gate_exit_code": 0,
+    "make_exit_code": 0,
+    "missing_headers": []
+  },
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "run_id": 41606965759,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41606965759",
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "source_sha": "6f3ffb37c486b4336e9418ad64b312562e932ab3",
+  "stages": {
+    "stage19": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 65,
+      "stage": "EXP76_RT_STAGE19_COMPILER_HEADER_FIXES"
+    },
+    "stage20": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE20_SWAP_LOCALLOCK_AND_PERCPU_RWSEM_ABI"
+    },
+    "stage21": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED"
+    },
+    "stage26": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE26_E404_ARM64_FORK_VALUE_AFFINITY"
+    },
+    "stage27": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION"
+    },
+    "stage28": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE28_RT_TASK_STATE_LOCKED_HELPER_RESTORED"
+    },
+    "stage29": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE29_E404_RT_MIGRATION_TASK_ABI"
+    },
+    "stage31": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY"
+    },
+    "stage34": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED"
+    },
+    "stage35": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE35_RT_MIGHT_SLEEP_NO_STATE_CHECK"
+    },
+    "stage36": {
+      "applied": null,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE36_RT_CPU_PINNING_CONTRACT_INVENTORY"
+    },
+    "stage38": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS"
+    },
+    "stage40": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE40_RT_SLEEPING_LOCK_TASK_ABI"
+    },
+    "stage41": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE41_RT_MIGRATION_LIFECYCLE_E404"
+    },
+    "stage42": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE42_RT_CPU_HOTPLUG_PIN_DRAIN_ARM64_TLB"
+    },
+    "stage47": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE47_RCU_PREPROCESSOR_AND_WORKQUEUE_RAW_LOCK"
+    }
+  },
+  "status": "EXP76_STAGE22=PREPARE_PASS_OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false",
+  "targets": {
+    "kernel_fork.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    },
+    "kernel_sched_core.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    },
+    "kernel_sched_cpupri.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    }
+  }
+}
