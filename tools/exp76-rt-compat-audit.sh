@@ -678,6 +678,16 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE62=OF_PHANDLE_CACHE_DEFERRED_KFREE_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage62-gate.txt"
 
 
+# Stage63: repair vendor nandswap dynamic spinlock init for RT.
+python3 tools/exp76-rt-stage63-nandswap-spinlock.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage63" \
+    --mode apply | tee "$REPORT/stage63-nandswap-spinlock.log"
+test -f "$REPORT/stage63/stage63-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE63=NANDSWAP_RT_SPINLOCK_INIT; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage63-gate.txt"
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.

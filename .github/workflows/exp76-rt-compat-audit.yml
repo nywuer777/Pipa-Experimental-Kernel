@@ -62,6 +62,8 @@ on:
       - 'tests/test_exp76_stage57_rwlock_nohz.py'
       - 'tools/exp76-rt-stage58-rwlock-outofline.py'
       - 'tests/test_exp76_stage58_rwlock_outofline.py'
+      - 'tools/exp76-rt-stage63-nandswap-spinlock.py'
+      - 'tests/test_exp76_stage63_nandswap_spinlock.py'
       - 'tools/exp76-export-partial-source.py'
       - 'tools/exp76-uname-probe.ps1'
       - 'tools/exp76-fix-uname.py'
@@ -144,6 +146,8 @@ jobs:
           python3 tests/test_exp76_stage57_rwlock_nohz.py
           python3 -m py_compile tools/exp76-rt-stage58-rwlock-outofline.py
           python3 tests/test_exp76_stage58_rwlock_outofline.py
+          python3 -m py_compile tools/exp76-rt-stage63-nandswap-spinlock.py
+          python3 tests/test_exp76_stage63_nandswap_spinlock.py
           python3 -m py_compile tools/exp76-export-partial-source.py
           test -s docs/EXP76-PREEMPT-RT-UNAME.md
           test -s tools/exp76-uname-probe.ps1
