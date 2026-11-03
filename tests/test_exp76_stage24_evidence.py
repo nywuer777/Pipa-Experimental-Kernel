@@ -45,6 +45,7 @@ def main() -> None:
         assert empty["ipc_subtree_diagnostic"] is None
         assert empty["security_subtree_diagnostic"] is None
         assert empty["net_subtree_diagnostic"] is None
+        assert empty["lib_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -250,6 +251,29 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage73-report" / "LIB_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE73_LIB_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "lib/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=lib",
+                "prior_net_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_has_members": False,
+                "archive_bytes": 0,
+                "archive_inspection_exit_code": None,
+                "archive_members_count": 0,
+                "archive_members_sample": [],
+                "errors_excerpt": ["lib/string.c:42: error: fixture-only lib error"],
+                "first_error_context": ["lib/string.c:42: error: fixture-only lib error"],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -381,6 +405,17 @@ def main() -> None:
         assert net["archive_members_sample"] == []
         assert net["errors_excerpt"][0].endswith("fixture-only net error")
         assert not net["kernel_built"] and not net["flash_ready"]
+        lib = failed["lib_subtree_diagnostic"]
+        assert lib["target"] == "lib/built-in.a"
+        assert lib["top_level_directory_scope"] == "vmlinux-dirs=lib"
+        assert lib["prior_net_subtree_gate"] is True
+        assert lib["archive_created"] is False
+        assert lib["archive_has_members"] is False
+        assert lib["archive_inspection_exit_code"] is None
+        assert lib["archive_members_count"] == 0
+        assert lib["archive_members_sample"] == []
+        assert lib["errors_excerpt"][0].endswith("fixture-only lib error")
+        assert not lib["kernel_built"] and not lib["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

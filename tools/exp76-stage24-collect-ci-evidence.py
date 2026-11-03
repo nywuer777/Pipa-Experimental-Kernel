@@ -304,6 +304,41 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    lib_archive = read_json(
+        artifact / "exp76-stage73-report" / "LIB_SUBTREE_DIAGNOSTIC.json"
+    )
+    lib_subtree = None
+    if lib_archive is not None:
+        lib_subtree = {
+            "stage": str(lib_archive.get("stage") or "")[:120],
+            "target": str(lib_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(lib_archive.get("top_level_directory_scope") or "")[:80],
+            "prior_net_subtree_gate":
+                lib_archive.get("prior_net_subtree_gate") is True,
+            "attempted": lib_archive.get("attempted") is True,
+            "exit_code": lib_archive.get("exit_code"),
+            "timed_out": lib_archive.get("timed_out") is True,
+            "archive_created": lib_archive.get("archive_created") is True,
+            "archive_has_members": lib_archive.get("archive_has_members") is True,
+            "archive_bytes": lib_archive.get("archive_bytes"),
+            "archive_inspection_exit_code":
+                lib_archive.get("archive_inspection_exit_code"),
+            "archive_members_count": lib_archive.get("archive_members_count"),
+            "archive_members_sample": [
+                str(x)[:150] for x in
+                (lib_archive.get("archive_members_sample") or [])[:24]
+            ],
+            "errors_excerpt": bounded_lines(lib_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                lib_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files": lib_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                lib_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -338,6 +373,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "ipc_subtree_diagnostic": ipc_subtree,
         "security_subtree_diagnostic": security_subtree,
         "net_subtree_diagnostic": net_subtree,
+        "lib_subtree_diagnostic": lib_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
