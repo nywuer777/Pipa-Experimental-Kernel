@@ -89,10 +89,15 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
     one(original, RT_ALLOC_RELOCK, "RT allocation re-lock")
     one(original, "\tstruct device_node **shadow;\n",
         "RT caller cache pointer declaration")
-    one(original, "\tfor_each_of_allnodes(np)\n",
-        "E404 first device-tree enumeration") if original.count(
-            "\tfor_each_of_allnodes(np)\n"
-        ) == 1 else require_two_enumerations(original)
+    function_marker = "void of_populate_phandle_cache(void)\n"
+    one(original, function_marker, "E404 phandle-cache population definition")
+    start = original.index(function_marker)
+    finish = original.find("\n}\n", start)
+    if finish < start:
+        raise ValueError("E404 phandle-cache population body not closed")
+    population = original[start:finish]
+    if population.count("\tfor_each_of_allnodes(np)\n") != 2:
+        raise ValueError("Expected both OF phandle node enumerations inside population")
     if "static struct device_node **__of_free_phandle_cache(void)" in original:
         raise ValueError("Stage62 already applied")
     updated = original.replace(OLD_FREE, NEW_FREE, 1)
@@ -117,11 +122,6 @@ def prepare(tree: Path) -> tuple[dict[str, str], dict]:
         "original_sha256": hashlib.sha256(original.encode()).hexdigest(),
         "patched_sha256": hashlib.sha256(updated.encode()).hexdigest(),
     }
-
-
-def require_two_enumerations(text: str) -> None:
-    if text.count("\tfor_each_of_allnodes(np)\n") != 2:
-        raise ValueError("Expected both OF phandle node enumerations")
 
 
 def execute(tree: Path, report: Path, mode: str) -> dict:
