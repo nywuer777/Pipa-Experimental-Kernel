@@ -51,6 +51,7 @@ def main() -> None:
         assert empty["compile_h_preflight_diagnostic"] is None
         assert empty["functionfs_rt_swait_status"] is None
         assert empty["block_init_subtrees_diagnostic"] is None
+        assert empty["rt_reject_hunk_inventory"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -416,6 +417,61 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(artifact / "exp76-stage82-report" / "RT_REJECT_HUNK_INVENTORY.json", {
+            "stage": "EXP76_STAGE82_OUTSTANDING_RT_REJECT_HUNK_INVENTORY_NONFLASH",
+            "initial_rejected_path_count": 80,
+            "remaining_rejected_files": 64,
+            "total_rejected_hunks": 110,
+            "total_added_lines": 300,
+            "total_removed_lines": 240,
+            "remaining_not_in_initial_manifest": [],
+            "initial_paths_no_longer_rejected": [
+                "include/linux/old-resolved.c",
+            ],
+            "categories": {
+                "locking_scheduler": 17,
+                "rcu": 12,
+                "architecture": 6,
+                "subsystem": 29,
+            },
+            "unparseable_reject_files": [],
+            "missing_source_files": [],
+            "priority_order": [
+                "kernel/sched/cpupri.c", "kernel/rcu/tree.c"
+            ],
+            "entries": [
+                {
+                    "source": "kernel/sched/cpupri.c",
+                    "review_category": "locking_scheduler",
+                    "review_score": 93,
+                    "hunk_count": 3,
+                    "reject_sha256": "a" * 64,
+                    "parse_issues": [],
+                    "hunks": [{
+                        "header": "@@ -15,3 +15,4 @@",
+                        "change_excerpt": ["-old()", "+rt()", "+new()"],
+                    }],
+                },
+                {
+                    "source": "kernel/rcu/tree.c",
+                    "review_category": "rcu",
+                    "review_score": 86,
+                    "hunk_count": 1,
+                    "reject_sha256": "b" * 64,
+                    "parse_issues": [],
+                    "hunks": [{
+                        "header": "@@ -200 +200 @@",
+                        "change_excerpt": ["-old_rcu()", "+new_rcu()"],
+                    }],
+                },
+            ],
+            "resolution_verified": False,
+            "source_modified": False,
+            "rejects_deleted": False,
+            "full_kernel_link_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -618,6 +674,19 @@ def main() -> None:
         assert block_init["targets"]["init"]["archive_has_members"] is True
         assert block_init["targets"]["init"]["archive_members_count"] == 8
         assert not block_init["kernel_built"] and not block_init["flash_ready"]
+        index = failed["rt_reject_hunk_inventory"]
+        assert index["stage"] == "EXP76_STAGE82_OUTSTANDING_RT_REJECT_HUNK_INVENTORY_NONFLASH"
+        assert index["initial_rejected_path_count"] == 80
+        assert index["remaining_rejected_files"] == 64
+        assert index["total_rejected_hunks"] == 110
+        assert index["initial_paths_no_longer_rejected_count"] == 1
+        assert index["categories"]["locking_scheduler"] == 17
+        assert index["priority_sample"][0]["source"] == "kernel/sched/cpupri.c"
+        assert index["priority_sample"][0]["hunk_count"] == 3
+        assert index["priority_sample"][0]["first_hunk_headers"][0].startswith("@@ -15")
+        assert not index["resolution_verified"]
+        assert not index["source_modified"] and not index["rejects_deleted"]
+        assert not index["kernel_built"] and not index["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

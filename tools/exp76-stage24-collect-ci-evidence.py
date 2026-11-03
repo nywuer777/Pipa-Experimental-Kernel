@@ -527,6 +527,70 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    reject_index_raw = read_json(
+        artifact / "exp76-stage82-report" / "RT_REJECT_HUNK_INVENTORY.json"
+    )
+    reject_index = None
+    if reject_index_raw is not None:
+        reject_entries = {
+            str(item.get("source") or ""): item
+            for item in (reject_index_raw.get("entries") or [])
+            if isinstance(item, dict)
+        }
+        important = []
+        for source in (reject_index_raw.get("priority_order") or [])[:24]:
+            item = reject_entries.get(str(source))
+            if not item:
+                continue
+            important.append({
+                "source": str(source)[:200],
+                "review_category": str(item.get("review_category") or "")[:80],
+                "review_score": item.get("review_score"),
+                "hunk_count": item.get("hunk_count"),
+                "reject_sha256": str(item.get("reject_sha256") or "")[:64],
+                "parse_issues": bounded_lines(item.get("parse_issues"), 4),
+                "first_hunk_headers": [
+                    str(h.get("header") or "")[:200]
+                    for h in (item.get("hunks") or [])[:3]
+                    if isinstance(h, dict)
+                ],
+                "first_change_excerpt": [
+                    str(line)[:160]
+                    for h in (item.get("hunks") or [])[:2]
+                    if isinstance(h, dict)
+                    for line in (h.get("change_excerpt") or [])[:3]
+                ][:6],
+            })
+        reject_index = {
+            "stage": str(reject_index_raw.get("stage") or "")[:130],
+            "initial_rejected_path_count":
+                reject_index_raw.get("initial_rejected_path_count"),
+            "remaining_rejected_files":
+                reject_index_raw.get("remaining_rejected_files"),
+            "total_rejected_hunks": reject_index_raw.get("total_rejected_hunks"),
+            "total_added_lines": reject_index_raw.get("total_added_lines"),
+            "total_removed_lines": reject_index_raw.get("total_removed_lines"),
+            "remaining_not_in_initial_manifest": bounded_lines(
+                reject_index_raw.get("remaining_not_in_initial_manifest"), 12
+            ),
+            "initial_paths_no_longer_rejected_count": len(
+                reject_index_raw.get("initial_paths_no_longer_rejected") or []
+            ),
+            "categories": reject_index_raw.get("categories"),
+            "unparseable_reject_files": bounded_lines(
+                reject_index_raw.get("unparseable_reject_files"), 12
+            ),
+            "missing_source_files": bounded_lines(
+                reject_index_raw.get("missing_source_files"), 12
+            ),
+            "priority_sample": important,
+            "resolution_verified": False,
+            "source_modified": False,
+            "rejects_deleted": False,
+            "full_kernel_link_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -567,6 +631,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "compile_h_preflight_diagnostic": stage77_compile_h,
         "functionfs_rt_swait_status": functionfs_rt,
         "block_init_subtrees_diagnostic": block_init,
+        "rt_reject_hunk_inventory": reject_index,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

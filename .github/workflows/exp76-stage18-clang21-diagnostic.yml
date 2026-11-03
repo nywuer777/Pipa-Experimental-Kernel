@@ -99,6 +99,8 @@ on:
       - 'tests/test_exp76_stage79_functionfs_swait.py'
       - 'tools/exp76-stage81-block-init-subtrees.py'
       - 'tests/test_exp76_stage81_block_init_subtrees.py'
+      - 'tools/exp76-stage82-rt-reject-inventory.py'
+      - 'tests/test_exp76_stage82_rt_reject_inventory.py'
   workflow_dispatch:
 
 permissions:
@@ -214,6 +216,8 @@ jobs:
           python3 tests/test_exp76_stage79_functionfs_swait.py
           python3 -m py_compile tools/exp76-stage81-block-init-subtrees.py
           python3 tests/test_exp76_stage81_block_init_subtrees.py
+          python3 -m py_compile tools/exp76-stage82-rt-reject-inventory.py
+          python3 tests/test_exp76_stage82_rt_reject_inventory.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -300,6 +304,36 @@ jobs:
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
           echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE48_RCU_HUNK_SCOPED'
+
+      - name: Inventory 64 unresolved PREEMPT_RT hunk rejects (READONLY NONFLASH)
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-stage82-report
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(
+              Path('exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json').read_text()
+          )
+          assert data['remaining_rejected_files'] == 64
+          assert data['total_rejected_hunks'] > 0
+          assert data['remaining_not_in_initial_manifest'] == []
+          assert data['resolution_verified'] is False
+          assert data['source_modified'] is False
+          assert data['rejects_deleted'] is False
+          assert data['full_kernel_link_performed'] is False
+          assert not data['kernel_built'] and not data['flash_ready']
+          print(
+              'EXP76_STAGE82_RT_REJECT_INDEX=64_FILES;' +
+              f"HUNKS={data['total_rejected_hunks']};" +
+              'FLASH_READY=false'
+          )
+          PY
 
       - name: Patch radix-tree RT local-lock header after source audits (NONFLASH)
         shell: bash
@@ -1004,6 +1038,20 @@ jobs:
                   ]
                   for error in (archive.get('errors_excerpt') or [])[:5]:
                       lines += ['    ' + str(error)[:320]]
+          stage82_path = Path('exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json')
+          if stage82_path.is_file():
+              stage82 = json.loads(stage82_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage82 outstanding RT rejection hunk inventory (NONFLASH)', '']
+              lines += [
+                  f"Reject files: {stage82.get('remaining_rejected_files')}",
+                  f"Rejected hunks: {stage82.get('total_rejected_hunks')}",
+                  f"Added/removed lines: {stage82.get('total_added_lines')} / {stage82.get('total_removed_lines')}",
+                  f"Review categories: {stage82.get('categories')}",
+                  f"Parser warnings: {stage82.get('unparseable_reject_files')}",
+                  'The inventory does not resolve any RT hunk.',
+              ]
+              for path in (stage82.get('priority_order') or [])[:10]:
+                  lines.append('    ' + str(path)[:160])
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1030,6 +1078,7 @@ jobs:
             exp76-stage76-report/
             exp76-stage77-report/
             exp76-stage81-report/
+            exp76-stage82-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/
