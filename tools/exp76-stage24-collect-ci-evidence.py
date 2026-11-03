@@ -221,6 +221,11 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "timed_out": ipc_archive.get("timed_out") is True,
             "archive_created": ipc_archive.get("archive_created") is True,
             "archive_bytes": ipc_archive.get("archive_bytes"),
+            "archive_has_members": ipc_archive.get("archive_has_members") is True,
+            "enabled_ipc_configs": [
+                str(x)[:64] for x in (ipc_archive.get("enabled_ipc_configs") or [])[:8]
+            ],
+            "compile_semantics": str(ipc_archive.get("compile_semantics") or "")[:80],
             "errors_excerpt": bounded_lines(ipc_archive.get("errors_excerpt"), 25),
             "first_error_context": bounded_lines(
                 ipc_archive.get("first_error_context"), 24
@@ -228,6 +233,38 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "remaining_rejected_files": ipc_archive.get("remaining_rejected_files"),
             "full_kernel_link_performed":
                 ipc_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
+    security_archive = read_json(
+        artifact / "exp76-stage69-report" / "SECURITY_SUBTREE_DIAGNOSTIC.json"
+    )
+    security_subtree = None
+    if security_archive is not None:
+        security_subtree = {
+            "stage": str(security_archive.get("stage") or "")[:120],
+            "target": str(security_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(security_archive.get("top_level_directory_scope") or "")[:80],
+            "ipc_compile_semantics":
+                str(security_archive.get("ipc_compile_semantics") or "")[:80],
+            "prior_ipc_subtree_gate":
+                security_archive.get("prior_ipc_subtree_gate") is True,
+            "attempted": security_archive.get("attempted") is True,
+            "exit_code": security_archive.get("exit_code"),
+            "timed_out": security_archive.get("timed_out") is True,
+            "archive_created": security_archive.get("archive_created") is True,
+            "archive_has_members":
+                security_archive.get("archive_has_members") is True,
+            "archive_bytes": security_archive.get("archive_bytes"),
+            "errors_excerpt": bounded_lines(security_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                security_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files":
+                security_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                security_archive.get("full_kernel_link_performed") is True,
             "kernel_built": False,
             "flash_ready": False,
         }
@@ -263,6 +300,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "mm_subtree_diagnostic": mm_subtree,
         "fs_subtree_diagnostic": fs_subtree,
         "ipc_subtree_diagnostic": ipc_subtree,
+        "security_subtree_diagnostic": security_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

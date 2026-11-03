@@ -43,6 +43,7 @@ def main() -> None:
         assert empty["mm_subtree_diagnostic"] is None
         assert empty["fs_subtree_diagnostic"] is None
         assert empty["ipc_subtree_diagnostic"] is None
+        assert empty["security_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -190,8 +191,34 @@ def main() -> None:
                 "timed_out": False,
                 "archive_created": False,
                 "archive_bytes": 0,
+                "archive_has_members": False,
+                "enabled_ipc_configs": ["CONFIG_SYSVIPC"],
+                "compile_semantics": "FAILED",
                 "errors_excerpt": ["ipc/msg.c:77: error: fixture-only IPC error"],
                 "first_error_context": ["ipc/msg.c:77: error: fixture-only IPC error"],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
+        put(
+            artifact / "exp76-stage69-report" / "SECURITY_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE69_SECURITY_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "security/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=security",
+                "ipc_compile_semantics": "CONFIG_DISABLED",
+                "prior_ipc_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_has_members": False,
+                "archive_bytes": 0,
+                "errors_excerpt": ["security/security.c:29: error: fixture-only security error"],
+                "first_error_context": [
+                    "security/security.c:29: error: fixture-only security error"
+                ],
                 "remaining_rejected_files": 64,
                 "full_kernel_link_performed": False,
                 "kernel_built": False,
@@ -307,6 +334,16 @@ def main() -> None:
         assert ipc["exit_code"] == 2 and ipc["archive_created"] is False
         assert ipc["errors_excerpt"][0].endswith("fixture-only IPC error")
         assert ipc["kernel_built"] is False and ipc["flash_ready"] is False
+        sec = failed["security_subtree_diagnostic"]
+        assert sec["target"] == "security/built-in.a"
+        assert sec["top_level_directory_scope"] == "vmlinux-dirs=security"
+        assert sec["ipc_compile_semantics"] == "CONFIG_DISABLED"
+        assert sec["archive_created"] is False
+        assert sec["archive_has_members"] is False
+        assert sec["exit_code"] == 2
+        assert sec["errors_excerpt"][0].endswith("fixture-only security error")
+        assert not sec["kernel_built"] and not sec["flash_ready"]
+        assert failed["ipc_subtree_diagnostic"]["compile_semantics"] == "FAILED"
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

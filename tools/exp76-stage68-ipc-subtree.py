@@ -24,6 +24,8 @@ STAGE = "EXP76_STAGE68_IPC_SUBTREE_KBUILD_ARCHIVE_NONFLASH"
 TARGET = "ipc/built-in.a"
 SCOPE = "vmlinux-dirs=ipc"
 OUTPUT = "IPC_SUBTREE_DIAGNOSTIC.json"
+IPC_KCONFIG = ("CONFIG_SYSVIPC", "CONFIG_POSIX_MQUEUE", "CONFIG_IPC_NS")
+EMPTY_THIN_ARCHIVE = b"!<thin>\n"
 
 
 def prerequisites(stage50: Path, stage66: Path, stage67: Path,
@@ -76,10 +78,12 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
     if not (out / "include/generated/asm-offsets.h").is_file():
         raise ValueError("Stage68 arm64 prepare prerequisite missing")
     config = out / ".config"
-    if not config.is_file() or "CONFIG_PREEMPT_RT_FULL=y" not in config.read_text(
-        encoding="utf-8"
-    ).splitlines():
+    if not config.is_file():
         raise ValueError("Stage68 requires CONFIG_PREEMPT_RT_FULL=y")
+    selected = set(config.read_text(encoding="utf-8").splitlines())
+    if "CONFIG_PREEMPT_RT_FULL=y" not in selected:
+        raise ValueError("Stage68 requires CONFIG_PREEMPT_RT_FULL=y")
+    enabled_ipc = [name for name in IPC_KCONFIG if name + "=y" in selected]
     if not all((clang / name).is_file()
                for name in ("clang", "ld.lld", "llvm-ar")):
         raise ValueError("Pinned Clang21 compiler toolchain missing")
@@ -113,6 +117,22 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
     )
     archive = out / TARGET
     exists = archive.is_file() and archive.stat().st_size > 0
+    size = archive.stat().st_size if exists else 0
+    empty_thin = (
+        exists and size == len(EMPTY_THIN_ARCHIVE)
+        and archive.read_bytes() == EMPTY_THIN_ARCHIVE
+    )
+    has_objects = rc == 0 and exists and size > len(EMPTY_THIN_ARCHIVE)
+    if rc != 0 or not exists:
+        semantic = "FAILED"
+    elif empty_thin and not enabled_ipc:
+        semantic = "CONFIG_DISABLED"
+    elif empty_thin:
+        semantic = "ERROR_EMPTY_WITH_IPC_CONFIG_ENABLED"
+    elif has_objects:
+        semantic = "OBJECTS_PRESENT"
+    else:
+        semantic = "ERROR_UNKNOWN_ARCHIVE"
     result = {
         "stage": STAGE,
         "target": TARGET,
@@ -124,7 +144,10 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
         "exit_code": rc,
         "timed_out": rc == 124,
         "archive_created": rc == 0 and exists,
-        "archive_bytes": archive.stat().st_size if exists else 0,
+        "archive_bytes": size,
+        "archive_has_members": has_objects,
+        "enabled_ipc_configs": enabled_ipc,
+        "compile_semantics": semantic,
         "errors_excerpt": errors,
         "first_error_context": context,
         "remaining_rejected_files": 64,
@@ -136,6 +159,10 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
     if rc == 0 and not exists:
         result["errors_excerpt"].append(
             "make returned 0 but ipc/built-in.a was not generated"
+        )
+    if semantic.startswith("ERROR_"):
+        result["errors_excerpt"].append(
+            "IPC archive members absent despite enabled configuration or invalid archive"
         )
     STAGE50["forbid_images"](out)
     (report / OUTPUT).write_text(
@@ -167,6 +194,9 @@ def main() -> None:
         "prior_fs_subtree_gate": result["prior_fs_subtree_gate"],
         "exit_code": result["exit_code"],
         "archive_created": result["archive_created"],
+        "archive_has_members": result["archive_has_members"],
+        "enabled_ipc_configs": result["enabled_ipc_configs"],
+        "compile_semantics": result["compile_semantics"],
         "timed_out": result["timed_out"],
         "errors_excerpt": result["errors_excerpt"][:8],
         "kernel_built": False, "flash_ready": False,

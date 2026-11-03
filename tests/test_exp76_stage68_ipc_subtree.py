@@ -36,7 +36,7 @@ def fixture(root: Path) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
         "$(vmlinux-dirs): prepare scripts\n"
         "\t$(Q)$(MAKE) $(build)=$@ need-builtin=1\n"
     ))
-    write(out / ".config", "CONFIG_PREEMPT_RT_FULL=y\n")
+    write(out / ".config", "CONFIG_PREEMPT_RT_FULL=y\nCONFIG_SYSVIPC=y\n")
     write(out / "include/generated/asm-offsets.h", "#define E404 1\n")
     for i in range(64):
         write(kernel / f"pending/{i:02d}.rej", "RT reject\n")
@@ -86,7 +86,10 @@ def fixture(root: Path) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
         "out = next(x[2:] for x in sys.argv if x.startswith('O='))\n"
         "p = pathlib.Path(out) / 'ipc/built-in.a'\n"
         "p.parent.mkdir(parents=True, exist_ok=True)\n"
-        "p.write_bytes(b'!<thin>\\nsynthetic-ipc')\n"
+        "if os.environ.get('STAGE68_TEST_EMPTY') == 'yes':\n"
+        "    p.write_bytes(b'!<thin>\\n')\n"
+        "else:\n"
+        "    p.write_bytes(b'!<thin>\\nsynthetic-ipc')\n"
     ))
     fake_make.chmod(0o755)
     return kernel, out, report, s50, s66, s67, clang
@@ -117,6 +120,9 @@ def main() -> None:
         assert passed["prior_mm_subtree_gate"]
         assert passed["prior_fs_subtree_gate"]
         assert passed["timed_out"] is False
+        assert passed["archive_has_members"] is True
+        assert passed["enabled_ipc_configs"] == ["CONFIG_SYSVIPC"]
+        assert passed["compile_semantics"] == "OBJECTS_PRESENT"
         assert passed["top_level_directory_scope"] == "vmlinux-dirs=ipc"
         assert passed["remaining_rejected_files"] == 64
         assert not passed["kernel_built"] and not passed["flash_ready"]
@@ -131,6 +137,32 @@ def main() -> None:
             del os.environ["STAGE68_TEST_ERROR"]
         assert result["exit_code"] == 2 and not result["archive_created"]
         assert "synthetic RT conflict" in result["errors_excerpt"][0]
+
+        disabled = fixture(root / "disabled-by-config")
+        write(disabled[1] / ".config", "CONFIG_PREEMPT_RT_FULL=y\n")
+        os.environ["STAGE68_TEST_EMPTY"] = "yes"
+        try:
+            config_disabled = run(disabled)
+        finally:
+            del os.environ["STAGE68_TEST_EMPTY"]
+        assert config_disabled["exit_code"] == 0
+        assert config_disabled["archive_created"] is True
+        assert config_disabled["archive_bytes"] == 8
+        assert config_disabled["archive_has_members"] is False
+        assert config_disabled["enabled_ipc_configs"] == []
+        assert config_disabled["compile_semantics"] == "CONFIG_DISABLED"
+        assert config_disabled["errors_excerpt"] == []
+
+        invalid_empty = fixture(root / "unexpected-empty")
+        os.environ["STAGE68_TEST_EMPTY"] = "yes"
+        try:
+            unexpected = run(invalid_empty)
+        finally:
+            del os.environ["STAGE68_TEST_EMPTY"]
+        assert unexpected["archive_created"] is True
+        assert unexpected["archive_has_members"] is False
+        assert unexpected["compile_semantics"] == "ERROR_EMPTY_WITH_IPC_CONFIG_ENABLED"
+        assert len(unexpected["errors_excerpt"]) == 1
 
         bad_kernel = fixture(root / "kernel-gate")
         p = bad_kernel[3]
@@ -183,7 +215,7 @@ def main() -> None:
 
         timeout = fixture(root / "timeout")
         reject(lambda: execute(*timeout, 15), "Unsupported Stage68 IPC")
-    print("EXP76_STAGE68_IPC_SUBTREE_REGRESSIONS=13_PASS; KERNEL_BUILT=false; FLASH_READY=false")
+    print("EXP76_STAGE68_IPC_SUBTREE_REGRESSIONS=15_PASS; KERNEL_BUILT=false; FLASH_READY=false")
 
 
 if __name__ == "__main__":
