@@ -46,6 +46,7 @@ def main() -> None:
         assert empty["security_subtree_diagnostic"] is None
         assert empty["net_subtree_diagnostic"] is None
         assert empty["lib_subtree_diagnostic"] is None
+        assert empty["crypto_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -274,6 +275,31 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage75-report" / "CRYPTO_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE75_CRYPTO_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "crypto/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=crypto",
+                "prior_lib_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_has_members": False,
+                "archive_bytes": 0,
+                "archive_inspection_exit_code": None,
+                "archive_members_count": 0,
+                "archive_members_sample": [],
+                "errors_excerpt": ["crypto/api.c:42: error: fixture-only crypto error"],
+                "first_error_context": [
+                    "crypto/api.c:42: error: fixture-only crypto error"
+                ],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -416,6 +442,17 @@ def main() -> None:
         assert lib["archive_members_sample"] == []
         assert lib["errors_excerpt"][0].endswith("fixture-only lib error")
         assert not lib["kernel_built"] and not lib["flash_ready"]
+        crypto = failed["crypto_subtree_diagnostic"]
+        assert crypto["target"] == "crypto/built-in.a"
+        assert crypto["top_level_directory_scope"] == "vmlinux-dirs=crypto"
+        assert crypto["prior_lib_subtree_gate"] is True
+        assert crypto["archive_created"] is False
+        assert crypto["archive_has_members"] is False
+        assert crypto["archive_inspection_exit_code"] is None
+        assert crypto["archive_members_count"] == 0
+        assert crypto["archive_members_sample"] == []
+        assert crypto["errors_excerpt"][0].endswith("fixture-only crypto error")
+        assert not crypto["kernel_built"] and not crypto["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

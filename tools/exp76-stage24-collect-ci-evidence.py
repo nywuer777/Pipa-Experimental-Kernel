@@ -339,6 +339,43 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    crypto_archive = read_json(
+        artifact / "exp76-stage75-report" / "CRYPTO_SUBTREE_DIAGNOSTIC.json"
+    )
+    crypto_subtree = None
+    if crypto_archive is not None:
+        crypto_subtree = {
+            "stage": str(crypto_archive.get("stage") or "")[:120],
+            "target": str(crypto_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(crypto_archive.get("top_level_directory_scope") or "")[:80],
+            "prior_lib_subtree_gate":
+                crypto_archive.get("prior_lib_subtree_gate") is True,
+            "attempted": crypto_archive.get("attempted") is True,
+            "exit_code": crypto_archive.get("exit_code"),
+            "timed_out": crypto_archive.get("timed_out") is True,
+            "archive_created": crypto_archive.get("archive_created") is True,
+            "archive_has_members": crypto_archive.get("archive_has_members") is True,
+            "archive_bytes": crypto_archive.get("archive_bytes"),
+            "archive_inspection_exit_code":
+                crypto_archive.get("archive_inspection_exit_code"),
+            "archive_members_count": crypto_archive.get("archive_members_count"),
+            "archive_members_sample": [
+                str(x)[:150] for x in
+                (crypto_archive.get("archive_members_sample") or [])[:24]
+            ],
+            "errors_excerpt":
+                bounded_lines(crypto_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                crypto_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files":
+                crypto_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                crypto_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -374,6 +411,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "security_subtree_diagnostic": security_subtree,
         "net_subtree_diagnostic": net_subtree,
         "lib_subtree_diagnostic": lib_subtree,
+        "crypto_subtree_diagnostic": crypto_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
