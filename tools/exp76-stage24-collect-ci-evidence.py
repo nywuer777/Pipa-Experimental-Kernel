@@ -144,6 +144,33 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    mm_archive = read_json(
+        artifact / "exp76-stage66-report" / "MM_SUBTREE_DIAGNOSTIC.json"
+    )
+    mm_subtree = None
+    if mm_archive is not None:
+        mm_subtree = {
+            "stage": str(mm_archive.get("stage") or "")[:120],
+            "target": str(mm_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(mm_archive.get("top_level_directory_scope") or "")[:80],
+            "prior_kernel_subtree_gate":
+                mm_archive.get("prior_kernel_subtree_gate") is True,
+            "attempted": mm_archive.get("attempted") is True,
+            "exit_code": mm_archive.get("exit_code"),
+            "timed_out": mm_archive.get("timed_out") is True,
+            "archive_created": mm_archive.get("archive_created") is True,
+            "archive_bytes": mm_archive.get("archive_bytes"),
+            "errors_excerpt": bounded_lines(mm_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                mm_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files": mm_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                mm_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -173,6 +200,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "extra_object_coverage": extra_objects,
         "cross_subsystem_coverage": cross_objects,
         "kernel_subtree_diagnostic": kernel_subtree,
+        "mm_subtree_diagnostic": mm_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

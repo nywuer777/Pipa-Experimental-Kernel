@@ -40,6 +40,7 @@ def main() -> None:
         assert empty["artifact_present"] is False
         assert empty["preparation"] is None
         assert empty["kernel_subtree_diagnostic"] is None
+        assert empty["mm_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -135,6 +136,25 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage66-report" / "MM_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE66_MM_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "mm/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=mm",
+                "prior_kernel_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_bytes": 0,
+                "errors_excerpt": ["mm/vmscan.c:42: error: fixture-only MM error"],
+                "first_error_context": ["mm/vmscan.c:42: error: fixture-only MM error"],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -220,6 +240,13 @@ def main() -> None:
         assert subtree["full_kernel_link_performed"] is False
         assert subtree["kernel_built"] is False
         assert subtree["flash_ready"] is False
+        mm = failed["mm_subtree_diagnostic"]
+        assert mm["target"] == "mm/built-in.a"
+        assert mm["top_level_directory_scope"] == "vmlinux-dirs=mm"
+        assert mm["prior_kernel_subtree_gate"] is True
+        assert mm["exit_code"] == 2 and mm["archive_created"] is False
+        assert mm["errors_excerpt"][0].endswith("fixture-only MM error")
+        assert mm["kernel_built"] is False and mm["flash_ready"] is False
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
