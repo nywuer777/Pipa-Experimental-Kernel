@@ -205,8 +205,13 @@
   "ipc_subtree_diagnostic": {
     "archive_bytes": 8,
     "archive_created": true,
+    "archive_has_members": false,
     "attempted": true,
-    "errors_excerpt": [],
+    "compile_semantics": "ERROR_UNKNOWN_ARCHIVE",
+    "enabled_ipc_configs": [],
+    "errors_excerpt": [
+      "IPC archive members absent despite enabled configuration or invalid archive"
+    ],
     "exit_code": 0,
     "first_error_context": [
       "make: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
@@ -229,7 +234,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=ipc"
   },
-  "job_conclusion": "success",
+  "job_conclusion": "failure",
   "kernel_built": false,
   "kernel_subtree_diagnostic": {
     "archive_bytes": 13762,
@@ -254,8 +259,8 @@
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
       "   94 |         struct llist_head *list;",
       "      |                            ^~~~",
-      "  CC      kernel/jump_label.o",
       "1 warning generated.",
+      "  CC      kernel/jump_label.o",
       "  CC      kernel/iomem.o",
       "  UPD     kernel/config_data.h",
       "  CC      kernel/configs.o",
@@ -319,10 +324,11 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41637025111,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41637025111",
+  "run_id": 41640690663,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41640690663",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
-  "source_sha": "cc444729aa7811baaf59f90899b789a05e479d68",
+  "security_subtree_diagnostic": null,
+  "source_sha": "c53b699902cc5fde4cc3b31bc1b9fe7271c406bc",
   "stages": {
     "stage19": {
       "applied": true,
