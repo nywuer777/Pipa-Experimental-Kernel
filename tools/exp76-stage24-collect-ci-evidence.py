@@ -743,6 +743,36 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
                 raw_image_raw.get("first_failure_context"), 24
             ),
         }
+    kasan_raw = read_json(
+        artifact / "exp76-rt-report" / "stage87" / "stage87-status.json"
+    )
+    kasan = None
+    if kasan_raw is not None:
+        kasan = {
+            "stage": str(kasan_raw.get("stage") or "")[:140],
+            "target": str(kasan_raw.get("target") or "")[:160],
+            "original_reject_sha256":
+                str(kasan_raw.get("original_reject_sha256") or "")[:64],
+            "vendor_source_sha256":
+                str(kasan_raw.get("vendor_source_sha256") or "")[:64],
+            "reviewed_rejected_hunks":
+                kasan_raw.get("reviewed_rejected_hunks"),
+            "reviewed_added_lines": kasan_raw.get("reviewed_added_lines"),
+            "reviewed_removed_lines": kasan_raw.get("reviewed_removed_lines"),
+            "all_added_raw_spinlock_lines_present":
+                kasan_raw.get("all_added_raw_spinlock_lines_present") is True,
+            "all_obsolete_spinlock_lines_absent":
+                kasan_raw.get("all_obsolete_spinlock_lines_absent") is True,
+            "vendor_equivalent_hunks": kasan_raw.get("vendor_equivalent_hunks"),
+            "vendor_equivalent_files": kasan_raw.get("vendor_equivalent_files"),
+            "source_changed": kasan_raw.get("source_changed") is True,
+            "rejects_deleted": kasan_raw.get("rejects_deleted") is True,
+            "rejected_files_remaining": kasan_raw.get("rejected_files_remaining"),
+            "semantic_scope": str(kasan_raw.get("semantic_scope") or "")[:140],
+            "all_rt_semantics_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -788,6 +818,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "vmlinux_integration_diagnostic": link,
         "rwsem_idr_rt_link_repair": rt_link_apis,
         "raw_arm64_image_diagnostic": raw_image,
+        "kasan_raw_spinlock_equivalence": kasan,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

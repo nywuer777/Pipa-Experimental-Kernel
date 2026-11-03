@@ -109,6 +109,8 @@ on:
       - 'tests/test_exp76_stage85_rwsem_idr_link.py'
       - 'tools/exp76-stage86-raw-arm64-image.py'
       - 'tests/test_exp76_stage86_raw_arm64_image.py'
+      - 'tools/exp76-stage87-kasan-vendor-equivalence.py'
+      - 'tests/test_exp76_stage87_kasan_vendor_equivalence.py'
   workflow_dispatch:
 
 permissions:
@@ -234,6 +236,8 @@ jobs:
           python3 tests/test_exp76_stage85_rwsem_idr_link.py
           python3 -m py_compile tools/exp76-stage86-raw-arm64-image.py
           python3 tests/test_exp76_stage86_raw_arm64_image.py
+          python3 -m py_compile tools/exp76-stage87-kasan-vendor-equivalence.py
+          python3 tests/test_exp76_stage87_kasan_vendor_equivalence.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -349,6 +353,31 @@ jobs:
               f"HUNKS={data['total_rejected_hunks']};" +
               'FLASH_READY=false'
           )
+          PY
+
+      - name: Verify KASAN quarantine vendor-equivalent RT spinlock hunks (READONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage87-kasan-vendor-equivalence.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage87
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(Path('exp76-rt-report/stage87/stage87-status.json').read_text())
+          assert status['vendor_equivalent_hunks'] == 6
+          assert status['vendor_equivalent_files'] == 1
+          assert status['reviewed_added_lines'] == 9
+          assert status['reviewed_removed_lines'] == 9
+          assert status['all_added_raw_spinlock_lines_present']
+          assert status['all_obsolete_spinlock_lines_absent']
+          assert not status['source_changed'] and not status['rejects_deleted']
+          assert status['rejected_files_remaining'] == 64
+          assert not status['all_rt_semantics_verified']
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE87_KASAN_VENDOR_EQUIVALENT=6_HUNKS; REJECTS_RETAINED=64')
           PY
 
       - name: Port verified ARM64 ChaCha20 and Poly1305 NEON RT Kconfig hunk (NONFLASH)
@@ -1226,6 +1255,18 @@ jobs:
               ]
               for error in (image.get('first_compiler_errors') or [])[:10]:
                   lines += ['    ' + str(error)[:320]]
+          stage87_path = Path('exp76-rt-report/stage87/stage87-status.json')
+          if stage87_path.is_file():
+              stage87 = json.loads(stage87_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage87 KASAN vendor-equivalent RT hunks (READONLY)', '']
+              lines += [
+                  f"Target: {stage87.get('target')}",
+                  f"Verified upstream RT hunks already in E404: {stage87.get('vendor_equivalent_hunks')}",
+                  f"Old spinlock lines absent: {stage87.get('all_obsolete_spinlock_lines_absent')}",
+                  f"New raw-spinlock lines present: {stage87.get('all_added_raw_spinlock_lines_present')}",
+                  f"Original rejects retained: {stage87.get('rejected_files_remaining')}",
+                  'This does not validate other PREEMPT_RT semantics.',
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1291,6 +1332,7 @@ jobs:
             exp76-rt-report/stage79/
             exp76-rt-report/stage83/
             exp76-rt-report/stage85/
+            exp76-rt-report/stage87/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30

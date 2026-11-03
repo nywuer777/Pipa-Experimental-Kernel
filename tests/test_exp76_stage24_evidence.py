@@ -56,6 +56,7 @@ def main() -> None:
         assert empty["vmlinux_integration_diagnostic"] is None
         assert empty["rwsem_idr_rt_link_repair"] is None
         assert empty["raw_arm64_image_diagnostic"] is None
+        assert empty["kasan_raw_spinlock_equivalence"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -576,6 +577,26 @@ def main() -> None:
             "first_compiler_errors": [],
             "first_failure_context": ["OBJCOPY arch/arm64/boot/Image"],
         })
+        put(artifact / "exp76-rt-report" / "stage87" / "stage87-status.json", {
+            "stage": "EXP76_STAGE87_KASAN_RAW_SPINLOCK_VENDOR_EQUIVALENCE_NONFLASH",
+            "target": "mm/kasan/quarantine.c",
+            "original_reject_sha256": "0" * 64,
+            "vendor_source_sha256": "1" * 64,
+            "reviewed_rejected_hunks": 6,
+            "reviewed_added_lines": 9,
+            "reviewed_removed_lines": 9,
+            "all_added_raw_spinlock_lines_present": True,
+            "all_obsolete_spinlock_lines_absent": True,
+            "vendor_equivalent_hunks": 6,
+            "vendor_equivalent_files": 1,
+            "source_changed": False,
+            "rejects_deleted": False,
+            "rejected_files_remaining": 64,
+            "semantic_scope": "KASAN quarantine raw-spinlock substitutions only",
+            "all_rt_semantics_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -841,6 +862,19 @@ def main() -> None:
         assert not image["packaged_boot_image_generated"]
         assert not image["flash_performed"] and not image["flash_ready"]
         assert not image["kernel_built"]
+        kasan = failed["kasan_raw_spinlock_equivalence"]
+        assert kasan["stage"] == "EXP76_STAGE87_KASAN_RAW_SPINLOCK_VENDOR_EQUIVALENCE_NONFLASH"
+        assert kasan["target"] == "mm/kasan/quarantine.c"
+        assert kasan["vendor_equivalent_files"] == 1
+        assert kasan["vendor_equivalent_hunks"] == 6
+        assert kasan["reviewed_added_lines"] == 9
+        assert kasan["reviewed_removed_lines"] == 9
+        assert kasan["all_added_raw_spinlock_lines_present"]
+        assert kasan["all_obsolete_spinlock_lines_absent"]
+        assert not kasan["source_changed"] and not kasan["rejects_deleted"]
+        assert kasan["rejected_files_remaining"] == 64
+        assert not kasan["all_rt_semantics_verified"]
+        assert not kasan["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
