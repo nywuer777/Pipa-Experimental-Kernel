@@ -50,6 +50,7 @@ def main() -> None:
         assert empty["drivers_subtree_diagnostic"] is None
         assert empty["compile_h_preflight_diagnostic"] is None
         assert empty["functionfs_rt_swait_status"] is None
+        assert empty["block_init_subtrees_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -370,6 +371,51 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(
+            artifact / "exp76-stage81-report" / "BLOCK_INIT_SUBTREES_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE81_BLOCK_INIT_SCOPED_ARCHIVES_NONFLASH",
+                "prior_drivers_subtree_gate": True,
+                "prior_compile_h_gate": True,
+                "prior_functionfs_rt_gate": True,
+                "targets": {
+                    "block": {
+                        "target": "block/built-in.a",
+                        "directory_scope": "vmlinux-dirs=block",
+                        "attempted": True,
+                        "exit_code": 2,
+                        "timed_out": False,
+                        "archive_created": False,
+                        "archive_bytes": 0,
+                        "archive_inspection_exit_code": None,
+                        "archive_has_members": False,
+                        "archive_members_count": 0,
+                        "archive_members_sample": [],
+                        "errors_excerpt": ["block/bio.c:2: error: fixture-only"],
+                        "first_error_context": ["block/bio.c:2: error: fixture-only"],
+                    },
+                    "init": {
+                        "target": "init/built-in.a",
+                        "directory_scope": "vmlinux-dirs=init",
+                        "attempted": True,
+                        "exit_code": 0,
+                        "timed_out": False,
+                        "archive_created": True,
+                        "archive_bytes": 120,
+                        "archive_inspection_exit_code": 0,
+                        "archive_has_members": True,
+                        "archive_members_count": 8,
+                        "archive_members_sample": ["init/version.o"],
+                        "errors_excerpt": [],
+                        "first_error_context": [],
+                    },
+                },
+                "all_archives_verified": False,
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -560,6 +606,18 @@ def main() -> None:
         assert functionfs["original_sha256"] == "a" * 64
         assert functionfs["patched_sha256"] == "b" * 64
         assert not functionfs["kernel_built"] and not functionfs["flash_ready"]
+        block_init = failed["block_init_subtrees_diagnostic"]
+        assert block_init["stage"] == "EXP76_STAGE81_BLOCK_INIT_SCOPED_ARCHIVES_NONFLASH"
+        assert block_init["prior_drivers_subtree_gate"] is True
+        assert block_init["prior_compile_h_gate"] is True
+        assert block_init["prior_functionfs_rt_gate"] is True
+        assert block_init["all_archives_verified"] is False
+        assert block_init["targets"]["block"]["exit_code"] == 2
+        assert block_init["targets"]["block"]["archive_members_count"] == 0
+        assert block_init["targets"]["block"]["errors_excerpt"][0].endswith("fixture-only")
+        assert block_init["targets"]["init"]["archive_has_members"] is True
+        assert block_init["targets"]["init"]["archive_members_count"] == 8
+        assert not block_init["kernel_built"] and not block_init["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

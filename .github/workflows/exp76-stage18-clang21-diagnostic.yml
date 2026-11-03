@@ -97,6 +97,8 @@ on:
       - 'tests/test_exp76_stage77_compile_h_preflight.py'
       - 'tools/exp76-rt-stage79-functionfs-swait.py'
       - 'tests/test_exp76_stage79_functionfs_swait.py'
+      - 'tools/exp76-stage81-block-init-subtrees.py'
+      - 'tests/test_exp76_stage81_block_init_subtrees.py'
   workflow_dispatch:
 
 permissions:
@@ -210,6 +212,8 @@ jobs:
           python3 tests/test_exp76_stage77_compile_h_preflight.py
           python3 -m py_compile tools/exp76-rt-stage79-functionfs-swait.py
           python3 tests/test_exp76_stage79_functionfs_swait.py
+          python3 -m py_compile tools/exp76-stage81-block-init-subtrees.py
+          python3 tests/test_exp76_stage81_block_init_subtrees.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -552,6 +556,22 @@ jobs:
             --clang-bin android-clang-prebuilt/clang-r563880c/bin \
             --timeout 570
           test -f exp76-stage76-report/DRIVERS_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose BLOCK and INIT scoped Kbuild archives after DRIVERS (NONFLASH)
+        shell: bash
+        timeout-minutes: 23
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage81-block-init-subtrees.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage81-report \
+            --stage76-report exp76-stage76-report/DRIVERS_SUBTREE_DIAGNOSTIC.json \
+            --stage77-report exp76-stage77-report/COMPILE_H_PREP_DIAGNOSTIC.json \
+            --stage79-report exp76-rt-report/stage79/stage79-status.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage81-report/BLOCK_INIT_SUBTREES_DIAGNOSTIC.json
 
       - name: Publish readable CI summary even when compiler fails
         if: always()
@@ -966,6 +986,24 @@ jobs:
                   f"Normal waitqueues preserved: {stage79.get('normal_waitqueue_checks_preserved')}",
                   f"RT rejects unchanged: {stage79.get('remaining_rejected_files')}",
               ]
+          stage81_path = Path('exp76-stage81-report/BLOCK_INIT_SUBTREES_DIAGNOSTIC.json')
+          if stage81_path.is_file():
+              stage81 = json.loads(stage81_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage81 BLOCK + INIT archives (NONFLASH)', '']
+              lines += [
+                  f"Predecessor DRIVERS gate: {stage81.get('prior_drivers_subtree_gate')}",
+                  f"Prior compile.h and FunctionFS gates: {stage81.get('prior_compile_h_gate')}, {stage81.get('prior_functionfs_rt_gate')}",
+                  f"Both archives verified: {stage81.get('all_archives_verified')}",
+              ]
+              for name, archive in (stage81.get('targets') or {}).items():
+                  lines += [
+                      f"{name}: make RC={archive.get('exit_code')}; "
+                      f"archive={archive.get('archive_has_members')}; "
+                      f"members={archive.get('archive_members_count')}; "
+                      f"timed out={archive.get('timed_out')}",
+                  ]
+                  for error in (archive.get('errors_excerpt') or [])[:5]:
+                      lines += ['    ' + str(error)[:320]]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -991,6 +1029,7 @@ jobs:
             exp76-stage75-report/
             exp76-stage76-report/
             exp76-stage77-report/
+            exp76-stage81-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/

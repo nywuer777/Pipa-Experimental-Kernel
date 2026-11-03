@@ -479,6 +479,54 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    block_init_raw = read_json(
+        artifact / "exp76-stage81-report" / "BLOCK_INIT_SUBTREES_DIAGNOSTIC.json"
+    )
+    block_init = None
+    if block_init_raw is not None:
+        block_init_targets = {}
+        for name in ("block", "init"):
+            obj = (block_init_raw.get("targets") or {}).get(name)
+            if not isinstance(obj, dict):
+                continue
+            block_init_targets[name] = {
+                "target": str(obj.get("target") or "")[:100],
+                "directory_scope": str(obj.get("directory_scope") or "")[:80],
+                "attempted": obj.get("attempted") is True,
+                "exit_code": obj.get("exit_code"),
+                "timed_out": obj.get("timed_out") is True,
+                "archive_created": obj.get("archive_created") is True,
+                "archive_bytes": obj.get("archive_bytes"),
+                "archive_inspection_exit_code": obj.get("archive_inspection_exit_code"),
+                "archive_has_members": obj.get("archive_has_members") is True,
+                "archive_members_count": obj.get("archive_members_count"),
+                "archive_members_sample": [
+                    str(x)[:150] for x in
+                    (obj.get("archive_members_sample") or [])[:20]
+                ],
+                "errors_excerpt": bounded_lines(obj.get("errors_excerpt"), 25),
+                "first_error_context": bounded_lines(
+                    obj.get("first_error_context"), 24
+                ),
+            }
+        block_init = {
+            "stage": str(block_init_raw.get("stage") or "")[:130],
+            "prior_drivers_subtree_gate":
+                block_init_raw.get("prior_drivers_subtree_gate") is True,
+            "prior_compile_h_gate":
+                block_init_raw.get("prior_compile_h_gate") is True,
+            "prior_functionfs_rt_gate":
+                block_init_raw.get("prior_functionfs_rt_gate") is True,
+            "targets": block_init_targets,
+            "all_archives_verified":
+                block_init_raw.get("all_archives_verified") is True,
+            "remaining_rejected_files":
+                block_init_raw.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                block_init_raw.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -518,6 +566,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "drivers_subtree_diagnostic": drivers_subtree,
         "compile_h_preflight_diagnostic": stage77_compile_h,
         "functionfs_rt_swait_status": functionfs_rt,
+        "block_init_subtrees_diagnostic": block_init,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
