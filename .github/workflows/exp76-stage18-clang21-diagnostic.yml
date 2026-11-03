@@ -73,6 +73,8 @@ on:
       - 'tests/test_exp76_stage62_phandle_cache.py'
       - 'tools/exp76-rt-stage63-nandswap-spinlock.py'
       - 'tests/test_exp76_stage63_nandswap_spinlock.py'
+      - 'tools/exp76-rt-stage64-ion-spinlock.py'
+      - 'tests/test_exp76_stage64_ion_spinlock.py'
   workflow_dispatch:
 
 permissions:
@@ -162,6 +164,8 @@ jobs:
           python3 tests/test_exp76_stage62_phandle_cache.py
           python3 -m py_compile tools/exp76-rt-stage63-nandswap-spinlock.py
           python3 tests/test_exp76_stage63_nandswap_spinlock.py
+          python3 -m py_compile tools/exp76-rt-stage64-ion-spinlock.py
+          python3 tests/test_exp76_stage64_ion_spinlock.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -244,6 +248,7 @@ jobs:
           test -f exp76-rt-report/stage61/stage61-status.json
           test -f exp76-rt-report/stage62/stage62-status.json
           test -f exp76-rt-report/stage63/stage63-status.json
+          test -f exp76-rt-report/stage64/stage64-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
           echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE48_RCU_HUNK_SCOPED'
@@ -498,6 +503,15 @@ jobs:
                   f"spin_lock_init used: {s63.get('dynamic_spinlock_initialized_with_api')}",
                   f"Outstanding RT rejects: {s63.get('outstanding_rt_rejects')}",
               ]
+          stage64_file = Path('exp76-rt-report/stage64/stage64-status.json')
+          if stage64_file.is_file():
+              s64 = json.loads(stage64_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage64 ION secure heap RT spinlock (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s64.get('applied')}",
+                  f"spin_lock_init used: {s64.get('dynamic_spinlock_initialized_with_api')}",
+                  f"Outstanding RT rejects: {s64.get('outstanding_rt_rejects')}",
+              ]
           subtree_file = Path('exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json')
           if subtree_file.is_file():
               subtree = json.loads(subtree_file.read_text(encoding='utf-8'))
@@ -560,6 +574,7 @@ jobs:
             exp76-rt-report/stage61/
             exp76-rt-report/stage62/
             exp76-rt-report/stage63/
+            exp76-rt-report/stage64/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30

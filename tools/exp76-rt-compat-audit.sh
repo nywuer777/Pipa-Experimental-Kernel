@@ -688,6 +688,18 @@ test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
 git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE63=NANDSWAP_RT_SPINLOCK_INIT; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage63-gate.txt"
 
+# Stage64: replace a runtime ION secure heap static spinlock assignment
+# with the matching PREEMPT_RT-safe dynamic initializer API.
+python3 tools/exp76-rt-stage64-ion-spinlock.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage64" \
+    --mode apply | tee "$REPORT/stage64-ion-spinlock.log"
+test -f "$REPORT/stage64/stage64-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE64=ION_SECURE_HEAP_RT_SPINLOCK_INIT; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage64-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.
