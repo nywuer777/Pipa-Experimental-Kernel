@@ -83,8 +83,9 @@ def verify(tree: Path, index: Path) -> tuple[str, dict]:
         if modified in source:
             raise ValueError(f"Stage83 source already ported: {name}")
         patched = patched.replace(old, modified, 1)
-    if patched.count("depends on KERNEL_MODE_NEON && !PREEMPT_RT_BASE") != 2:
-        raise ValueError("Stage83 modified other NEON choices")
+    rt_neon_guard = "depends on KERNEL_MODE_NEON && !PREEMPT_RT_BASE"
+    if patched.count(rt_neon_guard) - source.count(rt_neon_guard) != len(BLOCKS):
+        raise ValueError("Stage83 expected exactly two new RT crypto guards")
     if source.count("config CRYPTO_CHACHA20_NEON") != 1:
         raise ValueError("Stage83 duplicate ChaCha20 config")
     if source.count("config CRYPTO_POLY1305_NEON") != 1:

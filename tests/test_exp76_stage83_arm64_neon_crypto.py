@@ -118,6 +118,25 @@ def main() -> None:
             assert not applied["kernel_built"] and not applied["flash_ready"]
             reject(lambda: M["verify"](tree, inventory), "source config block drift")
 
+            # Other upstream RT hunks may already protect CE/NEON choices.
+            # Only two NEW guards may be introduced by this targeted patch.
+            extra = fixture(root / "existing-rt-guards")
+            cfg = extra[0] / M["SOURCE"]
+            put(cfg, cfg.read_text().replace(
+                '\ttristate "AES using NEON"\n'
+                '\tdepends on KERNEL_MODE_NEON\n',
+                '\ttristate "AES using NEON"\n'
+                '\tdepends on KERNEL_MODE_NEON && !PREEMPT_RT_BASE\n',
+                1,
+            ))
+            extra_state = M["execute"](*extra, "apply")
+            assert extra_state["applied"] is True
+            extra_source = cfg.read_text()
+            assert extra_source.count(
+                "\tdepends on KERNEL_MODE_NEON && !PREEMPT_RT_BASE"
+            ) == 3
+            assert extra_source.count("\tdepends on KERNEL_MODE_NEON\n") == 1
+
             missing_git = fixture(root / "missing-git")
             (missing_git[0] / ".git").rmdir()
             reject(lambda: M["verify"](*missing_git[:2]), "isolated RT Git")
@@ -178,7 +197,7 @@ def main() -> None:
     finally:
         globals_["REJECT_SHA"] = original_sha
     print(
-        "EXP76_STAGE83_ARM64_NEON_CRYPTO_REGRESSIONS=10_PASS; "
+        "EXP76_STAGE83_ARM64_NEON_CRYPTO_REGRESSIONS=11_PASS; "
         "REJECTS_RETAINED=64; KERNEL_BUILT=false; FLASH_READY=false"
     )
 

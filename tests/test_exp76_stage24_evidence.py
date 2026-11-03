@@ -53,6 +53,7 @@ def main() -> None:
         assert empty["block_init_subtrees_diagnostic"] is None
         assert empty["rt_reject_hunk_inventory"] is None
         assert empty["arm64_neon_rt_kconfig_port"] is None
+        assert empty["vmlinux_integration_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -494,6 +495,30 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage84-report" / "VMLINUX_LINK_DIAGNOSTIC.json", {
+            "stage": "EXP76_STAGE84_PINNED_ARM64_VMLINUX_LINK_DIAGNOSTIC_NOFLASH",
+            "target": "vmlinux",
+            "prior_block_init_archives_gate": True,
+            "prior_arm64_crypto_kconfig_gate": True,
+            "attempted": True,
+            "exit_code": 2,
+            "timed_out": False,
+            "vmlinux_created": False,
+            "vmlinux_bytes": 0,
+            "vmlinux_elf_verified": False,
+            "first_compiler_linker_errors": [
+                "ld.lld: error: undefined symbol: rt_semantics_fixture"
+            ],
+            "first_failure_context": [
+                "ld.lld: error: undefined symbol: rt_semantics_fixture"
+            ],
+            "remaining_rejected_files": 64,
+            "boot_image_generated": False,
+            "flash_performed": False,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -722,6 +747,16 @@ def main() -> None:
         assert arm64["remaining_rejected_files"] == 64
         assert arm64["semantic_backport_review_pending"] is True
         assert not arm64["kernel_built"] and not arm64["flash_ready"]
+        link = failed["vmlinux_integration_diagnostic"]
+        assert link["stage"] == "EXP76_STAGE84_PINNED_ARM64_VMLINUX_LINK_DIAGNOSTIC_NOFLASH"
+        assert link["target"] == "vmlinux"
+        assert link["attempted"] is True
+        assert link["exit_code"] == 2
+        assert link["vmlinux_elf_verified"] is False
+        assert "undefined symbol" in link["first_compiler_linker_errors"][0]
+        assert link["remaining_rejected_files"] == 64
+        assert not link["boot_image_generated"] and not link["flash_performed"]
+        assert not link["kernel_built"] and not link["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

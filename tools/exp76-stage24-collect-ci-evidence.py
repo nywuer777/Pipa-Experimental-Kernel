@@ -627,6 +627,40 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    linked_raw = read_json(
+        artifact / "exp76-stage84-report" / "VMLINUX_LINK_DIAGNOSTIC.json"
+    )
+    link = None
+    if linked_raw is not None:
+        link = {
+            "stage": str(linked_raw.get("stage") or "")[:140],
+            "target": str(linked_raw.get("target") or "")[:80],
+            "prior_block_init_archives_gate":
+                linked_raw.get("prior_block_init_archives_gate") is True,
+            "prior_arm64_crypto_kconfig_gate":
+                linked_raw.get("prior_arm64_crypto_kconfig_gate") is True,
+            "attempted": linked_raw.get("attempted") is True,
+            "exit_code": linked_raw.get("exit_code"),
+            "timed_out": linked_raw.get("timed_out") is True,
+            "vmlinux_created": linked_raw.get("vmlinux_created") is True,
+            "vmlinux_bytes": linked_raw.get("vmlinux_bytes"),
+            "vmlinux_elf_verified":
+                linked_raw.get("vmlinux_elf_verified") is True,
+            "first_compiler_linker_errors": bounded_lines(
+                linked_raw.get("first_compiler_linker_errors"), 30
+            ),
+            "first_failure_context": bounded_lines(
+                linked_raw.get("first_failure_context"), 36
+            ),
+            "remaining_rejected_files":
+                linked_raw.get("remaining_rejected_files"),
+            "boot_image_generated":
+                linked_raw.get("boot_image_generated") is True,
+            "flash_performed": linked_raw.get("flash_performed") is True,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -669,6 +703,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "block_init_subtrees_diagnostic": block_init,
         "rt_reject_hunk_inventory": reject_index,
         "arm64_neon_rt_kconfig_port": arm64_neon,
+        "vmlinux_integration_diagnostic": link,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
