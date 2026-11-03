@@ -41,6 +41,7 @@ def main() -> None:
         assert empty["preparation"] is None
         assert empty["kernel_subtree_diagnostic"] is None
         assert empty["mm_subtree_diagnostic"] is None
+        assert empty["fs_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -155,6 +156,26 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage67-report" / "FS_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE67_FS_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "fs/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=fs",
+                "prior_kernel_subtree_gate": True,
+                "prior_mm_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_bytes": 0,
+                "errors_excerpt": ["fs/open.c:11: error: fixture-only FS error"],
+                "first_error_context": ["fs/open.c:11: error: fixture-only FS error"],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -247,6 +268,14 @@ def main() -> None:
         assert mm["exit_code"] == 2 and mm["archive_created"] is False
         assert mm["errors_excerpt"][0].endswith("fixture-only MM error")
         assert mm["kernel_built"] is False and mm["flash_ready"] is False
+        fs = failed["fs_subtree_diagnostic"]
+        assert fs["target"] == "fs/built-in.a"
+        assert fs["top_level_directory_scope"] == "vmlinux-dirs=fs"
+        assert fs["prior_kernel_subtree_gate"] is True
+        assert fs["prior_mm_subtree_gate"] is True
+        assert fs["exit_code"] == 2 and fs["archive_created"] is False
+        assert fs["errors_excerpt"][0].endswith("fixture-only FS error")
+        assert fs["kernel_built"] is False and fs["flash_ready"] is False
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

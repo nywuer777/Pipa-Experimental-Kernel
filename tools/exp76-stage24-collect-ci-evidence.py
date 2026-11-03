@@ -171,6 +171,35 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    fs_archive = read_json(
+        artifact / "exp76-stage67-report" / "FS_SUBTREE_DIAGNOSTIC.json"
+    )
+    fs_subtree = None
+    if fs_archive is not None:
+        fs_subtree = {
+            "stage": str(fs_archive.get("stage") or "")[:120],
+            "target": str(fs_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(fs_archive.get("top_level_directory_scope") or "")[:80],
+            "prior_kernel_subtree_gate":
+                fs_archive.get("prior_kernel_subtree_gate") is True,
+            "prior_mm_subtree_gate":
+                fs_archive.get("prior_mm_subtree_gate") is True,
+            "attempted": fs_archive.get("attempted") is True,
+            "exit_code": fs_archive.get("exit_code"),
+            "timed_out": fs_archive.get("timed_out") is True,
+            "archive_created": fs_archive.get("archive_created") is True,
+            "archive_bytes": fs_archive.get("archive_bytes"),
+            "errors_excerpt": bounded_lines(fs_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                fs_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files": fs_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                fs_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -201,6 +230,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "cross_subsystem_coverage": cross_objects,
         "kernel_subtree_diagnostic": kernel_subtree,
         "mm_subtree_diagnostic": mm_subtree,
+        "fs_subtree_diagnostic": fs_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

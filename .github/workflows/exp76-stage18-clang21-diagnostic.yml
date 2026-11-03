@@ -77,6 +77,8 @@ on:
       - 'tests/test_exp76_stage64_ion_spinlock.py'
       - 'tools/exp76-stage66-mm-subtree.py'
       - 'tests/test_exp76_stage66_mm_subtree.py'
+      - 'tools/exp76-stage67-fs-subtree.py'
+      - 'tests/test_exp76_stage67_fs_subtree.py'
   workflow_dispatch:
 
 permissions:
@@ -170,6 +172,8 @@ jobs:
           python3 tests/test_exp76_stage64_ion_spinlock.py
           python3 -m py_compile tools/exp76-stage66-mm-subtree.py
           python3 tests/test_exp76_stage66_mm_subtree.py
+          python3 -m py_compile tools/exp76-stage67-fs-subtree.py
+          python3 tests/test_exp76_stage67_fs_subtree.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -321,6 +325,21 @@ jobs:
             --clang-bin android-clang-prebuilt/clang-r563880c/bin \
             --timeout 570
           test -f exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose FS filesystem subtree after kernel and MM archives (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage67-fs-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage67-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json
 
       - name: Publish readable CI summary even when compiler fails
         if: always()
@@ -563,6 +582,23 @@ jobs:
               if mm_failures:
                   lines += ['', 'First MM Kbuild errors:', '']
                   lines += ['    ' + str(err)[:320] for err in mm_failures]
+          fs_subtree_file = Path('exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json')
+          if fs_subtree_file.is_file():
+              fs_subtree = json.loads(fs_subtree_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage67 FS subtree Kbuild archive (NONFLASH)', '']
+              lines += [
+                  f"Stage50 kernel gate passed: {fs_subtree.get('prior_kernel_subtree_gate')}",
+                  f"Stage66 mm gate passed: {fs_subtree.get('prior_mm_subtree_gate')}",
+                  f"Target: {fs_subtree.get('target')}",
+                  f"Top-level directory scope: {fs_subtree.get('top_level_directory_scope')}",
+                  f"Archive created: {fs_subtree.get('archive_created')}",
+                  f"Exit code: {fs_subtree.get('exit_code')}",
+                  f"Timed out: {fs_subtree.get('timed_out')}",
+              ]
+              fs_failures = (fs_subtree.get('errors_excerpt') or [])[:8]
+              if fs_failures:
+                  lines += ['', 'First FS Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in fs_failures]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -580,6 +616,7 @@ jobs:
             exp76-stage46-report/
             exp76-stage50-report/
             exp76-stage66-report/
+            exp76-stage67-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/
