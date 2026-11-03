@@ -54,6 +54,7 @@ def main() -> None:
         assert empty["rt_reject_hunk_inventory"] is None
         assert empty["arm64_neon_rt_kconfig_port"] is None
         assert empty["vmlinux_integration_diagnostic"] is None
+        assert empty["rwsem_idr_rt_link_repair"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -519,6 +520,29 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-rt-report" / "stage85" / "stage85-status.json", {
+            "stage": "EXP76_STAGE85_RWSEM_RT_PUBLIC_API_IDR_PRELOAD_END_NONFLASH",
+            "applied": True,
+            "rt_public_wrapper_count": 9,
+            "rt_public_symbols": [
+                "down_read", "down_read_killable", "down_read_trylock",
+                "down_write", "down_write_killable", "down_write_trylock",
+                "up_read", "up_write", "downgrade_write",
+            ],
+            "files_patched": [
+                "kernel/locking/Makefile",
+                "kernel/locking/rwsem-rt-api.c",
+                "lib/radix-tree.c",
+            ],
+            "non_rt_vendor_rwsem_not_linked": True,
+            "idr_preload_end_uses_local_unlock": True,
+            "idr_preload_lock_pair_preserved": True,
+            "rt_rwsem_lowlevel_preserved": True,
+            "rejected_files_remaining": 64,
+            "full_kernel_link_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -757,6 +781,17 @@ def main() -> None:
         assert link["remaining_rejected_files"] == 64
         assert not link["boot_image_generated"] and not link["flash_performed"]
         assert not link["kernel_built"] and not link["flash_ready"]
+        rt_link = failed["rwsem_idr_rt_link_repair"]
+        assert rt_link["stage"] == "EXP76_STAGE85_RWSEM_RT_PUBLIC_API_IDR_PRELOAD_END_NONFLASH"
+        assert rt_link["applied"] is True
+        assert rt_link["rt_public_wrapper_count"] == 9
+        assert rt_link["rt_public_symbols"][0] == "down_read"
+        assert rt_link["non_rt_vendor_rwsem_not_linked"] is True
+        assert rt_link["idr_preload_end_uses_local_unlock"] is True
+        assert rt_link["idr_preload_lock_pair_preserved"] is True
+        assert rt_link["rt_rwsem_lowlevel_preserved"] is True
+        assert rt_link["rejected_files_remaining"] == 64
+        assert not rt_link["kernel_built"] and not rt_link["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

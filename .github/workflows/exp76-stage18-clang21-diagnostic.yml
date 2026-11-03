@@ -105,6 +105,8 @@ on:
       - 'tests/test_exp76_stage83_arm64_neon_crypto.py'
       - 'tools/exp76-stage84-vmlinux-link.py'
       - 'tests/test_exp76_stage84_vmlinux_link.py'
+      - 'tools/exp76-rt-stage85-rwsem-idr-link.py'
+      - 'tests/test_exp76_stage85_rwsem_idr_link.py'
   workflow_dispatch:
 
 permissions:
@@ -226,6 +228,8 @@ jobs:
           python3 tests/test_exp76_stage83_arm64_neon_crypto.py
           python3 -m py_compile tools/exp76-stage84-vmlinux-link.py
           python3 tests/test_exp76_stage84_vmlinux_link.py
+          python3 -m py_compile tools/exp76-rt-stage85-rwsem-idr-link.py
+          python3 tests/test_exp76_stage85_rwsem_idr_link.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -641,6 +645,31 @@ jobs:
             --clang-bin android-clang-prebuilt/clang-r563880c/bin \
             --timeout 570
           test -f exp76-stage81-report/BLOCK_INIT_SUBTREES_DIAGNOSTIC.json
+
+      - name: Restore RT public rwsem ABI and idr preload local unlock (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-rt-report/stage85 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(
+              Path('exp76-rt-report/stage85/stage85-status.json').read_text()
+          )
+          assert status['applied'] is True
+          assert status['rt_public_wrapper_count'] == 9
+          assert status['idr_preload_end_uses_local_unlock'] is True
+          assert status['non_rt_vendor_rwsem_not_linked'] is True
+          assert status['rejected_files_remaining'] == 64
+          assert not status['full_kernel_link_performed']
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE85_RT_RWSEM_PUBLIC_ABI=9; IDR_LOCAL_UNLOCK=RESTORED; FLASH_READY=false')
+          PY
+          git -C exp76-trial-overlay diff --check
 
       - name: Attempt pinned ARM64 vmlinux integration (NO IMAGE, NO FLASH)
         shell: bash
@@ -1130,6 +1159,17 @@ jobs:
               ]
               for error in (link.get('first_compiler_linker_errors') or [])[:14]:
                   lines += ['    ' + str(error)[:320]]
+          stage85_path = Path('exp76-rt-report/stage85/stage85-status.json')
+          if stage85_path.is_file():
+              stage85 = json.loads(stage85_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage85 RT RWSEM + IDR preload link ABI (NONFLASH)', '']
+              lines += [
+                  f"Patch applied: {stage85.get('applied')}",
+                  f"RT public RWSEM wrappers: {stage85.get('rt_public_wrapper_count')}",
+                  f"IDR local unlock restored: {stage85.get('idr_preload_end_uses_local_unlock')}",
+                  f"Original vendor RWSEM excluded from RT: {stage85.get('non_rt_vendor_rwsem_not_linked')}",
+                  f"Original RT rejects remaining: {stage85.get('rejected_files_remaining')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1193,6 +1233,7 @@ jobs:
             exp76-rt-report/stage74/
             exp76-rt-report/stage79/
             exp76-rt-report/stage83/
+            exp76-rt-report/stage85/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30

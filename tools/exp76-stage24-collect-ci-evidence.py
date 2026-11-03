@@ -661,6 +661,38 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    rt_link_apis_raw = read_json(
+        artifact / "exp76-rt-report" / "stage85" / "stage85-status.json"
+    )
+    rt_link_apis = None
+    if rt_link_apis_raw is not None:
+        rt_link_apis = {
+            "stage": str(rt_link_apis_raw.get("stage") or "")[:140],
+            "applied": rt_link_apis_raw.get("applied") is True,
+            "rt_public_wrapper_count":
+                rt_link_apis_raw.get("rt_public_wrapper_count"),
+            "rt_public_symbols": [
+                str(x)[:70] for x in
+                (rt_link_apis_raw.get("rt_public_symbols") or [])[:20]
+            ],
+            "files_patched": [
+                str(x)[:160] for x in
+                (rt_link_apis_raw.get("files_patched") or [])[:8]
+            ],
+            "non_rt_vendor_rwsem_not_linked":
+                rt_link_apis_raw.get("non_rt_vendor_rwsem_not_linked") is True,
+            "idr_preload_end_uses_local_unlock":
+                rt_link_apis_raw.get("idr_preload_end_uses_local_unlock") is True,
+            "idr_preload_lock_pair_preserved":
+                rt_link_apis_raw.get("idr_preload_lock_pair_preserved") is True,
+            "rt_rwsem_lowlevel_preserved":
+                rt_link_apis_raw.get("rt_rwsem_lowlevel_preserved") is True,
+            "rejected_files_remaining":
+                rt_link_apis_raw.get("rejected_files_remaining"),
+            "full_kernel_link_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -704,6 +736,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "rt_reject_hunk_inventory": reject_index,
         "arm64_neon_rt_kconfig_port": arm64_neon,
         "vmlinux_integration_diagnostic": link,
+        "rwsem_idr_rt_link_repair": rt_link_apis,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
