@@ -1,5 +1,38 @@
 {
   "artifact_present": true,
+  "compile_h_preflight_diagnostic": {
+    "attempted": true,
+    "compile_h_anchors_valid": false,
+    "compile_h_bytes": 349,
+    "compile_h_created": true,
+    "compile_h_sha256": "f8d13137e3d31f538c2140b040754ebad9f92ea716ede1c9cd91c925c42c229e",
+    "errors_excerpt": [
+      "init/version.o returned zero but compile.h or version.o missing/invalid"
+    ],
+    "exit_code": 0,
+    "first_error_context": [
+      "make: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
+      "make[1]: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "  GEN     ./Makefile",
+      "  Using /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay as source for kernel",
+      "  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh",
+      "  CHK     include/generated/compile.h",
+      "  UPD     include/generated/compile.h",
+      "  CC      init/version.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "generated_header": "include/generated/compile.h",
+    "init_version_object_created": true,
+    "kernel_built": false,
+    "prior_crypto_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE77_KBUILD_COMPILE_H_INIT_VERSION_NONFLASH",
+    "target": "init/version.o",
+    "timed_out": false
+  },
   "cross_subsystem_coverage": {
     "all_cross_objects_compiled": true,
     "baseline_12_objects_compiled": true,
@@ -150,52 +183,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=crypto"
   },
-  "drivers_subtree_diagnostic": {
-    "archive_bytes": 0,
-    "archive_created": false,
-    "archive_has_members": false,
-    "archive_inspection_exit_code": null,
-    "archive_members_count": 0,
-    "archive_members_sample": [],
-    "attempted": true,
-    "errors_excerpt": [
-      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/drivers/kernelsu/kernel_includes.h:8:10: fatal error: 'generated/compile.h' file not found",
-      "make[3]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: drivers/kernelsu/ksu.o] Error 1",
-      "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:521: drivers/kernelsu] Error 2",
-      "make[1]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/Makefile:1243: drivers] Error 2",
-      "make: *** [Makefile:153: sub-make] Error 2"
-    ],
-    "exit_code": 2,
-    "first_error_context": [
-      "  CC      drivers/input/ff-memless.o",
-      "  CC      drivers/irqchip/irq-gic.o",
-      "  CC      drivers/input/input-leds.o",
-      "  CC      drivers/irqchip/irq-gic-common.o",
-      "  CC      drivers/input/evdev.o",
-      "  CC      drivers/irqchip/irq-gic-v2m.o",
-      "-- KernelSU: Multi-managers: RKSU, MKSU, Official KernelSU, KowSU, KSUN, WKSU",
-      "  CC      drivers/kernelsu/ksu.o",
-      "  CC      drivers/irqchip/irq-gic-v3.o",
-      "In file included from /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/drivers/kernelsu/ksu.c:1:",
-      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/drivers/kernelsu/kernel_includes.h:8:10: fatal error: 'generated/compile.h' file not found",
-      "    8 | #include <generated/compile.h>",
-      "      |          ^~~~~~~~~~~~~~~~~~~~~",
-      "  CC      drivers/irqchip/irq-gic-v3-mbi.o",
-      "1 error generated.",
-      "make[3]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:308: drivers/kernelsu/ksu.o] Error 1",
-      "make[2]: *** [/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/Makefile.build:521: drivers/kernelsu] Error 2",
-      "make[2]: *** Waiting for unfinished jobs...."
-    ],
-    "flash_ready": false,
-    "full_kernel_link_performed": false,
-    "kernel_built": false,
-    "prior_crypto_subtree_gate": true,
-    "remaining_rejected_files": 64,
-    "stage": "EXP76_STAGE76_DRIVERS_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
-    "target": "drivers/built-in.a",
-    "timed_out": false,
-    "top_level_directory_scope": "vmlinux-dirs=drivers"
-  },
+  "drivers_subtree_diagnostic": null,
   "extra_object_coverage": {
     "all_extra_objects_compiled": true,
     "baseline_3_objects_compiled": true,
@@ -348,7 +336,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=ipc"
   },
-  "job_conclusion": "success",
+  "job_conclusion": "failure",
   "kernel_built": false,
   "kernel_subtree_diagnostic": {
     "archive_bytes": 13762,
@@ -370,11 +358,11 @@
       "  CC      kernel/tsacct.o",
       "  CC      kernel/irq_work.o",
       "  CC      kernel/cpu_pm.o",
+      "  CC      kernel/jump_label.o",
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
       "   94 |         struct llist_head *list;",
       "      |                            ^~~~",
       "1 warning generated.",
-      "  CC      kernel/jump_label.o",
       "  CC      kernel/iomem.o",
       "  UPD     kernel/config_data.h",
       "  CC      kernel/configs.o",
@@ -534,13 +522,13 @@
     "errors_excerpt": [],
     "exit_code": 0,
     "first_error_context": [
-      "  CC      net/wireless/nl80211.o",
+      "  CC      net/xfrm/xfrm_ipcomp.o",
       "  CC      net/xfrm/xfrm_interface.o",
       "  CC      net/socket.o",
       "  CC      net/compat.o",
-      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/mlme.o",
       "  CC      net/wireless/ibss.o",
+      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/sme.o",
       "  CC      net/wireless/chan.o",
       "  CC      net/wireless/ethtool.o",
@@ -576,8 +564,8 @@
     "missing_headers": []
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
-  "run_id": 41666458870,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41666458870",
+  "run_id": 41671802906,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41671802906",
   "schema": "EXP76_STAGE24_EVIDENCE_V1",
   "security_subtree_diagnostic": {
     "archive_bytes": 2732,
@@ -593,10 +581,10 @@
       "  CC      security/keys/sysctl.o",
       "  CC      security/commoncap.o",
       "  CC      security/selinux/netnode.o",
-      "  CC      security/min_addr.o",
-      "  CC      security/security.o",
       "  CC      security/selinux/netport.o",
+      "  CC      security/min_addr.o",
       "  CC      security/selinux/ss/ebitmap.o",
+      "  CC      security/security.o",
       "  CC      security/selinux/ss/hashtab.o",
       "  CC      security/selinux/ss/symtab.o",
       "  CC      security/selinux/ss/sidtab.o",
@@ -621,7 +609,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=security"
   },
-  "source_sha": "067fba6e47651c52a815e24a5d787434c67d97f6",
+  "source_sha": "706f224a520ba5249f6e2f474c233a2ad4fcdbdf",
   "stages": {
     "stage19": {
       "applied": true,
