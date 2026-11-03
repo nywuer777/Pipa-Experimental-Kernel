@@ -664,6 +664,20 @@ git -C "$ROOT/exp76-trial-overlay" diff --check
 echo 'EXP76_STAGE61=RT_SOFTIRQ_THREAD_WAKE_AND_USERFAULTFD_SEQLOCK; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage61-gate.txt"
 
 
+# Stage62: drivers/of/base.c uses the RT-deferred phandle-cache free
+# shadow result, but its E404 helper still returns void and kfree()s under
+# devtree_lock. Return the retired cache and defer only kfree outside raw
+# spinlock; preserve the OF references, conditional branches and 64 rejects.
+python3 tools/exp76-rt-stage62-phandle-cache.py \
+    --tree "$ROOT/exp76-trial-overlay" \
+    --report "$REPORT/stage62" \
+    --mode apply | tee "$REPORT/stage62-phandle-cache.log"
+test -f "$REPORT/stage62/stage62-status.json"
+test "$(find "$ROOT/exp76-trial-overlay" -name '*.rej' -type f | wc -l)" -eq 64
+git -C "$ROOT/exp76-trial-overlay" diff --check
+echo 'EXP76_STAGE62=OF_PHANDLE_CACHE_DEFERRED_KFREE_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false' | tee "$REPORT/stage62-gate.txt"
+
+
 # Export ALL partial source changes (including new RT files), excluding
 # reject/scratch evidence. Verify that it reapplies to clean pinned E404.
 # This remains an incomplete NONFLASH patch while 64 files are rejected.

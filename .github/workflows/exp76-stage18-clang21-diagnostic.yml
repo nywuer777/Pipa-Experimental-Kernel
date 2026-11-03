@@ -69,6 +69,8 @@ on:
       - 'tests/test_exp76_stage60_futex.py'
       - 'tools/exp76-rt-stage61-smp-uffd.py'
       - 'tests/test_exp76_stage61_smp_uffd.py'
+      - 'tools/exp76-rt-stage62-phandle-cache.py'
+      - 'tests/test_exp76_stage62_phandle_cache.py'
   workflow_dispatch:
 
 permissions:
@@ -154,6 +156,8 @@ jobs:
           python3 tests/test_exp76_stage60_futex.py
           python3 -m py_compile tools/exp76-rt-stage61-smp-uffd.py
           python3 tests/test_exp76_stage61_smp_uffd.py
+          python3 -m py_compile tools/exp76-rt-stage62-phandle-cache.py
+          python3 tests/test_exp76_stage62_phandle_cache.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -234,6 +238,7 @@ jobs:
           test -f exp76-rt-report/stage59/stage59-status.json
           test -f exp76-rt-report/stage60/stage60-status.json
           test -f exp76-rt-report/stage61/stage61-status.json
+          test -f exp76-rt-report/stage62/stage62-status.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
           echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE48_RCU_HUNK_SCOPED'
@@ -469,6 +474,16 @@ jobs:
                   f"Userfaultfd seqlock layout repaired: {s61.get('userfaultfd_refile_seqlock_layout_reconciled')}",
                   f"Remaining rejected RT files: {s61.get('remaining_rejected_files')}",
               ]
+          stage62_file = Path('exp76-rt-report/stage62/stage62-status.json')
+          if stage62_file.is_file():
+              s62 = json.loads(stage62_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage62 OF cache deferred free (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s62.get('applied')}",
+                  f"RT shadow return repaired: {s62.get('rt_shadow_assignment_type_reconciled')}",
+                  f"Freed after unlock: {s62.get('retired_cache_kfree_after_unlock')}",
+                  f"Outstanding RT rejects: {s62.get('outstanding_rt_rejects')}",
+              ]
           subtree_file = Path('exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json')
           if subtree_file.is_file():
               subtree = json.loads(subtree_file.read_text(encoding='utf-8'))
@@ -529,6 +544,7 @@ jobs:
             exp76-rt-report/stage59/
             exp76-rt-report/stage60/
             exp76-rt-report/stage61/
+            exp76-rt-report/stage62/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
