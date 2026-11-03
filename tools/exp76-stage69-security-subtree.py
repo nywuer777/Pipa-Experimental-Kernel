@@ -136,7 +136,8 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
     made = archive.is_file() and archive.stat().st_size > 0
     size = archive.stat().st_size if made else 0
     has_members = (
-        rc == 0 and made and size > len(STAGE68["EMPTY_THIN_ARCHIVE"])
+        rc == 0 and made and size > 8
+        and archive.read_bytes()[:8] in STAGE68["EMPTY_AR_HEADERS"]
     )
     status = {
         "stage": STAGE,

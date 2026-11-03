@@ -67,6 +67,8 @@ def fixture(root: Path, *, ipc_enabled: bool = True) -> tuple[Path, ...]:
         "archive.parent.mkdir(parents=True, exist_ok=True)\n"
         "if os.environ.get('STAGE69_EMPTY') == 'yes':\n"
         "    archive.write_bytes(b'!<thin>\\n')\n"
+        "elif os.environ.get('STAGE69_EMPTY') == 'invalid':\n"
+        "    archive.write_bytes(b'not-an-ar-archive')\n"
         "else:\n"
         "    archive.write_bytes(b'!<thin>\\nsecurity-members')\n"
     ))
@@ -118,6 +120,16 @@ def main() -> None:
         assert failed["exit_code"] == 2 and not failed["archive_created"]
         assert "synthetic RT mismatch" in failed["errors_excerpt"][0]
 
+        invalid_security = fixture(root / "invalid-security-ar")
+        os.environ["STAGE69_EMPTY"] = "invalid"
+        try:
+            invalid = invoke(invalid_security)
+        finally:
+            del os.environ["STAGE69_EMPTY"]
+        assert invalid["archive_created"] is True
+        assert invalid["archive_has_members"] is False
+        assert "zero members" in invalid["errors_excerpt"][0]
+
         empty_security = fixture(root / "empty-security")
         os.environ["STAGE69_EMPTY"] = "yes"
         try:
@@ -167,7 +179,7 @@ def main() -> None:
 
         timeout = fixture(root / "bad-timeout")
         reject(lambda: execute(*timeout, 15), "Unsupported Stage69")
-    print("EXP76_STAGE69_SECURITY_REGRESSIONS=13_PASS; KERNEL_BUILT=false; FLASH_READY=false")
+    print("EXP76_STAGE69_SECURITY_REGRESSIONS=14_PASS; KERNEL_BUILT=false; FLASH_READY=false")
 
 
 if __name__ == "__main__":
