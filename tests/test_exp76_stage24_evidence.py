@@ -48,6 +48,7 @@ def main() -> None:
         assert empty["lib_subtree_diagnostic"] is None
         assert empty["crypto_subtree_diagnostic"] is None
         assert empty["drivers_subtree_diagnostic"] is None
+        assert empty["compile_h_preflight_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -326,6 +327,30 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage77-report" / "COMPILE_H_PREP_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE77_KBUILD_COMPILE_H_INIT_VERSION_NONFLASH",
+                "target": "init/version.o",
+                "generated_header": "include/generated/compile.h",
+                "prior_crypto_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "compile_h_created": False,
+                "compile_h_anchors_valid": False,
+                "compile_h_bytes": 0,
+                "compile_h_sha256": None,
+                "init_version_object_created": False,
+                "errors_excerpt": ["init/version.c:42: error: fixture-only version error"],
+                "first_error_context": [
+                    "init/version.c:42: error: fixture-only version error"
+                ],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -490,6 +515,18 @@ def main() -> None:
         assert drivers["archive_members_sample"] == []
         assert drivers["errors_excerpt"][0].endswith("fixture-only driver error")
         assert not drivers["kernel_built"] and not drivers["flash_ready"]
+        version = failed["compile_h_preflight_diagnostic"]
+        assert version["stage"] == "EXP76_STAGE77_KBUILD_COMPILE_H_INIT_VERSION_NONFLASH"
+        assert version["target"] == "init/version.o"
+        assert version["generated_header"] == "include/generated/compile.h"
+        assert version["prior_crypto_subtree_gate"] is True
+        assert version["exit_code"] == 2
+        assert version["compile_h_created"] is False
+        assert version["compile_h_anchors_valid"] is False
+        assert version["compile_h_bytes"] == 0
+        assert version["init_version_object_created"] is False
+        assert version["errors_excerpt"][0].endswith("fixture-only version error")
+        assert not version["kernel_built"] and not version["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

@@ -413,6 +413,38 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    compile_h = read_json(
+        artifact / "exp76-stage77-report" / "COMPILE_H_PREP_DIAGNOSTIC.json"
+    )
+    stage77_compile_h = None
+    if compile_h is not None:
+        stage77_compile_h = {
+            "stage": str(compile_h.get("stage") or "")[:120],
+            "target": str(compile_h.get("target") or "")[:80],
+            "generated_header": str(compile_h.get("generated_header") or "")[:100],
+            "prior_crypto_subtree_gate":
+                compile_h.get("prior_crypto_subtree_gate") is True,
+            "attempted": compile_h.get("attempted") is True,
+            "exit_code": compile_h.get("exit_code"),
+            "timed_out": compile_h.get("timed_out") is True,
+            "compile_h_created": compile_h.get("compile_h_created") is True,
+            "compile_h_anchors_valid":
+                compile_h.get("compile_h_anchors_valid") is True,
+            "compile_h_bytes": compile_h.get("compile_h_bytes"),
+            "compile_h_sha256": str(compile_h.get("compile_h_sha256") or "")[:64],
+            "init_version_object_created":
+                compile_h.get("init_version_object_created") is True,
+            "errors_excerpt": bounded_lines(compile_h.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                compile_h.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files":
+                compile_h.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                compile_h.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -450,6 +482,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "lib_subtree_diagnostic": lib_subtree,
         "crypto_subtree_diagnostic": crypto_subtree,
         "drivers_subtree_diagnostic": drivers_subtree,
+        "compile_h_preflight_diagnostic": stage77_compile_h,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
