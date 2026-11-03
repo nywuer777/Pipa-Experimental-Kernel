@@ -430,6 +430,15 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "compile_h_created": compile_h.get("compile_h_created") is True,
             "compile_h_anchors_valid":
                 compile_h.get("compile_h_anchors_valid") is True,
+            "compile_h_macro_issues": bounded_lines(
+                compile_h.get("compile_h_macro_issues"), 12
+            ),
+            "compile_h_macro_names": [
+                str(x)[:40] for x in
+                (compile_h.get("compile_h_macro_names") or [])[:12]
+            ],
+            "compile_h_uts_machine":
+                str(compile_h.get("compile_h_uts_machine") or "")[:60],
             "compile_h_bytes": compile_h.get("compile_h_bytes"),
             "compile_h_sha256": str(compile_h.get("compile_h_sha256") or "")[:64],
             "init_version_object_created":

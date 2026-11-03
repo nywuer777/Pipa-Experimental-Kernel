@@ -107,12 +107,39 @@ def main() -> None:
         status = invoke(good)
         assert status["exit_code"] == 0
         assert status["compile_h_created"] and status["compile_h_anchors_valid"]
+        assert status["compile_h_macro_issues"] == []
+        assert status["compile_h_uts_machine"] == '"arm64"'
+        assert len(status["compile_h_macro_names"]) == 5
         assert status["init_version_object_created"]
         assert status["compile_h_bytes"] > 70
         assert len(status["compile_h_sha256"]) == 64
         assert status["prior_crypto_subtree_gate"] is True
         assert not status["kernel_built"] and not status["flash_ready"]
         assert json.loads((good[2] / M["OUTPUT"]).read_text()) == status
+
+        # The real pinned toolchain may emit either arm64 or aarch64;
+        # neither form should cause a false-negative Kbuild header gate.
+        good_header = (
+            '#define UTS_MACHINE "aarch64"\n'
+            '#define UTS_VERSION "#1 PREEMPT"\n'
+            '#define LINUX_COMPILE_BY "CI"\n'
+            '#define LINUX_COMPILE_HOST "ci"\n'
+            '#define LINUX_COMPILER "Clang 21"\n'
+        )
+        accepted, issues, macros = M["inspect_compile_h"](good_header)
+        assert accepted and issues == [] and macros["UTS_MACHINE"] == '"aarch64"'
+        missing, errors, _ = M["inspect_compile_h"](
+            good_header.replace('#define LINUX_COMPILER "Clang 21"\n', '')
+        )
+        assert not missing and any("LINUX_COMPILER" in x for x in errors)
+        duplicated, errors, _ = M["inspect_compile_h"](
+            good_header + '#define UTS_VERSION "duplicate"\n'
+        )
+        assert not duplicated and any("UTS_VERSION" in x for x in errors)
+        invalid_string, errors, _ = M["inspect_compile_h"](
+            good_header.replace('"#1 PREEMPT"', 'not_quoted')
+        )
+        assert not invalid_string and any("quoted" in x for x in errors)
 
         error = with_env("STAGE77_MAKE_ERROR", fixture(root / "compile-error"))
         assert error["exit_code"] == 2
@@ -126,6 +153,7 @@ def main() -> None:
 
         invalid = with_env("STAGE77_INVALID_HEADER", fixture(root / "bad-header"))
         assert invalid["compile_h_created"] and not invalid["compile_h_anchors_valid"]
+        assert invalid["compile_h_macro_issues"]
         assert "missing/invalid" in invalid["errors_excerpt"][0]
 
         no_object = with_env("STAGE77_NO_OBJECT", fixture(root / "no-object"))
@@ -168,7 +196,7 @@ def main() -> None:
         bad_timeout = fixture(root / "invalid-timeout")
         reject(lambda: M["execute"](*bad_timeout, 10), "Unsupported Stage77")
     print(
-        "EXP76_STAGE77_COMPILE_H_REGRESSIONS=14_PASS; "
+        "EXP76_STAGE77_COMPILE_H_REGRESSIONS=18_PASS; "
         "KERNEL_BUILT=false; FLASH_READY=false"
     )
 

@@ -338,6 +338,9 @@ def main() -> None:
                 "timed_out": False,
                 "compile_h_created": False,
                 "compile_h_anchors_valid": False,
+                "compile_h_macro_issues": ["UTS_MACHINE: missing"],
+                "compile_h_macro_names": [],
+                "compile_h_uts_machine": None,
                 "compile_h_bytes": 0,
                 "compile_h_sha256": None,
                 "init_version_object_created": False,
@@ -523,6 +526,9 @@ def main() -> None:
         assert version["exit_code"] == 2
         assert version["compile_h_created"] is False
         assert version["compile_h_anchors_valid"] is False
+        assert version["compile_h_macro_issues"] == ["UTS_MACHINE: missing"]
+        assert version["compile_h_macro_names"] == []
+        assert version["compile_h_uts_machine"] == ""
         assert version["compile_h_bytes"] == 0
         assert version["init_version_object_created"] is False
         assert version["errors_excerpt"][0].endswith("fixture-only version error")

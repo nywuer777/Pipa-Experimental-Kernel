@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import runpy
 import subprocess
 from pathlib import Path
@@ -31,13 +32,39 @@ MKFILE_ANCHORS = (
     "include/generated/compile.h: FORCE",
     "$(srctree)/scripts/mkcompile_h",
 )
-HEADER_ANCHORS = (
-    '#define UTS_MACHINE "arm64"',
-    "#define UTS_VERSION ",
-    "#define LINUX_COMPILE_BY ",
-    "#define LINUX_COMPILE_HOST ",
-    "#define LINUX_COMPILER ",
+HEADER_MACROS = (
+    "UTS_MACHINE", "UTS_VERSION", "LINUX_COMPILE_BY",
+    "LINUX_COMPILE_HOST", "LINUX_COMPILER",
 )
+
+
+def inspect_compile_h(header: str) -> tuple[bool, list[str], dict[str, str]]:
+    """Accept exactly one C string-literal definition for each Kbuild macro.
+
+    Some E404 builds report the machine as arm64 or aarch64. Kbuild decides
+    the precise value; a literal comparison to one spelling is not an ABI gate.
+    """
+    definitions: dict[str, list[str]] = {macro: [] for macro in HEADER_MACROS}
+    for line in header.splitlines():
+        match = re.fullmatch(
+            r'\s*#\s*define\s+([A-Z][A-Z0-9_]*)\s+(.+?)\s*',
+            line,
+        )
+        if match and match.group(1) in definitions:
+            definitions[match.group(1)].append(match.group(2))
+    issues = []
+    values = {}
+    for name, occurrences in definitions.items():
+        if len(occurrences) != 1:
+            issues.append(f"{name}: expected 1 definition, got {len(occurrences)}")
+            continue
+        value = occurrences[0]
+        values[name] = value[:200]
+        if not re.fullmatch(r'"(?:[^"\\]|\\.)*"', value):
+            issues.append(f"{name}: expected quoted C string literal")
+        elif name in ("UTS_MACHINE", "UTS_VERSION") and value == '""':
+            issues.append(f"{name}: required nonempty value")
+    return not issues, issues, values
 
 
 def execute(kernel: Path, out: Path, report: Path, stage50: Path,
@@ -127,7 +154,7 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
     hdr = out / HEADER
     obj = out / TARGET
     header_text = hdr.read_text(encoding="utf-8", errors="replace") if hdr.is_file() else ""
-    anchors_ok = all(header_text.count(anchor) == 1 for anchor in HEADER_ANCHORS)
+    anchors_ok, macro_issues, macro_values = inspect_compile_h(header_text)
     header_exists = hdr.is_file() and hdr.stat().st_size > 0
     object_exists = obj.is_file() and obj.stat().st_size > 0
     if rc == 0 and (not header_exists or not anchors_ok or not object_exists):
@@ -144,6 +171,9 @@ def execute(kernel: Path, out: Path, report: Path, stage50: Path,
         "timed_out": rc == 124,
         "compile_h_created": header_exists,
         "compile_h_anchors_valid": anchors_ok,
+        "compile_h_macro_issues": macro_issues,
+        "compile_h_macro_names": sorted(macro_values),
+        "compile_h_uts_machine": macro_values.get("UTS_MACHINE"),
         "compile_h_bytes": hdr.stat().st_size if header_exists else 0,
         "compile_h_sha256": hashlib.sha256(hdr.read_bytes()).hexdigest()
             if header_exists else None,
@@ -188,6 +218,8 @@ def main() -> None:
         "timed_out": result["timed_out"],
         "compile_h_created": result["compile_h_created"],
         "compile_h_anchors_valid": result["compile_h_anchors_valid"],
+        "compile_h_macro_issues": result["compile_h_macro_issues"],
+        "compile_h_uts_machine": result["compile_h_uts_machine"],
         "init_version_object_created": result["init_version_object_created"],
         "errors_excerpt": result["errors_excerpt"][:8],
         "kernel_built": False,

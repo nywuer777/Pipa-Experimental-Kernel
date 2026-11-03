@@ -918,6 +918,8 @@ jobs:
                   f"Generated header: {stage77.get('generated_header')}",
                   f"Header created: {stage77.get('compile_h_created')}",
                   f"Header has required UTS/compiler macros: {stage77.get('compile_h_anchors_valid')}",
+                  f"UTS_MACHINE literal: {stage77.get('compile_h_uts_machine')}",
+                  f"Macro validation issues: {stage77.get('compile_h_macro_issues')}",
                   f"init/version.o created: {stage77.get('init_version_object_created')}",
                   f"Exit code: {stage77.get('exit_code')}",
                   f"Timed out: {stage77.get('timed_out')}",
