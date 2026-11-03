@@ -55,6 +55,7 @@ def main() -> None:
         assert empty["arm64_neon_rt_kconfig_port"] is None
         assert empty["vmlinux_integration_diagnostic"] is None
         assert empty["rwsem_idr_rt_link_repair"] is None
+        assert empty["raw_arm64_image_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -543,6 +544,38 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage86-report" / "RAW_ARM64_IMAGE_DIAGNOSTIC.json", {
+            "stage": "EXP76_STAGE86_RAW_ARM64_IMAGE_AND_RT_SYMBOL_DIAGNOSTIC_NONFLASH",
+            "target": "Image",
+            "raw_image_path": "arch/arm64/boot/Image",
+            "prior_vmlinux_link_proven": True,
+            "prior_rt_rwsem_idr_link_proven": True,
+            "public_link_symbols_verified": [
+                "down_write", "up_write", "down_read", "up_read",
+                "idr_preload_end", "down_read_killable", "down_write_trylock",
+                "down_read_trylock", "downgrade_write", "down_write_killable",
+            ],
+            "public_link_symbols_missing": [],
+            "all_previous_unresolved_symbols_restored": True,
+            "attempted": True,
+            "exit_code": 0,
+            "timed_out": False,
+            "raw_image_created": True,
+            "raw_image_bytes": 36718984,
+            "raw_arm64_magic_hex": "41524d64",
+            "raw_arm64_header_valid": True,
+            "raw_image_sha256": "a" * 64,
+            "image_artifact_uploaded": False,
+            "packaged_boot_image_generated": False,
+            "flash_performed": False,
+            "remaining_rejected_files": 64,
+            "rt_semantic_review_complete": False,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+            "first_compiler_errors": [],
+            "first_failure_context": ["OBJCOPY arch/arm64/boot/Image"],
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -792,6 +825,22 @@ def main() -> None:
         assert rt_link["rt_rwsem_lowlevel_preserved"] is True
         assert rt_link["rejected_files_remaining"] == 64
         assert not rt_link["kernel_built"] and not rt_link["flash_ready"]
+        image = failed["raw_arm64_image_diagnostic"]
+        assert image["stage"] == "EXP76_STAGE86_RAW_ARM64_IMAGE_AND_RT_SYMBOL_DIAGNOSTIC_NONFLASH"
+        assert image["target"] == "Image"
+        assert image["raw_image_path"] == "arch/arm64/boot/Image"
+        assert image["all_previous_unresolved_symbols_restored"] is True
+        assert image["public_link_symbols_verified"][4] == "idr_preload_end"
+        assert image["public_link_symbols_missing"] == []
+        assert image["exit_code"] == 0 and not image["timed_out"]
+        assert image["raw_image_created"] and image["raw_arm64_header_valid"]
+        assert image["raw_arm64_magic_hex"] == "41524d64"
+        assert image["raw_image_sha256"] == "a" * 64
+        assert image["remaining_rejected_files"] == 64
+        assert not image["image_artifact_uploaded"]
+        assert not image["packaged_boot_image_generated"]
+        assert not image["flash_performed"] and not image["flash_ready"]
+        assert not image["kernel_built"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

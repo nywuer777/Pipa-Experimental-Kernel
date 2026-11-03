@@ -107,6 +107,8 @@ on:
       - 'tests/test_exp76_stage84_vmlinux_link.py'
       - 'tools/exp76-rt-stage85-rwsem-idr-link.py'
       - 'tests/test_exp76_stage85_rwsem_idr_link.py'
+      - 'tools/exp76-stage86-raw-arm64-image.py'
+      - 'tests/test_exp76_stage86_raw_arm64_image.py'
   workflow_dispatch:
 
 permissions:
@@ -230,6 +232,8 @@ jobs:
           python3 tests/test_exp76_stage84_vmlinux_link.py
           python3 -m py_compile tools/exp76-rt-stage85-rwsem-idr-link.py
           python3 tests/test_exp76_stage85_rwsem_idr_link.py
+          python3 -m py_compile tools/exp76-stage86-raw-arm64-image.py
+          python3 tests/test_exp76_stage86_raw_arm64_image.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -685,6 +689,42 @@ jobs:
             --clang-bin android-clang-prebuilt/clang-r563880c/bin \
             --timeout 720
           test -f exp76-stage84-report/VMLINUX_LINK_DIAGNOSTIC.json
+
+      - name: Verify restored RT symbols and compile isolated ARM64 raw Image (NONFLASH)
+        shell: bash
+        timeout-minutes: 11
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage86-raw-arm64-image.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage86-report \
+            --stage84-report exp76-stage84-report/VMLINUX_LINK_DIAGNOSTIC.json \
+            --stage85-report exp76-rt-report/stage85/stage85-status.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 480
+          test -f exp76-stage86-report/RAW_ARM64_IMAGE_DIAGNOSTIC.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(
+              Path('exp76-stage86-report/RAW_ARM64_IMAGE_DIAGNOSTIC.json').read_text()
+          )
+          assert len(data['public_link_symbols_verified']) == 10
+          assert not data['public_link_symbols_missing']
+          assert data['prior_vmlinux_link_proven']
+          assert data['prior_rt_rwsem_idr_link_proven']
+          assert data['remaining_rejected_files'] == 64
+          assert not data['image_artifact_uploaded']
+          assert not data['packaged_boot_image_generated']
+          assert not data['flash_performed'] and not data['flash_ready']
+          assert not data['rt_semantic_review_complete']
+          print(
+              f"EXP76_STAGE86_RAW_ARM64_IMAGE_RC={data['exit_code']};"
+              f"HEADER_VALID={data['raw_arm64_header_valid']};"
+              "FLASH_READY=false"
+          )
+          PY
 
       - name: Publish readable CI summary even when compiler fails
         if: always()
@@ -1170,6 +1210,22 @@ jobs:
                   f"Original vendor RWSEM excluded from RT: {stage85.get('non_rt_vendor_rwsem_not_linked')}",
                   f"Original RT rejects remaining: {stage85.get('rejected_files_remaining')}",
               ]
+          stage86_path = Path('exp76-stage86-report/RAW_ARM64_IMAGE_DIAGNOSTIC.json')
+          if stage86_path.is_file():
+              image = json.loads(stage86_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage86 raw ARM64 Image build and RT symbol map (NONFLASH)', '']
+              lines += [
+                  f"Restored symbols in System.map: {len(image.get('public_link_symbols_verified') or [])} / 10",
+                  f"Missing RT symbols: {image.get('public_link_symbols_missing')}",
+                  f"Raw Image Kbuild exit code: {image.get('exit_code')}",
+                  f"Raw ARM64 header valid: {image.get('raw_arm64_header_valid')}",
+                  f"Raw Image bytes: {image.get('raw_image_bytes')}",
+                  f"Raw Image SHA-256: {image.get('raw_image_sha256')}",
+                  f"Remaining RT rejects: {image.get('remaining_rejected_files')}",
+                  'Raw Image is NOT an installable boot.img; not uploaded.',
+              ]
+              for error in (image.get('first_compiler_errors') or [])[:10]:
+                  lines += ['    ' + str(error)[:320]]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1198,6 +1254,7 @@ jobs:
             exp76-stage81-report/
             exp76-stage82-report/
             exp76-stage84-report/
+            exp76-stage86-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/

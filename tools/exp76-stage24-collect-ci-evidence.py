@@ -693,6 +693,56 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    raw_image_raw = read_json(
+        artifact / "exp76-stage86-report" / "RAW_ARM64_IMAGE_DIAGNOSTIC.json"
+    )
+    raw_image = None
+    if raw_image_raw is not None:
+        raw_image = {
+            "stage": str(raw_image_raw.get("stage") or "")[:140],
+            "target": str(raw_image_raw.get("target") or "")[:60],
+            "raw_image_path": str(raw_image_raw.get("raw_image_path") or "")[:120],
+            "prior_vmlinux_link_proven":
+                raw_image_raw.get("prior_vmlinux_link_proven") is True,
+            "prior_rt_rwsem_idr_link_proven":
+                raw_image_raw.get("prior_rt_rwsem_idr_link_proven") is True,
+            "public_link_symbols_verified": [
+                str(x)[:80] for x in
+                (raw_image_raw.get("public_link_symbols_verified") or [])[:16]
+            ],
+            "public_link_symbols_missing": [
+                str(x)[:80] for x in
+                (raw_image_raw.get("public_link_symbols_missing") or [])[:16]
+            ],
+            "all_previous_unresolved_symbols_restored":
+                raw_image_raw.get("all_previous_unresolved_symbols_restored") is True,
+            "attempted": raw_image_raw.get("attempted") is True,
+            "exit_code": raw_image_raw.get("exit_code"),
+            "timed_out": raw_image_raw.get("timed_out") is True,
+            "raw_image_created": raw_image_raw.get("raw_image_created") is True,
+            "raw_image_bytes": raw_image_raw.get("raw_image_bytes"),
+            "raw_arm64_magic_hex":
+                str(raw_image_raw.get("raw_arm64_magic_hex") or "")[:8],
+            "raw_arm64_header_valid":
+                raw_image_raw.get("raw_arm64_header_valid") is True,
+            "raw_image_sha256":
+                str(raw_image_raw.get("raw_image_sha256") or "")[:64],
+            "image_artifact_uploaded": False,
+            "packaged_boot_image_generated": False,
+            "flash_performed": False,
+            "remaining_rejected_files":
+                raw_image_raw.get("remaining_rejected_files"),
+            "rt_semantic_review_complete": False,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+            "first_compiler_errors": bounded_lines(
+                raw_image_raw.get("first_compiler_errors"), 20
+            ),
+            "first_failure_context": bounded_lines(
+                raw_image_raw.get("first_failure_context"), 24
+            ),
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -737,6 +787,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "arm64_neon_rt_kconfig_port": arm64_neon,
         "vmlinux_integration_diagnostic": link,
         "rwsem_idr_rt_link_repair": rt_link_apis,
+        "raw_arm64_image_diagnostic": raw_image,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
