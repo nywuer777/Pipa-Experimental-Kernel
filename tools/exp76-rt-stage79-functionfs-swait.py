@@ -72,7 +72,7 @@ def prepare(tree: Path) -> tuple[str, dict]:
     exactly(body, OLD, 1, "Completion check inside ffs_data_put")
     exactly(body, "\t\tffs_data_clear(ffs);\n", 1, "FunctionFS cleanup sequence")
     exactly(body, "\t\tkfree(ffs);\n", 1, "FunctionFS final free")
-    exactly(source, "init_completion(&ffs->ep0req_completion);", 1,
+    exactly(source, "\tinit_completion(&ffs->ep0req_completion);\n", 1,
             "FunctionFS completion initialisation")
     exactly(source, "wait_for_completion_interruptible(&ffs->ep0req_completion)", 1,
             "FunctionFS completion waiter")
