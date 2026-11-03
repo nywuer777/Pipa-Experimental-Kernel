@@ -49,6 +49,7 @@ def main() -> None:
         assert empty["crypto_subtree_diagnostic"] is None
         assert empty["drivers_subtree_diagnostic"] is None
         assert empty["compile_h_preflight_diagnostic"] is None
+        assert empty["functionfs_rt_swait_status"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -354,6 +355,21 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(artifact / "exp76-rt-report" / "stage79" / "stage79-status.json", {
+            "stage": "EXP76_STAGE79_FUNCTIONFS_RT_COMPLETION_SWAIT_NONFLASH",
+            "target": "drivers/usb/gadget/function/f_fs.c",
+            "applied": True,
+            "rt_completion_swait_used": True,
+            "nonrt_waitqueue_preserved": True,
+            "normal_waitqueue_checks_preserved": True,
+            "completion_lifecycle_preserved": True,
+            "remaining_rejected_files": 64,
+            "original_sha256": "a" * 64,
+            "patched_sha256": "b" * 64,
+            "full_kernel_link_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -533,6 +549,17 @@ def main() -> None:
         assert version["init_version_object_created"] is False
         assert version["errors_excerpt"][0].endswith("fixture-only version error")
         assert not version["kernel_built"] and not version["flash_ready"]
+        functionfs = failed["functionfs_rt_swait_status"]
+        assert functionfs["target"] == "drivers/usb/gadget/function/f_fs.c"
+        assert functionfs["applied"] is True
+        assert functionfs["rt_completion_swait_used"] is True
+        assert functionfs["nonrt_waitqueue_preserved"] is True
+        assert functionfs["normal_waitqueue_checks_preserved"] is True
+        assert functionfs["completion_lifecycle_preserved"] is True
+        assert functionfs["remaining_rejected_files"] == 64
+        assert functionfs["original_sha256"] == "a" * 64
+        assert functionfs["patched_sha256"] == "b" * 64
+        assert not functionfs["kernel_built"] and not functionfs["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

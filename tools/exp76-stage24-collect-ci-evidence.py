@@ -454,6 +454,31 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    functionfs = read_json(
+        artifact / "exp76-rt-report" / "stage79" / "stage79-status.json"
+    )
+    functionfs_rt = None
+    if functionfs is not None:
+        functionfs_rt = {
+            "stage": str(functionfs.get("stage") or "")[:120],
+            "target": str(functionfs.get("target") or "")[:160],
+            "applied": functionfs.get("applied") is True,
+            "rt_completion_swait_used":
+                functionfs.get("rt_completion_swait_used") is True,
+            "nonrt_waitqueue_preserved":
+                functionfs.get("nonrt_waitqueue_preserved") is True,
+            "normal_waitqueue_checks_preserved":
+                functionfs.get("normal_waitqueue_checks_preserved") is True,
+            "completion_lifecycle_preserved":
+                functionfs.get("completion_lifecycle_preserved") is True,
+            "remaining_rejected_files": functionfs.get("remaining_rejected_files"),
+            "original_sha256": str(functionfs.get("original_sha256") or "")[:64],
+            "patched_sha256": str(functionfs.get("patched_sha256") or "")[:64],
+            "full_kernel_link_performed":
+                functionfs.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -492,6 +517,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "crypto_subtree_diagnostic": crypto_subtree,
         "drivers_subtree_diagnostic": drivers_subtree,
         "compile_h_preflight_diagnostic": stage77_compile_h,
+        "functionfs_rt_swait_status": functionfs_rt,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

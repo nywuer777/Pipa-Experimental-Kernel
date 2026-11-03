@@ -95,6 +95,8 @@ on:
       - 'tests/test_exp76_stage76_drivers_subtree.py'
       - 'tools/exp76-stage77-compile-h-preflight.py'
       - 'tests/test_exp76_stage77_compile_h_preflight.py'
+      - 'tools/exp76-rt-stage79-functionfs-swait.py'
+      - 'tests/test_exp76_stage79_functionfs_swait.py'
   workflow_dispatch:
 
 permissions:
@@ -206,6 +208,8 @@ jobs:
           python3 tests/test_exp76_stage76_drivers_subtree.py
           python3 -m py_compile tools/exp76-stage77-compile-h-preflight.py
           python3 tests/test_exp76_stage77_compile_h_preflight.py
+          python3 -m py_compile tools/exp76-rt-stage79-functionfs-swait.py
+          python3 tests/test_exp76_stage79_functionfs_swait.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -503,6 +507,29 @@ jobs:
           assert s['remaining_rejected_files'] == 64
           assert not s['full_kernel_link_performed'] and not s['flash_ready']
           print('EXP76_STAGE77_KBUILD_GENERATED_COMPILE_H=PASS; FLASH_READY=false')
+          PY
+
+      - name: Fix FunctionFS completion swait ABI for PREEMPT_RT (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-rt-report/stage79 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('exp76-rt-report/stage79/stage79-status.json')
+          status = json.loads(p.read_text())
+          assert status['applied'] is True
+          assert status['rt_completion_swait_used'] is True
+          assert status['nonrt_waitqueue_preserved'] is True
+          assert status['normal_waitqueue_checks_preserved'] is True
+          assert status['completion_lifecycle_preserved'] is True
+          assert status['remaining_rejected_files'] == 64
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE79_RT_FUNCTIONFS_SWAIT=APPLIED; FLASH_READY=false')
           PY
 
       - name: Diagnose full drivers subtree after verified CRYPTO gate (NONFLASH)
@@ -928,6 +955,17 @@ jobs:
               if stage77_errors:
                   lines += ['', 'First compile.h Kbuild errors:', '']
                   lines += ['    ' + str(err)[:320] for err in stage77_errors]
+          stage79_path = Path('exp76-rt-report/stage79/stage79-status.json')
+          if stage79_path.is_file():
+              stage79 = json.loads(stage79_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage79 FunctionFS RT completion swait ABI (NONFLASH)', '']
+              lines += [
+                  f"Patch applied: {stage79.get('applied')}",
+                  f"RT completion uses swait_active: {stage79.get('rt_completion_swait_used')}",
+                  f"Non-RT waitqueue preserved: {stage79.get('nonrt_waitqueue_preserved')}",
+                  f"Normal waitqueues preserved: {stage79.get('normal_waitqueue_checks_preserved')}",
+                  f"RT rejects unchanged: {stage79.get('remaining_rejected_files')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -986,6 +1024,7 @@ jobs:
             exp76-rt-report/stage63/
             exp76-rt-report/stage64/
             exp76-rt-report/stage74/
+            exp76-rt-report/stage79/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30
