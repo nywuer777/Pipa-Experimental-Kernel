@@ -376,6 +376,43 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    drivers_archive = read_json(
+        artifact / "exp76-stage76-report" / "DRIVERS_SUBTREE_DIAGNOSTIC.json"
+    )
+    drivers_subtree = None
+    if drivers_archive is not None:
+        drivers_subtree = {
+            "stage": str(drivers_archive.get("stage") or "")[:120],
+            "target": str(drivers_archive.get("target") or "")[:80],
+            "top_level_directory_scope":
+                str(drivers_archive.get("top_level_directory_scope") or "")[:80],
+            "prior_crypto_subtree_gate":
+                drivers_archive.get("prior_crypto_subtree_gate") is True,
+            "attempted": drivers_archive.get("attempted") is True,
+            "exit_code": drivers_archive.get("exit_code"),
+            "timed_out": drivers_archive.get("timed_out") is True,
+            "archive_created": drivers_archive.get("archive_created") is True,
+            "archive_has_members": drivers_archive.get("archive_has_members") is True,
+            "archive_bytes": drivers_archive.get("archive_bytes"),
+            "archive_inspection_exit_code":
+                drivers_archive.get("archive_inspection_exit_code"),
+            "archive_members_count": drivers_archive.get("archive_members_count"),
+            "archive_members_sample": [
+                str(x)[:150] for x in
+                (drivers_archive.get("archive_members_sample") or [])[:24]
+            ],
+            "errors_excerpt":
+                bounded_lines(drivers_archive.get("errors_excerpt"), 25),
+            "first_error_context": bounded_lines(
+                drivers_archive.get("first_error_context"), 24
+            ),
+            "remaining_rejected_files":
+                drivers_archive.get("remaining_rejected_files"),
+            "full_kernel_link_performed":
+                drivers_archive.get("full_kernel_link_performed") is True,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -412,6 +449,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "net_subtree_diagnostic": net_subtree,
         "lib_subtree_diagnostic": lib_subtree,
         "crypto_subtree_diagnostic": crypto_subtree,
+        "drivers_subtree_diagnostic": drivers_subtree,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

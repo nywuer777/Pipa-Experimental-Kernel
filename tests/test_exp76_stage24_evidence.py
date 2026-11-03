@@ -47,6 +47,7 @@ def main() -> None:
         assert empty["net_subtree_diagnostic"] is None
         assert empty["lib_subtree_diagnostic"] is None
         assert empty["crypto_subtree_diagnostic"] is None
+        assert empty["drivers_subtree_diagnostic"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -300,6 +301,31 @@ def main() -> None:
                 "flash_ready": False,
             },
         )
+        put(
+            artifact / "exp76-stage76-report" / "DRIVERS_SUBTREE_DIAGNOSTIC.json", {
+                "stage": "EXP76_STAGE76_DRIVERS_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+                "target": "drivers/built-in.a",
+                "top_level_directory_scope": "vmlinux-dirs=drivers",
+                "prior_crypto_subtree_gate": True,
+                "attempted": True,
+                "exit_code": 2,
+                "timed_out": False,
+                "archive_created": False,
+                "archive_has_members": False,
+                "archive_bytes": 0,
+                "archive_inspection_exit_code": None,
+                "archive_members_count": 0,
+                "archive_members_sample": [],
+                "errors_excerpt": ["drivers/base/core.c:42: error: fixture-only driver error"],
+                "first_error_context": [
+                    "drivers/base/core.c:42: error: fixture-only driver error"
+                ],
+                "remaining_rejected_files": 64,
+                "full_kernel_link_performed": False,
+                "kernel_built": False,
+                "flash_ready": False,
+            },
+        )
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -453,6 +479,17 @@ def main() -> None:
         assert crypto["archive_members_sample"] == []
         assert crypto["errors_excerpt"][0].endswith("fixture-only crypto error")
         assert not crypto["kernel_built"] and not crypto["flash_ready"]
+        drivers = failed["drivers_subtree_diagnostic"]
+        assert drivers["target"] == "drivers/built-in.a"
+        assert drivers["top_level_directory_scope"] == "vmlinux-dirs=drivers"
+        assert drivers["prior_crypto_subtree_gate"] is True
+        assert drivers["archive_created"] is False
+        assert drivers["archive_has_members"] is False
+        assert drivers["archive_inspection_exit_code"] is None
+        assert drivers["archive_members_count"] == 0
+        assert drivers["archive_members_sample"] == []
+        assert drivers["errors_excerpt"][0].endswith("fixture-only driver error")
+        assert not drivers["kernel_built"] and not drivers["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
