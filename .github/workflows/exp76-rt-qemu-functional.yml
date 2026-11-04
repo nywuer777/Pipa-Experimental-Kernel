@@ -100,22 +100,31 @@ jobs:
             exit 1
           }
           test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
-          # Pin a CI-only omission of missing optional KernelSU source.
-          # This is NOT the unmodified target PIPA build; do not qualify handoff.
-          KSU_KCONFIG=exp76-trial-overlay/drivers/Kconfig
-          if [ ! -f exp76-trial-overlay/drivers/kernelsu/Kconfig ]; then
-            grep -Fxq 'source "drivers/kernelsu/Kconfig"' "$KSU_KCONFIG"
-            grep -qx 'CONFIG_KSU=y' \
-              exp76-trial-overlay/arch/arm64/configs/vendor/pipa_defconfig
-            sed -i '/^source "drivers\/kernelsu\/Kconfig"$/d' "$KSU_KCONFIG"
-            test "$(grep -Fc 'source "drivers/kernelsu/Kconfig"' "$KSU_KCONFIG" || true)" = 0
-            {
-              echo 'QEMU_KCONFIG_KERNELSU_EXTERNAL_SOURCE_MISSING=true'
-              echo 'QEMU_KCONFIG_KERNELSU_BYPASS_APPLIED=true'
-              echo 'PIPA_BUILD_IS_UNMODIFIED_TARGET=false'
-              echo 'RT_HANDOFF_READY=false'
-            } > exp76-qemu/reports/ksu-source-bypass.txt
-          fi
+          # Restore the pinned KernelSU gitlink; drivers/kernelsu is a
+          # symlink to ../KernelSU/kernel. Do not delete a required source.
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-missing-sources.json
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-qemu/logs/ksu-submodule-init.log 2>&1 || {
+              cat exp76-qemu/logs/ksu-submodule-init.log
+              echo 'BLOCKED_SUBMODULE_KERNELSU'; exit 2;
+            }
+          git -C exp76-trial-overlay submodule status \
+            > exp76-qemu/reports/ksu-gitlink-status.txt
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig || {
+            echo 'BLOCKED_KCONFIG_KERNELSU_UNRESOLVED'; exit 2;
+          }
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-after-submodule.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/e404-kconfig-after-submodule.json').read_text())
+          print('KCONFIG_MISSING_AFTER_SUBMODULE=', d['missing_source_paths_count'])
+          assert 'drivers/kernelsu/Kconfig' not in d['missing_source_paths']
+          PY
           python3 tools/exp76-stage82-rt-reject-inventory.py \
             --tree exp76-trial-overlay \
             --manifest exp76-rt-report/overlay/rejected-paths.txt \
@@ -180,11 +189,6 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
             olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
-          if [ -f exp76-qemu/reports/ksu-source-bypass.txt ]; then
-            ! grep -qx 'CONFIG_KSU=y' "$BASE/pipa-rt/.config" || {
-              echo 'FAIL: stale KernelSU feature enabled without source'; exit 1;
-            }
-          fi
           cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
           "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
             -e MODULES -e MODULE_UNLOAD -e ARM_AMBA \
