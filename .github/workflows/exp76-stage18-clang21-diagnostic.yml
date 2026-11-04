@@ -246,7 +246,7 @@ jobs:
           python3 tests/test_exp76_stage79_functionfs_swait.py
           python3 -m py_compile tools/exp76-stage81-block-init-subtrees.py
           python3 tests/test_exp76_stage81_block_init_subtrees.py
-          python3 -m py_compile tools/exp76-stage82-rt-reject-inventory.py
+          python3 -W error::SyntaxWarning -m py_compile tools/exp76-stage82-rt-reject-inventory.py
           python3 tests/test_exp76_stage82_rt_reject_inventory.py
           python3 -m py_compile tools/exp76-rt-stage83-arm64-neon-crypto.py
           python3 tests/test_exp76_stage83_arm64_neon_crypto.py
