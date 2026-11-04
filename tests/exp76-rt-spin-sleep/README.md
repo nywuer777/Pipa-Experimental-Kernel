@@ -1,45 +1,83 @@
-# EXP76 QEMU RT spin-sleep probe (NOFLASH)
+# EXP76 QEMU RT spinlock gate V3 (NOFLASH)
 
-The pinned E404 arch/arm64/configs/vendor/pipa_defconfig has
-# CONFIG_MODULES is not set (line 726), # CONFIG_SERIAL_AMBA_PL011 is not set
-(line 2311), # CONFIG_DEVTMPFS is not set (line 1487), and
-# CONFIG_VIRTIO_MENU is not set (line 4155). This is a QEMU-only probe,
-not for the pipa. A guest-specific kernel config, Image, and initramfs
-are prerequisites; enabling modules alone is insufficient for QEMU boot.
+Scope: ARM64 E404-derived kernel with CONFIG_PREEMPT_RT_FULL=y and a
+separate QEMU-only configuration. Never run the probe on the pipa/tablet.
 
-Prepare isolated QEMU config after defconfig:
+## Input constraints
 
-    scripts/config --file "$OUT/.config" -e MODULES -e MODULE_UNLOAD -e PREEMPT_RT_FULL
-    make O="$OUT" ARCH=arm64 CC=clang LD=ld.lld olddefconfig
-    grep -E '^CONFIG_(MODULES|MODULE_UNLOAD|PREEMPT_RT_FULL)=' "$OUT/.config"
+The pinned E404 vendor/pipa_defconfig has CONFIG_MODULES=n (line 726),
+SERIAL_AMBA_PL011=n (line 2311), DEVTMPFS=n (line 1487) and
+VIRTIO_MENU=n (line 4155). The QEMU config enables those guests-only
+features; the effective PIPA RT build remains separate.
 
-Build the module with pinned Clang 21 and matching prepared E404 tree:
+The checked-in rt-critical-configs.txt is the **exhaustive minimum**
+set of RT-critical differences prohibited between generated configs.
+check-config-diff.py reads that file (not an internal hardcoded list)
+and produces QEMU_RT_PIPA_DIFF.json; any critical delta fails.
 
-    make -C "$KERNEL" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
-      CROSS_COMPILE=aarch64-linux-gnu- \
-      M="$PWD/tests/exp76-rt-spin-sleep" modules
+## QEMU orchestration
 
-Copy the .ko and exact effective kernel .config into a disposable ARM64 QEMU
-guest initramfs. As root inside the guest:
+Reusable workflow: .github/workflows/exp76-rt-qemu-functional.yml.
+Caller: .github/workflows/exp76-rt-provenance-network-probe.yml.
 
-    ./run-in-guest.sh ./exp76_rt_spin_sleep.ko ./effective.config
+The workflow reconstructs the pinned E404+EXP76 RT source, applies
+known source ports, generates three effective configs and attempts
+three Image builds:
+- PIPA_RT: effective vendor/pipa_defconfig with PREEMPT_RT_FULL=y
+- QEMU_RT: derived effective PIPA_RT config plus guest drivers and modules
+- QEMU_NONRT: same guest configuration with PREEMPT_RT_FULL=n
 
-PASS requires PREEMPT_RT_FULL=y, MODULES=y, MODULE_UNLOAD=y; insmod succeeds;
-T1 holds spinlock_t and signals T1_HELD; T2 records its attempt timestamp
-and signals T2_ATTEMPT; T1 sleeps 40ms under the lock before T1_RELEASED;
-T2 must observe T1 release on acquiring the lock AND wait >= 30,000us.
-T1 must be preemptible with IRQs enabled and sleep >= 30,000us.
-The script requires fresh BEGIN, T1_HELD, T2_ATTEMPT, T1_RELEASED,
-CONTENTION_PASS, and PASS markers, with readable dmesg and no BUG/WARNING.
-Host-side QEMU must enforce a timeout around insmod, including deadlock cases.
+It compiles exp76_rt_spin_sleep.ko separately for QEMU_RT and QEMU_NONRT,
+packs each and the matching effective .config in a minimal BusyBox
+initramfs, and runs QEMU-system-aarch64 virt with a 60-second outer
+timeout. This is a dedicated qualification job, not a flash artifact.
 
-The module refuses to run on non-RT kernels. Test_id:
-EXP76_RT_SPIN_SLEEP_QEMU_V2. A passing run demonstrates schedulability
-and measured serialization of spinlock_t for this test, not independent
-proof of rt_mutex internals, priority inheritance, RCU, or all scheduling
-interleavings. A no-op could theoretically appear to wait if T2 is
-involuntarily descheduled for >=30ms; a kernel-trace/negative lock
-injection test is still required before claiming exhaustive no-op immunity.
+## Probe negative control
 
-Not executed: vendor baseline has MODULES=n and no QEMU build or guest
-exists in the local environment. FLASH_READY=false.
+The C module has module_param_named(noop_mode,..., bool,0444). In
+normal mode it uses the real spin_lock/spin_unlock. In noop mode both
+are bypassed and an extra completion guarantees that T2 snapshots
+T1_RELEASING=false before T1 is allowed to release; noop negative
+must therefore fail with FAIL_SERIALIZATION_EARLY. The negative is
+not accepted as success merely because 40 ms elapsed.
+
+After successful insmod in normal mode, two kthreads establish
+T1_HELD, T2_ATTEMPT and T1_RELEASED; T1 sleeps for 40 ms while
+holding spinlock_t. T2's lock acquisition must observe release and
+wait at least 30,000 microseconds. Both measurements are checked
+in the module **and** in the serial log verifier.
+
+Test identifier: EXP76_RT_SPIN_SLEEP_QEMU_V3.
+
+## Gate invocation
+
+Inside QEMU (BusyBox ash, running as root):
+
+    /bin/sh /probe/gate.sh execute normal /probe/rt.ko /config/rt.config /tmp/normal
+    /bin/sh /probe/gate.sh execute noop /probe/rt.ko /config/rt.config /tmp/noop
+    /bin/sh /probe/gate.sh execute nonrt /probe/nonrt.ko /config/nonrt.config /tmp/nonrt
+
+On Ubuntu/host (Bash; accepts serial log from a filename or stdin):
+
+    bash tests/exp76-rt-spin-sleep/run-in-guest.sh verify normal RT.config console.log
+    cat console.log | bash tests/exp76-rt-spin-sleep/run-in-guest.sh verify normal RT.config -
+
+Exit codes: 0 = expected result PASS, 1 = failed assertion,
+2 = BLOCKED_ENV (including unreadable or truncated dmesg),
+3 = BLOCKED_CONFIG. noop success means **the expected injected
+FAIL_SERIALIZATION was observed**, not that the noop spinlock worked.
+
+## Evidence and remaining uncertainty
+
+An actual QEMU PASS requires host and guest markers, guest dmesg,
+two compiled raw Images with SHA256/config hash, the external .ko,
+E404 base SHA, pinned Clang 21 SHA and QEMU_RT_PIPA_DIFF=PASS.
+
+This probe demonstrates spinlock_t schedulability and serialized
+acquisition under one controlled interleaving. It does NOT prove
+the internal rt_mutex representation, priority inheritance, every
+interleaving, RCU correctness or an Android device boot.
+
+Source and workflow files committed != QEMU success. The CI
+qualification run is the authority for real guest evidence.
+RT_HANDOFF_READY=false, FLASH_READY=false.
