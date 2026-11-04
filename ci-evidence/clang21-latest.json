@@ -149,7 +149,7 @@
       "UTS_MACHINE",
       "UTS_VERSION"
     ],
-    "compile_h_sha256": "648f1ab0129f584bf961d2e2917b7ed49182f9579b99b27308077376006b5d45",
+    "compile_h_sha256": "ac5761de6183a30fcefb1301d69c0c1e37b572f6be803985d0726db3a96d40fc",
     "compile_h_uts_machine": "\"aarch64\"",
     "errors_excerpt": [],
     "exit_code": 0,
@@ -604,10 +604,10 @@
       "  CC      kernel/tsacct.o",
       "  CC      kernel/irq_work.o",
       "  CC      kernel/cpu_pm.o",
+      "  CC      kernel/jump_label.o",
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
       "   94 |         struct llist_head *list;",
       "      |                            ^~~~",
-      "  CC      kernel/jump_label.o",
       "1 warning generated.",
       "  CC      kernel/iomem.o",
       "  UPD     kernel/config_data.h",
@@ -692,6 +692,55 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=lib"
   },
+  "migration_link_contract": {
+    "arm64_stage86_image_link_verified": true,
+    "cpu_hotplug_callers_verified": 2,
+    "cpu_hotplug_runtime_verified": false,
+    "cross_file_source_contract_count": 14,
+    "cross_file_source_contracts_verified": [
+      "saved_affinity_field",
+      "runqueue_nr_pinned_field",
+      "cpu_nr_pinned_declaration",
+      "deferred_affinity_requested_mask",
+      "restore_saved_affinity",
+      "pin_to_current_cpu_mask",
+      "nested_pin_increment",
+      "nested_pin_decrement",
+      "asynchronous_cpu_stopper",
+      "asynchronous_completion_guard",
+      "asynchronous_worker_disable_guard",
+      "hotplug_wakeup",
+      "lazy_preempt_disable",
+      "lazy_preempt_enable"
+    ],
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "migration_runtime_semantics_verified": false,
+    "original_rejects_retained": true,
+    "rcu_runtime_verified": false,
+    "remaining_rejected_files": 64,
+    "smp_preempt_rt_full_config_verified": true,
+    "source_sha256": {
+      "include/linux/cpu.h": "28c2e462ccd7084284d1637a434345c27e0bddcc5388bb96ffddb540457f2d27",
+      "include/linux/sched.h": "5fccf99906173d366b3ac54780c82ccd24ca2131d800997354de1b4181c9176f",
+      "kernel/cpu.c": "584a27995431dbe52e91ab10b5937571a586f688378875b17de19f55c5ca0b0c",
+      "kernel/sched/core.c": "15912b32829885aece36b04222b8e00a46f3518bf383b7e6163d29cdc089c92c",
+      "kernel/sched/sched.h": "f3d07afd61901a52ffedbf59cdcea67d6e4368b3d0c3acec23c23914245435cf"
+    },
+    "source_stage41_applied": true,
+    "stage": "EXP76_STAGE92_RT_MIGRATION_ABI_SYMBOL_CROSSCHECK_NONFLASH",
+    "system_map_sha256": "8094c58b16a2577df6cbe3e19c333e6e045b6a0c2a8cfb79504bcca829ef93e2",
+    "system_map_symbols_missing": [],
+    "system_map_symbols_present": [
+      "migrate_disable",
+      "migrate_enable",
+      "cpu_nr_pinned"
+    ],
+    "vendor_embedded_cpus_allowed_preserved": true,
+    "verification_scope": "SOURCE_AND_LINK_ONLY",
+    "vmlinux_elf_sha256": "ae1b749ecec8d84482da6a4d0d52ccba1f5e1ddc442a80a78ebf2af2daabb100"
+  },
   "mm_subtree_diagnostic": {
     "archive_bytes": 4620,
     "archive_created": true,
@@ -770,14 +819,14 @@
     "first_error_context": [
       "  CC      net/wireless/nl80211.o",
       "  CC      net/xfrm/xfrm_interface.o",
-      "  CC      net/wireless/mlme.o",
       "  CC      net/socket.o",
+      "  CC      net/compat.o",
+      "  CC      net/wireless/mlme.o",
+      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/ibss.o",
       "  CC      net/wireless/sme.o",
-      "  CC      net/compat.o",
       "  CC      net/wireless/chan.o",
       "  CC      net/wireless/ethtool.o",
-      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/mesh.o",
       "  CC      net/wireless/ap.o",
       "  CC      net/wireless/ocb.o",
@@ -901,7 +950,7 @@
     "raw_image_bytes": 29212696,
     "raw_image_created": true,
     "raw_image_path": "arch/arm64/boot/Image",
-    "raw_image_sha256": "2cf8eff92544269cc709cc7e9bc563374b96da133a888299be368a7cd2de0fd7",
+    "raw_image_sha256": "5f2e3b969ed8bc123825332c4a8aa25b4c03b9ee5c3fbd974eec9dcbad0beaa8",
     "remaining_rejected_files": 64,
     "rt_semantic_review_complete": false,
     "runtime_verified": false,
@@ -1424,7 +1473,7 @@
     "effective_uts_version_verified": true,
     "flash_ready": false,
     "generated_compiler_metadata_present": true,
-    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 08:39:40 UTC 2026",
+    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 09:08:06 UTC 2026",
     "kernel_built": false,
     "kernel_sys_uname_modified": false,
     "original_rejects_retained": true,
@@ -1440,8 +1489,8 @@
     "uts_release_modified": false,
     "vendor_cc_version_and_ld_abi_preserved": true
   },
-  "run_id": 41798472320,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41798472320",
+  "run_id": 41803052922,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41803052922",
   "rwsem_idr_rt_link_repair": {
     "applied": true,
     "files_patched": [
@@ -1514,7 +1563,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=security"
   },
-  "source_sha": "a873e1d68ce2bfdb68e0994d328d773cdb96d040",
+  "source_sha": "418053ea290aa176b4a9929bae6d5a56d2fbca54",
   "stages": {
     "stage19": {
       "applied": true,
