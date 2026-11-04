@@ -83,6 +83,13 @@ verify() {
             fail "normal has FAIL marker"
         grep -Eq 'EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=[0-9]+ release_seen=1' "$temp/probe" ||
             fail "malformed contention proof"
+        wait_us="$(sed -n 's/.*EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=\([0-9][0-9]*\) release_seen=1.*/\1/p' "$temp/probe")"
+        sleep_us="$(sed -n 's/.*EXP76_RT_SPIN_SLEEP PASS elapsed_us=\([0-9][0-9]*\) wait_us=.*/\1/p' "$temp/probe")"
+        case "$wait_us:$sleep_us" in
+            *[!0-9:]*|:*|*:) fail "invalid measured timings" ;;
+        esac
+        [ "$wait_us" -ge 30000 ] && [ "$sleep_us" -ge 30000 ] ||
+            fail "timing insufficient: wait_us=$wait_us sleep_us=$sleep_us"
         echo 'QEMU_RT_SPINLOCK=PASS test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3'
     else
         [ "$rc" -ne 0 ] || fail "noop negative unexpectedly loaded"
