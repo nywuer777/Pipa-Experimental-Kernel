@@ -63,6 +63,7 @@ def main() -> None:
         assert empty["pid_atomic_rt_header_port"] is None
         assert empty["migration_link_contract"] is None
         assert empty["rcu_unified_link_contract"] is None
+        assert empty["zram_vendor_lock_abi_audit"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -744,6 +745,35 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage94-report" / "stage94-status.json", {
+            "stage": "EXP76_STAGE94_ZRAM_VENDOR_LOCK_ABI_REJECT_CLASSIFICATION_NONFLASH",
+            "source_sha256": {
+                "drivers/block/zram/zcomp.c": "a" * 64,
+            },
+            "pinned_rt_reject_sha256": {
+                "drivers/block/zram/zcomp.c": "b" * 64,
+            },
+            "vendor_zram_lock_invariants_checked": [
+                "vendor_stream_mutex_field", "vendor_stream_raw_cpu_ptr",
+            ],
+            "vendor_zram_lock_invariant_count": 19,
+            "reviewed_rejected_hunks": 11,
+            "reviewed_rejected_files": 4,
+            "classification": "OLD_RT_PATCH_INCOMPATIBLE_WITH_E404_VENDOR_LOCK_ABI",
+            "vendor_stream_mutex_and_liveness_retry_verified": True,
+            "vendor_stream_cpu_hotplug_serialization_verified": True,
+            "vendor_sleepable_zram_slot_bitlock_verified": True,
+            "vendor_multiple_compression_backends_preserved": True,
+            "source_changed": False,
+            "original_rejects_deleted": False,
+            "original_rejected_files_remaining": 64,
+            "rt_hunks_semantically_resolved": 0,
+            "rt_zram_concurrency_runtime_verified": False,
+            "rt_scheduler_rcu_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1129,6 +1159,26 @@ def main() -> None:
         assert not rcu["rcu_grace_period_runtime_verified"]
         assert not rcu["device_boot_verified"]
         assert not rcu["kernel_built"] and not rcu["flash_ready"]
+        zram = failed["zram_vendor_lock_abi_audit"]
+        assert zram["stage"] == "EXP76_STAGE94_ZRAM_VENDOR_LOCK_ABI_REJECT_CLASSIFICATION_NONFLASH"
+        assert zram["source_sha256"]["drivers/block/zram/zcomp.c"] == "a" * 64
+        assert zram["pinned_rt_reject_sha256"]["drivers/block/zram/zcomp.c"] == "b" * 64
+        assert zram["vendor_zram_lock_invariant_count"] == 19
+        assert zram["reviewed_rejected_hunks"] == 11
+        assert zram["reviewed_rejected_files"] == 4
+        assert zram["classification"] == "OLD_RT_PATCH_INCOMPATIBLE_WITH_E404_VENDOR_LOCK_ABI"
+        assert zram["vendor_stream_mutex_and_liveness_retry_verified"]
+        assert zram["vendor_stream_cpu_hotplug_serialization_verified"]
+        assert zram["vendor_sleepable_zram_slot_bitlock_verified"]
+        assert zram["vendor_multiple_compression_backends_preserved"]
+        assert zram["source_changed"] is False
+        assert zram["original_rejects_deleted"] is False
+        assert zram["original_rejected_files_remaining"] == 64
+        assert zram["rt_hunks_semantically_resolved"] == 0
+        assert not zram["rt_zram_concurrency_runtime_verified"]
+        assert not zram["rt_scheduler_rcu_runtime_verified"]
+        assert not zram["device_boot_verified"]
+        assert not zram["kernel_built"] and not zram["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

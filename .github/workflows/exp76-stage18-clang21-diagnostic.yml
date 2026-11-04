@@ -123,6 +123,8 @@ on:
       - 'tests/test_exp76_stage92_migration_link_contract.py'
       - 'tools/exp76-stage93-rcu-link-contract.py'
       - 'tests/test_exp76_stage93_rcu_link_contract.py'
+      - 'tools/exp76-stage94-zram-vendor-lock-audit.py'
+      - 'tests/test_exp76_stage94_zram_vendor_lock_audit.py'
   workflow_dispatch:
 
 permissions:
@@ -262,6 +264,8 @@ jobs:
           python3 tests/test_exp76_stage92_migration_link_contract.py
           python3 -m py_compile tools/exp76-stage93-rcu-link-contract.py
           python3 tests/test_exp76_stage93_rcu_link_contract.py
+          python3 -m py_compile tools/exp76-stage94-zram-vendor-lock-audit.py
+          python3 tests/test_exp76_stage94_zram_vendor_lock_audit.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -377,6 +381,38 @@ jobs:
               f"HUNKS={data['total_rejected_hunks']};" +
               'FLASH_READY=false'
           )
+          PY
+
+      - name: Audit old RT zram rejects against vendor E404 mutex and slot-lock ABI (READONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage94-zram-vendor-lock-audit.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-stage94-report
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(
+              Path('exp76-stage94-report/stage94-status.json').read_text()
+          )
+          assert status['reviewed_rejected_hunks'] == 11
+          assert status['reviewed_rejected_files'] == 4
+          assert status['vendor_zram_lock_invariant_count'] == 19
+          assert status['vendor_stream_mutex_and_liveness_retry_verified']
+          assert status['vendor_stream_cpu_hotplug_serialization_verified']
+          assert status['vendor_sleepable_zram_slot_bitlock_verified']
+          assert status['vendor_multiple_compression_backends_preserved']
+          assert status['classification'] == 'OLD_RT_PATCH_INCOMPATIBLE_WITH_E404_VENDOR_LOCK_ABI'
+          assert status['rt_hunks_semantically_resolved'] == 0
+          assert status['original_rejected_files_remaining'] == 64
+          assert status['source_changed'] is False
+          assert status['original_rejects_deleted'] is False
+          assert not status['rt_zram_concurrency_runtime_verified']
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE94_ZRAM_VENDOR_LOCK_ABI=REVIEWED_11_HUNKS;'
+                'ORIGINAL_REJECTS=64; RUNTIME_UNVERIFIED; NO_FLASH')
           PY
 
       - name: Verify KASAN quarantine vendor-equivalent RT spinlock hunks (READONLY)
@@ -1591,6 +1627,19 @@ jobs:
                   f"RCU runtime verified: {rcu.get('rt_rcu_runtime_semantics_verified')}",
                   f"Original rejects retained: {rcu.get('original_rejected_files_remaining')}",
               ]
+          stage94_path = Path('exp76-stage94-report/stage94-status.json')
+          if stage94_path.is_file():
+              zram = json.loads(stage94_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage94 vendor E404 zram RT lock ABI audit (READONLY)', '']
+              lines += [
+                  f"Original RT rejected hunks classified: {zram.get('reviewed_rejected_hunks')}",
+                  f"Original reject files reviewed: {zram.get('reviewed_rejected_files')}",
+                  f"Vendor stream mutex/hotplug verified: {zram.get('vendor_stream_cpu_hotplug_serialization_verified')}",
+                  f"Sleepable slot bit-lock verified: {zram.get('vendor_sleepable_zram_slot_bitlock_verified')}",
+                  f"Old RT patch classification: {zram.get('classification')}",
+                  f"RT runtime semantics resolved: {zram.get('rt_hunks_semantically_resolved')}",
+                  f"Unchanged reject count: {zram.get('original_rejected_files_remaining')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1622,6 +1671,7 @@ jobs:
             exp76-stage86-report/
             exp76-stage92-report/
             exp76-stage93-report/
+            exp76-stage94-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/

@@ -1014,6 +1014,57 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    zram_raw = read_json(
+        artifact / "exp76-stage94-report" / "stage94-status.json"
+    )
+    zram = None
+    if zram_raw is not None:
+        zram = {
+            "stage": str(zram_raw.get("stage") or "")[:140],
+            "source_sha256": {
+                str(path)[:160]: str(digest)[:64]
+                for path, digest in list(
+                    (zram_raw.get("source_sha256") or {}).items()
+                )[:10]
+            },
+            "pinned_rt_reject_sha256": {
+                str(path)[:160]: str(digest)[:64]
+                for path, digest in list(
+                    (zram_raw.get("pinned_rt_reject_sha256") or {}).items()
+                )[:10]
+            },
+            "vendor_zram_lock_invariants_checked": [
+                str(x)[:100] for x in
+                (zram_raw.get("vendor_zram_lock_invariants_checked") or [])[:30]
+            ],
+            "vendor_zram_lock_invariant_count":
+                zram_raw.get("vendor_zram_lock_invariant_count"),
+            "reviewed_rejected_hunks":
+                zram_raw.get("reviewed_rejected_hunks"),
+            "reviewed_rejected_files":
+                zram_raw.get("reviewed_rejected_files"),
+            "classification":
+                str(zram_raw.get("classification") or "")[:150],
+            "vendor_stream_mutex_and_liveness_retry_verified":
+                zram_raw.get("vendor_stream_mutex_and_liveness_retry_verified") is True,
+            "vendor_stream_cpu_hotplug_serialization_verified":
+                zram_raw.get("vendor_stream_cpu_hotplug_serialization_verified") is True,
+            "vendor_sleepable_zram_slot_bitlock_verified":
+                zram_raw.get("vendor_sleepable_zram_slot_bitlock_verified") is True,
+            "vendor_multiple_compression_backends_preserved":
+                zram_raw.get("vendor_multiple_compression_backends_preserved") is True,
+            "source_changed": zram_raw.get("source_changed") is True,
+            "original_rejects_deleted":
+                zram_raw.get("original_rejects_deleted") is True,
+            "original_rejected_files_remaining":
+                zram_raw.get("original_rejected_files_remaining"),
+            "rt_hunks_semantically_resolved": 0,
+            "rt_zram_concurrency_runtime_verified": False,
+            "rt_scheduler_rcu_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -1066,6 +1117,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "pid_atomic_rt_header_port": pid_atomic,
         "migration_link_contract": migration_link,
         "rcu_unified_link_contract": rcu_link,
+        "zram_vendor_lock_abi_audit": zram,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
