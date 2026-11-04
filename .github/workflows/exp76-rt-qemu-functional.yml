@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: exp76-qemu-rt-functional
+  group: exp76-qemu-rt-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -37,12 +37,26 @@ jobs:
           git diff --check
           echo 'EXP76_QEMU_STATIC_PREFLIGHT=PASS; QEMU_RUNTIME_NOT_YET_PROVEN'
 
+      - name: Cache downloaded Ubuntu 24.04 apt archives (not dpkg state)
+        uses: actions/cache@v4
+        with:
+          path: exp76-qemu/apt-archives
+          key: exp76-apt-${{ runner.os }}-${{ runner.arch }}-ubuntu2404-arm64qemu-v1
+
       - name: Install pinned dependencies, BusyBox static and ARM64 QEMU
         shell: bash
         run: |
           set -euo pipefail
+          APT_ARCHIVES="$GITHUB_WORKSPACE/exp76-qemu/apt-archives"
+          sudo mkdir -p "$APT_ARCHIVES/partial"
+          sudo chown -R _apt:root "$APT_ARCHIVES"
+          sudo chmod 755 "$APT_ARCHIVES"
+          sudo chmod 700 "$APT_ARCHIVES/partial"
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+          sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Dir::Cache::archives="$APT_ARCHIVES" \
+            -o APT::Keep-Downloaded-Packages=true \
+            install -y --no-install-recommends \
             git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
             gcc-aarch64-linux-gnu rsync device-tree-compiler \
             qemu-system-arm busybox-static cpio gzip xz-utils
