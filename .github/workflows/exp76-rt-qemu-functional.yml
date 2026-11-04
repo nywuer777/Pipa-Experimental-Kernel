@@ -47,6 +47,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Keep the parent and evidence directories owned by runner.
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+          mkdir -p exp76-qemu/apt-archives
           APT_ARCHIVES="$GITHUB_WORKSPACE/exp76-qemu/apt-archives"
           sudo mkdir -p "$APT_ARCHIVES/partial"
           sudo chown -R _apt:root "$APT_ARCHIVES"
