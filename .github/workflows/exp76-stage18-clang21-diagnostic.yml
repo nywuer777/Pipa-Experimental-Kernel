@@ -129,6 +129,8 @@ on:
       - 'tests/test_exp76_stage95_rcu_headers_audit.py'
       - 'tools/exp76-stage96-bootv3-budget.py'
       - 'tests/test_exp76_stage96_bootv3_budget.py'
+      - 'tools/exp76-stage97-rcu-tree-plugin-audit.py'
+      - 'tests/test_exp76_stage97_rcu_tree_plugin_audit.py'
   workflow_dispatch:
 
 permissions:
@@ -274,6 +276,8 @@ jobs:
           python3 tests/test_exp76_stage95_rcu_headers_audit.py
           python3 -m py_compile tools/exp76-stage96-bootv3-budget.py
           python3 tests/test_exp76_stage96_bootv3_budget.py
+          python3 -m py_compile tools/exp76-stage97-rcu-tree-plugin-audit.py
+          python3 tests/test_exp76_stage97_rcu_tree_plugin_audit.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -1119,6 +1123,41 @@ jobs:
                 'CANDIDATE_NOT_GENERATED; DEVICE_BOOT_UNVERIFIED; NO_FLASH')
           PY
 
+      - name: Audit pinned RT tree_plugin rejects against verified unified RCU source (READONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage97-rcu-tree-plugin-audit.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --stage93-report exp76-stage93-report/stage93-status.json \
+            --stage95-report exp76-stage95-report/stage95-status.json \
+            --report exp76-stage97-report
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(
+              Path('exp76-stage97-report/stage97-status.json').read_text()
+          )
+          assert status['original_rcu_plugin_rejected_hunks_pending'] == 11
+          assert status['unified_rcu_plugin_source_marker_count'] == 4
+          assert status['stage82_inventory_proven']
+          assert status['stage93_linked_exports_proven']
+          assert status['stage95_unified_headers_proven']
+          assert status['rcu_plugin_source_matches_stage93']
+          assert status['verification_scope'] == 'SOURCE_PROVENANCE_ONLY'
+          assert status['original_rejected_files_remaining'] == 64
+          assert status['rejected_hunks_semantically_resolved'] == 0
+          assert not status['source_modified']
+          assert not status['original_rejects_deleted']
+          assert not status['rt_rcu_runtime_semantics_verified']
+          assert not status['rcu_grace_period_runtime_verified']
+          assert not status['device_boot_verified']
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE97_RCU_PLUGIN=11_HUNKS_AUDITED; '
+                'SEMANTIC_RUNTIME_UNVERIFIED; NO_FLASH')
+          PY
+
       - name: Publish readable CI summary even when compiler fails
         if: always()
         shell: bash
@@ -1743,6 +1782,17 @@ jobs:
                   f"Boot partition size verified: {boot.get('boot_partition_capacity_verified')}",
                   f"Packaged boot image generated: {boot.get('boot_image_generated')}",
               ]
+          stage97_path = Path('exp76-stage97-report/stage97-status.json')
+          if stage97_path.is_file():
+              plugin = json.loads(stage97_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage97 RT RCU tree_plugin rejected-hunk provenance (READONLY)', '']
+              lines += [
+                  f"Original tree_plugin hunks pending: {plugin.get('original_rcu_plugin_rejected_hunks_pending')}",
+                  f"Stage93 linked RCU baseline proven: {plugin.get('stage93_linked_exports_proven')}",
+                  f"Plugin source unchanged since Stage93: {plugin.get('rcu_plugin_source_matches_stage93')}",
+                  f"RT RCU runtime verified: {plugin.get('rt_rcu_runtime_semantics_verified')}",
+                  f"Original rejects retained: {plugin.get('original_rejected_files_remaining')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1777,6 +1827,7 @@ jobs:
             exp76-stage94-report/
             exp76-stage95-report/
             exp76-stage96-report/
+            exp76-stage97-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/
