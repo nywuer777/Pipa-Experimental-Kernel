@@ -149,7 +149,7 @@
       "UTS_MACHINE",
       "UTS_VERSION"
     ],
-    "compile_h_sha256": "4656018a17e5921c8c7db93fca1a0106f1eefce94de554efd1a1743347e1e6a1",
+    "compile_h_sha256": "73f85ef2e9930c744d67582746798255b5bcdb0a3adc36cf7c1a241e3f42e5d7",
     "compile_h_uts_machine": "\"aarch64\"",
     "errors_excerpt": [],
     "exit_code": 0,
@@ -604,10 +604,10 @@
       "  CC      kernel/tsacct.o",
       "  CC      kernel/irq_work.o",
       "  CC      kernel/cpu_pm.o",
+      "  CC      kernel/jump_label.o",
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
       "   94 |         struct llist_head *list;",
       "      |                            ^~~~",
-      "  CC      kernel/jump_label.o",
       "1 warning generated.",
       "  CC      kernel/iomem.o",
       "  UPD     kernel/config_data.h",
@@ -739,7 +739,7 @@
     ],
     "vendor_embedded_cpus_allowed_preserved": true,
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "09917efbd104f411fb5c866fd25cb3cedb8de7ddeb0b1778bb0e863db0be5e9b"
+    "vmlinux_elf_sha256": "25768551aac99347a8b6a53b9a5d1cec5cbecd3dc390cf12badcdfe5b1b5730e"
   },
   "mm_subtree_diagnostic": {
     "archive_bytes": 4620,
@@ -819,17 +819,17 @@
     "first_error_context": [
       "  CC      net/xfrm/xfrm_interface.o",
       "  CC      net/wireless/nl80211.o",
+      "  CC      net/socket.o",
       "  CC      net/wireless/mlme.o",
+      "  CC      net/compat.o",
       "  CC      net/wireless/ibss.o",
+      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/sme.o",
       "  CC      net/wireless/chan.o",
-      "  CC      net/socket.o",
       "  CC      net/wireless/ethtool.o",
       "  CC      net/wireless/mesh.o",
       "  CC      net/wireless/ap.o",
-      "  CC      net/compat.o",
       "  CC      net/wireless/ocb.o",
-      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/of.o",
       "  CC      net/wireless/regdb.o",
       "  CC      net/wireless/shipped-certs.o",
@@ -950,7 +950,7 @@
     "raw_image_bytes": 29212696,
     "raw_image_created": true,
     "raw_image_path": "arch/arm64/boot/Image",
-    "raw_image_sha256": "b031c25cfb0205c27bf33a49f7c3f8dc12c60015a63d22f68717ec3ec2c67fa5",
+    "raw_image_sha256": "e5fe6c373c29a671f24f5b4e1f4ccc904d295870d43ff983efea1b5e14d286d8",
     "remaining_rejected_files": 64,
     "rt_semantic_review_complete": false,
     "runtime_verified": false,
@@ -1000,7 +1000,7 @@
       "non_rt_lockdep_export"
     ],
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "09917efbd104f411fb5c866fd25cb3cedb8de7ddeb0b1778bb0e863db0be5e9b"
+    "vmlinux_elf_sha256": "25768551aac99347a8b6a53b9a5d1cec5cbecd3dc390cf12badcdfe5b1b5730e"
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
   "rt_kconfig_guard_port": {
@@ -1517,7 +1517,7 @@
     "effective_uts_version_verified": true,
     "flash_ready": false,
     "generated_compiler_metadata_present": true,
-    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 11:20:18 UTC 2026",
+    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 11:55:53 UTC 2026",
     "kernel_built": false,
     "kernel_sys_uname_modified": false,
     "original_rejects_retained": true,
@@ -1533,8 +1533,8 @@
     "uts_release_modified": false,
     "vendor_cc_version_and_ld_abi_preserved": true
   },
-  "run_id": 41818639021,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41818639021",
+  "run_id": 41822958403,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41822958403",
   "rwsem_idr_rt_link_repair": {
     "applied": true,
     "files_patched": [
@@ -1583,8 +1583,8 @@
       "  CC      security/min_addr.o",
       "  CC      security/selinux/ss/ebitmap.o",
       "  CC      security/selinux/ss/hashtab.o",
-      "  CC      security/security.o",
       "  CC      security/selinux/ss/symtab.o",
+      "  CC      security/security.o",
       "  CC      security/selinux/ss/sidtab.o",
       "  CC      security/selinux/ss/avtab.o",
       "  CC      security/selinux/ss/policydb.o",
@@ -1607,7 +1607,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=security"
   },
-  "source_sha": "042a4395c5cb7092bd314dd6c0c087e306e01b81",
+  "source_sha": "514e55b7f559062f00c0ee5961392a3d82dd364e",
   "stages": {
     "stage19": {
       "applied": true,
@@ -1736,19 +1736,19 @@
     "exit_code": 0,
     "first_compiler_linker_errors": [],
     "first_failure_context": [
-      "  CC      techpack/display/rotator/sde_rotator_formats.o",
-      "  CC      techpack/display/rotator/sde_rotator_util.o",
-      "  CC      techpack/video/msm/vidc/msm_vidc_bus_iris2.o",
-      "  CC      techpack/display/rotator/sde_rotator_io_util.o",
-      "  CC      techpack/video/msm/vidc/msm_vidc_buffer_calculations.o",
-      "  CC      techpack/display/rotator/sde_rotator_smmu.o",
-      "  CC      techpack/display/rotator/sde_rotator_r1_wb.o",
-      "  CC      techpack/display/rotator/sde_rotator_r1_pipe.o",
-      "  CC      lib/radix-tree.o",
-      "  CC      techpack/display/rotator/sde_rotator_r1_ctl.o",
+      "  AS      arch/arm64/lib/memcpy.o",
+      "  AS      arch/arm64/lib/memset.o",
+      "  AS      arch/arm64/lib/strchr.o",
+      "  AS      arch/arm64/lib/strcmp.o",
+      "  AS      arch/arm64/lib/strlen.o",
+      "  AS      arch/arm64/lib/strncmp.o",
+      "  AS      arch/arm64/lib/strnlen.o",
+      "  AS      arch/arm64/lib/strrchr.o",
       "  CC      techpack/display/rotator/sde_rotator_r1.o",
+      "  AS      arch/arm64/lib/tishift.o",
       "  CC      techpack/display/rotator/sde_rotator_r3.o",
       "  CC      techpack/display/rotator/sde_rotator_sync.o",
+      "  CC      lib/radix-tree.o",
       "  GEN     .version",
       "  CHK     include/generated/compile.h",
       "  LD      vmlinux.o",
@@ -1772,5 +1772,58 @@
     "vmlinux_bytes": 36718616,
     "vmlinux_created": true,
     "vmlinux_elf_verified": true
+  },
+  "zram_vendor_lock_abi_audit": {
+    "classification": "OLD_RT_PATCH_INCOMPATIBLE_WITH_E404_VENDOR_LOCK_ABI",
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "original_rejected_files_remaining": 64,
+    "original_rejects_deleted": false,
+    "pinned_rt_reject_sha256": {
+      "drivers/block/zram/zcomp.c": "0ef1c8f2f98fbe193de0accb44c19bf597d935ca52af60091b24bf5bb1cf1332",
+      "drivers/block/zram/zcomp.h": "da7cb7ef3b0a88d874485181757209c1fac1f47fdeb7dba4321a2666144b72c3",
+      "drivers/block/zram/zram_drv.c": "9db66f8c2fcd065ee19a4aac3d85bf9e976704dd10ec4bddbf4ab13fd90906e7",
+      "drivers/block/zram/zram_drv.h": "551cad7e372b3337bbf99323c9b0eacd3b6bc9e7f6d71f5b271ff8739bc8dc26"
+    },
+    "reviewed_rejected_files": 4,
+    "reviewed_rejected_hunks": 11,
+    "rt_hunks_semantically_resolved": 0,
+    "rt_scheduler_rcu_runtime_verified": false,
+    "rt_zram_concurrency_runtime_verified": false,
+    "source_changed": false,
+    "source_sha256": {
+      "drivers/block/zram/zcomp.c": "62579325ab1f14ad6fc31ed6471d542fab937a7cdc3b9e2aadcd8879e05b1e0d",
+      "drivers/block/zram/zcomp.h": "6bdd2339cf91164e2b243ed1b93e0f3ef2f45efd1583bd682ed7d9a452259a28",
+      "drivers/block/zram/zram_drv.c": "dd01535244edd12609a8e7ec996c49d0ce69b16f3e4a1e7cbf9a4a2463e95a2f",
+      "drivers/block/zram/zram_drv.h": "82314e95108700e8ae86411ef00b6783246ee068c43372dcd4177accb96d0cc7"
+    },
+    "stage": "EXP76_STAGE94_ZRAM_VENDOR_LOCK_ABI_REJECT_CLASSIFICATION_NONFLASH",
+    "vendor_multiple_compression_backends_preserved": true,
+    "vendor_sleepable_zram_slot_bitlock_verified": true,
+    "vendor_stream_cpu_hotplug_serialization_verified": true,
+    "vendor_stream_mutex_and_liveness_retry_verified": true,
+    "vendor_zram_lock_invariant_count": 19,
+    "vendor_zram_lock_invariants_checked": [
+      "vendor_stream_mutex_field",
+      "vendor_stream_per_cpu_storage",
+      "vendor_stream_put_api",
+      "vendor_stream_raw_cpu_ptr",
+      "vendor_stream_mutex_acquire",
+      "vendor_stream_buffer_liveness_check",
+      "vendor_stream_mutex_retry_release",
+      "vendor_stream_hotplug_release",
+      "vendor_stream_hotplug_initialization",
+      "vendor_stream_hotplug_state_registration",
+      "vendor_stream_hotplug_state_removal",
+      "vendor_slot_flags",
+      "vendor_slot_lockdep_map",
+      "vendor_slot_trylock_bit",
+      "vendor_slot_sleepable_wait",
+      "vendor_slot_unlock_wakeup",
+      "vendor_slot_lockdep_registration",
+      "vendor_compression_multi_backend",
+      "vendor_stream_release_by_pointer"
+    ]
   }
 }
