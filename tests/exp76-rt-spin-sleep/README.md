@@ -1,7 +1,11 @@
 # EXP76 QEMU RT spin-sleep probe (NOFLASH)
 
 The pinned E404 arch/arm64/configs/vendor/pipa_defconfig has
-# CONFIG_MODULES is not set. This is a QEMU-only probe, not for the pipa.
+# CONFIG_MODULES is not set (line 726), # CONFIG_SERIAL_AMBA_PL011 is not set
+(line 2311), # CONFIG_DEVTMPFS is not set (line 1487), and
+# CONFIG_VIRTIO_MENU is not set (line 4155). This is a QEMU-only probe,
+not for the pipa. A guest-specific kernel config, Image, and initramfs
+are prerequisites; enabling modules alone is insufficient for QEMU boot.
 
 Prepare isolated QEMU config after defconfig:
 
