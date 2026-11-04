@@ -349,6 +349,74 @@ jobs:
           grep -q 'EXPECTED_BLOCKED_CONFIG=PASS' exp76-qemu/logs/qemu-nonrt-console.txt
           grep -q '^EXP76_QEMU_GUEST_RESULT=0' exp76-qemu/logs/qemu-nonrt-console.txt
 
+      - name: Re-verify captured serial artifacts offline and record each result
+        shell: bash
+        run: |
+          set -euo pipefail
+          GATE="tests/exp76-rt-spin-sleep/run-in-guest.sh"
+          RT_CFG="exp76-qemu/outputs/qemu-rt/.config"
+          NONRT_CFG="exp76-qemu/outputs/qemu-nonrt/.config"
+          RT_LOG="exp76-qemu/logs/qemu-rt-console.txt"
+          NONRT_LOG="exp76-qemu/logs/qemu-nonrt-console.txt"
+          sh "$GATE" verify normal "$RT_CFG" "$RT_LOG" \
+            > exp76-qemu/reports/host-normal-verify.txt
+          sh "$GATE" verify noop "$RT_CFG" "$RT_LOG" \
+            > exp76-qemu/reports/host-noop-verify.txt
+          sh "$GATE" verify nonrt "$NONRT_CFG" "$NONRT_LOG" \
+            > exp76-qemu/reports/host-nonrt-verify.txt
+          awk '/^EXP76_PROBE_LOG_BEGIN mode=normal$/ { copy=1 }
+               copy { print }
+               /^EXP76_PROBE_LOG_END mode=normal$/ { exit }' \
+            "$RT_LOG" | sed '$d' > exp76-qemu/logs/truncated-dmesg.txt
+          set +e
+          sh "$GATE" verify normal "$RT_CFG" \
+            exp76-qemu/logs/truncated-dmesg.txt \
+            > exp76-qemu/reports/host-truncated-verify.txt 2>&1
+          truncated_rc=$?
+          set -e
+          printf '%s\n' "$truncated_rc" > exp76-qemu/reports/truncated-verify-exit-code.txt
+          test "$truncated_rc" -eq 2
+          cp "$RT_LOG" exp76-qemu/logs/dmesg-rt.txt
+          cp "$NONRT_LOG" exp76-qemu/logs/dmesg-nonrt.txt
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          root = Path("exp76-qemu")
+          checks = [
+              ("normal", "host-normal-verify.txt", "QEMU_RT_SPINLOCK=PASS"),
+              ("noop", "host-noop-verify.txt", "EXPECTED_FAIL_SERIALIZATION=PASS"),
+              ("nonrt", "host-nonrt-verify.txt", "EXPECTED_BLOCKED_CONFIG=PASS"),
+          ]
+          entries = []
+          for name, path, needle in checks:
+              raw = (root / "reports" / path).read_text()
+              assert needle in raw, name
+              entries.append({"scenario": name, "verifier_exit_code": 0,
+                              "expected_output": needle, "observed": True})
+          assert (root / "reports/truncated-verify-exit-code.txt").read_text().strip() == "2"
+          entries.append({"scenario": "truncated-dmesg", "verifier_exit_code": 2,
+                          "expected_output": "BLOCKED_ENV", "observed": True})
+          manifest = {
+              "test_id": "EXP76_RT_SPIN_SLEEP_QEMU_V3",
+              "source_sha": os.environ["GITHUB_SHA"],
+              "e404_base": os.environ["E404_BASE"],
+              "toolchain_sha": os.environ["ANDROID_LLVM_COMMIT"],
+              "qemu_rt_config_sha256": hashlib.sha256(
+                  (root / "outputs/qemu-rt/.config").read_bytes()).hexdigest(),
+              "qemu_nonrt_config_sha256": hashlib.sha256(
+                  (root / "outputs/qemu-nonrt/.config").read_bytes()).hexdigest(),
+              "pipa_rt_config_sha256": hashlib.sha256(
+                  (root / "outputs/pipa-rt/.config").read_bytes()).hexdigest(),
+              "scenarios": entries,
+              "rt_handoff_ready": False, "flash_ready": False,
+          }
+          (root / "reports/qemu-scenario-results.json").write_text(
+              json.dumps(manifest, indent=2) + "\n")
+          print("EXP76_QEMU_FOUR_SCENARIOS=HOST_REVERIFIED")
+          PY
+
       - name: Emit reproducibility hashes and qualified scope
         shell: bash
         run: |
@@ -386,4 +454,5 @@ jobs:
             exp76-qemu/probe-qemu-nonrt/exp76_rt_spin_sleep.ko
             exp76-qemu/initramfs.cpio.gz
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 14
