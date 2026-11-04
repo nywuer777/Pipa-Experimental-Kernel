@@ -202,7 +202,7 @@ def main() -> None:
             obj = json.loads(bad_stage93[2].read_text())
             obj["linked_rcu_exports_missing"] = ["rcu_barrier"]
             put(bad_stage93[2], json.dumps(obj))
-            reject(lambda: run(bad_stage93), "linked RCU link contract")
+            reject(lambda: run(bad_stage93), "Stage93 unified RCU link contract")
 
             missing_rej = fixture(root / "reject-count")
             (missing_rej[0] / "legacy/other-00.rej").unlink()
