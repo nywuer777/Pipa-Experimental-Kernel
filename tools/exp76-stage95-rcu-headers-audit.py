@@ -197,7 +197,14 @@ def execute(tree: Path, inventory: Path, stage93_path: Path, report: Path) -> di
             raise ValueError("Stage95 old-flavor RCU ABI reintroduced: " + symbol)
     if "#ifdef CONFIG_RCU_BOOST" in source["kernel/rcu/tree.h"]:
         raise ValueError("Stage95 obsolete RCU_BOOST guard unexpectedly reintroduced")
-    if (source["kernel/rcu/rcu.h"].count("#ifdef CONFIG_TINY_RCU") != 1
+    # E404 has two real CONFIG_TINY_RCU sections: SRCU internals and
+    # unified GP/force-QS stubs.  Comments on #else/#endif mention the
+    # same token and must never count as opening directives.
+    tiny_directives = re.findall(
+        r"(?m)^\s*#\s*ifdef\s+CONFIG_TINY_RCU\s*$",
+        source["kernel/rcu/rcu.h"],
+    )
+    if (len(tiny_directives) != 2
             or source["kernel/rcu/tree.h"].count(
                 "static void rcu_cpu_kthread_setup(unsigned int cpu);"
             ) != 1):

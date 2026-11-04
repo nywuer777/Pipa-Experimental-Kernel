@@ -59,12 +59,17 @@ def fixture(root: Path) -> tuple[Path, Path, Path, Path]:
         })
     put(tree / "kernel/rcu/rcu.h", (
         "#ifdef CONFIG_TINY_RCU\n"
+        "static inline bool rcu_tiny_srcu_ready(void) { return true; }\n"
+        "#else /* #ifdef CONFIG_TINY_RCU */\n"
+        "bool rcu_tiny_srcu_ready(void);\n"
+        "#endif /* #else #ifdef CONFIG_TINY_RCU */\n"
+        "#ifdef CONFIG_TINY_RCU\n"
         "static inline unsigned long rcu_get_gp_seq(void) { return 0; }\n"
         "static inline void rcu_force_quiescent_state(void) { }\n"
-        "#else\n"
+        "#else /* #ifdef CONFIG_TINY_RCU */\n"
         "unsigned long rcu_get_gp_seq(void);\n"
         "void rcu_force_quiescent_state(void);\n"
-        "#endif\n"
+        "#endif /* #else #ifdef CONFIG_TINY_RCU */\n"
     ))
     put(tree / "kernel/rcu/tree.h", (
         "static void rcu_cpu_kthread_setup(unsigned int cpu);\n"
@@ -188,6 +193,19 @@ def main() -> None:
             put(p, p.read_text().replace("#ifdef CONFIG_TINY_RCU", "#if 1"))
             reject(lambda: run(lost_tiny), "tiny/tree API variant drift")
 
+            comment_stays = fixture(root / "comment-not-directive")
+            p = comment_stays[0] / "kernel/rcu/rcu.h"
+            txt = p.read_text()
+            assert txt.count("#ifdef CONFIG_TINY_RCU") == 6
+            put(p, txt.replace(
+                "#ifdef CONFIG_TINY_RCU\n"
+                "static inline unsigned long rcu_get_gp_seq",
+                "#ifdef CONFIG_FAKE_RCU\n"
+                "static inline unsigned long rcu_get_gp_seq",
+                1,
+            ))
+            reject(lambda: run(comment_stays), "tiny/tree API variant drift")
+
             boost_guard = fixture(root / "boost")
             p = boost_guard[0] / "kernel/rcu/tree.h"
             put(p, p.read_text() + "#ifdef CONFIG_RCU_BOOST\n")
@@ -216,7 +234,7 @@ def main() -> None:
         HEADERS.clear()
         HEADERS.update(original)
     print(
-        "EXP76_STAGE95_RCU_HEADERS_REGRESSIONS=13_PASS; "
+        "EXP76_STAGE95_RCU_HEADERS_REGRESSIONS=14_PASS; "
         "REJECTED_HUNKS_REVIEWED=5; LEGACY_PORT_NOT_APPLIED; FLASH_READY=false"
     )
 
