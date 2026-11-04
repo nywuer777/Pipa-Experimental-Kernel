@@ -29,7 +29,7 @@ dmesg > "$tmp/before.log" || { echo 'BLOCKED_LOG: dmesg unreadable' >&2; exit 2;
 insmod "$KO"
 loaded=true
 dmesg > "$tmp/after.log" || { echo 'BLOCKED_LOG: dmesg unreadable' >&2; exit 2; }
-for marker in 'EXP76_RT_SPIN_SLEEP BEGIN' 'EXP76_RT_SPIN_SLEEP PASS elapsed_us='; do
+for marker in 'EXP76_RT_SPIN_SLEEP BEGIN' 'EXP76_RT_SPIN_SLEEP T1_HELD' 'EXP76_RT_SPIN_SLEEP T2_ATTEMPT' 'EXP76_RT_SPIN_SLEEP T1_RELEASED' 'EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=' 'EXP76_RT_SPIN_SLEEP PASS elapsed_us='; do
   before_count="$(grep -Fc "$marker" "$tmp/before.log" || true)"
   after_count="$(grep -Fc "$marker" "$tmp/after.log" || true)"
   if (( after_count <= before_count )); then
@@ -40,6 +40,9 @@ done
 awk '/EXP76_RT_SPIN_SLEEP BEGIN/ { output=""; found=1 } found { output=output $0 "\n" } END { printf "%s", output }' \
   "$tmp/after.log" > "$tmp/test.log"
 
+grep -qE 'EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=[0-9]+ release_seen=1' "$tmp/test.log" || {
+  cat "$tmp/test.log" >&2; echo 'FAIL: CONTENTION_PASS marker missing' >&2; exit 1;
+}
 grep -q 'EXP76_RT_SPIN_SLEEP PASS elapsed_us=' "$tmp/test.log" || {
   cat "$tmp/test.log" >&2; echo 'FAIL: PASS marker missing' >&2; exit 1;
 }
@@ -47,7 +50,7 @@ if grep -Ei 'BUG:|WARNING:|sleeping function called from invalid context|schedul
   echo 'FAIL: kernel diagnostic during spin-sleep test' >&2
   exit 1
 fi
-printf 'TEST_ID=EXP76_RT_SPIN_SLEEP_QEMU_V1\nCONFIG_SHA256='
+printf 'TEST_ID=EXP76_RT_SPIN_SLEEP_QEMU_V2\nCONFIG_SHA256='
 sha256sum "$CONFIG" | cut -d ' ' -f1
 printf 'GUEST_KERNEL=%s\n' "$(uname -r)"
 cat "$tmp/test.log"
