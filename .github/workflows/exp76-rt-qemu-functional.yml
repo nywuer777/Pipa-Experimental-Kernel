@@ -1,12 +1,7 @@
 # YAML / GitHub Actions ubuntu-24.04 / EXP76 E404 PREEMPT_RT QEMU negative-control qualification / NO FLASH
 name: EXP76 QEMU RT spinlock qualification (NO FLASH)
 on:
-  push:
-    branches:
-      - exp76-preempt-rt-uname
-    paths:
-      - '.github/workflows/exp76-rt-qemu-functional.yml'
-      - 'tests/exp76-rt-spin-sleep/**'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -36,6 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           bash -n tests/exp76-rt-spin-sleep/run-in-guest.sh
+          bash tests/exp76-rt-spin-sleep/test-log-verifier.sh
           python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
