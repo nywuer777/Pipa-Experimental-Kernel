@@ -66,6 +66,7 @@ def main() -> None:
         assert empty["zram_vendor_lock_abi_audit"] is None
         assert empty["rcu_internal_header_abi_audit"] is None
         assert empty["bootv3_compact_layout_budget"] is None
+        assert empty["rcu_tree_plugin_reject_audit"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -831,6 +832,28 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage97-report" / "stage97-status.json", {
+            "stage": "EXP76_STAGE97_RCU_TREE_PLUGIN_REJECT_PROVENANCE_NONFLASH",
+            "verification_scope": "SOURCE_PROVENANCE_ONLY",
+            "original_rcu_plugin_reject_sha256": "c" * 64,
+            "original_rcu_plugin_rejected_hunks_pending": 11,
+            "rcu_plugin_source_sha256": "d" * 64,
+            "stage82_inventory_proven": True,
+            "stage93_linked_exports_proven": True,
+            "stage95_unified_headers_proven": True,
+            "rcu_plugin_source_matches_stage93": True,
+            "unified_rcu_plugin_source_marker_count": 4,
+            "classification": "LEGACY_RT_RCU_TREE_PLUGIN_REJECT_REQUIRES_SEMANTIC_REVIEW",
+            "original_rejected_files_remaining": 64,
+            "source_modified": False,
+            "original_rejects_deleted": False,
+            "rejected_hunks_semantically_resolved": 0,
+            "rt_rcu_runtime_semantics_verified": False,
+            "rcu_grace_period_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1283,6 +1306,25 @@ def main() -> None:
             "kernel_built", "flash_ready",
         ):
             assert boot[key] is False, key
+        plugin = failed["rcu_tree_plugin_reject_audit"]
+        assert plugin["stage"] == "EXP76_STAGE97_RCU_TREE_PLUGIN_REJECT_PROVENANCE_NONFLASH"
+        assert plugin["verification_scope"] == "SOURCE_PROVENANCE_ONLY"
+        assert plugin["original_rcu_plugin_reject_sha256"] == "c" * 64
+        assert plugin["original_rcu_plugin_rejected_hunks_pending"] == 11
+        assert plugin["rcu_plugin_source_sha256"] == "d" * 64
+        assert plugin["stage82_inventory_proven"]
+        assert plugin["stage93_linked_exports_proven"]
+        assert plugin["stage95_unified_headers_proven"]
+        assert plugin["rcu_plugin_source_matches_stage93"]
+        assert plugin["unified_rcu_plugin_source_marker_count"] == 4
+        assert plugin["original_rejected_files_remaining"] == 64
+        assert plugin["source_modified"] is False
+        assert plugin["original_rejects_deleted"] is False
+        assert plugin["rejected_hunks_semantically_resolved"] == 0
+        assert not plugin["rt_rcu_runtime_semantics_verified"]
+        assert not plugin["rcu_grace_period_runtime_verified"]
+        assert not plugin["device_boot_verified"]
+        assert not plugin["kernel_built"] and not plugin["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
