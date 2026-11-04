@@ -58,6 +58,7 @@ def main() -> None:
         assert empty["raw_arm64_image_diagnostic"] is None
         assert empty["kasan_raw_spinlock_equivalence"] is None
         assert empty["rt_kconfig_guard_port"] is None
+        assert empty["proc_swait_rt_include_port"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -622,6 +623,25 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-rt-report" / "stage89" / "stage89-status.json", {
+            "stage": "EXP76_STAGE89_PROC_SWAIT_INCLUDE_RT_REJECT_PORT_NONFLASH",
+            "target": "fs/proc/base.c",
+            "applied": True,
+            "source_original_sha256": "1" * 64,
+            "source_patched_sha256": "2" * 64,
+            "rejected_hunk_sha256": "417c207cb7d9d129fbbe31fedf0959d6a983d726d524af48cd40fa9e06225719",
+            "upstream_hunks_reviewed": 1,
+            "upstream_includes_added": 1,
+            "vendor_e404_code_preserved": True,
+            "rt_swait_api_present": True,
+            "original_reject_retained": True,
+            "remaining_rejected_files": 64,
+            "scheduler_semantic_review_complete": False,
+            "full_kernel_link_rechecked": False,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -921,6 +941,18 @@ def main() -> None:
         assert rt_kconfig["original_rejects_retained"] is True
         assert rt_kconfig["remaining_rejected_files"] == 64
         assert not rt_kconfig["kernel_built"] and not rt_kconfig["flash_ready"]
+        proc = failed["proc_swait_rt_include_port"]
+        assert proc["stage"] == "EXP76_STAGE89_PROC_SWAIT_INCLUDE_RT_REJECT_PORT_NONFLASH"
+        assert proc["target"] == "fs/proc/base.c"
+        assert proc["applied"] is True
+        assert proc["upstream_hunks_reviewed"] == 1
+        assert proc["upstream_includes_added"] == 1
+        assert proc["vendor_e404_code_preserved"] is True
+        assert proc["rt_swait_api_present"] is True
+        assert proc["original_reject_retained"] is True
+        assert proc["remaining_rejected_files"] == 64
+        assert not proc["full_kernel_link_rechecked"]
+        assert not proc["kernel_built"] and not proc["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

@@ -811,6 +811,39 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    proc_swait_raw = read_json(
+        artifact / "exp76-rt-report" / "stage89" / "stage89-status.json"
+    )
+    proc_swait = None
+    if proc_swait_raw is not None:
+        proc_swait = {
+            "stage": str(proc_swait_raw.get("stage") or "")[:140],
+            "target": str(proc_swait_raw.get("target") or "")[:160],
+            "applied": proc_swait_raw.get("applied") is True,
+            "source_original_sha256":
+                str(proc_swait_raw.get("source_original_sha256") or "")[:64],
+            "source_patched_sha256":
+                str(proc_swait_raw.get("source_patched_sha256") or "")[:64],
+            "rejected_hunk_sha256":
+                str(proc_swait_raw.get("rejected_hunk_sha256") or "")[:64],
+            "upstream_hunks_reviewed":
+                proc_swait_raw.get("upstream_hunks_reviewed"),
+            "upstream_includes_added":
+                proc_swait_raw.get("upstream_includes_added"),
+            "vendor_e404_code_preserved":
+                proc_swait_raw.get("vendor_e404_code_preserved") is True,
+            "rt_swait_api_present":
+                proc_swait_raw.get("rt_swait_api_present") is True,
+            "original_reject_retained":
+                proc_swait_raw.get("original_reject_retained") is True,
+            "remaining_rejected_files":
+                proc_swait_raw.get("remaining_rejected_files"),
+            "scheduler_semantic_review_complete": False,
+            "full_kernel_link_rechecked": False,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -858,6 +891,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "raw_arm64_image_diagnostic": raw_image,
         "kasan_raw_spinlock_equivalence": kasan,
         "rt_kconfig_guard_port": rt_kconfig,
+        "proc_swait_rt_include_port": proc_swait,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
