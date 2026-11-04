@@ -62,6 +62,7 @@ def main() -> None:
         assert empty["rt_uts_version_generator_port"] is None
         assert empty["pid_atomic_rt_header_port"] is None
         assert empty["migration_link_contract"] is None
+        assert empty["rcu_unified_link_contract"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -711,6 +712,38 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage93-report" / "stage93-status.json", {
+            "stage": "EXP76_STAGE93_UNIFIED_RCU_RT_LINK_AND_API_CONTRACT_NONFLASH",
+            "rt_config_verified": True,
+            "stage47_rcu_preprocessor_guard_proven": True,
+            "stage92_linked_kernel_proven": True,
+            "unified_rcu_source_invariants": [
+                "unified_rcu_segcblist", "unified_rcu_core",
+                "unified_synchronize_rcu", "unified_rcu_barrier",
+            ],
+            "unified_rcu_source_invariant_count": 12,
+            "unified_rcu_bh_forwarders": {
+                "synchronize_rcu_bh": "synchronize_rcu",
+                "rcu_barrier_bh": "rcu_barrier",
+                "call_rcu_bh": "call_rcu",
+            },
+            "linked_rcu_exports_present": [
+                "synchronize_rcu", "rcu_barrier",
+                "__rcu_read_lock", "__rcu_read_unlock",
+            ],
+            "linked_rcu_exports_missing": [],
+            "system_map_sha256": "d" * 64,
+            "vmlinux_elf_sha256": "e" * 64,
+            "original_rcu_tree_reject_sha256": "f" * 64,
+            "original_rcu_tree_rejected_hunks_pending": 18,
+            "original_rejected_files_remaining": 64,
+            "verification_scope": "SOURCE_AND_LINK_ONLY",
+            "rt_rcu_runtime_semantics_verified": False,
+            "rcu_grace_period_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1071,6 +1104,31 @@ def main() -> None:
         assert not migration["rcu_runtime_verified"]
         assert not migration["device_boot_verified"]
         assert not migration["kernel_built"] and not migration["flash_ready"]
+        rcu = failed["rcu_unified_link_contract"]
+        assert rcu["stage"] == "EXP76_STAGE93_UNIFIED_RCU_RT_LINK_AND_API_CONTRACT_NONFLASH"
+        assert rcu["rt_config_verified"] is True
+        assert rcu["stage47_rcu_preprocessor_guard_proven"] is True
+        assert rcu["stage92_linked_kernel_proven"] is True
+        assert rcu["unified_rcu_source_invariant_count"] == 12
+        assert rcu["unified_rcu_bh_forwarders"] == {
+            "synchronize_rcu_bh": "synchronize_rcu",
+            "rcu_barrier_bh": "rcu_barrier",
+            "call_rcu_bh": "call_rcu",
+        }
+        assert rcu["linked_rcu_exports_present"] == [
+            "synchronize_rcu", "rcu_barrier", "__rcu_read_lock",
+            "__rcu_read_unlock",
+        ]
+        assert rcu["linked_rcu_exports_missing"] == []
+        assert rcu["original_rcu_tree_rejected_hunks_pending"] == 18
+        assert rcu["original_rejected_files_remaining"] == 64
+        assert rcu["verification_scope"] == "SOURCE_AND_LINK_ONLY"
+        assert rcu["vmlinux_elf_sha256"] == "e" * 64
+        assert rcu["system_map_sha256"] == "d" * 64
+        assert not rcu["rt_rcu_runtime_semantics_verified"]
+        assert not rcu["rcu_grace_period_runtime_verified"]
+        assert not rcu["device_boot_verified"]
+        assert not rcu["kernel_built"] and not rcu["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

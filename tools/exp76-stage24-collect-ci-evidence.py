@@ -965,6 +965,55 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    rcu_link_raw = read_json(
+        artifact / "exp76-stage93-report" / "stage93-status.json"
+    )
+    rcu_link = None
+    if rcu_link_raw is not None:
+        rcu_link = {
+            "stage": str(rcu_link_raw.get("stage") or "")[:140],
+            "rt_config_verified": rcu_link_raw.get("rt_config_verified") is True,
+            "stage47_rcu_preprocessor_guard_proven":
+                rcu_link_raw.get("stage47_rcu_preprocessor_guard_proven") is True,
+            "stage92_linked_kernel_proven":
+                rcu_link_raw.get("stage92_linked_kernel_proven") is True,
+            "unified_rcu_source_invariants": [
+                str(x)[:100] for x in
+                (rcu_link_raw.get("unified_rcu_source_invariants") or [])[:25]
+            ],
+            "unified_rcu_source_invariant_count":
+                rcu_link_raw.get("unified_rcu_source_invariant_count"),
+            "unified_rcu_bh_forwarders": {
+                str(name)[:90]: str(target)[:90]
+                for name, target in
+                list((rcu_link_raw.get("unified_rcu_bh_forwarders") or {}).items())[:8]
+            },
+            "linked_rcu_exports_present": [
+                str(x)[:100] for x in
+                (rcu_link_raw.get("linked_rcu_exports_present") or [])[:10]
+            ],
+            "linked_rcu_exports_missing": [
+                str(x)[:100] for x in
+                (rcu_link_raw.get("linked_rcu_exports_missing") or [])[:10]
+            ],
+            "system_map_sha256":
+                str(rcu_link_raw.get("system_map_sha256") or "")[:64],
+            "vmlinux_elf_sha256":
+                str(rcu_link_raw.get("vmlinux_elf_sha256") or "")[:64],
+            "original_rcu_tree_reject_sha256":
+                str(rcu_link_raw.get("original_rcu_tree_reject_sha256") or "")[:64],
+            "original_rcu_tree_rejected_hunks_pending":
+                rcu_link_raw.get("original_rcu_tree_rejected_hunks_pending"),
+            "original_rejected_files_remaining":
+                rcu_link_raw.get("original_rejected_files_remaining"),
+            "verification_scope":
+                str(rcu_link_raw.get("verification_scope") or "")[:60],
+            "rt_rcu_runtime_semantics_verified": False,
+            "rcu_grace_period_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -1016,6 +1065,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "rt_uts_version_generator_port": rt_uts,
         "pid_atomic_rt_header_port": pid_atomic,
         "migration_link_contract": migration_link,
+        "rcu_unified_link_contract": rcu_link,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
