@@ -1,0 +1,1916 @@
+{
+  "arm64_neon_rt_kconfig_port": {
+    "applied": true,
+    "config_dependencies_patched": [
+      "CRYPTO_CHACHA20_NEON",
+      "CRYPTO_POLY1305_NEON"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "nonrt_kernel_mode_neon_preserved": true,
+    "original_source_sha256": "289560366ba47b4041c6789033d3415d64d339fbafaad49a3d25f6fb83456fe3",
+    "patched_source_sha256": "ddcce1e6956913fd6fc651a4e5975671882ac111d8a2ca0d05a2ba9c3ca78e42",
+    "reject_audit_file_retained": true,
+    "rejected_hunk_sha256": "313a186927a334940aca6e6ce944adb63d2f0f4ced59ff57f761af3bd28c82c8",
+    "rejected_hunks_reviewed": 1,
+    "remaining_rejected_files": 64,
+    "rt_guard": "!PREEMPT_RT_BASE",
+    "semantic_backport_review_pending": true,
+    "stage": "EXP76_STAGE83_ARM64_NEON_CRYPTO_RT_KCONFIG_HUNK_NONFLASH",
+    "target": "arch/arm64/crypto/Kconfig",
+    "unrelated_arm64_crypto_config_preserved": true
+  },
+  "artifact_present": true,
+  "block_init_subtrees_diagnostic": {
+    "all_archives_verified": true,
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_compile_h_gate": true,
+    "prior_drivers_subtree_gate": true,
+    "prior_functionfs_rt_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE81_BLOCK_INIT_SCOPED_ARCHIVES_NONFLASH",
+    "targets": {
+      "block": {
+        "archive_bytes": 3024,
+        "archive_created": true,
+        "archive_has_members": true,
+        "archive_inspection_exit_code": 0,
+        "archive_members_count": 40,
+        "archive_members_sample": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/bio.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/elevator.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-core.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-tag.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-sysfs.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-flush.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-settings.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-ioc.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-map.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-exec.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-merge.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-softirq.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-timeout.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-lib.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-mq.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-mq-tag.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-stat.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-mq-sysfs.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-mq-cpumap.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/block/blk-mq-sched.o"
+        ],
+        "attempted": true,
+        "directory_scope": "vmlinux-dirs=block",
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "first_error_context": [
+          "  CC      block/blk-mq-sysfs.o",
+          "  CC      block/blk-mq-cpumap.o",
+          "  CC      block/blk-mq-sched.o",
+          "  CC      block/ioctl.o",
+          "  CC      block/genhd.o",
+          "  CC      block/partition-generic.o",
+          "  CC      block/ioprio.o",
+          "  CC      block/badblocks.o",
+          "  CC      block/blk-rq-qos.o",
+          "  CC      block/scsi_ioctl.o",
+          "  CC      block/bsg.o",
+          "  CC      block/blk-cgroup.o",
+          "  CC      block/cfq-iosched.o",
+          "  CC      block/compat_ioctl.o",
+          "  CC      block/blk-mq-pci.o",
+          "  CC      block/blk-wbt.o",
+          "  CC      block/keyslot-manager.o",
+          "  CC      block/bio-crypt-ctx.o",
+          "  CC      block/blk-crypto.o",
+          "  CC      block/blk-crypto-fallback.o",
+          "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+          "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+        ],
+        "target": "block/built-in.a",
+        "timed_out": false
+      },
+      "init": {
+        "archive_bytes": 730,
+        "archive_created": true,
+        "archive_has_members": true,
+        "archive_inspection_exit_code": 0,
+        "archive_members_count": 9,
+        "archive_members_sample": [
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/main.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/version.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/do_mounts.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/do_mounts_initrd.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/do_mounts_dm.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/noinitramfs.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/initramfs.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/calibrate.o",
+          "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/init/init_task.o"
+        ],
+        "attempted": true,
+        "directory_scope": "vmlinux-dirs=init",
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "first_error_context": [
+          "make: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
+          "make[1]: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+          "  GEN     ./Makefile",
+          "  Using /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay as source for kernel",
+          "  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh",
+          "  CC      init/main.o",
+          "  CHK     include/generated/compile.h",
+          "  CC      init/do_mounts.o",
+          "  CC      init/do_mounts_initrd.o",
+          "  CC      init/do_mounts_dm.o",
+          "  CC      init/noinitramfs.o",
+          "  CC      init/initramfs.o",
+          "  CC      init/calibrate.o",
+          "  CC      init/init_task.o",
+          "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+          "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+        ],
+        "target": "init/built-in.a",
+        "timed_out": false
+      }
+    }
+  },
+  "bootv3_compact_layout_budget": {
+    "android_runtime_verified": false,
+    "avb_policy_verified": false,
+    "boot_header_version_reference": 3,
+    "boot_image_generated": false,
+    "boot_page_alignment_bytes": 4096,
+    "boot_partition_capacity_verified": false,
+    "candidate_generated": false,
+    "canonical_exp27_packer_sha256": "d5bea911bbc7523ae444f25cb3caf008b4043612d6f771c69bd3967f622cd3f9",
+    "compact_size_budget_remaining_bytes": 1134592,
+    "dtb_layout_verified": false,
+    "effective_rt_config_verified": true,
+    "estimated_offline_compact_candidate_bytes": 31072256,
+    "exp76_arm64_magic_verified": true,
+    "exp76_arm64_raw_image_bytes_verified": 29212696,
+    "exp76_arm64_raw_image_sha256_verified": "6f3b0ccdbd670105468fbf10cd71c854c8bb85e0693227e672847229cd661cf3",
+    "fits_pinned_stock_compact_file_size": true,
+    "flash_performed": false,
+    "flash_ready": false,
+    "image_artifact_uploaded": false,
+    "kernel_built": false,
+    "original_ramdisk_verified_this_run": false,
+    "original_rt_reject_files_retained": 64,
+    "original_stock_boot_bytes_present": false,
+    "physical_recovery_verified": false,
+    "stage": "EXP76_STAGE96_BOOT_V3_OFFLINE_LAYOUT_BUDGET_NONFLASH",
+    "stage95_source_audit_proven": true,
+    "stock_compact_bytes_reference": 32206848,
+    "stock_compact_sha256_reference": "202aaaf67fe5c0a963965c4e29f67866b509916e0bdff15dde38ef55b3d321e7",
+    "stock_control_metadata_pinned": true,
+    "stock_kernel_bytes_reference": 30349336,
+    "stock_ramdisk_bytes_reference": 1849345
+  },
+  "compile_h_preflight_diagnostic": {
+    "attempted": true,
+    "compile_h_anchors_valid": true,
+    "compile_h_bytes": 377,
+    "compile_h_created": true,
+    "compile_h_macro_issues": [],
+    "compile_h_macro_names": [
+      "LINUX_COMPILER",
+      "LINUX_COMPILE_BY",
+      "LINUX_COMPILE_HOST",
+      "UTS_MACHINE",
+      "UTS_VERSION"
+    ],
+    "compile_h_sha256": "b90889f08a988e840f7efb1fdbf30ad637198256f955f15f2fd92f6f350187bf",
+    "compile_h_uts_machine": "\"aarch64\"",
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "make: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
+      "make[1]: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "  GEN     ./Makefile",
+      "  Using /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay as source for kernel",
+      "  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh",
+      "  CHK     include/generated/compile.h",
+      "  UPD     include/generated/compile.h",
+      "  CC      init/version.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "generated_header": "include/generated/compile.h",
+    "init_version_object_created": true,
+    "kernel_built": false,
+    "prior_crypto_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE77_KBUILD_COMPILE_H_INIT_VERSION_NONFLASH",
+    "target": "init/version.o",
+    "timed_out": false
+  },
+  "cross_subsystem_coverage": {
+    "all_cross_objects_compiled": true,
+    "baseline_12_objects_compiled": true,
+    "link_performed": false,
+    "objects_attempted": 10,
+    "objects_compiled": 10,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE46_RT_CROSS_SUBSYSTEM_OBJECTS_NONFLASH",
+    "targets": {
+      "kernel/irq/manage.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/mutex-rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/rwlock-rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/rwsem-rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/spinlock.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/rcu/tree.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/rcu/update.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/swait.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/wait.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/workqueue.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      }
+    }
+  },
+  "crypto_subtree_diagnostic": {
+    "archive_bytes": 5826,
+    "archive_created": true,
+    "archive_has_members": true,
+    "archive_inspection_exit_code": 0,
+    "archive_members_count": 77,
+    "archive_members_sample": [
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/api.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/cipher.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/compress.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/memneq.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/crypto_wq.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/algapi.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/scatterwalk.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/proc.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/aead.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/ablkcipher.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/blkcipher.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/skcipher.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/seqiv.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/echainiv.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/ahash.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/shash.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/akcipher.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/kpp.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/rsapubkey.asn1.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/rsaprivkey.asn1.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/rsa.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/rsa_helper.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/rsa-pkcs1pad.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/crypto/acompress.o"
+    ],
+    "attempted": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      crypto/sm4_generic.o",
+      "  CC      crypto/arc4.o",
+      "  CC      crypto/deflate.o",
+      "  CC      crypto/crc32c_generic.o",
+      "  CC      crypto/crc32_generic.o",
+      "  CC      crypto/authenc.o",
+      "  CC      crypto/authencesn.o",
+      "  CC      crypto/lz4.o",
+      "  CC      crypto/rng.o",
+      "  CC      crypto/ansi_cprng.o",
+      "  CC      crypto/drbg.o",
+      "  CC      crypto/jitterentropy.o",
+      "  CC      crypto/jitterentropy-kcapi.o",
+      "  CC      crypto/ghash-generic.o",
+      "  CC      crypto/ecc.o",
+      "  CC      crypto/ecdh.o",
+      "  CC      crypto/ecdh_helper.o",
+      "  CC      crypto/hash_info.o",
+      "  CC      crypto/rsapubkey.asn1.o",
+      "  CC      crypto/rsaprivkey.asn1.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_lib_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE75_CRYPTO_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "crypto/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=crypto"
+  },
+  "drivers_subtree_diagnostic": {
+    "archive_bytes": 142148,
+    "archive_created": true,
+    "archive_has_members": true,
+    "archive_inspection_exit_code": 0,
+    "archive_members_count": 1458,
+    "archive_members_sample": [
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irqchip.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-common.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-v2m.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-v3.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-v3-mbi.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-v3-its.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-v3-its-platform-msi.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-v4.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-gic-v3-its-pci-msi.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/irq-partition-percpu.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/irqchip/qcom-pdc.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/core/mhi_init.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/core/mhi_main.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/core/mhi_pm.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/core/mhi_boot.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/core/mhi_dtr.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/controllers/mhi_qcom.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/controllers/mhi_arch_qcom.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/devices/mhi_netdev.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/devices/mhi_uci.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/bus/mhi/devices/mhi_satellite.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/phy/phy-core.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/drivers/phy/qualcomm/phy-qcom-ufs.o"
+    ],
+    "attempted": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/umac/cmn_services/crypto/src/wlan_crypto_obj_mgr.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/umac/cmn_services/crypto/src/wlan_crypto_param_handling.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_main.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_tx.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_tx_desc.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_rx.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_rx_err.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_htt.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_peer.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_rx_desc.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_reo.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_rx_mon_dest.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_rx_mon_status.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_rx_defrag.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_mon_filter.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_stats.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/target_if/dp/src/target_if_dp.o",
+      "  CC      drivers/staging/qcacld-3.0/../qca-wifi-host-cmn/dp/wifi3.0/dp_tx_flow_control.o",
+      "  CC      drivers/staging/qcacld-3.0/core/dp/txrx3.0/dp_txrx.o",
+      "  CC      drivers/staging/qcacld-3.0/core/dp/txrx3.0/dp_rx_thread.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_crypto_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE76_DRIVERS_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "drivers/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=drivers"
+  },
+  "extra_object_coverage": {
+    "all_extra_objects_compiled": true,
+    "baseline_3_objects_compiled": true,
+    "migration_contract": {
+      "migrate_disabled_sched_declarations": 1,
+      "migrate_disabled_sched_definitions": 3,
+      "migrate_disabled_sched_missing_local_definition": false,
+      "migration_entrypoint_definitions_in_core": 4,
+      "runtime_migration_contract_verified": false
+    },
+    "objects_attempted": 9,
+    "objects_compiled": 9,
+    "stage": "EXP76_STAGE30_RT_OBJECT_COVERAGE_NONFLASH",
+    "targets": {
+      "kernel/cpu.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/locking/rtmutex.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/deadline.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/fair.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/idle.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/rt.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/sched/stop_task.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/softirq.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      },
+      "kernel/time/timer.o": {
+        "attempted": true,
+        "compiled": true,
+        "errors_excerpt": [],
+        "exit_code": 0,
+        "skip_reason": null
+      }
+    }
+  },
+  "flash_ready": false,
+  "fs_subtree_diagnostic": {
+    "archive_bytes": 19874,
+    "archive_created": true,
+    "attempted": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      fs/direct-io.o",
+      "  CC      fs/mpage.o",
+      "  CC      fs/proc_namespace.o",
+      "  CC      fs/eventpoll.o",
+      "  CC      fs/anon_inodes.o",
+      "  CC      fs/signalfd.o",
+      "  CC      fs/timerfd.o",
+      "  CC      fs/eventfd.o",
+      "  CC      fs/userfaultfd.o",
+      "  CC      fs/aio.o",
+      "  CC      fs/locks.o",
+      "  CC      fs/compat.o",
+      "  CC      fs/compat_ioctl.o",
+      "  CC      fs/binfmt_script.o",
+      "  CC      fs/binfmt_elf.o",
+      "  CC      fs/compat_binfmt_elf.o",
+      "  CC      fs/mbcache.o",
+      "  CC      fs/posix_acl.o",
+      "  CC      fs/drop_caches.o",
+      "  CC      fs/iomap.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_kernel_subtree_gate": true,
+    "prior_mm_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE67_FS_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "fs/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=fs"
+  },
+  "functionfs_rt_swait_status": {
+    "applied": true,
+    "completion_lifecycle_preserved": true,
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "nonrt_waitqueue_preserved": true,
+    "normal_waitqueue_checks_preserved": true,
+    "original_sha256": "2142e0582ecc5ad11020be45d8529819cb1ff59d10d6856a396555523949c763",
+    "patched_sha256": "7a351c99c86585d0343d09ccad43f76c7863d2c34bf29789054383f558cf9ae4",
+    "remaining_rejected_files": 64,
+    "rt_completion_swait_used": true,
+    "stage": "EXP76_STAGE79_FUNCTIONFS_RT_COMPLETION_SWAIT_NONFLASH",
+    "target": "drivers/usb/gadget/function/f_fs.c"
+  },
+  "ipc_subtree_diagnostic": {
+    "archive_bytes": 8,
+    "archive_created": true,
+    "archive_has_members": false,
+    "archive_magic_hex": "213c617263683e0a",
+    "attempted": true,
+    "compile_semantics": "CONFIG_DISABLED",
+    "enabled_ipc_configs": [],
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "make: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
+      "make[1]: Entering directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "  GEN     ./Makefile",
+      "  Using /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay as source for kernel",
+      "  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_fs_subtree_gate": true,
+    "prior_kernel_subtree_gate": true,
+    "prior_mm_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE68_IPC_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "ipc/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=ipc"
+  },
+  "job_conclusion": "success",
+  "kasan_raw_spinlock_equivalence": {
+    "all_added_raw_spinlock_lines_present": true,
+    "all_obsolete_spinlock_lines_absent": true,
+    "all_rt_semantics_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "original_reject_sha256": "0fdc912c253d78ffb8b032276f07721fc81d71854a8c60bb82375c74adec506e",
+    "rejected_files_remaining": 64,
+    "rejects_deleted": false,
+    "reviewed_added_lines": 9,
+    "reviewed_rejected_hunks": 6,
+    "reviewed_removed_lines": 9,
+    "semantic_scope": "KASAN quarantine raw-spinlock substitutions only",
+    "source_changed": false,
+    "stage": "EXP76_STAGE87_KASAN_RAW_SPINLOCK_VENDOR_EQUIVALENCE_NONFLASH",
+    "target": "mm/kasan/quarantine.c",
+    "vendor_equivalent_files": 1,
+    "vendor_equivalent_hunks": 6,
+    "vendor_source_sha256": "2f506cf78ceca54ae6613f59a8e061b01f6d6bdb1b43a988ca872fb5a61a235b"
+  },
+  "kernel_built": false,
+  "kernel_subtree_diagnostic": {
+    "archive_bytes": 13682,
+    "archive_created": true,
+    "attempted": true,
+    "baseline_22_objects_compiled": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      kernel/stacktrace.o",
+      "  CC      kernel/futex.o",
+      "  CC      kernel/smp.o",
+      "  CC      kernel/compat.o",
+      "  GZIP    kernel/config_data.gz",
+      "  CC      kernel/stop_machine.o",
+      "  CC      kernel/seccomp.o",
+      "  CC      kernel/utsname_sysctl.o",
+      "  CC      kernel/taskstats.o",
+      "  CC      kernel/tsacct.o",
+      "  CC      kernel/irq_work.o",
+      "  CC      kernel/cpu_pm.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
+      "   94 |         struct llist_head *list;",
+      "      |                            ^~~~",
+      "1 warning generated.",
+      "  CC      kernel/jump_label.o",
+      "  CC      kernel/iomem.o",
+      "  UPD     kernel/config_data.h",
+      "  CC      kernel/configs.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "remaining_rejected_files": 64,
+    "skip_reason": null,
+    "stage": "EXP76_STAGE50_KERNEL_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "kernel/built-in.a"
+  },
+  "lib_subtree_diagnostic": {
+    "archive_bytes": 7882,
+    "archive_created": true,
+    "archive_has_members": true,
+    "archive_inspection_exit_code": 0,
+    "archive_members_count": 103,
+    "archive_members_sample": [
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/lockref.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/bcd.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/div64.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/sort.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/parser.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/random32.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/bust_spinlocks.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/kasprintf.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/bitmap.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/scatterlist.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/gcd.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/lcm.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/list_sort.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/uuid.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/flex_array.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/iov_iter.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/clz_ctz.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/bsearch.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/find_bit.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/llist.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/memweight.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/kfifo.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/percpu-refcount.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/lib/rhashtable.o"
+    ],
+    "attempted": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      lib/is_single_threaded.o",
+      "  CC      lib/klist.o",
+      "  CC      lib/kobject.o",
+      "  CC      lib/kobject_uevent.o",
+      "  CC      lib/nodemask.o",
+      "  CC      lib/plist.o",
+      "  CC      lib/radix-tree.o",
+      "  CC      lib/ratelimit.o",
+      "  CC      lib/rbtree.o",
+      "  CC      lib/seq_buf.o",
+      "  CC      lib/sha1.o",
+      "  CC      lib/show_mem.o",
+      "  CC      lib/siphash.o",
+      "  CC      lib/string.o",
+      "  CC      lib/timerqueue.o",
+      "  CC      lib/vsprintf.o",
+      "  CC      lib/win_minmax.o",
+      "  CC      lib/xarray.o",
+      "  GEN     lib/crc32table.h",
+      "  CC      lib/crc32.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_net_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE73_LIB_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "lib/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=lib"
+  },
+  "migration_link_contract": {
+    "arm64_stage86_image_link_verified": true,
+    "cpu_hotplug_callers_verified": 2,
+    "cpu_hotplug_runtime_verified": false,
+    "cross_file_source_contract_count": 14,
+    "cross_file_source_contracts_verified": [
+      "saved_affinity_field",
+      "runqueue_nr_pinned_field",
+      "cpu_nr_pinned_declaration",
+      "deferred_affinity_requested_mask",
+      "restore_saved_affinity",
+      "pin_to_current_cpu_mask",
+      "nested_pin_increment",
+      "nested_pin_decrement",
+      "asynchronous_cpu_stopper",
+      "asynchronous_completion_guard",
+      "asynchronous_worker_disable_guard",
+      "hotplug_wakeup",
+      "lazy_preempt_disable",
+      "lazy_preempt_enable"
+    ],
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "migration_runtime_semantics_verified": false,
+    "original_rejects_retained": true,
+    "rcu_runtime_verified": false,
+    "remaining_rejected_files": 64,
+    "smp_preempt_rt_full_config_verified": true,
+    "source_sha256": {
+      "include/linux/cpu.h": "28c2e462ccd7084284d1637a434345c27e0bddcc5388bb96ffddb540457f2d27",
+      "include/linux/sched.h": "5fccf99906173d366b3ac54780c82ccd24ca2131d800997354de1b4181c9176f",
+      "kernel/cpu.c": "584a27995431dbe52e91ab10b5937571a586f688378875b17de19f55c5ca0b0c",
+      "kernel/sched/core.c": "15912b32829885aece36b04222b8e00a46f3518bf383b7e6163d29cdc089c92c",
+      "kernel/sched/sched.h": "f3d07afd61901a52ffedbf59cdcea67d6e4368b3d0c3acec23c23914245435cf"
+    },
+    "source_stage41_applied": true,
+    "stage": "EXP76_STAGE92_RT_MIGRATION_ABI_SYMBOL_CROSSCHECK_NONFLASH",
+    "system_map_sha256": "1fe448d8b439fc74c88b32f94e77bf22ecd2a0f904a49c8cfa606fc2fa01854a",
+    "system_map_symbols_missing": [],
+    "system_map_symbols_present": [
+      "migrate_disable",
+      "migrate_enable",
+      "cpu_nr_pinned"
+    ],
+    "vendor_embedded_cpus_allowed_preserved": true,
+    "verification_scope": "SOURCE_AND_LINK_ONLY",
+    "vmlinux_elf_sha256": "f48eee23f139b8117ade179083596b45fc87a813e6f3f5ad2334b085ad5cb892"
+  },
+  "mm_subtree_diagnostic": {
+    "archive_bytes": 4620,
+    "archive_created": true,
+    "attempted": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      mm/nobootmem.o",
+      "  CC      mm/madvise.o",
+      "  CC      mm/memblock.o",
+      "  CC      mm/page_io.o",
+      "  CC      mm/swap_state.o",
+      "  CC      mm/swapfile.o",
+      "  CC      mm/swap_slots.o",
+      "  CC      mm/swap_ratio.o",
+      "  CC      mm/dmapool.o",
+      "  CC      mm/sparse.o",
+      "  CC      mm/sparse-vmemmap.o",
+      "  CC      mm/slub.o",
+      "  CC      mm/migrate.o",
+      "  CC      mm/page_isolation.o",
+      "  CC      mm/zsmalloc.o",
+      "  CC      mm/early_ioremap.o",
+      "  CC      mm/cma.o",
+      "  CC      mm/userfaultfd.o",
+      "  CC      mm/frame_vector.o",
+      "  CC      mm/memfd.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_kernel_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE66_MM_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "mm/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=mm"
+  },
+  "net_subtree_diagnostic": {
+    "archive_bytes": 37464,
+    "archive_created": true,
+    "archive_has_members": true,
+    "archive_inspection_exit_code": 0,
+    "archive_members_count": 459,
+    "archive_members_sample": [
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/socket.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/sock.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/request_sock.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/skbuff.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/datagram.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/stream.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/scm.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/gen_stats.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/gen_estimator.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/net_namespace.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/secure_seq.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/flow_dissector.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/sysctl_net_core.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/dev.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/ethtool.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/dev_addr_lists.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/dst.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/netevent.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/neighbour.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/rtnetlink.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/utils.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/link_watch.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/filter.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out/net/core/sock_diag.o"
+    ],
+    "attempted": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      net/xfrm/xfrm_ipcomp.o",
+      "  CC      net/xfrm/xfrm_interface.o",
+      "  CC      net/socket.o",
+      "  CC      net/wireless/mlme.o",
+      "  CC      net/wireless/ibss.o",
+      "  CC      net/compat.o",
+      "  CC      net/wireless/sme.o",
+      "  CC      net/sysctl_net.o",
+      "  CC      net/wireless/chan.o",
+      "  CC      net/wireless/ethtool.o",
+      "  CC      net/wireless/mesh.o",
+      "  CC      net/wireless/ap.o",
+      "  CC      net/wireless/ocb.o",
+      "  CC      net/wireless/of.o",
+      "  CC      net/wireless/regdb.o",
+      "  CC      net/wireless/shipped-certs.o",
+      "  CC      net/wireless/wext-core.o",
+      "  CC      net/wireless/wext-proc.o",
+      "  CC      net/wireless/wext-spy.o",
+      "  CC      net/wireless/wext-priv.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "kernel_built": false,
+    "prior_security_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE72_NET_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "net/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=net"
+  },
+  "pid_atomic_rt_header_port": {
+    "applied": true,
+    "dependency": "linux/atomic.h",
+    "flash_ready": false,
+    "header_dependencies_added": 1,
+    "kernel_built": false,
+    "original_reject_retained": true,
+    "original_source_sha256": "b82b949bf014b083ae0fcad764d8735ddc0fcbb820bf930e6a6129eb45dac53e",
+    "patched_source_sha256": "009e21878961be92842361eb09c544494c7adea22abc8368caa6898d12d52d69",
+    "pid_atomic_api_usage_preserved": true,
+    "pinned_reject_sha256": "bc68702b84df9b927e5753d3ea1bece48787733eab2f55b90849d39369a7c403",
+    "rejected_hunks_reviewed": 1,
+    "remaining_rejected_files": 64,
+    "scheduler_runtime_review_complete": false,
+    "source_change_only_include": true,
+    "stage": "EXP76_STAGE91_PINNED_PID_ATOMIC_HEADER_DEPENDENCY_NONFLASH",
+    "target": "include/linux/pid.h",
+    "vendor_pidfd_abi_preserved": true
+  },
+  "preparation": {
+    "completed": true,
+    "errors_excerpt": [],
+    "first_error_context": "  UPD     include/generated/bounds.h\n  CC      arch/arm64/kernel/asm-offsets.s\n  UPD     include/generated/asm-offsets.h\n  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh\n  LDS     arch/arm64/kernel/vdso/vdso.lds\n  CC      arch/arm64/kernel/vdso/vgettimeofday.o\n  AS      arch/arm64/kernel/vdso/note.o\n  AS      arch/arm64/kernel/vdso/sigreturn.o\n  LD      arch/arm64/kernel/vdso/vdso.so.dbg\n  VDSOSYM include/generated/vdso-offsets.h\n  LDS     arch/arm64/kernel/vdso32/vdso.lds\n  CC32    arch/arm64/kernel/vdso32/note.o\n  CC32    arch/arm64/kernel/vdso32/vgettimeofday.o\n  AS32    arch/arm64/kernel/vdso32/sigreturn.o\n  HOSTCC  arch/arm64/kernel/vdso32/../../../arm/vdso/vdsomunge\n  LD32    arch/arm64/kernel/vdso32/vdso.so.raw\n  MUNGE   arch/arm64/kernel/vdso32/vdso.so.dbg\n  VDSOSYM include/generated/vdso32-offsets.h\nmake[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'\nmake: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'",
+    "gate_exit_code": 0,
+    "make_exit_code": 0,
+    "missing_headers": []
+  },
+  "proc_swait_rt_include_port": {
+    "applied": true,
+    "flash_ready": false,
+    "full_kernel_link_rechecked": false,
+    "kernel_built": false,
+    "original_reject_retained": true,
+    "rejected_hunk_sha256": "417c207cb7d9d129fbbe31fedf0959d6a983d726d524af48cd40fa9e06225719",
+    "remaining_rejected_files": 64,
+    "rt_swait_api_present": true,
+    "runtime_verified": false,
+    "scheduler_semantic_review_complete": false,
+    "source_original_sha256": "92a7062a6f0bd768b2a12ecceca6eacb623fa7799709918679d78e198f5d2949",
+    "source_patched_sha256": "187c6d33d6170445738ee0507e1623ba060567e216caf2f6e71378edf2ef020b",
+    "stage": "EXP76_STAGE89_PROC_SWAIT_INCLUDE_RT_REJECT_PORT_NONFLASH",
+    "target": "fs/proc/base.c",
+    "upstream_hunks_reviewed": 1,
+    "upstream_includes_added": 1,
+    "vendor_e404_code_preserved": true
+  },
+  "raw_arm64_image_diagnostic": {
+    "all_previous_unresolved_symbols_restored": true,
+    "attempted": true,
+    "exit_code": 0,
+    "first_compiler_errors": [],
+    "first_failure_context": [
+      "  Using /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay as source for kernel",
+      "  CALL    /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/scripts/checksyscalls.sh",
+      "  CHK     include/generated/compile.h",
+      "  OBJCOPY arch/arm64/kernel/vdso/vdso.so",
+      "  AS      arch/arm64/kernel/vdso/vdso.o",
+      "  OBJCOPY arch/arm64/kernel/vdso32/vdso.so",
+      "  AS      arch/arm64/kernel/vdso32/vdso.o",
+      "-- KernelSU: Multi-managers: RKSU, MKSU, Official KernelSU, KowSU, KSUN, WKSU",
+      "  GEN     .version",
+      "  CHK     include/generated/compile.h",
+      "  UPD     include/generated/compile.h",
+      "  CC      init/version.o",
+      "  LD      vmlinux.o",
+      "  MODPOST vmlinux.o",
+      "  LD      vmlinux",
+      "  SORTEX  vmlinux",
+      "  SYSMAP  System.map",
+      "find: \u2018arch/arm64/boot/dts/\u2019: No such file or directory",
+      "find: \u2018arch/arm64/boot/dts/\u2019: No such file or directory",
+      "  OBJCOPY arch/arm64/boot/Image",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_performed": false,
+    "flash_ready": false,
+    "image_artifact_uploaded": false,
+    "kernel_built": false,
+    "packaged_boot_image_generated": false,
+    "prior_rt_rwsem_idr_link_proven": true,
+    "prior_vmlinux_link_proven": true,
+    "public_link_symbols_missing": [],
+    "public_link_symbols_verified": [
+      "down_write",
+      "up_write",
+      "down_read",
+      "up_read",
+      "idr_preload_end",
+      "down_read_killable",
+      "down_write_trylock",
+      "down_read_trylock",
+      "downgrade_write",
+      "down_write_killable"
+    ],
+    "raw_arm64_header_valid": true,
+    "raw_arm64_magic_hex": "41524d64",
+    "raw_image_bytes": 29212696,
+    "raw_image_created": true,
+    "raw_image_path": "arch/arm64/boot/Image",
+    "raw_image_sha256": "6f3b0ccdbd670105468fbf10cd71c854c8bb85e0693227e672847229cd661cf3",
+    "remaining_rejected_files": 64,
+    "rt_semantic_review_complete": false,
+    "runtime_verified": false,
+    "stage": "EXP76_STAGE86_RAW_ARM64_IMAGE_AND_RT_SYMBOL_DIAGNOSTIC_NONFLASH",
+    "target": "Image",
+    "timed_out": false
+  },
+  "rcu_internal_header_abi_audit": {
+    "classification": "OLD_RCU_FLAVOR_API_DIFFERS_FROM_E404_UNIFIED_RCU",
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "obsolete_legacy_rcu_flavor_api_absent": true,
+    "original_reject_sha256": {
+      "kernel/rcu/rcu.h": "e6665ce33fc70064e46b04120eecbebae9e64752ad83d06891f871bdd878c210",
+      "kernel/rcu/tree.h": "ad8e175a495d38fc5704db7e85f758fadaffc23b65591e4f836f5ffe75b80eb2"
+    },
+    "original_rejected_files_remaining": 64,
+    "original_rejects_deleted": false,
+    "rcu_header_hunks_runtime_semantics_resolved": 0,
+    "rcu_headers": [
+      "kernel/rcu/rcu.h",
+      "kernel/rcu/tree.h"
+    ],
+    "reviewed_original_rcu_header_rejected_files": 2,
+    "reviewed_original_rcu_header_rejected_hunks": 5,
+    "rt_rcu_runtime_semantics_verified": false,
+    "source_modified": false,
+    "source_sha256": {
+      "kernel/rcu/rcu.h": "f76dc7a9b181da32a3c8b6bdd6338b3fbc138f72bda605c055fa6df24f8fedf8",
+      "kernel/rcu/tree.c": "215683e6726713b105ddacfdc10d93607cb7affd1dc71a00df238542ac8fd920",
+      "kernel/rcu/tree.h": "66b453f58908fd3e7c721855bec0b1c90eab89ba434a9f74e2474c77745f1fe8"
+    },
+    "stage": "EXP76_STAGE95_RCU_INTERNAL_HEADER_GENERATION_AUDIT_NONFLASH",
+    "stage93_linked_rcu_exports_verified": true,
+    "tiny_rcu_stub_path_preserved": true,
+    "vendor_rcu_kthread_setup_declared": true,
+    "vendor_unified_gp_api_declared": true
+  },
+  "rcu_tree_plugin_reject_audit": {
+    "classification": "LEGACY_RT_RCU_TREE_PLUGIN_REJECT_REQUIRES_SEMANTIC_REVIEW",
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "original_rcu_plugin_reject_sha256": "3e1d7208144072ff906f7986d946147d77e7594be21c816eabfc084af032b236",
+    "original_rcu_plugin_rejected_hunks_pending": 11,
+    "original_rejected_files_remaining": 64,
+    "original_rejects_deleted": false,
+    "rcu_grace_period_runtime_verified": false,
+    "rcu_plugin_source_matches_stage93": true,
+    "rcu_plugin_source_sha256": "7842af032a8d672cf120b94db1f25df9228549b3f97fd8b815edc8ff6f971970",
+    "rejected_hunks_semantically_resolved": 0,
+    "rt_rcu_runtime_semantics_verified": false,
+    "source_modified": false,
+    "stage": "EXP76_STAGE97_RCU_TREE_PLUGIN_REJECT_PROVENANCE_NONFLASH",
+    "stage82_inventory_proven": true,
+    "stage93_linked_exports_proven": true,
+    "stage95_unified_headers_proven": true,
+    "unified_rcu_plugin_source_marker_count": 4,
+    "verification_scope": "SOURCE_PROVENANCE_ONLY"
+  },
+  "rcu_unified_link_contract": {
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "linked_rcu_exports_missing": [],
+    "linked_rcu_exports_present": [
+      "synchronize_rcu",
+      "rcu_barrier",
+      "__rcu_read_lock",
+      "__rcu_read_unlock"
+    ],
+    "original_rcu_tree_reject_sha256": "2de3a79ea9ac2eb3f2eb6ac6a603614e591ba84600cd5b6c36ce0298471b9cd2",
+    "original_rcu_tree_rejected_hunks_pending": 18,
+    "original_rejected_files_remaining": 64,
+    "rcu_grace_period_runtime_verified": false,
+    "rt_config_verified": true,
+    "rt_rcu_runtime_semantics_verified": false,
+    "stage": "EXP76_STAGE93_UNIFIED_RCU_RT_LINK_AND_API_CONTRACT_NONFLASH",
+    "stage47_rcu_preprocessor_guard_proven": true,
+    "stage92_linked_kernel_proven": true,
+    "system_map_sha256": "1fe448d8b439fc74c88b32f94e77bf22ecd2a0f904a49c8cfa606fc2fa01854a",
+    "unified_rcu_bh_forwarders": {
+      "call_rcu_bh": "call_rcu",
+      "rcu_barrier_bh": "rcu_barrier",
+      "synchronize_rcu_bh": "synchronize_rcu"
+    },
+    "unified_rcu_source_invariant_count": 12,
+    "unified_rcu_source_invariants": [
+      "unified_rcu_segcblist",
+      "unified_rcu_core",
+      "unified_synchronize_rcu",
+      "unified_rcu_barrier",
+      "preempt_rcu_read_lock",
+      "preempt_rcu_read_unlock",
+      "preempt_deferred_qs",
+      "preempt_special_unlock",
+      "rt_lockdep_wrapper",
+      "rt_lockdep_forward",
+      "non_rt_lockdep_implementation",
+      "non_rt_lockdep_export"
+    ],
+    "verification_scope": "SOURCE_AND_LINK_ONLY",
+    "vmlinux_elf_sha256": "f48eee23f139b8117ade179083596b45fc87a813e6f3f5ad2334b085ad5cb892"
+  },
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "rt_kconfig_guard_port": {
+    "applied": true,
+    "configs_patched": [
+      "TRANSPARENT_HUGEPAGE",
+      "MUTEX_SPIN_ON_OWNER",
+      "RWSEM_SPIN_ON_OWNER"
+    ],
+    "effective_config_disabled": [
+      "TRANSPARENT_HUGEPAGE",
+      "MUTEX_SPIN_ON_OWNER",
+      "RWSEM_SPIN_ON_OWNER"
+    ],
+    "effective_config_verified": true,
+    "flash_ready": false,
+    "kconfig_files_patched": [
+      "kernel/Kconfig.locks",
+      "mm/Kconfig"
+    ],
+    "kernel_built": false,
+    "original_rejects_retained": true,
+    "remaining_rejected_files": 64,
+    "rt_guard": "!PREEMPT_RT_FULL",
+    "rt_semantic_review_complete": false,
+    "runtime_verified": false,
+    "stage": "EXP76_STAGE88_RT_THP_MUTEX_RWSEM_KCONFIG_GUARDS_NONFLASH",
+    "upstream_rejected_hunks_reviewed": 2,
+    "upstream_rejected_lines_reviewed": 3,
+    "vendor_rwsem_prerequisites_preserved": true
+  },
+  "rt_reject_hunk_inventory": {
+    "categories": {
+      "architecture": 2,
+      "interrupt_timers": 4,
+      "kernel_mm_headers": 28,
+      "locking_scheduler": 4,
+      "other": 7,
+      "rcu": 8,
+      "subsystem": 11
+    },
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "initial_paths_no_longer_rejected_count": 18,
+    "initial_rejected_path_count": 82,
+    "kernel_built": false,
+    "missing_source_files": [],
+    "priority_sample": [
+      {
+        "first_change_excerpt": [
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+const_debug unsigned int sysctl_sched_nr_migrate = 8;",
+          "+#else",
+          "-\thrtimer_init(&rq->hrtick_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);",
+          "+\thrtimer_init(&rq->hrtick_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL_HARD);"
+        ],
+        "first_hunk_headers": [
+          "@@ -44,7 +44,11 @@ const_debug unsigned int sysctl_sched_features =",
+          "@@ -315,7 +319,7 @@ static void hrtick_rq_init(struct rq *rq)",
+          "@@ -976,7 +1042,7 @@ static int migration_cpu_stop(void *data)"
+        ],
+        "hunk_count": 21,
+        "parse_issues": [],
+        "reject_sha256": "4c3caaa61d2556dc1185d00b199c961494a62dadebd6ed8544b26d2ed7fa4799",
+        "review_category": "locking_scheduler",
+        "review_score": 100,
+        "source": "kernel/sched/core.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\t\tresched_curr(rq_of(cfs_rq));",
+          "+\t\tresched_curr_lazy(rq_of(cfs_rq));",
+          "-\t\tresched_curr(rq_of(cfs_rq));",
+          "+\t\tresched_curr_lazy(rq_of(cfs_rq));"
+        ],
+        "first_hunk_headers": [
+          "@@ -4151,7 +4151,7 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)",
+          "@@ -4175,7 +4175,7 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)",
+          "@@ -4317,7 +4317,7 @@ entity_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr, int queued)"
+        ],
+        "hunk_count": 20,
+        "parse_issues": [],
+        "reject_sha256": "b8c15cc49c3ce680e176b54065795e0bc058b481ca297cb0dff47733d8ff4c2f",
+        "review_category": "locking_scheduler",
+        "review_score": 100,
+        "source": "kernel/sched/fair.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+static void rcu_preempt_qs(void);",
+          "+",
+          "+#endif"
+        ],
+        "first_hunk_headers": [
+          "@@ -244,6 +251,19 @@ void rcu_sched_qs(void)",
+          "@@ -254,6 +274,7 @@ void rcu_bh_qs(void)",
+          "@@ -568,6 +589,7 @@ unsigned long rcu_sched_get_gp_seq(void)"
+        ],
+        "hunk_count": 18,
+        "parse_issues": [],
+        "reject_sha256": "2de3a79ea9ac2eb3f2eb6ac6a603614e591ba84600cd5b6c36ce0298471b9cd2",
+        "review_category": "rcu",
+        "review_score": 95,
+        "source": "kernel/rcu/tree.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-#include <linux/delay.h>",
+          "-#include <linux/gfp.h>",
+          "-#include <linux/oom.h>",
+          "+\tint sleeping_l = 0;",
+          "-\tWARN_ON_ONCE(!preempt && t->rcu_read_lock_nesting > 0);",
+          "+#if defined(CONFIG_PREEMPT_RT_FULL)"
+        ],
+        "first_hunk_headers": [
+          "@@ -24,41 +24,16 @@",
+          "@@ -337,9 +312,13 @@ static void rcu_preempt_note_context_switch(bool preempt)",
+          "@@ -520,7 +499,7 @@ static void rcu_read_unlock_special(struct task_struct *t)"
+        ],
+        "hunk_count": 11,
+        "parse_issues": [],
+        "reject_sha256": "3e1d7208144072ff906f7986d946147d77e7594be21c816eabfc084af032b236",
+        "review_category": "rcu",
+        "review_score": 95,
+        "source": "kernel/rcu/tree_plugin.h"
+      },
+      {
+        "first_change_excerpt": [
+          "-/*",
+          "- * Track online CPUs to guide callback workqueue placement.",
+          "- */",
+          "-\tpreempt_disable();",
+          "-\tif (READ_ONCE(per_cpu(srcu_online, cpu)))",
+          "+\tcpus_read_lock();"
+        ],
+        "first_hunk_headers": [
+          "@@ -460,21 +462,6 @@ static void srcu_gp_start(struct srcu_struct *sp)",
+          "@@ -486,12 +473,12 @@ static bool srcu_queue_delayed_work_on(int cpu, struct workqueue_struct *wq,",
+          "@@ -774,6 +761,8 @@ static void srcu_flip(struct srcu_struct *sp)"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "5844d3c558a15107c85741935c58a49133c307f6e08dcb137c6bab162ad29142",
+        "review_category": "rcu",
+        "review_score": 91,
+        "source": "kernel/rcu/srcutree.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\t\tif (cpumask_any_and(&p->cpus_allowed, vec->mask) >= nr_cpu_ids)",
+          "+\t\tif (cpumask_any_and(p->cpus_ptr, vec->mask) >= nr_cpu_ids)",
+          "-\t\t\tcpumask_and(lowest_mask, &p->cpus_allowed, vec->mask);"
+        ],
+        "first_hunk_headers": [
+          "@@ -98,11 +98,11 @@ int cpupri_find(struct cpupri *cp, struct task_struct *p,"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "46229fc23a4543f28fac12bad645f582a160086cc6d5cb6056b7909c01e53052",
+        "review_category": "locking_scheduler",
+        "review_score": 91,
+        "source": "kernel/sched/cpupri.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+",
+          "+#if defined(CONFIG_PREEMPT_RT_BASE) && defined(CONFIG_SMP)",
+          "+\tint\t\t\tnr_pinned;"
+        ],
+        "first_hunk_headers": [
+          "@@ -915,6 +915,10 @@ struct rq {"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "0c0e1e8ae110ff1db3a088c5936926ef34f55379525798bdb07b6a783ad94e41",
+        "review_category": "locking_scheduler",
+        "review_score": 91,
+        "source": "kernel/sched/sched.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifndef CONFIG_PREEMPT_RT_FULL",
+          "+#endif",
+          "-#ifdef CONFIG_RCU_BOOST",
+          "-#endif /* #ifdef CONFIG_RCU_BOOST */"
+        ],
+        "first_hunk_headers": [
+          "@@ -413,7 +413,9 @@ extern struct list_head rcu_struct_flavors;",
+          "@@ -421,12 +423,10 @@ extern struct rcu_state rcu_preempt_state;",
+          "@@ -449,8 +449,8 @@ static void dump_blkd_tasks(struct rcu_state *rsp, struct rcu_node *rnp,"
+        ],
+        "hunk_count": 3,
+        "parse_issues": [],
+        "reject_sha256": "ad8e175a495d38fc5704db7e85f758fadaffc23b65591e4f836f5ffe75b80eb2",
+        "review_category": "rcu",
+        "review_score": 88,
+        "source": "kernel/rcu/tree.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+#include <linux/rcuwait.h>",
+          "-static int rcu_normal_after_boot;",
+          "+static int rcu_normal_after_boot = IS_ENABLED(CONFIG_PREEMPT_RT_FULL);",
+          "+#ifndef CONFIG_PREEMPT_RT_FULL"
+        ],
+        "first_hunk_headers": [
+          "@@ -53,6 +53,7 @@",
+          "@@ -68,8 +69,10 @@ extern int rcu_expedited; /* from sysctl */",
+          "@@ -314,6 +318,7 @@ int rcu_read_lock_bh_held(void)"
+        ],
+        "hunk_count": 3,
+        "parse_issues": [],
+        "reject_sha256": "98cce60a248d9540dfdccb316138f6f58154618c36ef20dbfb3a77c03d836ae7",
+        "review_category": "rcu",
+        "review_score": 88,
+        "source": "kernel/rcu/update.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-unsigned long rcu_bh_get_gp_seq(void);",
+          "-void rcu_bh_force_quiescent_state(void);",
+          "+",
+          "+#ifdef CONFIG_PREEMPT_RT_FULL"
+        ],
+        "first_hunk_headers": [
+          "@@ -528,7 +528,6 @@ static inline void show_rcu_gp_kthreads(void) { }",
+          "@@ -536,10 +535,18 @@ unsigned long srcu_batches_completed(struct srcu_struct *sp);"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "e6665ce33fc70064e46b04120eecbebae9e64752ad83d06891f871bdd878c210",
+        "review_category": "rcu",
+        "review_score": 87,
+        "source": "kernel/rcu/rcu.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifndef CONFIG_PREEMPT_RT_FULL",
+          "+#else",
+          "+static struct rcu_torture_ops rcu_bh_ops = {",
+          "+\t.ttype\t\t= INVALID_RCU_FLAVOR,"
+        ],
+        "first_hunk_headers": [
+          "@@ -434,6 +434,7 @@ static struct rcu_torture_ops rcu_ops = {",
+          "@@ -475,6 +476,12 @@ static struct rcu_torture_ops rcu_bh_ops = {"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "67f0c43c90faf4829393035b1ba7abe8d8946e401bf0ff6af9b0cb24715200d8",
+        "review_category": "rcu",
+        "review_score": 87,
+        "source": "kernel/rcu/rcutorture.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\tint cpu;",
+          "-\t\tpreempt_disable();",
+          "-\t\tcpu = cpumask_next(rnp->grplo - 1, cpu_online_mask);",
+          "-\t\t/* If all offline, queue the work on an unbound CPU. */"
+        ],
+        "first_hunk_headers": [
+          "@@ -472,7 +472,6 @@ static void sync_rcu_exp_select_node_cpus(struct work_struct *wp)",
+          "@@ -494,13 +493,7 @@ static void sync_rcu_exp_select_cpus(struct rcu_state *rsp,"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "0171ff323693a194700c0dbb04ab8694870ea0bc78c2a06706755060e6b70f80",
+        "review_category": "rcu",
+        "review_score": 87,
+        "source": "kernel/rcu/tree_exp.h"
+      },
+      {
+        "first_change_excerpt": [
+          "+\tselect HAVE_PREEMPT_LAZY",
+          "+config RWSEM_GENERIC_SPINLOCK",
+          "+\tdef_bool PREEMPT_RT_FULL",
+          "+"
+        ],
+        "first_hunk_headers": [
+          "@@ -181,6 +181,7 @@ config X86",
+          "@@ -265,8 +266,11 @@ config ARCH_MAY_HAVE_PC_FDC"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "c8407b58cbdd090df38f08efec1f4ac687a3be17876587bbbecbe3e6669805e0",
+        "review_category": "architecture",
+        "review_score": 82,
+        "source": "arch/x86/Kconfig"
+      },
+      {
+        "first_change_excerpt": [
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+#define TIMER_SOFTIRQS ((1 << TIMER_SOFTIRQ) | (1 << HRTIMER_SOFTIRQ))",
+          "+DEFINE_PER_CPU(struct task_struct *, ktimer_softirqd);",
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+static void wakeup_timer_softirqd(void)",
+          "+{"
+        ],
+        "first_hunk_headers": [
+          "@@ -56,12 +59,136 @@ EXPORT_PER_CPU_SYMBOL(irq_stat);",
+          "@@ -77,6 +204,38 @@ static void wakeup_softirqd(void)",
+          "@@ -92,6 +251,47 @@ static bool ksoftirqd_running(unsigned long pending)"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "c667be6e853b3aad605f32b556d709c5996bd2c8719029687b079280cb61ca4e",
+        "review_category": "interrupt_timers",
+        "review_score": 81,
+        "source": "kernel/softirq.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\tdepends on KERNEL_MODE_NEON",
+          "+\tdepends on KERNEL_MODE_NEON && !PREEMPT_RT_BASE",
+          "-\tdepends on KERNEL_MODE_NEON"
+        ],
+        "first_hunk_headers": [
+          "@@ -107,13 +107,13 @@ config CRYPTO_AES_ARM64_NEON_BLK"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "313a186927a334940aca6e6ce944adb63d2f0f4ced59ff57f761af3bd28c82c8",
+        "review_category": "architecture",
+        "review_score": 81,
+        "source": "arch/arm64/crypto/Kconfig"
+      },
+      {
+        "first_change_excerpt": [
+          "-\tschedule_work(&timer_update_work);",
+          "+\tswork_queue(&timer_update_swork);",
+          "+static __init int hrtimer_init_thread(void)",
+          "+\t\traw_spin_unlock_irq(&base->lock);",
+          "+\t\traw_spin_lock_irq(&base->lock);"
+        ],
+        "first_hunk_headers": [
+          "@@ -247,9 +246,17 @@ static void timer_update_keys(struct work_struct *work)",
+          "@@ -1304,8 +1311,10 @@ static inline void timer_base_unlock_expiry(struct timer_base *base)",
+          "@@ -1324,7 +1333,7 @@ static void del_timer_wait_running(struct timer_list *timer)"
+        ],
+        "hunk_count": 5,
+        "parse_issues": [],
+        "reject_sha256": "445c341c5ae29d37e08b9cdfd97aea0c2574961690c7f25dacb9548c226792d7",
+        "review_category": "interrupt_timers",
+        "review_score": 80,
+        "source": "kernel/time/timer.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-",
+          "+#ifdef CONFIG_PREEMPT_RT_FULL",
+          "+",
+          "-\tpool->handle_cachep = kmem_cache_create(\"zs_handle\", ZS_HANDLE_SIZE,",
+          "+\tpool->handle_cachep = kmem_cache_create(\"zs_handle\", ZS_HANDLE_ALLOC_SIZE,"
+        ],
+        "first_hunk_headers": [
+          "@@ -73,9 +74,22 @@",
+          "@@ -325,7 +339,7 @@ static void SetZsPageMovable(struct zs_pool *pool, struct zspage *zspage) {}",
+          "@@ -349,10 +363,27 @@ static void destroy_cache(struct zs_pool *pool)"
+        ],
+        "hunk_count": 9,
+        "parse_issues": [],
+        "reject_sha256": "be10fa2acaf63b1796d576d7c8c0fb96941baaa25a55f8a00cd871aa12baf740",
+        "review_category": "kernel_mm_headers",
+        "review_score": 79,
+        "source": "mm/zsmalloc.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\thrtimer_init_on_stack(&t.timer, clockid, mode);",
+          "+\thrtimer_init_sleeper_on_stack(&t, clockid, mode, current);",
+          "+\tspin_lock_init(&cpu_base->softirq_expiry_lock);"
+        ],
+        "first_hunk_headers": [
+          "@@ -1807,7 +1874,7 @@ long hrtimer_nanosleep(const struct timespec64 *rqtp,",
+          "@@ -1891,6 +1990,7 @@ int hrtimers_prepare_cpu(unsigned int cpu)"
+        ],
+        "hunk_count": 2,
+        "parse_issues": [],
+        "reject_sha256": "81c2b115a6b6ded2c64454a30a398a1ed00767e1c148123ad9a0b7ba78dedafb",
+        "review_category": "interrupt_timers",
+        "review_score": 77,
+        "source": "kernel/time/hrtimer.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+#include <asm/kmap_types.h>",
+          "-#define task_is_traced(task)\t\t((task->state & __TASK_TRACED) != 0)",
+          "-",
+          "-#define task_is_stopped_or_traced(task)\t((task->state & (__TASK_STOPPED | __TASK_TRACED)) != 0)"
+        ],
+        "first_hunk_headers": [
+          "@@ -28,6 +28,7 @@",
+          "@@ -101,12 +102,8 @@ struct task_group;",
+          "@@ -223,6 +227,8 @@ extern void io_schedule_finish(int token);"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "00b363fe9d8f3dcfb32aff0d39e758365f6e77e57a114f79776545ad5f169e00",
+        "review_category": "kernel_mm_headers",
+        "review_score": 76,
+        "source": "include/linux/sched.h"
+      },
+      {
+        "first_change_excerpt": [
+          "-static DEFINE_SPINLOCK(quarantine_lock);",
+          "+static DEFINE_RAW_SPINLOCK(quarantine_lock);",
+          "-\t\tspin_lock(&quarantine_lock);",
+          "+\t\traw_spin_lock(&quarantine_lock);"
+        ],
+        "first_hunk_headers": [
+          "@@ -103,7 +103,7 @@ static int quarantine_head;",
+          "@@ -190,7 +190,7 @@ void quarantine_put(struct kasan_free_meta *info, struct kmem_cache *cache)",
+          "@@ -203,7 +203,7 @@ void quarantine_put(struct kasan_free_meta *info, struct kmem_cache *cache)"
+        ],
+        "hunk_count": 6,
+        "parse_issues": [],
+        "reject_sha256": "0fdc912c253d78ffb8b032276f07721fc81d71854a8c60bb82375c74adec506e",
+        "review_category": "kernel_mm_headers",
+        "review_score": 76,
+        "source": "mm/kasan/quarantine.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+static DEFINE_PER_CPU(spinlock_t, cpu_timer_expiry_lock) = __SPIN_LOCK_UNLOCKED(cpu_timer_expiry_lock);",
+          "+",
+          "+void cpu_timers_grab_expiry_lock(struct k_itimer *timer)"
+        ],
+        "first_hunk_headers": [
+          "@@ -1135,18 +1139,31 @@ static inline int fastpath_timer_check(struct task_struct *tsk)"
+        ],
+        "hunk_count": 1,
+        "parse_issues": [],
+        "reject_sha256": "3f7e605cdefa648198f9a9d578c216d085940c98a9ed5b9748d4c9324aaea932",
+        "review_category": "interrupt_timers",
+        "review_score": 76,
+        "source": "kernel/time/posix-cpu-timers.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-\t\thrtimer_init_on_stack(&to->timer, (flags & FLAGS_CLOCKRT) ?",
+          "-\t\t\t\t      CLOCK_REALTIME : CLOCK_MONOTONIC,",
+          "-\t\t\t\t      HRTIMER_MODE_ABS);",
+          "-\t\thrtimer_init_on_stack(&to->timer, CLOCK_REALTIME,",
+          "-\t\t\t\t      HRTIMER_MODE_ABS);",
+          "-\t\thrtimer_init_sleeper(to, current);"
+        ],
+        "first_hunk_headers": [
+          "@@ -2816,10 +2830,9 @@ static int futex_wait(u32 __user *uaddr, unsigned int flags, u32 val,",
+          "@@ -2917,9 +2930,8 @@ static int futex_lock_pi(u32 __user *uaddr, unsigned int flags,",
+          "@@ -3314,7 +3344,7 @@ static int futex_wait_requeue_pi(u32 __user *uaddr, unsigned int flags,"
+        ],
+        "hunk_count": 4,
+        "parse_issues": [],
+        "reject_sha256": "2c00301ce65c3158e68ff0ce3df0b452d29d365016ce05c00a8f28f026d0be0b",
+        "review_category": "kernel_mm_headers",
+        "review_score": 74,
+        "source": "kernel/futex.c"
+      },
+      {
+        "first_change_excerpt": [
+          "+#include <linux/rcuwait.h>",
+          "- * wq_worker_waking_up - a worker is waking up",
+          "+ * wq_worker_running - a worker is running again",
+          "- * @cpu: CPU @task is waking up to"
+        ],
+        "first_hunk_headers": [
+          "@@ -50,6 +50,7 @@",
+          "@@ -843,43 +845,32 @@ static void wake_up_worker(struct worker_pool *pool)",
+          "@@ -888,13 +879,15 @@ struct task_struct *wq_worker_sleeping(struct task_struct *task)"
+        ],
+        "hunk_count": 4,
+        "parse_issues": [],
+        "reject_sha256": "22203be4249fdb5f321b6f2e4b5c01ec34ef14cc2e9eb9a1f555bf5da5ec8e30",
+        "review_category": "kernel_mm_headers",
+        "review_score": 74,
+        "source": "kernel/workqueue.c"
+      },
+      {
+        "first_change_excerpt": [
+          "-static void __irq_work_queue_local(struct irq_work *work)",
+          "+static void __irq_work_queue_local(struct irq_work *work, struct llist_head *list)",
+          "-\t/* If the work is \"lazy\", handle it from next tick if any */",
+          "+\tif (use_lazy_list(work))",
+          "+\t\tlist = &per_cpu(lazy_list, cpu);",
+          "+\telse"
+        ],
+        "first_hunk_headers": [
+          "@@ -57,29 +58,40 @@ void __weak arch_irq_work_raise(void)",
+          "@@ -106,13 +120,18 @@ bool irq_work_queue_on(struct irq_work *work, int cpu)",
+          "@@ -144,8 +162,12 @@ static void irq_work_run_list(struct llist_head *list)"
+        ],
+        "hunk_count": 3,
+        "parse_issues": [],
+        "reject_sha256": "e743e34080a1635d02dc0b6236fd98e0ca20fe5d3007e0fd719ce80ae2cff613",
+        "review_category": "kernel_mm_headers",
+        "review_score": 73,
+        "source": "kernel/irq_work.c"
+      }
+    ],
+    "rejects_deleted": false,
+    "remaining_not_in_initial_manifest": [],
+    "remaining_rejected_files": 64,
+    "resolution_verified": false,
+    "source_modified": false,
+    "stage": "EXP76_STAGE82_OUTSTANDING_RT_REJECT_HUNK_INVENTORY_NONFLASH",
+    "total_added_lines": 1104,
+    "total_rejected_hunks": 209,
+    "total_removed_lines": 506,
+    "unparseable_reject_files": []
+  },
+  "rt_uts_version_generator_port": {
+    "applied": true,
+    "effective_uts_version_verified": true,
+    "flash_ready": false,
+    "generated_compiler_metadata_present": true,
+    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 14:00:34 UTC 2026",
+    "kernel_built": false,
+    "kernel_sys_uname_modified": false,
+    "original_rejects_retained": true,
+    "paths": [
+      "init/Makefile",
+      "scripts/mkcompile_h"
+    ],
+    "remaining_rejected_files": 64,
+    "rt_uts_version_marker": "PREEMPT_RT",
+    "runtime_verified": false,
+    "stage": "EXP76_STAGE90_TRUTHFUL_PREEMPT_RT_UTS_VERSION_NONFLASH",
+    "upstream_reject_hunks_reviewed": 2,
+    "uts_release_modified": false,
+    "vendor_cc_version_and_ld_abi_preserved": true
+  },
+  "run_id": 41839458693,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41839458693",
+  "rwsem_idr_rt_link_repair": {
+    "applied": true,
+    "files_patched": [
+      "kernel/locking/Makefile",
+      "kernel/locking/rwsem-rt-api.c",
+      "lib/radix-tree.c"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "idr_preload_end_uses_local_unlock": true,
+    "idr_preload_lock_pair_preserved": true,
+    "kernel_built": false,
+    "non_rt_vendor_rwsem_not_linked": true,
+    "rejected_files_remaining": 64,
+    "rt_public_symbols": [
+      "down_read",
+      "down_read_killable",
+      "down_read_trylock",
+      "down_write",
+      "down_write_killable",
+      "down_write_trylock",
+      "up_read",
+      "up_write",
+      "downgrade_write"
+    ],
+    "rt_public_wrapper_count": 9,
+    "rt_rwsem_lowlevel_preserved": true,
+    "stage": "EXP76_STAGE85_RWSEM_RT_PUBLIC_API_IDR_PRELOAD_END_NONFLASH"
+  },
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "security_subtree_diagnostic": {
+    "archive_bytes": 2732,
+    "archive_created": true,
+    "archive_has_members": true,
+    "attempted": true,
+    "errors_excerpt": [],
+    "exit_code": 0,
+    "first_error_context": [
+      "  CC      security/selinux/nlmsgtab.o",
+      "  CC      security/keys/proc.o",
+      "  CC      security/keys/sysctl.o",
+      "  CC      security/selinux/netif.o",
+      "  CC      security/commoncap.o",
+      "  CC      security/selinux/netnode.o",
+      "  CC      security/min_addr.o",
+      "  CC      security/selinux/netport.o",
+      "  CC      security/security.o",
+      "  CC      security/selinux/ss/ebitmap.o",
+      "  CC      security/selinux/ss/hashtab.o",
+      "  CC      security/selinux/ss/symtab.o",
+      "  CC      security/selinux/ss/sidtab.o",
+      "  CC      security/selinux/ss/avtab.o",
+      "  CC      security/selinux/ss/policydb.o",
+      "  CC      security/selinux/ss/services.o",
+      "  CC      security/selinux/ss/conditional.o",
+      "  CC      security/selinux/ss/mls.o",
+      "  CC      security/selinux/ss/status.o",
+      "  CC      security/selinux/netlabel.o",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_ready": false,
+    "full_kernel_link_performed": false,
+    "ipc_compile_semantics": "CONFIG_DISABLED",
+    "kernel_built": false,
+    "prior_ipc_subtree_gate": true,
+    "remaining_rejected_files": 64,
+    "stage": "EXP76_STAGE69_SECURITY_SUBTREE_KBUILD_ARCHIVE_NONFLASH",
+    "target": "security/built-in.a",
+    "timed_out": false,
+    "top_level_directory_scope": "vmlinux-dirs=security"
+  },
+  "source_sha": "842fa5577639aa9d8785142d53946aacf38db76e",
+  "stages": {
+    "stage19": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 65,
+      "stage": "EXP76_RT_STAGE19_COMPILER_HEADER_FIXES"
+    },
+    "stage20": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE20_SWAP_LOCALLOCK_AND_PERCPU_RWSEM_ABI"
+    },
+    "stage21": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED"
+    },
+    "stage26": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE26_E404_ARM64_FORK_VALUE_AFFINITY"
+    },
+    "stage27": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION"
+    },
+    "stage28": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE28_RT_TASK_STATE_LOCKED_HELPER_RESTORED"
+    },
+    "stage29": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE29_E404_RT_MIGRATION_TASK_ABI"
+    },
+    "stage31": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY"
+    },
+    "stage34": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED"
+    },
+    "stage35": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE35_RT_MIGHT_SLEEP_NO_STATE_CHECK"
+    },
+    "stage36": {
+      "applied": null,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE36_RT_CPU_PINNING_CONTRACT_INVENTORY"
+    },
+    "stage38": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS"
+    },
+    "stage40": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE40_RT_SLEEPING_LOCK_TASK_ABI"
+    },
+    "stage41": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE41_RT_MIGRATION_LIFECYCLE_E404"
+    },
+    "stage42": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE42_RT_CPU_HOTPLUG_PIN_DRAIN_ARM64_TLB"
+    },
+    "stage47": {
+      "applied": true,
+      "present": true,
+      "remaining_rejected_files": 64,
+      "stage": "EXP76_STAGE47_RCU_PREPROCESSOR_AND_WORKQUEUE_RAW_LOCK"
+    }
+  },
+  "status": "EXP76_STAGE22=PREPARE_PASS_OBJECT_DIAGNOSTIC_CAPTURED; KERNEL_BUILT=false; FLASH_READY=false",
+  "targets": {
+    "kernel_fork.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    },
+    "kernel_sched_core.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    },
+    "kernel_sched_cpupri.o": {
+      "attempted": true,
+      "compiled": true,
+      "errors_excerpt": [],
+      "exit_code": 0,
+      "skip_reason": null
+    }
+  },
+  "vmlinux_integration_diagnostic": {
+    "attempted": true,
+    "boot_image_generated": false,
+    "exit_code": 0,
+    "first_compiler_linker_errors": [],
+    "first_failure_context": [
+      "  CC      techpack/display/msm/msm_gem.o",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/techpack/display/msm/msm_gem.c:86:22: warning: unused variable 'dev' [-Wunused-variable]",
+      "   86 |                 struct drm_device *dev = obj->dev;",
+      "      |                                    ^~~",
+      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/techpack/display/msm/msm_gem.c:294:21: warning: unused variable 'dev' [-Wunused-variable]",
+      "  294 |         struct drm_device *dev = obj->dev;",
+      "      |                            ^~~",
+      "  CC      techpack/display/msm/msm_gem_prime.o",
+      "2 warnings generated.",
+      "  CC      techpack/display/msm/msm_gem_vma.o",
+      "  CC      techpack/display/msm/msm_smmu.o",
+      "  CC      techpack/display/msm/msm_prop.o",
+      "  CC      techpack/display/msm/msm_notifier.o",
+      "  GEN     .version",
+      "  CHK     include/generated/compile.h",
+      "  LD      vmlinux.o",
+      "  MODPOST vmlinux.o",
+      "  LD      vmlinux",
+      "  SORTEX  vmlinux",
+      "  SYSMAP  System.map",
+      "make[1]: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-stage18-out'",
+      "make: Leaving directory '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay'"
+    ],
+    "flash_performed": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "prior_arm64_crypto_kconfig_gate": true,
+    "prior_block_init_archives_gate": true,
+    "remaining_rejected_files": 64,
+    "runtime_verified": false,
+    "stage": "EXP76_STAGE84_PINNED_ARM64_VMLINUX_LINK_DIAGNOSTIC_NOFLASH",
+    "target": "vmlinux",
+    "timed_out": false,
+    "vmlinux_bytes": 36718616,
+    "vmlinux_created": true,
+    "vmlinux_elf_verified": true
+  },
+  "zram_vendor_lock_abi_audit": {
+    "classification": "OLD_RT_PATCH_INCOMPATIBLE_WITH_E404_VENDOR_LOCK_ABI",
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "original_rejected_files_remaining": 64,
+    "original_rejects_deleted": false,
+    "pinned_rt_reject_sha256": {
+      "drivers/block/zram/zcomp.c": "0ef1c8f2f98fbe193de0accb44c19bf597d935ca52af60091b24bf5bb1cf1332",
+      "drivers/block/zram/zcomp.h": "da7cb7ef3b0a88d874485181757209c1fac1f47fdeb7dba4321a2666144b72c3",
+      "drivers/block/zram/zram_drv.c": "9db66f8c2fcd065ee19a4aac3d85bf9e976704dd10ec4bddbf4ab13fd90906e7",
+      "drivers/block/zram/zram_drv.h": "551cad7e372b3337bbf99323c9b0eacd3b6bc9e7f6d71f5b271ff8739bc8dc26"
+    },
+    "reviewed_rejected_files": 4,
+    "reviewed_rejected_hunks": 11,
+    "rt_hunks_semantically_resolved": 0,
+    "rt_scheduler_rcu_runtime_verified": false,
+    "rt_zram_concurrency_runtime_verified": false,
+    "source_changed": false,
+    "source_sha256": {
+      "drivers/block/zram/zcomp.c": "62579325ab1f14ad6fc31ed6471d542fab937a7cdc3b9e2aadcd8879e05b1e0d",
+      "drivers/block/zram/zcomp.h": "6bdd2339cf91164e2b243ed1b93e0f3ef2f45efd1583bd682ed7d9a452259a28",
+      "drivers/block/zram/zram_drv.c": "dd01535244edd12609a8e7ec996c49d0ce69b16f3e4a1e7cbf9a4a2463e95a2f",
+      "drivers/block/zram/zram_drv.h": "82314e95108700e8ae86411ef00b6783246ee068c43372dcd4177accb96d0cc7"
+    },
+    "stage": "EXP76_STAGE94_ZRAM_VENDOR_LOCK_ABI_REJECT_CLASSIFICATION_NONFLASH",
+    "vendor_multiple_compression_backends_preserved": true,
+    "vendor_sleepable_zram_slot_bitlock_verified": true,
+    "vendor_stream_cpu_hotplug_serialization_verified": true,
+    "vendor_stream_mutex_and_liveness_retry_verified": true,
+    "vendor_zram_lock_invariant_count": 19,
+    "vendor_zram_lock_invariants_checked": [
+      "vendor_stream_mutex_field",
+      "vendor_stream_per_cpu_storage",
+      "vendor_stream_put_api",
+      "vendor_stream_raw_cpu_ptr",
+      "vendor_stream_mutex_acquire",
+      "vendor_stream_buffer_liveness_check",
+      "vendor_stream_mutex_retry_release",
+      "vendor_stream_hotplug_release",
+      "vendor_stream_hotplug_initialization",
+      "vendor_stream_hotplug_state_registration",
+      "vendor_stream_hotplug_state_removal",
+      "vendor_slot_flags",
+      "vendor_slot_lockdep_map",
+      "vendor_slot_trylock_bit",
+      "vendor_slot_sleepable_wait",
+      "vendor_slot_unlock_wakeup",
+      "vendor_slot_lockdep_registration",
+      "vendor_compression_multi_backend",
+      "vendor_stream_release_by_pointer"
+    ]
+  }
+}
