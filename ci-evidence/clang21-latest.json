@@ -151,7 +151,7 @@
     "estimated_offline_compact_candidate_bytes": 31072256,
     "exp76_arm64_magic_verified": true,
     "exp76_arm64_raw_image_bytes_verified": 29212696,
-    "exp76_arm64_raw_image_sha256_verified": "6f3b0ccdbd670105468fbf10cd71c854c8bb85e0693227e672847229cd661cf3",
+    "exp76_arm64_raw_image_sha256_verified": "1dd736cdc98eb91a0b985a9510a1c439bf55213acbbef14b65e11f49cbda570b",
     "fits_pinned_stock_compact_file_size": true,
     "flash_performed": false,
     "flash_ready": false,
@@ -182,7 +182,7 @@
       "UTS_MACHINE",
       "UTS_VERSION"
     ],
-    "compile_h_sha256": "b90889f08a988e840f7efb1fdbf30ad637198256f955f15f2fd92f6f350187bf",
+    "compile_h_sha256": "6e6f5122765555715be1204cae28098c16ee14bd810e728e439d647e2c9e6b64",
     "compile_h_uts_machine": "\"aarch64\"",
     "errors_excerpt": [],
     "exit_code": 0,
@@ -640,8 +640,8 @@
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
       "   94 |         struct llist_head *list;",
       "      |                            ^~~~",
-      "1 warning generated.",
       "  CC      kernel/jump_label.o",
+      "1 warning generated.",
       "  CC      kernel/iomem.o",
       "  UPD     kernel/config_data.h",
       "  CC      kernel/configs.o",
@@ -772,7 +772,7 @@
     ],
     "vendor_embedded_cpus_allowed_preserved": true,
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "f48eee23f139b8117ade179083596b45fc87a813e6f3f5ad2334b085ad5cb892"
+    "vmlinux_elf_sha256": "55cf815b8249eea0538183102aba5d8f2822bd3667e6a2aa3a18a0b1632fb548"
   },
   "mm_subtree_diagnostic": {
     "archive_bytes": 4620,
@@ -850,15 +850,15 @@
     "errors_excerpt": [],
     "exit_code": 0,
     "first_error_context": [
-      "  CC      net/xfrm/xfrm_ipcomp.o",
       "  CC      net/xfrm/xfrm_interface.o",
-      "  CC      net/socket.o",
+      "  CC      net/wireless/nl80211.o",
       "  CC      net/wireless/mlme.o",
+      "  CC      net/socket.o",
       "  CC      net/wireless/ibss.o",
       "  CC      net/compat.o",
       "  CC      net/wireless/sme.o",
-      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/chan.o",
+      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/ethtool.o",
       "  CC      net/wireless/mesh.o",
       "  CC      net/wireless/ap.o",
@@ -983,7 +983,7 @@
     "raw_image_bytes": 29212696,
     "raw_image_created": true,
     "raw_image_path": "arch/arm64/boot/Image",
-    "raw_image_sha256": "6f3b0ccdbd670105468fbf10cd71c854c8bb85e0693227e672847229cd661cf3",
+    "raw_image_sha256": "1dd736cdc98eb91a0b985a9510a1c439bf55213acbbef14b65e11f49cbda570b",
     "remaining_rejected_files": 64,
     "rt_semantic_review_complete": false,
     "runtime_verified": false,
@@ -1087,7 +1087,7 @@
       "non_rt_lockdep_export"
     ],
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "f48eee23f139b8117ade179083596b45fc87a813e6f3f5ad2334b085ad5cb892"
+    "vmlinux_elf_sha256": "55cf815b8249eea0538183102aba5d8f2822bd3667e6a2aa3a18a0b1632fb548"
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
   "rt_kconfig_guard_port": {
@@ -1604,7 +1604,7 @@
     "effective_uts_version_verified": true,
     "flash_ready": false,
     "generated_compiler_metadata_present": true,
-    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 14:00:34 UTC 2026",
+    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 14:40:29 UTC 2026",
     "kernel_built": false,
     "kernel_sys_uname_modified": false,
     "original_rejects_retained": true,
@@ -1620,8 +1620,8 @@
     "uts_release_modified": false,
     "vendor_cc_version_and_ld_abi_preserved": true
   },
-  "run_id": 41839458693,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41839458693",
+  "run_id": 41846095753,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41846095753",
   "rwsem_idr_rt_link_repair": {
     "applied": true,
     "files_patched": [
@@ -1662,14 +1662,14 @@
     "first_error_context": [
       "  CC      security/selinux/nlmsgtab.o",
       "  CC      security/keys/proc.o",
-      "  CC      security/keys/sysctl.o",
       "  CC      security/selinux/netif.o",
+      "  CC      security/keys/sysctl.o",
       "  CC      security/commoncap.o",
       "  CC      security/selinux/netnode.o",
-      "  CC      security/min_addr.o",
       "  CC      security/selinux/netport.o",
-      "  CC      security/security.o",
+      "  CC      security/min_addr.o",
       "  CC      security/selinux/ss/ebitmap.o",
+      "  CC      security/security.o",
       "  CC      security/selinux/ss/hashtab.o",
       "  CC      security/selinux/ss/symtab.o",
       "  CC      security/selinux/ss/sidtab.o",
@@ -1694,7 +1694,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=security"
   },
-  "source_sha": "842fa5577639aa9d8785142d53946aacf38db76e",
+  "source_sha": "dd82f45d25e87586a819b7d280d03317edf100be",
   "stages": {
     "stage19": {
       "applied": true,
