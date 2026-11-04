@@ -117,6 +117,8 @@ def main() -> None:
         md = (report / M["REPORT_MD"]).read_text()
         assert "64" in md and "kernel/sched/cpupri.c" in md
         assert "No reject has been cleared" in md
+        assert "`kernel/sched/cpupri.c`" in md
+        assert "\\`" not in md
 
         missing_sentinel = fixture(root / "missing-sentinel")
         (missing_sentinel[0] / M["SENTINEL"]).unlink()
