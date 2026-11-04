@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_E404_KCONFIG_SOURCE_DEPENDENCIES",
+  "generated_at": "2026-11-04T19:52:56Z",
+  "source_sha": "72b052611f2fd1a7a18a15622a8607268266f428",
+  "e404_base": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+  "authoritative_ci": {
+    "run_id": 41901017019,
+    "artifact_id": 13359435077,
+    "artifact_zip_sha256": "f04bfabae4dcbc1190d6e75694e9fbe6d3b97337af13b130be3c27743377fff9"
+  },
+  "scope": "all top-level unindented source references in Kconfig and Kconfig.* files; excludes intentional negative fixtures under scripts/kconfig/tests",
+  "before_submodule": {
+    "kconfig_files_scanned": 1541,
+    "source_directives": 1573,
+    "source_resolved_directives": 1569,
+    "missing_source_paths_count": 1,
+    "missing_source_paths": [
+      "drivers/kernelsu/Kconfig"
+    ],
+    "unresolved_dynamic_count": 3,
+    "elapsed_s": 0.40026
+  },
+  "after_submodule": {
+    "kconfig_files_scanned": 1542,
+    "source_directives": 1573,
+    "source_resolved_directives": 1570,
+    "missing_source_paths_count": 0,
+    "missing_source_paths": [],
+    "unresolved_dynamic_count": 3,
+    "elapsed_s": 0.37025
+  },
+  "submodule": {
+    "path": "KernelSU",
+    "gitlink": "4f03066bcce17098759962438404cbd9529396ca",
+    "source_link": "drivers/kernelsu -> ../KernelSU/kernel",
+    "resolved": true
+  },
+  "gate_status": "LITERAL_SOURCES_RESOLVED_DYNAMIC_UNCHECKED",
+  "rt_handoff_ready": false
+}
