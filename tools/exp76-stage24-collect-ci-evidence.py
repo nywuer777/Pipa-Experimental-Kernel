@@ -773,6 +773,44 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    kconfig_raw = read_json(
+        artifact / "exp76-rt-report" / "stage88" / "stage88-status.json"
+    )
+    rt_kconfig = None
+    if kconfig_raw is not None:
+        rt_kconfig = {
+            "stage": str(kconfig_raw.get("stage") or "")[:140],
+            "applied": kconfig_raw.get("applied") is True,
+            "configs_patched": [
+                str(x)[:80] for x in
+                (kconfig_raw.get("configs_patched") or [])[:8]
+            ],
+            "kconfig_files_patched": [
+                str(x)[:140] for x in
+                (kconfig_raw.get("kconfig_files_patched") or [])[:8]
+            ],
+            "upstream_rejected_hunks_reviewed":
+                kconfig_raw.get("upstream_rejected_hunks_reviewed"),
+            "upstream_rejected_lines_reviewed":
+                kconfig_raw.get("upstream_rejected_lines_reviewed"),
+            "vendor_rwsem_prerequisites_preserved":
+                kconfig_raw.get("vendor_rwsem_prerequisites_preserved") is True,
+            "rt_guard": str(kconfig_raw.get("rt_guard") or "")[:64],
+            "original_rejects_retained":
+                kconfig_raw.get("original_rejects_retained") is True,
+            "remaining_rejected_files":
+                kconfig_raw.get("remaining_rejected_files"),
+            "effective_config_verified":
+                kconfig_raw.get("effective_config_verified") is True,
+            "effective_config_disabled": [
+                str(x)[:80] for x in
+                (kconfig_raw.get("effective_config_disabled") or [])[:8]
+            ],
+            "rt_semantic_review_complete": False,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -819,6 +857,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "rwsem_idr_rt_link_repair": rt_link_apis,
         "raw_arm64_image_diagnostic": raw_image,
         "kasan_raw_spinlock_equivalence": kasan,
+        "rt_kconfig_guard_port": rt_kconfig,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

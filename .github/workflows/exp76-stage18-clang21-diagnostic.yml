@@ -111,6 +111,8 @@ on:
       - 'tests/test_exp76_stage86_raw_arm64_image.py'
       - 'tools/exp76-stage87-kasan-vendor-equivalence.py'
       - 'tests/test_exp76_stage87_kasan_vendor_equivalence.py'
+      - 'tools/exp76-stage88-rt-kconfig-guards.py'
+      - 'tests/test_exp76_stage88_rt_kconfig_guards.py'
   workflow_dispatch:
 
 permissions:
@@ -238,6 +240,8 @@ jobs:
           python3 tests/test_exp76_stage86_raw_arm64_image.py
           python3 -m py_compile tools/exp76-stage87-kasan-vendor-equivalence.py
           python3 tests/test_exp76_stage87_kasan_vendor_equivalence.py
+          python3 -m py_compile tools/exp76-stage88-rt-kconfig-guards.py
+          python3 tests/test_exp76_stage88_rt_kconfig_guards.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -407,6 +411,35 @@ jobs:
           PY
           git -C exp76-trial-overlay diff --check
 
+      - name: Port SHA-pinned RT THP + mutex/rwsem owner-spin Kconfig guards (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage88 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('exp76-rt-report/stage88/stage88-status.json').read_text())
+          assert data['applied'] is True
+          assert data['upstream_rejected_hunks_reviewed'] == 2
+          assert data['upstream_rejected_lines_reviewed'] == 3
+          assert data['configs_patched'] == [
+              'TRANSPARENT_HUGEPAGE', 'MUTEX_SPIN_ON_OWNER',
+              'RWSEM_SPIN_ON_OWNER',
+          ]
+          assert data['vendor_rwsem_prerequisites_preserved'] is True
+          assert data['remaining_rejected_files'] == 64
+          assert data['original_rejects_retained'] is True
+          assert not data['rt_semantic_review_complete']
+          assert not data['kernel_built'] and not data['flash_ready']
+          print('EXP76_STAGE88_RT_KCONFIG_THREE_GUARDS=APPLIED; REJECTS_RETAINED=64')
+          PY
+          git -C exp76-trial-overlay diff --check
+
       - name: Patch radix-tree RT local-lock header after source audits (NONFLASH)
         shell: bash
         run: |
@@ -424,6 +457,30 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/exp76-stage18-clang21-object-diagnostic.sh
+
+      - name: Check effective PREEMPT_RT Kconfig dependency convergence (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage88 \
+            --config exp76-stage18-out/.config \
+            --mode verify-config
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('exp76-rt-report/stage88/stage88-status.json').read_text())
+          assert data['effective_config_verified']
+          assert data['effective_config_disabled'] == [
+              'TRANSPARENT_HUGEPAGE', 'MUTEX_SPIN_ON_OWNER',
+              'RWSEM_SPIN_ON_OWNER',
+          ]
+          assert data['remaining_rejected_files'] == 64
+          assert not data['flash_ready']
+          print('EXP76_STAGE88_EFFECTIVE_RT_KCONFIG_GUARDS=VERIFIED; NO FLASH')
+          PY
 
       - name: Compile additional RT scheduler, locking and hotplug objects (NONFLASH)
         shell: bash
@@ -1267,6 +1324,18 @@ jobs:
                   f"Original rejects retained: {stage87.get('rejected_files_remaining')}",
                   'This does not validate other PREEMPT_RT semantics.',
               ]
+          stage88_path = Path('exp76-rt-report/stage88/stage88-status.json')
+          if stage88_path.is_file():
+              stage88 = json.loads(stage88_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage88 RT THP and owner-spin Kconfig guards (NONFLASH)', '']
+              lines += [
+                  f"Two rejected hunks reviewed: {stage88.get('upstream_rejected_hunks_reviewed')}",
+                  f"RT Kconfig dependencies ported: {stage88.get('configs_patched')}",
+                  f"Vendor rwsem prerequisites preserved: {stage88.get('vendor_rwsem_prerequisites_preserved')}",
+                  f"Effective RT .config verified: {stage88.get('effective_config_verified')}",
+                  f"Effective disabled options: {stage88.get('effective_config_disabled')}",
+                  f"Original rejects retained: {stage88.get('remaining_rejected_files')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1333,6 +1402,7 @@ jobs:
             exp76-rt-report/stage83/
             exp76-rt-report/stage85/
             exp76-rt-report/stage87/
+            exp76-rt-report/stage88/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30

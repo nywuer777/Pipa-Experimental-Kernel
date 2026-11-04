@@ -57,6 +57,7 @@ def main() -> None:
         assert empty["rwsem_idr_rt_link_repair"] is None
         assert empty["raw_arm64_image_diagnostic"] is None
         assert empty["kasan_raw_spinlock_equivalence"] is None
+        assert empty["rt_kconfig_guard_port"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -597,6 +598,30 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-rt-report" / "stage88" / "stage88-status.json", {
+            "stage": "EXP76_STAGE88_RT_THP_MUTEX_RWSEM_KCONFIG_GUARDS_NONFLASH",
+            "applied": True,
+            "configs_patched": [
+                "TRANSPARENT_HUGEPAGE", "MUTEX_SPIN_ON_OWNER",
+                "RWSEM_SPIN_ON_OWNER",
+            ],
+            "kconfig_files_patched": ["kernel/Kconfig.locks", "mm/Kconfig"],
+            "upstream_rejected_hunks_reviewed": 2,
+            "upstream_rejected_lines_reviewed": 3,
+            "vendor_rwsem_prerequisites_preserved": True,
+            "rt_guard": "!PREEMPT_RT_FULL",
+            "original_rejects_retained": True,
+            "remaining_rejected_files": 64,
+            "effective_config_verified": True,
+            "effective_config_disabled": [
+                "TRANSPARENT_HUGEPAGE", "MUTEX_SPIN_ON_OWNER",
+                "RWSEM_SPIN_ON_OWNER",
+            ],
+            "rt_semantic_review_complete": False,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -875,6 +900,27 @@ def main() -> None:
         assert kasan["rejected_files_remaining"] == 64
         assert not kasan["all_rt_semantics_verified"]
         assert not kasan["flash_ready"]
+        rt_kconfig = failed["rt_kconfig_guard_port"]
+        assert rt_kconfig["stage"] == "EXP76_STAGE88_RT_THP_MUTEX_RWSEM_KCONFIG_GUARDS_NONFLASH"
+        assert rt_kconfig["applied"] is True
+        assert rt_kconfig["configs_patched"] == [
+            "TRANSPARENT_HUGEPAGE", "MUTEX_SPIN_ON_OWNER",
+            "RWSEM_SPIN_ON_OWNER",
+        ]
+        assert rt_kconfig["kconfig_files_patched"] == [
+            "kernel/Kconfig.locks", "mm/Kconfig",
+        ]
+        assert rt_kconfig["upstream_rejected_hunks_reviewed"] == 2
+        assert rt_kconfig["upstream_rejected_lines_reviewed"] == 3
+        assert rt_kconfig["vendor_rwsem_prerequisites_preserved"] is True
+        assert rt_kconfig["effective_config_verified"] is True
+        assert rt_kconfig["effective_config_disabled"] == [
+            "TRANSPARENT_HUGEPAGE", "MUTEX_SPIN_ON_OWNER",
+            "RWSEM_SPIN_ON_OWNER",
+        ]
+        assert rt_kconfig["original_rejects_retained"] is True
+        assert rt_kconfig["remaining_rejected_files"] == 64
+        assert not rt_kconfig["kernel_built"] and not rt_kconfig["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
