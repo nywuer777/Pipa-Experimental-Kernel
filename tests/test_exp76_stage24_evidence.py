@@ -61,6 +61,7 @@ def main() -> None:
         assert empty["proc_swait_rt_include_port"] is None
         assert empty["rt_uts_version_generator_port"] is None
         assert empty["pid_atomic_rt_header_port"] is None
+        assert empty["migration_link_contract"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -681,6 +682,35 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage92-report" / "stage92-status.json", {
+            "stage": "EXP76_STAGE92_RT_MIGRATION_ABI_SYMBOL_CROSSCHECK_NONFLASH",
+            "source_stage41_applied": True,
+            "arm64_stage86_image_link_verified": True,
+            "smp_preempt_rt_full_config_verified": True,
+            "cross_file_source_contracts_verified": [
+                "saved_affinity_field", "runqueue_nr_pinned_field",
+                "cpu_nr_pinned_declaration",
+            ],
+            "cross_file_source_contract_count": 14,
+            "system_map_symbols_present": [
+                "migrate_disable", "migrate_enable", "cpu_nr_pinned",
+            ],
+            "system_map_symbols_missing": [],
+            "source_sha256": {"kernel/sched/core.c": "a" * 64},
+            "vmlinux_elf_sha256": "b" * 64,
+            "system_map_sha256": "c" * 64,
+            "vendor_embedded_cpus_allowed_preserved": True,
+            "cpu_hotplug_callers_verified": 2,
+            "original_rejects_retained": True,
+            "remaining_rejected_files": 64,
+            "verification_scope": "SOURCE_AND_LINK_ONLY",
+            "migration_runtime_semantics_verified": False,
+            "cpu_hotplug_runtime_verified": False,
+            "rcu_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1019,6 +1049,28 @@ def main() -> None:
         assert pid_atomic["remaining_rejected_files"] == 64
         assert pid_atomic["source_change_only_include"] is True
         assert not pid_atomic["kernel_built"] and not pid_atomic["flash_ready"]
+        migration = failed["migration_link_contract"]
+        assert migration["stage"] == "EXP76_STAGE92_RT_MIGRATION_ABI_SYMBOL_CROSSCHECK_NONFLASH"
+        assert migration["source_stage41_applied"] is True
+        assert migration["arm64_stage86_image_link_verified"] is True
+        assert migration["smp_preempt_rt_full_config_verified"] is True
+        assert migration["cross_file_source_contract_count"] == 14
+        assert migration["system_map_symbols_present"] == [
+            "migrate_disable", "migrate_enable", "cpu_nr_pinned",
+        ]
+        assert migration["system_map_symbols_missing"] == []
+        assert migration["vendor_embedded_cpus_allowed_preserved"] is True
+        assert migration["cpu_hotplug_callers_verified"] == 2
+        assert migration["vmlinux_elf_sha256"] == "b" * 64
+        assert migration["system_map_sha256"] == "c" * 64
+        assert migration["original_rejects_retained"] is True
+        assert migration["remaining_rejected_files"] == 64
+        assert migration["verification_scope"] == "SOURCE_AND_LINK_ONLY"
+        assert not migration["migration_runtime_semantics_verified"]
+        assert not migration["cpu_hotplug_runtime_verified"]
+        assert not migration["rcu_runtime_verified"]
+        assert not migration["device_boot_verified"]
+        assert not migration["kernel_built"] and not migration["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

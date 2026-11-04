@@ -912,6 +912,59 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    migration_link_raw = read_json(
+        artifact / "exp76-stage92-report" / "stage92-status.json"
+    )
+    migration_link = None
+    if migration_link_raw is not None:
+        migration_link = {
+            "stage": str(migration_link_raw.get("stage") or "")[:140],
+            "source_stage41_applied":
+                migration_link_raw.get("source_stage41_applied") is True,
+            "arm64_stage86_image_link_verified":
+                migration_link_raw.get("arm64_stage86_image_link_verified") is True,
+            "smp_preempt_rt_full_config_verified":
+                migration_link_raw.get("smp_preempt_rt_full_config_verified") is True,
+            "cross_file_source_contracts_verified": [
+                str(x)[:100] for x in
+                (migration_link_raw.get("cross_file_source_contracts_verified") or [])[:30]
+            ],
+            "cross_file_source_contract_count":
+                migration_link_raw.get("cross_file_source_contract_count"),
+            "system_map_symbols_present": [
+                str(x)[:80] for x in
+                (migration_link_raw.get("system_map_symbols_present") or [])[:10]
+            ],
+            "system_map_symbols_missing": [
+                str(x)[:80] for x in
+                (migration_link_raw.get("system_map_symbols_missing") or [])[:10]
+            ],
+            "source_sha256": {
+                str(path)[:150]: str(sha)[:64]
+                for path, sha in
+                list((migration_link_raw.get("source_sha256") or {}).items())[:10]
+            },
+            "vmlinux_elf_sha256":
+                str(migration_link_raw.get("vmlinux_elf_sha256") or "")[:64],
+            "system_map_sha256":
+                str(migration_link_raw.get("system_map_sha256") or "")[:64],
+            "vendor_embedded_cpus_allowed_preserved":
+                migration_link_raw.get("vendor_embedded_cpus_allowed_preserved") is True,
+            "cpu_hotplug_callers_verified":
+                migration_link_raw.get("cpu_hotplug_callers_verified"),
+            "original_rejects_retained":
+                migration_link_raw.get("original_rejects_retained") is True,
+            "remaining_rejected_files":
+                migration_link_raw.get("remaining_rejected_files"),
+            "verification_scope":
+                str(migration_link_raw.get("verification_scope") or "")[:40],
+            "migration_runtime_semantics_verified": False,
+            "cpu_hotplug_runtime_verified": False,
+            "rcu_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -962,6 +1015,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "proc_swait_rt_include_port": proc_swait,
         "rt_uts_version_generator_port": rt_uts,
         "pid_atomic_rt_header_port": pid_atomic,
+        "migration_link_contract": migration_link,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
