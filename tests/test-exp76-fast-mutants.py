@@ -62,9 +62,13 @@ def main():
                 if r.returncode:
                     raise RuntimeError("git setup failed: "+r.stderr)
             (root/relative).write_text(content,encoding="utf-8")
+            for argv in (["git","add","-A"], ["git","commit","-qm",mutant_id]):
+                r=cmd(argv,root)
+                if r.returncode:
+                    raise RuntimeError("failed to commit mutation: "+r.stderr)
             output=root/"mutation-result.json"
             r=cmd([sys.executable,str(FAST),"--runs","20",
-                   "--base","HEAD","--head","--output",str(output),
+                   "--base","HEAD^","--head","--output",str(output),
                    "--checkpatch",str(Path(a.checkpatch).resolve()) if a.checkpatch else ""],
                   root,timeout=85)
             report=json.loads(output.read_text()) if output.exists() else None
