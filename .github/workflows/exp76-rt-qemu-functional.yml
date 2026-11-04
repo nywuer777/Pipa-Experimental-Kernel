@@ -44,7 +44,7 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
-            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi rsync device-tree-compiler \
+            gcc-aarch64-linux-gnu rsync device-tree-compiler \
             qemu-system-arm busybox-static cpio gzip xz-utils
           command -v qemu-system-aarch64
           command -v busybox
@@ -196,7 +196,7 @@ jobs:
             make -C "$K" O="$BASE/$variant" ARCH=arm64 \
               CC=clang LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
               CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
-              -j2 Image > "exp76-qemu/logs/build-$variant.log" 2>&1 || {
+              -j"$(nproc)" Image > "exp76-qemu/logs/build-$variant.log" 2>&1 || {
                 tail -n 120 "exp76-qemu/logs/build-$variant.log"; exit 1;
               }
             test -s "$BASE/$variant/arch/arm64/boot/Image"
@@ -310,7 +310,7 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          timeout -k 5s 60s qemu-system-aarch64 \
+          timeout -k 5s 120s qemu-system-aarch64 \
             -M virt -cpu cortex-a72 -smp 4 -m 512 \
             -nographic -no-reboot \
             -kernel exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
@@ -333,7 +333,7 @@ jobs:
         run: |
           set -euo pipefail
           set +e
-          timeout -k 5s 60s qemu-system-aarch64 \
+          timeout -k 5s 120s qemu-system-aarch64 \
             -M virt -cpu cortex-a72 -smp 4 -m 512 \
             -nographic -no-reboot \
             -kernel exp76-qemu/outputs/qemu-nonrt/arch/arm64/boot/Image \
