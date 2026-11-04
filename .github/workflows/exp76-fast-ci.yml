@@ -37,12 +37,23 @@ jobs:
           set -euo pipefail
           python3 -m py_compile tools/exp76-fast-benchmark.py
           git rev-parse HEAD^
+          # Real cumulative test diff includes the V2->V3 C module and Python scripts.
+          # This is a representative change set, not a single-commit latency claim.
+          SAMPLE_BASE=53d0339d93fc7b1e94dc447ec6462199dcf3620f
+          git fetch --no-tags --depth=1 origin "$SAMPLE_BASE"
+          git cat-file -e "$SAMPLE_BASE^{commit}"
+          python3 tools/exp76-fast-benchmark.py \
+            --runs 20 \
+            --base "$SAMPLE_BASE" \
+            --head HEAD \
+            --checkpatch exp76-qemu/checkpatch/checkpatch.pl \
+            --output exp76-qemu/reports/fast-ccache.json
           python3 tools/exp76-fast-benchmark.py \
             --runs 20 \
             --base HEAD^ \
             --head HEAD \
             --checkpatch exp76-qemu/checkpatch/checkpatch.pl \
-            --output exp76-qemu/reports/fast-ccache.json
+            --output exp76-qemu/reports/fast-current-commit.json
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -59,6 +70,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: exp76-fast-20x-measured-NOFLASH
-          path: exp76-qemu/reports/fast-ccache.json
+          path: |
+            exp76-qemu/reports/fast-ccache.json
+            exp76-qemu/reports/fast-current-commit.json
           if-no-files-found: warn
           retention-days: 14
