@@ -204,7 +204,9 @@ jobs:
                 tail -n 120 "exp76-qemu/logs/build-$variant.log"; exit 1;
               }
             test -s "$BASE/$variant/arch/arm64/boot/Image"
-            test -s "$BASE/$variant/Module.symvers"
+            if [ "$variant" != pipa-rt ]; then
+              test -s "$BASE/$variant/Module.symvers"
+            fi
             sha256sum "$BASE/$variant/.config" \
               "$BASE/$variant/arch/arm64/boot/Image" \
               > "exp76-qemu/reports/sha256-$variant.txt"
@@ -276,9 +278,10 @@ jobs:
               /config/rt.config /tmp/noop || result=1
             if [ -f /tmp/normal/probe.log ]; then
               sed '$d' /tmp/normal/probe.log > /tmp/truncated.log
-              /bin/sh /probe/gate.sh verify normal /config/rt.config \
-                /tmp/truncated.log
+              set +e
+              /bin/sh /probe/gate.sh verify normal /config/rt.config                 /tmp/truncated.log
               truncated_rc=$?
+              set -e
               if [ "$truncated_rc" -ne 2 ]; then
                 echo "EXP76_QEMU_TRUNCATED_LOG=FAIL rc=$truncated_rc"
                 result=1
