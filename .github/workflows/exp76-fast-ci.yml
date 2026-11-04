@@ -7,6 +7,7 @@ on:
       - 'tools/exp76-fast-benchmark.py'
       - '.github/workflows/exp76-fast-ci.yml'
       - 'tests/exp76-rt-spin-sleep/**'
+      - 'tests/test-exp76-fast-mutants.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -73,5 +74,35 @@ jobs:
           path: |
             exp76-qemu/reports/fast-ccache.json
             exp76-qemu/reports/fast-current-commit.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  mutation-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mutate 10 known failures and execute actual FAST on each committed diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-qemu/reports
+          python3 -m py_compile tests/test-exp76-fast-mutants.py
+          python3 tests/test-exp76-fast-mutants.py \
+            --output exp76-qemu/reports/exp76-fast-mutations.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('exp76-qemu/reports/exp76-fast-mutations.json').read_text())
+          assert len(r["mutations"])==10
+          print('FAST_MUTATION_DETECTED=',r["detected"],'/10')
+          print('FAST_CLASSIFICATION=',r["classification"])
+          PY
+      - name: Publish ten mutation detection outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-fast-mutations-NOFLASH
+          path: exp76-qemu/reports/exp76-fast-mutations.json
           if-no-files-found: warn
           retention-days: 14
