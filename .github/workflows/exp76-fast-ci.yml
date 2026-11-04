@@ -1,0 +1,64 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 FAST 20x measured static CI / NO FLASH
+name: EXP76 FAST 20x measured (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - 'tools/exp76-fast-benchmark.py'
+      - '.github/workflows/exp76-fast-ci.yml'
+      - 'tests/exp76-rt-spin-sleep/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fast-20:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 3
+      - name: Prepare fixed-source checkpatch diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-qemu/reports exp76-qemu/checkpatch
+          if curl --fail --location --silent --show-error --max-time 12 \
+            https://raw.githubusercontent.com/kvsnr113/xiaomi_sm8250_kernel_e404/fed88a6024cd4d46c52eda607a95d97d7371ba81/scripts/checkpatch.pl \
+            -o exp76-qemu/checkpatch/checkpatch.pl; then
+            echo 'CHECKPATCH_AVAILABLE=1' >> "$GITHUB_ENV"
+          else
+            echo 'CHECKPATCH_AVAILABLE=0' >> "$GITHUB_ENV"
+            rm -f exp76-qemu/checkpatch/checkpatch.pl
+          fi
+      - name: Execute 20 measured FAST runs (no kernel compilation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp76-fast-benchmark.py
+          git rev-parse HEAD^
+          python3 tools/exp76-fast-benchmark.py \
+            --runs 20 \
+            --base HEAD^ \
+            --head HEAD \
+            --checkpatch exp76-qemu/checkpatch/checkpatch.pl \
+            --output exp76-qemu/reports/fast-ccache.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('exp76-qemu/reports/fast-ccache.json')
+          d=json.loads(p.read_text())
+          assert len(d['fast_runs'])==20
+          assert d['fast_gate_300s_pass'] is True
+          assert d['ccache_state']=='NOT_MEASURED'
+          print('EXP76_FAST=PASS; MEDIAN_S=', d['fast_median_s'],
+                '; P95_S=', d['fast_p95_s'])
+          PY
+      - name: Attach FAST measurements and explicit ccache pending state
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-fast-20x-measured-NOFLASH
+          path: exp76-qemu/reports/fast-ccache.json
+          if-no-files-found: warn
+          retention-days: 14
