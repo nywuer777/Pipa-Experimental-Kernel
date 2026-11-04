@@ -68,7 +68,7 @@ def main():
                     raise RuntimeError("failed to commit mutation: "+r.stderr)
             output=root/"mutation-result.json"
             r=cmd([sys.executable,str(FAST),"--runs","20",
-                   "--base","HEAD^","--head","--output",str(output),
+                   "--base","HEAD^","--head","HEAD","--output",str(output),
                    "--checkpatch",str(Path(a.checkpatch).resolve()) if a.checkpatch else ""],
                   root,timeout=85)
             report=json.loads(output.read_text()) if output.exists() else None
