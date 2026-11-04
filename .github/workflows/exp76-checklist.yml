@@ -1,0 +1,48 @@
+# YAML / GitHub Actions Ubuntu 24.04 / eight-item RT-only checklist generated from versioned evidence / NO FLASH
+name: EXP76 RT checklist evidence (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - 'tools/exp76-build-checklist.py'
+      - '.github/workflows/exp76-checklist.yml'
+      - 'reports/exp76-scheduler-batch1.json'
+      - 'reports/e404-kconfig-missing-sources.json'
+      - 'reports/exp76-fast-mutations.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checklist:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate and validate eight evidence-backed gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp76-build-checklist.py
+          python3 tools/exp76-build-checklist.py \
+            --source-sha "$GITHUB_SHA" \
+            --generated-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --output reports/exp76-checklist.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('reports/exp76-checklist.json').read_text())
+          assert len(d['items']) == 8
+          assert not d['rt_handoff_ready']
+          assert set(d['reasons_not_ready']) == {'4','5','7'}
+          assert d['items']['4_hunks']['classified'] == 16
+          assert d['items']['7_fast_ccache']['ccache_full_images'] == 'NOT_MEASURED'
+          print('EXP76_CHECKLIST_GENERATOR=PASS')
+          PY
+      - name: Publish exact generated checklist
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-checklist-evidence-NOFLASH
+          path: reports/exp76-checklist.json
+          if-no-files-found: warn
+          retention-days: 14
