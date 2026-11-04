@@ -1,0 +1,390 @@
+# YAML / GitHub Actions ubuntu-24.04 / EXP76 E404 PREEMPT_RT QEMU negative-control qualification / NO FLASH
+name: EXP76 QEMU RT spinlock qualification (NO FLASH)
+on:
+  push:
+    branches:
+      - exp76-preempt-rt-uname
+    paths:
+      - '.github/workflows/exp76-rt-qemu-functional.yml'
+      - 'tests/exp76-rt-spin-sleep/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp76-qemu-rt-functional
+  cancel-in-progress: false
+
+jobs:
+  qemu-rt-functional:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+      LLVM_IAS: "1"
+      HOSTCC: gcc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight V3 guest gate and QEMU PIPA config-diff regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tests/exp76-rt-spin-sleep/run-in-guest.sh
+          python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
+          python3 tests/exp76-rt-spin-sleep/test-config-diff.py
+          git diff --check
+          echo 'EXP76_QEMU_STATIC_PREFLIGHT=PASS; QEMU_RUNTIME_NOT_YET_PROVEN'
+
+      - name: Install pinned dependencies, BusyBox static and ARM64 QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi rsync device-tree-compiler \
+            qemu-system-arm busybox-static cpio gzip xz-utils
+          command -v qemu-system-aarch64
+          command -v busybox
+          command -v cpio
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+
+      - name: Obtain exact EXP75 Android Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none \
+              origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          test -x clang-r563880c/bin/llvm-objcopy
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+
+      - name: Reconstruct pinned E404 plus official RT patch and EXP76 source ports
+        shell: bash
+        timeout-minutes: 45
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > exp76-qemu/logs/source-reconstruction.log 2>&1 || {
+            tail -n 120 exp76-qemu/logs/source-reconstruction.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-qemu/reports/stage82
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json').read_text())
+          assert d['remaining_rejected_files']==64
+          assert d['total_rejected_hunks']==209
+          assert d['source_modified'] is False and d['rejects_deleted'] is False
+          PY
+          python3 tools/exp76-rt-stage83-arm64-neon-crypto.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage83 --mode apply
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage88 --mode apply
+          python3 tools/exp76-stage89-proc-swait.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage89 --mode apply
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage90 --mode apply
+          python3 tools/exp76-stage91-pid-atomic-header.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage91 --mode apply
+          python3 tools/exp76-rt-stage74-radix-locallock.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage74 --mode apply
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage79 --mode apply
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage85 --mode apply
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff --binary | sha256sum \
+            > exp76-qemu/reports/source-diff.sha256
+
+      - name: Generate separate effective PIPA_RT, QEMU_RT and QEMU_NONRT configs
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          BASE="$GITHUB_WORKSPACE/exp76-qemu/outputs"
+          mkdir -p "$BASE/pipa-rt" "$BASE/qemu-rt" "$BASE/qemu-nonrt"
+          make -C "$K" O="$BASE/pipa-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            vendor/pipa_defconfig > exp76-qemu/logs/pipa-defconfig.log 2>&1
+          "$K/scripts/config" --file "$BASE/pipa-rt/.config" \
+            -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL \
+            -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL
+          make -C "$K" O="$BASE/pipa-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
+          cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
+          "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
+            -e MODULES -e MODULE_UNLOAD -e ARM_AMBA \
+            -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
+            -e DEVTMPFS -e DEVTMPFS_MOUNT \
+            -e VIRTIO_MENU -e VIRTIO -e VIRTIO_MMIO -e VIRTIO_BLK \
+            -e VIRTIO_CONSOLE -e BLK_DEV_INITRD -e BINFMT_ELF \
+            -d MODULE_SIG_FORCE
+          make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig > exp76-qemu/logs/qemu-rt-olddefconfig.log 2>&1
+          for key in CONFIG_PREEMPT_RT_FULL CONFIG_MODULES CONFIG_MODULE_UNLOAD \
+                     CONFIG_SERIAL_AMBA_PL011 CONFIG_SERIAL_AMBA_PL011_CONSOLE \
+                     CONFIG_DEVTMPFS CONFIG_VIRTIO_MMIO CONFIG_BLK_DEV_INITRD; do
+            grep -qx "$key=y" "$BASE/qemu-rt/.config" || {
+              echo "BLOCKED_CONFIG: $key != y"; exit 3;
+            }
+          done
+          python3 tests/exp76-rt-spin-sleep/check-config-diff.py \
+            --pipa "$BASE/pipa-rt/.config" \
+            --qemu "$BASE/qemu-rt/.config" \
+            --critical tests/exp76-rt-spin-sleep/rt-critical-configs.txt \
+            --report exp76-qemu/reports/QEMU_RT_PIPA_DIFF.json
+          cp "$BASE/qemu-rt/.config" "$BASE/qemu-nonrt/.config"
+          "$K/scripts/config" --file "$BASE/qemu-nonrt/.config" \
+            -d PREEMPT_RT_FULL -e PREEMPT
+          make -C "$K" O="$BASE/qemu-nonrt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig > exp76-qemu/logs/qemu-nonrt-olddefconfig.log 2>&1
+          ! grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/qemu-nonrt/.config"
+          grep -qx 'CONFIG_MODULES=y' "$BASE/qemu-nonrt/.config"
+          grep -qx 'CONFIG_MODULE_UNLOAD=y' "$BASE/qemu-nonrt/.config"
+
+      - name: Build both RT Images and one nonRT negative-control Image
+        shell: bash
+        timeout-minutes: 110
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          BASE="$GITHUB_WORKSPACE/exp76-qemu/outputs"
+          for variant in pipa-rt qemu-rt qemu-nonrt; do
+            echo "BUILD_VARIANT=$variant"
+            make -C "$K" O="$BASE/$variant" ARCH=arm64 \
+              CC=clang LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
+              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+              -j2 Image > "exp76-qemu/logs/build-$variant.log" 2>&1 || {
+                tail -n 120 "exp76-qemu/logs/build-$variant.log"; exit 1;
+              }
+            test -s "$BASE/$variant/arch/arm64/boot/Image"
+            test -s "$BASE/$variant/Module.symvers"
+            sha256sum "$BASE/$variant/.config" \
+              "$BASE/$variant/arch/arm64/boot/Image" \
+              > "exp76-qemu/reports/sha256-$variant.txt"
+          done
+
+      - name: Build external V3 probe against matching RT and nonRT QEMU kernels
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          BASE="$GITHUB_WORKSPACE/exp76-qemu/outputs"
+          for variant in qemu-rt qemu-nonrt; do
+            M="$GITHUB_WORKSPACE/exp76-qemu/probe-$variant"
+            mkdir -p "$M"
+            cp tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.c \
+              tests/exp76-rt-spin-sleep/Makefile "$M/"
+            make -C "$K" O="$BASE/$variant" ARCH=arm64 \
+              CC=clang LD=ld.lld HOSTCC=gcc \
+              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+              M="$M" -j2 modules > "exp76-qemu/logs/module-$variant.log" 2>&1 || {
+                tail -n 120 "exp76-qemu/logs/module-$variant.log"; exit 1;
+              }
+            test -s "$M/exp76_rt_spin_sleep.ko"
+            sha256sum "$M/exp76_rt_spin_sleep.ko" \
+              > "exp76-qemu/reports/sha256-module-$variant.txt"
+          done
+
+      - name: Construct minimal BusyBox initramfs for two QEMU boots
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/exp76-qemu/initramfs"
+          mkdir -p "$ROOT/bin" "$ROOT/dev" "$ROOT/proc" "$ROOT/sys" \
+            "$ROOT/tmp" "$ROOT/probe" "$ROOT/config"
+          cp "$(command -v busybox)" "$ROOT/bin/busybox"
+          for x in sh ash mount mkdir cat grep sed awk tr wc tail head \
+                   insmod rmmod dmesg timeout mktemp rm ls echo sync \
+                   reboot poweroff sleep uname sha256sum; do
+            ln -s busybox "$ROOT/bin/$x"
+          done
+          cp tests/exp76-rt-spin-sleep/run-in-guest.sh "$ROOT/probe/gate.sh"
+          cp exp76-qemu/probe-qemu-rt/exp76_rt_spin_sleep.ko \
+            "$ROOT/probe/rt.ko"
+          cp exp76-qemu/probe-qemu-nonrt/exp76_rt_spin_sleep.ko \
+            "$ROOT/probe/nonrt.ko"
+          cp exp76-qemu/outputs/qemu-rt/.config "$ROOT/config/rt.config"
+          cp exp76-qemu/outputs/qemu-nonrt/.config "$ROOT/config/nonrt.config"
+          sudo mknod "$ROOT/dev/console" c 5 1
+          sudo mknod "$ROOT/dev/null" c 1 3
+          cat > "$ROOT/init" <<'INIT'
+          #!/bin/sh
+          set -eu
+          export PATH=/bin
+          mount -t proc proc /proc
+          mount -t sysfs sysfs /sys
+          mount -t devtmpfs devtmpfs /dev || :
+          result=0
+          if grep -q 'exp76_mode=nonrt' /proc/cmdline; then
+            echo 'EXP76_QEMU_SCENARIO=NONRT_BEGIN'
+            /bin/sh /probe/gate.sh execute nonrt /probe/nonrt.ko \
+              /config/nonrt.config /tmp/nonrt || result=1
+            [ "$result" -eq 0 ] && echo 'EXP76_QEMU_NONRT=PASS'
+          else
+            echo 'EXP76_QEMU_SCENARIO=RT_BEGIN'
+            /bin/sh /probe/gate.sh execute normal /probe/rt.ko \
+              /config/rt.config /tmp/normal || result=1
+            /bin/sh /probe/gate.sh execute noop /probe/rt.ko \
+              /config/rt.config /tmp/noop || result=1
+            if [ -f /tmp/normal/probe.log ]; then
+              sed '$d' /tmp/normal/probe.log > /tmp/truncated.log
+              /bin/sh /probe/gate.sh verify normal /config/rt.config \
+                /tmp/truncated.log
+              truncated_rc=$?
+              if [ "$truncated_rc" -ne 2 ]; then
+                echo "EXP76_QEMU_TRUNCATED_LOG=FAIL rc=$truncated_rc"
+                result=1
+              else
+                echo 'EXP76_QEMU_TRUNCATED_LOG=PASS expected_exit=2'
+              fi
+            else
+              result=1
+            fi
+            [ "$result" -eq 0 ] && echo 'EXP76_QEMU_RT=PASS'
+          fi
+          echo "EXP76_QEMU_GUEST_RESULT=$result"
+          sync
+          sleep 1
+          poweroff -f
+          INIT
+          # BusyBox /bin/sh is the entrypoint; no bash dependency in guest.
+          chmod 0755 "$ROOT/init" "$ROOT/probe/gate.sh"
+          (
+            cd "$ROOT"
+            find . -print0 | cpio --null -ov --format=newc 2>/dev/null | gzip -9
+          ) > exp76-qemu/initramfs.cpio.gz
+          test -s exp76-qemu/initramfs.cpio.gz
+          sha256sum exp76-qemu/initramfs.cpio.gz \
+            > exp76-qemu/reports/sha256-initramfs.txt
+
+      - name: QEMU Cortex-A72 ARM64 RT — normal, noop and truncated-log controls
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          set +e
+          timeout -k 5s 60s qemu-system-aarch64 \
+            -M virt -cpu cortex-a72 -smp 4 -m 512 \
+            -nographic -no-reboot \
+            -kernel exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
+            -initrd exp76-qemu/initramfs.cpio.gz \
+            -append 'console=ttyAMA0 panic=-1 exp76_mode=rt' \
+            > exp76-qemu/logs/qemu-rt-console.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-qemu/reports/qemu-rt-exit-code.txt
+          cat exp76-qemu/logs/qemu-rt-console.txt
+          [ "$rc" -eq 0 ] || { echo "BLOCKED_QEMU_RT rc=$rc"; exit 1; }
+          grep -q '^EXP76_QEMU_RT=PASS' exp76-qemu/logs/qemu-rt-console.txt
+          grep -q 'EXPECTED_FAIL_SERIALIZATION=PASS' exp76-qemu/logs/qemu-rt-console.txt
+          grep -q 'EXP76_QEMU_TRUNCATED_LOG=PASS expected_exit=2' exp76-qemu/logs/qemu-rt-console.txt
+          grep -q '^EXP76_QEMU_GUEST_RESULT=0' exp76-qemu/logs/qemu-rt-console.txt
+
+      - name: QEMU Cortex-A72 ARM64 nonRT — module must refuse to load
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          set +e
+          timeout -k 5s 60s qemu-system-aarch64 \
+            -M virt -cpu cortex-a72 -smp 4 -m 512 \
+            -nographic -no-reboot \
+            -kernel exp76-qemu/outputs/qemu-nonrt/arch/arm64/boot/Image \
+            -initrd exp76-qemu/initramfs.cpio.gz \
+            -append 'console=ttyAMA0 panic=-1 exp76_mode=nonrt' \
+            > exp76-qemu/logs/qemu-nonrt-console.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-qemu/reports/qemu-nonrt-exit-code.txt
+          cat exp76-qemu/logs/qemu-nonrt-console.txt
+          [ "$rc" -eq 0 ] || { echo "BLOCKED_QEMU_NONRT rc=$rc"; exit 1; }
+          grep -q '^EXP76_QEMU_NONRT=PASS' exp76-qemu/logs/qemu-nonrt-console.txt
+          grep -q 'EXPECTED_BLOCKED_CONFIG=PASS' exp76-qemu/logs/qemu-nonrt-console.txt
+          grep -q '^EXP76_QEMU_GUEST_RESULT=0' exp76-qemu/logs/qemu-nonrt-console.txt
+
+      - name: Emit reproducibility hashes and qualified scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "source_branch_sha=$GITHUB_SHA"
+            echo "e404_base=$E404_BASE"
+            echo "clang21_commit=$ANDROID_LLVM_COMMIT"
+            echo 'qemu_guest_test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3'
+            echo 'qemu_rt_functional=PASS'
+            echo 'rt_handoff_ready=false'
+            echo 'flash_ready=false'
+          } > exp76-qemu/reports/qualification.txt
+          cat exp76-qemu/reports/qualification.txt
+          sha256sum exp76-qemu/logs/qemu-rt-console.txt \
+            exp76-qemu/logs/qemu-nonrt-console.txt \
+            > exp76-qemu/reports/sha256-console.txt
+          echo 'EXP76_QEMU_RT_FUNCTIONAL=PASS; RT_HANDOFF_READY=false; NO_FLASH'
+
+      - name: Upload actual QEMU test evidence, configs, hashes and modules
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          path: |
+            exp76-qemu/logs/
+            exp76-qemu/reports/
+            exp76-qemu/outputs/pipa-rt/.config
+            exp76-qemu/outputs/qemu-rt/.config
+            exp76-qemu/outputs/qemu-nonrt/.config
+            exp76-qemu/outputs/pipa-rt/arch/arm64/boot/Image
+            exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image
+            exp76-qemu/outputs/qemu-nonrt/arch/arm64/boot/Image
+            exp76-qemu/probe-qemu-rt/exp76_rt_spin_sleep.ko
+            exp76-qemu/probe-qemu-nonrt/exp76_rt_spin_sleep.ko
+            exp76-qemu/initramfs.cpio.gz
+          if-no-files-found: warn
+          retention-days: 14
