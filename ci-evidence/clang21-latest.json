@@ -151,7 +151,7 @@
     "estimated_offline_compact_candidate_bytes": 31072256,
     "exp76_arm64_magic_verified": true,
     "exp76_arm64_raw_image_bytes_verified": 29212696,
-    "exp76_arm64_raw_image_sha256_verified": "265411ba207ea2a34ea3f32b64b2c9dd432bd2be0dc32b4127dbbc7d8161dfdc",
+    "exp76_arm64_raw_image_sha256_verified": "b3abf08946ee6d616b2e11fa86795d27909f197e75d5790767cc241105697a41",
     "fits_pinned_stock_compact_file_size": true,
     "flash_performed": false,
     "flash_ready": false,
@@ -182,7 +182,7 @@
       "UTS_MACHINE",
       "UTS_VERSION"
     ],
-    "compile_h_sha256": "27f955a41bb12533e3c69dbf438becbbc9c7f3211139da646ee7e7fc3aed3fec",
+    "compile_h_sha256": "593da03b37c6c8cccf0dba5957f272293ff518502cf1dc4adeb3b74b4387f636",
     "compile_h_uts_machine": "\"aarch64\"",
     "errors_excerpt": [],
     "exit_code": 0,
@@ -640,8 +640,8 @@
       "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/kernel/irq_work.c:94:21: warning: unused variable 'list' [-Wunused-variable]",
       "   94 |         struct llist_head *list;",
       "      |                            ^~~~",
-      "1 warning generated.",
       "  CC      kernel/jump_label.o",
+      "1 warning generated.",
       "  CC      kernel/iomem.o",
       "  UPD     kernel/config_data.h",
       "  CC      kernel/configs.o",
@@ -772,7 +772,7 @@
     ],
     "vendor_embedded_cpus_allowed_preserved": true,
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "a23c86e9da8356e0fd4dd86e27edea63716828547860b24c82f7d851c8c06cc5"
+    "vmlinux_elf_sha256": "fe2cf904c4a774c9c20f83ef18b0b539fd738b6a2de5ba586c5c95617ecc5e0a"
   },
   "mm_subtree_diagnostic": {
     "archive_bytes": 4620,
@@ -852,14 +852,14 @@
     "first_error_context": [
       "  CC      net/xfrm/xfrm_ipcomp.o",
       "  CC      net/xfrm/xfrm_interface.o",
+      "  CC      net/socket.o",
       "  CC      net/wireless/mlme.o",
       "  CC      net/wireless/ibss.o",
-      "  CC      net/socket.o",
-      "  CC      net/wireless/sme.o",
-      "  CC      net/wireless/chan.o",
       "  CC      net/compat.o",
-      "  CC      net/wireless/ethtool.o",
+      "  CC      net/wireless/sme.o",
       "  CC      net/sysctl_net.o",
+      "  CC      net/wireless/chan.o",
+      "  CC      net/wireless/ethtool.o",
       "  CC      net/wireless/mesh.o",
       "  CC      net/wireless/ap.o",
       "  CC      net/wireless/ocb.o",
@@ -983,13 +983,39 @@
     "raw_image_bytes": 29212696,
     "raw_image_created": true,
     "raw_image_path": "arch/arm64/boot/Image",
-    "raw_image_sha256": "265411ba207ea2a34ea3f32b64b2c9dd432bd2be0dc32b4127dbbc7d8161dfdc",
+    "raw_image_sha256": "b3abf08946ee6d616b2e11fa86795d27909f197e75d5790767cc241105697a41",
     "remaining_rejected_files": 64,
     "rt_semantic_review_complete": false,
     "runtime_verified": false,
     "stage": "EXP76_STAGE86_RAW_ARM64_IMAGE_AND_RT_SYMBOL_DIAGNOSTIC_NONFLASH",
     "target": "Image",
     "timed_out": false
+  },
+  "rcu_expedited_cpu_selection_audit": {
+    "classification": "OLD_RT_EXPEDITED_CPU_SELECTION_DIFF_REQUIRES_E404_SEMANTIC_REVIEW",
+    "device_boot_verified": false,
+    "e404_exp_rcu_source_sha256": "a787fcbdbe34b35fd402e4c21a4db7eca881442969c57ef17a9b72f9d68e51a7",
+    "e404_old_selector_token_presence": {
+      "sync_rcu_exp_select_cpus": true,
+      "sync_rcu_exp_select_node_cpus": true
+    },
+    "e404_tree_source_sha256": "215683e6726713b105ddacfdc10d93607cb7affd1dc71a00df238542ac8fd920",
+    "flash_ready": false,
+    "kernel_built": false,
+    "original_exp_rcu_reject_sha256": "0171ff323693a194700c0dbb04ab8694870ea0bc78c2a06706755060e6b70f80",
+    "original_exp_rcu_rejected_hunks_pending": 2,
+    "original_rejected_files_remaining": 64,
+    "original_rejects_deleted": false,
+    "rcu_grace_period_runtime_verified": false,
+    "rejected_hunks_semantically_resolved": 0,
+    "rt_exp_rcu_cpu_selection_runtime_verified": false,
+    "rt_rcu_runtime_semantics_verified": false,
+    "source_modified": false,
+    "stage": "EXP76_STAGE100_RCU_EXPEDITED_CPU_SELECTION_REJECT_NONFLASH",
+    "stage82_reject_inventory_verified": true,
+    "stage93_linked_rcu_tree_verified": true,
+    "stage99_srcu_provenance_verified": true,
+    "verification_scope": "SOURCE_AND_REJECT_PROVENANCE_ONLY"
   },
   "rcu_internal_header_abi_audit": {
     "classification": "OLD_RCU_FLAVOR_API_DIFFERS_FROM_E404_UNIFIED_RCU",
@@ -1087,7 +1113,7 @@
       "non_rt_lockdep_export"
     ],
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "a23c86e9da8356e0fd4dd86e27edea63716828547860b24c82f7d851c8c06cc5"
+    "vmlinux_elf_sha256": "fe2cf904c4a774c9c20f83ef18b0b539fd738b6a2de5ba586c5c95617ecc5e0a"
   },
   "rcu_update_reject_audit": {
     "classification": "LEGACY_RT_RCU_UPDATE_HUNKS_REQUIRE_E404_SEMANTIC_REVIEW",
@@ -1625,7 +1651,7 @@
     "effective_uts_version_verified": true,
     "flash_ready": false,
     "generated_compiler_metadata_present": true,
-    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 15:59:50 UTC 2026",
+    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 16:41:01 UTC 2026",
     "kernel_built": false,
     "kernel_sys_uname_modified": false,
     "original_rejects_retained": true,
@@ -1641,8 +1667,8 @@
     "uts_release_modified": false,
     "vendor_cc_version_and_ld_abi_preserved": true
   },
-  "run_id": 41860847211,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41860847211",
+  "run_id": 41867004837,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41867004837",
   "rwsem_idr_rt_link_repair": {
     "applied": true,
     "files_patched": [
@@ -1687,10 +1713,10 @@
       "  CC      security/selinux/netif.o",
       "  CC      security/commoncap.o",
       "  CC      security/selinux/netnode.o",
-      "  CC      security/selinux/netport.o",
-      "  CC      security/selinux/ss/ebitmap.o",
       "  CC      security/min_addr.o",
       "  CC      security/security.o",
+      "  CC      security/selinux/netport.o",
+      "  CC      security/selinux/ss/ebitmap.o",
       "  CC      security/selinux/ss/hashtab.o",
       "  CC      security/selinux/ss/symtab.o",
       "  CC      security/selinux/ss/sidtab.o",
@@ -1715,7 +1741,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=security"
   },
-  "source_sha": "3f273ac2ef9cb481e04707aca770a5c418dad70d",
+  "source_sha": "0ba0a1ab7bad593dca17184d540e30a09a49deb1",
   "srcu_hotplug_reject_audit": {
     "classification": "LEGACY_RT_SRCU_HOTPLUG_HUNKS_REQUIRE_E404_SEMANTIC_REVIEW",
     "device_boot_verified": false,
