@@ -1170,6 +1170,45 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    rcu_plugin_raw = read_json(
+        artifact / "exp76-stage97-report" / "stage97-status.json"
+    )
+    rcu_plugin = None
+    if rcu_plugin_raw is not None:
+        rcu_plugin = {
+            "stage": str(rcu_plugin_raw.get("stage") or "")[:140],
+            "verification_scope":
+                str(rcu_plugin_raw.get("verification_scope") or "")[:60],
+            "original_rcu_plugin_reject_sha256":
+                str(rcu_plugin_raw.get("original_rcu_plugin_reject_sha256") or "")[:64],
+            "original_rcu_plugin_rejected_hunks_pending":
+                rcu_plugin_raw.get("original_rcu_plugin_rejected_hunks_pending"),
+            "rcu_plugin_source_sha256":
+                str(rcu_plugin_raw.get("rcu_plugin_source_sha256") or "")[:64],
+            "stage82_inventory_proven":
+                rcu_plugin_raw.get("stage82_inventory_proven") is True,
+            "stage93_linked_exports_proven":
+                rcu_plugin_raw.get("stage93_linked_exports_proven") is True,
+            "stage95_unified_headers_proven":
+                rcu_plugin_raw.get("stage95_unified_headers_proven") is True,
+            "rcu_plugin_source_matches_stage93":
+                rcu_plugin_raw.get("rcu_plugin_source_matches_stage93") is True,
+            "unified_rcu_plugin_source_marker_count":
+                rcu_plugin_raw.get("unified_rcu_plugin_source_marker_count"),
+            "classification":
+                str(rcu_plugin_raw.get("classification") or "")[:120],
+            "original_rejected_files_remaining":
+                rcu_plugin_raw.get("original_rejected_files_remaining"),
+            "source_modified": rcu_plugin_raw.get("source_modified") is True,
+            "original_rejects_deleted":
+                rcu_plugin_raw.get("original_rejects_deleted") is True,
+            "rejected_hunks_semantically_resolved": 0,
+            "rt_rcu_runtime_semantics_verified": False,
+            "rcu_grace_period_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -1225,6 +1264,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "zram_vendor_lock_abi_audit": zram,
         "rcu_internal_header_abi_audit": rcu_headers,
         "bootv3_compact_layout_budget": bootv3,
+        "rcu_tree_plugin_reject_audit": rcu_plugin,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
