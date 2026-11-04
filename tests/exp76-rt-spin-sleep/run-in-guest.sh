@@ -29,6 +29,14 @@ dmesg > "$tmp/before.log" || { echo 'BLOCKED_LOG: dmesg unreadable' >&2; exit 2;
 insmod "$KO"
 loaded=true
 dmesg > "$tmp/after.log" || { echo 'BLOCKED_LOG: dmesg unreadable' >&2; exit 2; }
+for marker in 'EXP76_RT_SPIN_SLEEP BEGIN' 'EXP76_RT_SPIN_SLEEP PASS elapsed_us='; do
+  before_count="$(grep -Fc "$marker" "$tmp/before.log" || true)"
+  after_count="$(grep -Fc "$marker" "$tmp/after.log" || true)"
+  if (( after_count <= before_count )); then
+    echo "FAIL_STALE_MARKER: $marker" >&2
+    exit 1
+  fi
+done
 awk '/EXP76_RT_SPIN_SLEEP BEGIN/ { output=""; found=1 } found { output=output $0 "\n" } END { printf "%s", output }' \
   "$tmp/after.log" > "$tmp/test.log"
 
