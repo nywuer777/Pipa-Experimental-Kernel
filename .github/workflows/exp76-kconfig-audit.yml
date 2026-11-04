@@ -1,0 +1,76 @@
+# YAML / GitHub Actions Ubuntu 24.04 / E404 Kconfig complete source audit / NO FLASH
+name: EXP76 E404 Kconfig missing source audit (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - 'tools/exp76-kconfig-source-audit.py'
+      - '.github/workflows/exp76-kconfig-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned E404 without recursive submodule checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none \
+            https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404.git e404
+          git -C e404 checkout --detach fed88a6024cd4d46c52eda607a95d97d7371ba81
+          test "$(git -C e404 rev-parse HEAD)" = fed88a6024cd4d46c52eda607a95d97d7371ba81
+          git -C e404 submodule status | tee e404-submodule-before.txt
+          test "$(readlink e404/drivers/kernelsu)" = ../KernelSU/kernel
+      - name: Count all source references before submodule init
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree e404 --arch arm64 \
+            --output reports/e404-kconfig-missing-sources.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("reports/e404-kconfig-missing-sources.json")
+          d=json.loads(p.read_text())
+          assert d["kconfig_files_scanned"] > 500, d
+          print("MISSING_BEFORE=",d["missing_source_paths_count"])
+          print("TOP10=",d["missing_source_paths"][:10])
+          PY
+      - name: Initialize pinned Gitlink KernelSU and re-audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C e404 submodule update --init --recursive KernelSU
+          git -C e404 submodule status | tee e404-submodule-after.txt
+          test -f e404/drivers/kernelsu/Kconfig
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree e404 --arch arm64 \
+            --output reports/e404-kconfig-after-submodule.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("reports/e404-kconfig-missing-sources.json").read_text())
+          b=json.loads(Path("reports/e404-kconfig-after-submodule.json").read_text())
+          print("KCONFIG_BEFORE=",a["missing_source_paths_count"])
+          print("KCONFIG_AFTER=",b["missing_source_paths_count"])
+          print("UNRESOLVED_DYNAMIC=",b["unresolved_dynamic_count"])
+          assert "drivers/kernelsu/Kconfig" in a["missing_source_paths"]
+          assert "drivers/kernelsu/Kconfig" not in b["missing_source_paths"]
+          PY
+      - name: Publish Kconfig source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-e404-kconfig-source-audit-NOFLASH
+          path: |
+            reports/e404-kconfig-missing-sources.json
+            reports/e404-kconfig-after-submodule.json
+            e404-submodule-before.txt
+            e404-submodule-after.txt
+          if-no-files-found: warn
+          retention-days: 14
