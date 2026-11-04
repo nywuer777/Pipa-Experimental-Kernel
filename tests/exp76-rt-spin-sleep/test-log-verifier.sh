@@ -49,21 +49,21 @@ expect_rc() {
     exit 1
   fi
 }
-expect_rc 0 sh "$GATE" verify normal "$tmp/rt.config" "$tmp/normal.log"
-expect_rc 0 sh "$GATE" verify normal "$tmp/rt.config" - < "$tmp/normal.log"
-expect_rc 0 sh "$GATE" verify noop "$tmp/rt.config" "$tmp/noop.log"
-expect_rc 0 sh "$GATE" verify nonrt "$tmp/nonrt.config" "$tmp/nonrt.log"
+expect_rc 0 bash "$GATE" verify normal "$tmp/rt.config" "$tmp/normal.log"
+expect_rc 0 bash "$GATE" verify normal "$tmp/rt.config" - < "$tmp/normal.log"
+expect_rc 0 bash "$GATE" verify noop "$tmp/rt.config" "$tmp/noop.log"
+expect_rc 0 bash "$GATE" verify nonrt "$tmp/nonrt.config" "$tmp/nonrt.log"
 sed '$d' "$tmp/normal.log" > "$tmp/truncated.log"
-expect_rc 2 sh "$GATE" verify normal "$tmp/rt.config" "$tmp/truncated.log"
-expect_rc 2 sh "$GATE" verify normal "$tmp/rt.config" "$tmp/missing.log"
+expect_rc 2 bash "$GATE" verify normal "$tmp/rt.config" "$tmp/truncated.log"
+expect_rc 2 bash "$GATE" verify normal "$tmp/rt.config" "$tmp/missing.log"
 cp "$tmp/normal.log" "$tmp/duplicate.log"
 sed -i '/CONTENTion_unused/s/foo/bar/' "$tmp/duplicate.log"
 sed -i '/END status=PASS/a [  12.047] EXP76_RT_SPIN_SLEEP END status=PASS' "$tmp/duplicate.log"
-expect_rc 1 sh "$GATE" verify normal "$tmp/rt.config" "$tmp/duplicate.log"
+expect_rc 1 bash "$GATE" verify normal "$tmp/rt.config" "$tmp/duplicate.log"
 sed '/T1_RELEASED/d' "$tmp/normal.log" > "$tmp/missing-marker.log"
-expect_rc 1 sh "$GATE" verify normal "$tmp/rt.config" "$tmp/missing-marker.log"
+expect_rc 1 bash "$GATE" verify normal "$tmp/rt.config" "$tmp/missing-marker.log"
 sed '/T1_RELEASED/a [  12.042] WARNING: spinlock test warning' \
   "$tmp/normal.log" > "$tmp/warning.log"
-expect_rc 1 sh "$GATE" verify normal "$tmp/rt.config" "$tmp/warning.log"
-expect_rc 3 sh "$GATE" verify normal "$tmp/nonrt.config" "$tmp/normal.log"
+expect_rc 1 bash "$GATE" verify normal "$tmp/rt.config" "$tmp/warning.log"
+expect_rc 3 bash "$GATE" verify normal "$tmp/nonrt.config" "$tmp/normal.log"
 echo 'EXP76_RT_SPIN_SLEEP_V3_LOG_VERIFIER=10_CASES_PASS; QEMU_RUNTIME_UNVERIFIED; NO_FLASH'
