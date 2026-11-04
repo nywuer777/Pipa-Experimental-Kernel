@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Python 3 / Linux 4.19 E404 tree / audit literal Kconfig sources and broken links / NO FLASH
-"""Audit Kconfig source includes, separating missing, optional and dynamic references."""
+"""Audit top-level Kconfig source directives, excluding indented help text and negative-test fixtures."""
 import argparse
 import glob
 import json
@@ -10,12 +10,15 @@ import subprocess
 import time
 from pathlib import Path
 
-SOURCE = re.compile(r'^\s*(source|rsource|osource|orsource)\s+(?:"([^"]+)"|([^\s#]+))')
+SOURCE = re.compile(r'^(source|rsource|osource|orsource)\s+(?:"([^"]+)"|([^\s#]+))')
 VARIABLE = re.compile(r'\$(?:\{(SRCARCH|ARCH|srctree)\}|(SRCARCH|ARCH|srctree)\b)')
 IGNORE = {".git", "out", "build", "exp76-qemu", "exp76-rt-report"}
 
 def kconfigs(tree):
     for directory, dirs, files in os.walk(tree, followlinks=False):
+        rel = Path(directory).relative_to(tree).as_posix()
+        if rel == "scripts/kconfig":
+            dirs[:] = [d for d in dirs if d != "tests"]
         dirs[:] = [d for d in dirs if d not in IGNORE and not d.startswith("out-")]
         for name in files:
             if name == "Kconfig" or name.startswith("Kconfig."):
