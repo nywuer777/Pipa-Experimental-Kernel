@@ -53,3 +53,133 @@ jobs:
     permissions:
       contents: read
 
+  provenance-measurement:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      SERIES_SHA256: 488b12a98fa58a1e237afee8d22b390977fa00cf809a70accd582473b51dcbca
+      RT_HEAD_SHA: 98415c457494b14020ce3ae70f98edf997fac181
+    steps:
+      - name: Recover pinned official RT individual patch archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-qemu/reports exp76-qemu/logs
+          curl --fail --location --retry 3 --connect-timeout 15 \
+            --max-time 120 \
+            https://www.kernel.org/pub/linux/kernel/projects/rt/4.19/patches-4.19.325-rt140.tar.xz \
+            -o exp76-qemu/reports/patches-4.19.325-rt140.tar.xz
+          printf '%s  %s\n' "$SERIES_SHA256" \
+            exp76-qemu/reports/patches-4.19.325-rt140.tar.xz | sha256sum -c -
+          tar -tJf exp76-qemu/reports/patches-4.19.325-rt140.tar.xz \
+            | grep -E '\.(patch|diff)$' > exp76-qemu/reports/series-patch-files.txt
+          test -s exp76-qemu/reports/series-patch-files.txt
+          wc -l exp76-qemu/reports/series-patch-files.txt
+          timeout 80 git ls-remote --exit-code \
+            https://git.kernel.org/pub/scm/linux/kernel/git/rt/linux-stable-rt.git \
+            refs/heads/v4.19-rt > exp76-qemu/reports/rt-head-ref.txt
+          read -r actual_sha refname < exp76-qemu/reports/rt-head-ref.txt
+          test "$actual_sha" = "$RT_HEAD_SHA"
+          test "$refname" = refs/heads/v4.19-rt
+          echo "SERIES_ARCHIVE_CHECKSUM=PASS; RT_HEAD_PIN=PASS"
+
+      - name: Numerically measure Linux stable-325 versus pinned E404 ancestry
+        shell: bash
+        timeout-minutes: 14
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-qemu/logs exp76-qemu/reports
+          base="$RUNNER_TEMP/e404-ancestry"
+          git clone --filter=blob:none --no-checkout \
+            https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404.git "$base" \
+            > exp76-qemu/logs/e404-clone.log 2>&1
+          git -C "$base" cat-file -e "$E404_BASE^{commit}"
+          timeout 540 git -C "$base" -c protocol.version=2 \
+            fetch --filter=blob:none --no-tags \
+            https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
+            refs/tags/v4.19.325:refs/tags/exp76-stable-325 \
+            > exp76-qemu/logs/stable-fetch.log 2>&1
+          git -C "$base" merge-base exp76-stable-325 "$E404_BASE" \
+            > exp76-qemu/reports/merge-base.txt
+          git -C "$base" rev-list --left-right --count \
+            exp76-stable-325..."$E404_BASE" > exp76-qemu/reports/divergence-counts.txt
+          git -C "$base" rev-list --count \
+            exp76-stable-325.."$E404_BASE" \
+            > exp76-qemu/reports/stable325-to-e404-count.txt
+          # In --left-right --count X...Y, left=X-only; right=Y-only.
+          cat exp76-qemu/reports/divergence-counts.txt
+
+      - name: Emit provenanced JSON (null is not a measured count)
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          p = Path("exp76-qemu/reports")
+          archive = p / "patches-4.19.325-rt140.tar.xz"
+          expected = os.environ["SERIES_SHA256"]
+          real = hashlib.sha256(archive.read_bytes()).hexdigest() if archive.is_file() else None
+          verified = real == expected
+          names = p / "series-patch-files.txt"
+          count = len([x for x in names.read_text().splitlines() if x]) if names.is_file() and verified else None
+          head = p / "rt-head-ref.txt"
+          pinned = os.environ["RT_HEAD_SHA"]
+          head_value = head.read_text().split()[0] if head.is_file() and head.read_text().split() else None
+          counts = p / "divergence-counts.txt"
+          single = p / "stable325-to-e404-count.txt"
+          merge = p / "merge-base.txt"
+          stable_only = e404_only = total = None
+          if counts.is_file() and single.is_file() and merge.is_file():
+              parts = counts.read_text().split()
+              if len(parts) == 2 and all(x.isdecimal() for x in parts):
+                  stable_only, e404_only = (int(x) for x in parts)
+                  t = single.read_text().strip()
+                  total = int(t) if t.isdecimal() else None
+                  if total != e404_only:
+                      stable_only = e404_only = total = None
+          # Historical comparison alone cannot establish a correct rebase.
+          measured = all(x is not None for x in (count, total, stable_only, e404_only))
+          report = {
+              "stage": "EXP76_RT_PROVENANCE_AND_ANCESTRY_MEASUREMENT",
+              "state": "MEASURED" if measured and verified and head_value == pinned else "BLOCKED",
+              "e404_base": os.environ["E404_BASE"],
+              "source_branch_sha": os.environ["GITHUB_SHA"],
+              "series_sha256": real,
+              "series_expected_sha256": expected,
+              "series_sha256_verified": verified,
+              "series_patch_count": count,
+              "series_head_commit": head_value,
+              "series_head_verified": head_value == pinned,
+              "stable325_to_head_commits": total,
+              "stable325_to_head_ahead": e404_only,
+              "e404_to_stable325_back": stable_only,
+              "merge_base": merge.read_text().strip() if merge.is_file() else None,
+              "method_decision": None,
+              "method_reason": "Pending controlled comparison of ordered series and consolidated vendor integration; ancestry counts alone do not select a valid port method.",
+              "rt_handoff_ready": False,
+              "flash_ready": False,
+          }
+          p.mkdir(parents=True, exist_ok=True)
+          (p/"provenance.json").write_text(json.dumps(report,indent=2)+"\n")
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Upload raw provenance, checksums, lineage logs and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-series-provenance-NOFLASH
+          path: |
+            exp76-qemu/reports/provenance.json
+            exp76-qemu/reports/series-patch-files.txt
+            exp76-qemu/reports/rt-head-ref.txt
+            exp76-qemu/reports/divergence-counts.txt
+            exp76-qemu/reports/stable325-to-e404-count.txt
+            exp76-qemu/reports/merge-base.txt
+            exp76-qemu/logs/
+          if-no-files-found: warn
+          retention-days: 14
