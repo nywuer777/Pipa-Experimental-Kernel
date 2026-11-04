@@ -1,0 +1,143 @@
+# YAML / GitHub Actions Ubuntu 24.04 / isolated E2 scheduler RT reconciliation and core.o build / NO FLASH
+name: EXP76 E2 lazy scheduler isolated build (NO FLASH)
+on:
+  push:
+    branches: [exp76-rt-e2-lazy]
+    paths:
+      - '.github/workflows/exp76-e2-lazy.yml'
+      - 'tools/exp76-e2-lazy-port.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  e2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate E2 Python tool and source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp76-e2-lazy-port.py
+          mkdir -p reports/e2 exp76-qemu/logs
+          echo "$GITHUB_SHA" > reports/e2/e2-branch-commit.txt
+      - name: Install isolated kernel build requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git bc bison flex libssl-dev libelf-dev libncurses-dev \
+            gcc-aarch64-linux-gnu rsync device-tree-compiler xz-utils cpio
+      - name: Retrieve exact pinned Android Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none \
+              origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+      - name: Reconstruct EXP76 RT trial and restore pinned KernelSU
+        shell: bash
+        timeout-minutes: 45
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh \
+            > exp76-qemu/logs/reconstruction.log 2>&1 || {
+              tail -n 100 exp76-qemu/logs/reconstruction.log; exit 1;
+            }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-qemu/logs/submodule.log 2>&1
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig
+      - name: Apply E2 with strict original .rej context
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python3 tools/exp76-e2-lazy-port.py \
+            --tree exp76-trial-overlay \
+            --mode apply --report reports/e2/e2-lazy-result.json \
+            > exp76-qemu/logs/e2-result.log 2>&1
+          result=$?
+          set -e
+          echo "$result" > reports/e2/e2-port-exit-code.txt
+          cat exp76-qemu/logs/e2-result.log
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff --binary \
+            > reports/e2/e2-actual-tree-diff.patch
+          sha256sum reports/e2/e2-actual-tree-diff.patch \
+            > reports/e2/e2-diff-sha256.txt
+          echo "E2_PORT_EXIT=$result"
+      - name: Generate RT config and compile kernel/sched/core.o
+        shell: bash
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          OUT="$GITHUB_WORKSPACE/exp76-e2-build"
+          mkdir -p "$OUT"
+          set +e
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            vendor/pipa_defconfig > exp76-qemu/logs/e2-defconfig.log 2>&1
+          defconfig_rc=$?
+          if [ "$defconfig_rc" -eq 0 ]; then
+            "$K/scripts/config" --file "$OUT/.config" \
+              -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL \
+              -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL
+            make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+              olddefconfig >> exp76-qemu/logs/e2-defconfig.log 2>&1
+            config_rc=$?
+          else
+            config_rc=$defconfig_rc
+          fi
+          if [ "$config_rc" -eq 0 ]; then
+            make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+              -j"$(nproc)" kernel/sched/core.o \
+              > exp76-qemu/logs/e2-core-build.log 2>&1
+            core_rc=$?
+          else
+            core_rc=125
+          fi
+          set -e
+          printf '%s\n' "$defconfig_rc" > reports/e2/e2-defconfig-exit-code.txt
+          printf '%s\n' "$core_rc" > reports/e2/e2-core-build-exit-code.txt
+          if [ "$core_rc" -eq 0 ]; then
+            test -s "$OUT/kernel/sched/core.o"
+            sha256sum "$OUT/kernel/sched/core.o" > reports/e2/core-object-sha256.txt
+          fi
+          echo "E2_CORE_OBJECT_EXIT=$core_rc"
+          test "$core_rc" -eq 0
+      - name: Upload actual E2 contexts and build diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-e2-lazy-scheduler-NOFLASH
+          path: |
+            reports/e2/
+            exp76-qemu/logs/
+          if-no-files-found: warn
+          retention-days: 14
