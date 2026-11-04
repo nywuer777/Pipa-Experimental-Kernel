@@ -844,6 +844,40 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    rt_uts_raw = read_json(
+        artifact / "exp76-rt-report" / "stage90" / "stage90-status.json"
+    )
+    rt_uts = None
+    if rt_uts_raw is not None:
+        rt_uts = {
+            "stage": str(rt_uts_raw.get("stage") or "")[:140],
+            "applied": rt_uts_raw.get("applied") is True,
+            "paths": [
+                str(x)[:120] for x in (rt_uts_raw.get("paths") or [])[:8]
+            ],
+            "upstream_reject_hunks_reviewed":
+                rt_uts_raw.get("upstream_reject_hunks_reviewed"),
+            "vendor_cc_version_and_ld_abi_preserved":
+                rt_uts_raw.get("vendor_cc_version_and_ld_abi_preserved") is True,
+            "rt_uts_version_marker":
+                str(rt_uts_raw.get("rt_uts_version_marker") or "")[:32],
+            "effective_uts_version_verified":
+                rt_uts_raw.get("effective_uts_version_verified") is True,
+            "generated_uts_version":
+                str(rt_uts_raw.get("generated_uts_version") or "")[:96],
+            "generated_compiler_metadata_present":
+                rt_uts_raw.get("generated_compiler_metadata_present") is True,
+            "uts_release_modified": rt_uts_raw.get("uts_release_modified") is True,
+            "kernel_sys_uname_modified":
+                rt_uts_raw.get("kernel_sys_uname_modified") is True,
+            "original_rejects_retained":
+                rt_uts_raw.get("original_rejects_retained") is True,
+            "remaining_rejected_files":
+                rt_uts_raw.get("remaining_rejected_files"),
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -892,6 +926,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "kasan_raw_spinlock_equivalence": kasan,
         "rt_kconfig_guard_port": rt_kconfig,
         "proc_swait_rt_include_port": proc_swait,
+        "rt_uts_version_generator_port": rt_uts,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

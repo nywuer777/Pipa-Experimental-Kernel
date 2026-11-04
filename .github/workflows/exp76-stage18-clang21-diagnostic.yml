@@ -115,6 +115,8 @@ on:
       - 'tests/test_exp76_stage88_rt_kconfig_guards.py'
       - 'tools/exp76-stage89-proc-swait.py'
       - 'tests/test_exp76_stage89_proc_swait.py'
+      - 'tools/exp76-stage90-rt-uts-version.py'
+      - 'tests/test_exp76_stage90_rt_uts_version.py'
   workflow_dispatch:
 
 permissions:
@@ -246,6 +248,8 @@ jobs:
           python3 tests/test_exp76_stage88_rt_kconfig_guards.py
           python3 -m py_compile tools/exp76-stage89-proc-swait.py
           python3 tests/test_exp76_stage89_proc_swait.py
+          python3 -m py_compile tools/exp76-stage90-rt-uts-version.py
+          python3 tests/test_exp76_stage90_rt_uts_version.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -467,6 +471,30 @@ jobs:
           assert not state['scheduler_semantic_review_complete']
           assert not state['kernel_built'] and not state['flash_ready']
           print('EXP76_STAGE89_PROC_SWAIT_INCLUDE=APPLIED; REJECTS=64; NO FLASH')
+          PY
+          git -C exp76-trial-overlay diff --check
+
+      - name: Port upstream RT compile.h Kbuild hunks into vendor UTS generator (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage90 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path('exp76-rt-report/stage90/stage90-status.json').read_text())
+          assert r['applied']
+          assert r['upstream_reject_hunks_reviewed'] == 2
+          assert r['vendor_cc_version_and_ld_abi_preserved']
+          assert r['rt_uts_version_marker'] == 'PREEMPT_RT'
+          assert not r['uts_release_modified'] and not r['kernel_sys_uname_modified']
+          assert r['original_rejects_retained'] and r['remaining_rejected_files'] == 64
+          assert not r['kernel_built'] and not r['flash_ready']
+          print('EXP76_STAGE90_RT_UTS_GENERATOR=PATCHED; REJECTS=64; NO FLASH')
           PY
           git -C exp76-trial-overlay diff --check
 
@@ -704,6 +732,30 @@ jobs:
           assert s['remaining_rejected_files'] == 64
           assert not s['full_kernel_link_performed'] and not s['flash_ready']
           print('EXP76_STAGE77_KBUILD_GENERATED_COMPILE_H=PASS; FLASH_READY=false')
+          PY
+
+      - name: Verify actual generated UTS_VERSION identifies PREEMPT_RT (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage90 \
+            --config exp76-stage18-out/.config \
+            --compile-h exp76-stage18-out/include/generated/compile.h \
+            --mode verify-header
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          s = json.loads(Path('exp76-rt-report/stage90/stage90-status.json').read_text())
+          assert s['effective_uts_version_verified'] is True
+          assert 'PREEMPT_RT' in s['generated_uts_version']
+          assert s['generated_compiler_metadata_present'] is True
+          assert s['original_rejects_retained']
+          assert s['remaining_rejected_files'] == 64
+          assert not s['uts_release_modified'] and not s['flash_ready']
+          print('EXP76_STAGE90_TRUE_RT_UTS_VERSION=VERIFIED; NO FLASH')
           PY
 
       - name: Fix FunctionFS completion swait ABI for PREEMPT_RT (NONFLASH)
@@ -1378,6 +1430,18 @@ jobs:
                   f"Remaining rejected files: {proc.get('remaining_rejected_files')}",
                   'Does not establish RT scheduler runtime correctness.',
               ]
+          stage90_path = Path('exp76-rt-report/stage90/stage90-status.json')
+          if stage90_path.is_file():
+              rt_uts = json.loads(stage90_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage90 actual PREEMPT_RT compile.h UTS_VERSION (NONFLASH)', '']
+              lines += [
+                  f"RT build identifier ported: {rt_uts.get('applied')}",
+                  f"Effective compile.h verified: {rt_uts.get('effective_uts_version_verified')}",
+                  f"Generated UTS_VERSION: {rt_uts.get('generated_uts_version')}",
+                  f"Vendor Clang + linker ABI preserved: {rt_uts.get('vendor_cc_version_and_ld_abi_preserved')}",
+                  f"UTS_RELEASE left unchanged: {not rt_uts.get('uts_release_modified')}",
+                  f"Original RT rejects retained: {rt_uts.get('remaining_rejected_files')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1446,6 +1510,7 @@ jobs:
             exp76-rt-report/stage87/
             exp76-rt-report/stage88/
             exp76-rt-report/stage89/
+            exp76-rt-report/stage90/
             stage18-prior-audit.log
           if-no-files-found: warn
           retention-days: 30

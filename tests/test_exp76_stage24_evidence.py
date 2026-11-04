@@ -59,6 +59,7 @@ def main() -> None:
         assert empty["kasan_raw_spinlock_equivalence"] is None
         assert empty["rt_kconfig_guard_port"] is None
         assert empty["proc_swait_rt_include_port"] is None
+        assert empty["rt_uts_version_generator_port"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -642,6 +643,24 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-rt-report" / "stage90" / "stage90-status.json", {
+            "stage": "EXP76_STAGE90_TRUTHFUL_PREEMPT_RT_UTS_VERSION_NONFLASH",
+            "applied": True,
+            "paths": ["init/Makefile", "scripts/mkcompile_h"],
+            "upstream_reject_hunks_reviewed": 2,
+            "vendor_cc_version_and_ld_abi_preserved": True,
+            "rt_uts_version_marker": "PREEMPT_RT",
+            "effective_uts_version_verified": True,
+            "generated_uts_version": "#9 SMP PREEMPT_RT Wed Nov 4",
+            "generated_compiler_metadata_present": True,
+            "uts_release_modified": False,
+            "kernel_sys_uname_modified": False,
+            "original_rejects_retained": True,
+            "remaining_rejected_files": 64,
+            "runtime_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -953,6 +972,20 @@ def main() -> None:
         assert proc["remaining_rejected_files"] == 64
         assert not proc["full_kernel_link_rechecked"]
         assert not proc["kernel_built"] and not proc["flash_ready"]
+        rt_uts = failed["rt_uts_version_generator_port"]
+        assert rt_uts["stage"] == "EXP76_STAGE90_TRUTHFUL_PREEMPT_RT_UTS_VERSION_NONFLASH"
+        assert rt_uts["applied"] is True
+        assert rt_uts["paths"] == ["init/Makefile", "scripts/mkcompile_h"]
+        assert rt_uts["upstream_reject_hunks_reviewed"] == 2
+        assert rt_uts["vendor_cc_version_and_ld_abi_preserved"] is True
+        assert rt_uts["effective_uts_version_verified"] is True
+        assert "PREEMPT_RT" in rt_uts["generated_uts_version"]
+        assert rt_uts["generated_compiler_metadata_present"] is True
+        assert rt_uts["uts_release_modified"] is False
+        assert rt_uts["kernel_sys_uname_modified"] is False
+        assert rt_uts["original_rejects_retained"] is True
+        assert rt_uts["remaining_rejected_files"] == 64
+        assert not rt_uts["kernel_built"] and not rt_uts["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
