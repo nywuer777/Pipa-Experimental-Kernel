@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_FAST_MUTATION_COVERAGE",
+  "generated_at": "2026-11-04T19:52:41Z",
+  "source_sha": "72b052611f2fd1a7a18a15622a8607268266f428",
+  "authoritative_ci": {
+    "run_id": 41901112038,
+    "artifact_id": 13359100486,
+    "artifact_zip_sha256": "26f618bfc000768686bbe4c4471e2832b7b597e65946358e96e7e62a56be0703"
+  },
+  "mutant_ids": [
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+    "M6",
+    "M7",
+    "M8",
+    "M9",
+    "M10"
+  ],
+  "detected_ids": [
+    "M5"
+  ],
+  "undetected_ids": [
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M6",
+    "M7",
+    "M8",
+    "M9",
+    "M10"
+  ],
+  "detected_count": 1,
+  "total_mutations": 10,
+  "classification": "STYLE_SYNTAX_GATE_ONLY",
+  "kernel_build_executed": false,
+  "rt_handoff_ready": false,
+  "note": "The full per-mutation results and 20-run fixtures are in the immutable referenced Actions artifact"
+}
