@@ -139,7 +139,7 @@
   "compile_h_preflight_diagnostic": {
     "attempted": true,
     "compile_h_anchors_valid": true,
-    "compile_h_bytes": 377,
+    "compile_h_bytes": 378,
     "compile_h_created": true,
     "compile_h_macro_issues": [],
     "compile_h_macro_names": [
@@ -149,7 +149,7 @@
       "UTS_MACHINE",
       "UTS_VERSION"
     ],
-    "compile_h_sha256": "2fd0eb14ef92c639d757bedfcdc75c7e2d4880e9d9a9b7881a9a2cfaeff07137",
+    "compile_h_sha256": "b00b34dd4b7ef5779ada6d0fc0bf74bdda810bcccda9f1c340d7ee39fa21868f",
     "compile_h_uts_machine": "\"aarch64\"",
     "errors_excerpt": [],
     "exit_code": 0,
@@ -562,7 +562,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=ipc"
   },
-  "job_conclusion": "failure",
+  "job_conclusion": "success",
   "kasan_raw_spinlock_equivalence": {
     "all_added_raw_spinlock_lines_present": true,
     "all_obsolete_spinlock_lines_absent": true,
@@ -730,7 +730,7 @@
     },
     "source_stage41_applied": true,
     "stage": "EXP76_STAGE92_RT_MIGRATION_ABI_SYMBOL_CROSSCHECK_NONFLASH",
-    "system_map_sha256": "1fe448d8b439fc74c88b32f94e77bf22ecd2a0f904a49c8cfa606fc2fa01854a",
+    "system_map_sha256": "f2860b26dda7ec152654cf91efe3287286df2cc7a1a559b9000a91d08acc8f72",
     "system_map_symbols_missing": [],
     "system_map_symbols_present": [
       "migrate_disable",
@@ -739,7 +739,7 @@
     ],
     "vendor_embedded_cpus_allowed_preserved": true,
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "92dc46bcbd4a973a4dc8a7410d437764d57b8ce810ff9d86d787f6755ac5bcaf"
+    "vmlinux_elf_sha256": "8b03d559c8e6d14b7a60deb39e871e8250abae1c5d7df954f7ad4db400e88b97"
   },
   "mm_subtree_diagnostic": {
     "archive_bytes": 4620,
@@ -817,15 +817,15 @@
     "errors_excerpt": [],
     "exit_code": 0,
     "first_error_context": [
-      "  CC      net/xfrm/xfrm_ipcomp.o",
+      "  CC      net/wireless/nl80211.o",
       "  CC      net/xfrm/xfrm_interface.o",
-      "  CC      net/wireless/mlme.o",
       "  CC      net/socket.o",
+      "  CC      net/compat.o",
+      "  CC      net/sysctl_net.o",
+      "  CC      net/wireless/mlme.o",
       "  CC      net/wireless/ibss.o",
       "  CC      net/wireless/sme.o",
-      "  CC      net/compat.o",
       "  CC      net/wireless/chan.o",
-      "  CC      net/sysctl_net.o",
       "  CC      net/wireless/ethtool.o",
       "  CC      net/wireless/mesh.o",
       "  CC      net/wireless/ap.o",
@@ -950,7 +950,7 @@
     "raw_image_bytes": 29212696,
     "raw_image_created": true,
     "raw_image_path": "arch/arm64/boot/Image",
-    "raw_image_sha256": "cf8edb1e80d96d5ee6f00b3c9401aa4f51c170e80e8cee77aba63b34ef6d3f8f",
+    "raw_image_sha256": "a5f0cdfcc1b9074d8ddea0086ea82a0d9195f1a570c99dbb07b11cf66a7345fb",
     "remaining_rejected_files": 64,
     "rt_semantic_review_complete": false,
     "runtime_verified": false,
@@ -958,7 +958,38 @@
     "target": "Image",
     "timed_out": false
   },
-  "rcu_internal_header_abi_audit": null,
+  "rcu_internal_header_abi_audit": {
+    "classification": "OLD_RCU_FLAVOR_API_DIFFERS_FROM_E404_UNIFIED_RCU",
+    "device_boot_verified": false,
+    "flash_ready": false,
+    "kernel_built": false,
+    "obsolete_legacy_rcu_flavor_api_absent": true,
+    "original_reject_sha256": {
+      "kernel/rcu/rcu.h": "e6665ce33fc70064e46b04120eecbebae9e64752ad83d06891f871bdd878c210",
+      "kernel/rcu/tree.h": "ad8e175a495d38fc5704db7e85f758fadaffc23b65591e4f836f5ffe75b80eb2"
+    },
+    "original_rejected_files_remaining": 64,
+    "original_rejects_deleted": false,
+    "rcu_header_hunks_runtime_semantics_resolved": 0,
+    "rcu_headers": [
+      "kernel/rcu/rcu.h",
+      "kernel/rcu/tree.h"
+    ],
+    "reviewed_original_rcu_header_rejected_files": 2,
+    "reviewed_original_rcu_header_rejected_hunks": 5,
+    "rt_rcu_runtime_semantics_verified": false,
+    "source_modified": false,
+    "source_sha256": {
+      "kernel/rcu/rcu.h": "f76dc7a9b181da32a3c8b6bdd6338b3fbc138f72bda605c055fa6df24f8fedf8",
+      "kernel/rcu/tree.c": "215683e6726713b105ddacfdc10d93607cb7affd1dc71a00df238542ac8fd920",
+      "kernel/rcu/tree.h": "66b453f58908fd3e7c721855bec0b1c90eab89ba434a9f74e2474c77745f1fe8"
+    },
+    "stage": "EXP76_STAGE95_RCU_INTERNAL_HEADER_GENERATION_AUDIT_NONFLASH",
+    "stage93_linked_rcu_exports_verified": true,
+    "tiny_rcu_stub_path_preserved": true,
+    "vendor_rcu_kthread_setup_declared": true,
+    "vendor_unified_gp_api_declared": true
+  },
   "rcu_unified_link_contract": {
     "device_boot_verified": false,
     "flash_ready": false,
@@ -979,7 +1010,7 @@
     "stage": "EXP76_STAGE93_UNIFIED_RCU_RT_LINK_AND_API_CONTRACT_NONFLASH",
     "stage47_rcu_preprocessor_guard_proven": true,
     "stage92_linked_kernel_proven": true,
-    "system_map_sha256": "1fe448d8b439fc74c88b32f94e77bf22ecd2a0f904a49c8cfa606fc2fa01854a",
+    "system_map_sha256": "f2860b26dda7ec152654cf91efe3287286df2cc7a1a559b9000a91d08acc8f72",
     "unified_rcu_bh_forwarders": {
       "call_rcu_bh": "call_rcu",
       "rcu_barrier_bh": "rcu_barrier",
@@ -1001,7 +1032,7 @@
       "non_rt_lockdep_export"
     ],
     "verification_scope": "SOURCE_AND_LINK_ONLY",
-    "vmlinux_elf_sha256": "92dc46bcbd4a973a4dc8a7410d437764d57b8ce810ff9d86d787f6755ac5bcaf"
+    "vmlinux_elf_sha256": "8b03d559c8e6d14b7a60deb39e871e8250abae1c5d7df954f7ad4db400e88b97"
   },
   "repository": "nywuer777/Pipa-Experimental-Kernel",
   "rt_kconfig_guard_port": {
@@ -1518,7 +1549,7 @@
     "effective_uts_version_verified": true,
     "flash_ready": false,
     "generated_compiler_metadata_present": true,
-    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 12:28:34 UTC 2026",
+    "generated_uts_version": "#1 SMP PREEMPT PREEMPT_RT RT Wed Nov 4 12:57:17 UTC 2026",
     "kernel_built": false,
     "kernel_sys_uname_modified": false,
     "original_rejects_retained": true,
@@ -1534,8 +1565,8 @@
     "uts_release_modified": false,
     "vendor_cc_version_and_ld_abi_preserved": true
   },
-  "run_id": 41827612563,
-  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41827612563",
+  "run_id": 41832116269,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41832116269",
   "rwsem_idr_rt_link_repair": {
     "applied": true,
     "files_patched": [
@@ -1580,10 +1611,10 @@
       "  CC      security/selinux/netif.o",
       "  CC      security/commoncap.o",
       "  CC      security/selinux/netnode.o",
-      "  CC      security/selinux/netport.o",
       "  CC      security/min_addr.o",
-      "  CC      security/selinux/ss/ebitmap.o",
+      "  CC      security/selinux/netport.o",
       "  CC      security/security.o",
+      "  CC      security/selinux/ss/ebitmap.o",
       "  CC      security/selinux/ss/hashtab.o",
       "  CC      security/selinux/ss/symtab.o",
       "  CC      security/selinux/ss/sidtab.o",
@@ -1608,7 +1639,7 @@
     "timed_out": false,
     "top_level_directory_scope": "vmlinux-dirs=security"
   },
-  "source_sha": "161cd8698c29c59585b29fd499b20809050c0ea8",
+  "source_sha": "b0ce9cf175619fcb8070eb8afae834f6154b816c",
   "stages": {
     "stage19": {
       "applied": true,
@@ -1737,19 +1768,19 @@
     "exit_code": 0,
     "first_compiler_linker_errors": [],
     "first_failure_context": [
-      "  CC      techpack/display/msm/msm_gem.o",
-      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/techpack/display/msm/msm_gem.c:86:22: warning: unused variable 'dev' [-Wunused-variable]",
-      "   86 |                 struct drm_device *dev = obj->dev;",
-      "      |                                    ^~~",
-      "/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/techpack/display/msm/msm_gem.c:294:21: warning: unused variable 'dev' [-Wunused-variable]",
-      "  294 |         struct drm_device *dev = obj->dev;",
-      "      |                            ^~~",
-      "  CC      techpack/display/msm/msm_gem_prime.o",
-      "2 warnings generated.",
-      "  CC      techpack/display/msm/msm_gem_vma.o",
-      "  CC      techpack/display/msm/msm_smmu.o",
-      "  CC      techpack/display/msm/msm_prop.o",
-      "  CC      techpack/display/msm/msm_notifier.o",
+      "  CC      techpack/video/msm/vidc/hfi_common.o",
+      "  CC      techpack/video/msm/vidc/hfi_ar50.o",
+      "  CC      techpack/video/msm/vidc/hfi_ar50_lt.o",
+      "  CC      techpack/video/msm/vidc/hfi_iris1.o",
+      "  CC      techpack/video/msm/vidc/hfi_iris2.o",
+      "  CC      techpack/video/msm/vidc/hfi_response_handler.o",
+      "  CC      techpack/video/msm/vidc/hfi_packetization.o",
+      "  CC      techpack/video/msm/vidc/vidc_hfi.o",
+      "  CC      techpack/video/msm/vidc/msm_vidc_clocks.o",
+      "  CC      techpack/video/msm/vidc/msm_vidc_bus_ar50lite.o",
+      "  CC      techpack/video/msm/vidc/msm_vidc_bus_iris1.o",
+      "  CC      techpack/video/msm/vidc/msm_vidc_bus_iris2.o",
+      "  CC      techpack/video/msm/vidc/msm_vidc_buffer_calculations.o",
       "  GEN     .version",
       "  CHK     include/generated/compile.h",
       "  LD      vmlinux.o",
