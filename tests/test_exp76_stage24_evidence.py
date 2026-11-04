@@ -60,6 +60,7 @@ def main() -> None:
         assert empty["rt_kconfig_guard_port"] is None
         assert empty["proc_swait_rt_include_port"] is None
         assert empty["rt_uts_version_generator_port"] is None
+        assert empty["pid_atomic_rt_header_port"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -661,6 +662,25 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-rt-report" / "stage91" / "stage91-status.json", {
+            "stage": "EXP76_STAGE91_PINNED_PID_ATOMIC_HEADER_DEPENDENCY_NONFLASH",
+            "target": "include/linux/pid.h",
+            "dependency": "linux/atomic.h",
+            "applied": True,
+            "pinned_reject_sha256": "bc68702b84df9b927e5753d3ea1bece48787733eab2f55b90849d39369a7c403",
+            "original_source_sha256": "0" * 64,
+            "patched_source_sha256": "1" * 64,
+            "rejected_hunks_reviewed": 1,
+            "header_dependencies_added": 1,
+            "pid_atomic_api_usage_preserved": True,
+            "vendor_pidfd_abi_preserved": True,
+            "original_reject_retained": True,
+            "remaining_rejected_files": 64,
+            "source_change_only_include": True,
+            "scheduler_runtime_review_complete": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -986,6 +1006,19 @@ def main() -> None:
         assert rt_uts["original_rejects_retained"] is True
         assert rt_uts["remaining_rejected_files"] == 64
         assert not rt_uts["kernel_built"] and not rt_uts["flash_ready"]
+        pid_atomic = failed["pid_atomic_rt_header_port"]
+        assert pid_atomic["stage"] == "EXP76_STAGE91_PINNED_PID_ATOMIC_HEADER_DEPENDENCY_NONFLASH"
+        assert pid_atomic["target"] == "include/linux/pid.h"
+        assert pid_atomic["dependency"] == "linux/atomic.h"
+        assert pid_atomic["applied"] is True
+        assert pid_atomic["rejected_hunks_reviewed"] == 1
+        assert pid_atomic["header_dependencies_added"] == 1
+        assert pid_atomic["pid_atomic_api_usage_preserved"] is True
+        assert pid_atomic["vendor_pidfd_abi_preserved"] is True
+        assert pid_atomic["original_reject_retained"] is True
+        assert pid_atomic["remaining_rejected_files"] == 64
+        assert pid_atomic["source_change_only_include"] is True
+        assert not pid_atomic["kernel_built"] and not pid_atomic["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

@@ -878,6 +878,40 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    pid_atomic_raw = read_json(
+        artifact / "exp76-rt-report" / "stage91" / "stage91-status.json"
+    )
+    pid_atomic = None
+    if pid_atomic_raw is not None:
+        pid_atomic = {
+            "stage": str(pid_atomic_raw.get("stage") or "")[:140],
+            "target": str(pid_atomic_raw.get("target") or "")[:160],
+            "dependency": str(pid_atomic_raw.get("dependency") or "")[:100],
+            "applied": pid_atomic_raw.get("applied") is True,
+            "pinned_reject_sha256":
+                str(pid_atomic_raw.get("pinned_reject_sha256") or "")[:64],
+            "original_source_sha256":
+                str(pid_atomic_raw.get("original_source_sha256") or "")[:64],
+            "patched_source_sha256":
+                str(pid_atomic_raw.get("patched_source_sha256") or "")[:64],
+            "rejected_hunks_reviewed":
+                pid_atomic_raw.get("rejected_hunks_reviewed"),
+            "header_dependencies_added":
+                pid_atomic_raw.get("header_dependencies_added"),
+            "pid_atomic_api_usage_preserved":
+                pid_atomic_raw.get("pid_atomic_api_usage_preserved") is True,
+            "vendor_pidfd_abi_preserved":
+                pid_atomic_raw.get("vendor_pidfd_abi_preserved") is True,
+            "original_reject_retained":
+                pid_atomic_raw.get("original_reject_retained") is True,
+            "remaining_rejected_files":
+                pid_atomic_raw.get("remaining_rejected_files"),
+            "source_change_only_include":
+                pid_atomic_raw.get("source_change_only_include") is True,
+            "scheduler_runtime_review_complete": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -927,6 +961,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "rt_kconfig_guard_port": rt_kconfig,
         "proc_swait_rt_include_port": proc_swait,
         "rt_uts_version_generator_port": rt_uts,
+        "pid_atomic_rt_header_port": pid_atomic,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
