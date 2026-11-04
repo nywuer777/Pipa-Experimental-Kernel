@@ -358,18 +358,18 @@ jobs:
           NONRT_CFG="exp76-qemu/outputs/qemu-nonrt/.config"
           RT_LOG="exp76-qemu/logs/qemu-rt-console.txt"
           NONRT_LOG="exp76-qemu/logs/qemu-nonrt-console.txt"
-          sh "$GATE" verify normal "$RT_CFG" "$RT_LOG" \
+          bash "$GATE" verify normal "$RT_CFG" "$RT_LOG" \
             > exp76-qemu/reports/host-normal-verify.txt
-          sh "$GATE" verify noop "$RT_CFG" "$RT_LOG" \
+          bash "$GATE" verify noop "$RT_CFG" "$RT_LOG" \
             > exp76-qemu/reports/host-noop-verify.txt
-          sh "$GATE" verify nonrt "$NONRT_CFG" "$NONRT_LOG" \
+          bash "$GATE" verify nonrt "$NONRT_CFG" "$NONRT_LOG" \
             > exp76-qemu/reports/host-nonrt-verify.txt
           awk '/^EXP76_PROBE_LOG_BEGIN mode=normal$/ { copy=1 }
                copy { print }
                /^EXP76_PROBE_LOG_END mode=normal$/ { exit }' \
             "$RT_LOG" | sed '$d' > exp76-qemu/logs/truncated-dmesg.txt
           set +e
-          sh "$GATE" verify normal "$RT_CFG" \
+          bash "$GATE" verify normal "$RT_CFG" \
             exp76-qemu/logs/truncated-dmesg.txt \
             > exp76-qemu/reports/host-truncated-verify.txt 2>&1
           truncated_rc=$?
