@@ -1,0 +1,48 @@
+# YAML / GitHub Actions Ubuntu 24.04 / RT provenance endpoint probe / NO FLASH
+name: EXP76 RT provenance network probe (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-rt-provenance-network-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Check git.kernel.org DNS and official RT branch endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUNNER_OS=$RUNNER_OS" >> "$GITHUB_STEP_SUMMARY"
+          echo "RUNNER_ARCH=$RUNNER_ARCH" >> "$GITHUB_STEP_SUMMARY"
+          echo "GITHUB_SHA=$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          if ! getent ahostsv4 git.kernel.org > git-kernel-dns.txt 2>&1; then
+            echo 'EXP76_PROVENANCE_NETWORK=BLOCKED_DNS' | tee -a "$GITHUB_STEP_SUMMARY"
+            cat git-kernel-dns.txt
+            exit 2
+          fi
+          if ! timeout 60s git ls-remote --exit-code \
+            https://git.kernel.org/pub/scm/linux/kernel/git/rt/linux-stable-rt.git \
+            refs/heads/v4.19-rt > rt-remote-ref.txt 2>rt-remote-error.txt; then
+            echo 'EXP76_PROVENANCE_NETWORK=BLOCKED_GIT_ENDPOINT' | tee -a "$GITHUB_STEP_SUMMARY"
+            cat rt-remote-error.txt
+            exit 3
+          fi
+          test -s rt-remote-ref.txt
+          echo 'EXP76_PROVENANCE_NETWORK=PASS' | tee -a "$GITHUB_STEP_SUMMARY"
+          cat rt-remote-ref.txt
+      - name: Publish bounded endpoint evidence (NO FLASH)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-provenance-network
+          path: |
+            git-kernel-dns.txt
+            rt-remote-ref.txt
+            rt-remote-error.txt
+          if-no-files-found: warn
+          retention-days: 14
