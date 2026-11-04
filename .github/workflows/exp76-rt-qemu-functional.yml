@@ -231,9 +231,9 @@ jobs:
           path: exp76-qemu/ccache
           key: exp76-ccache-v1-${{ runner.os }}-${{ env.ANDROID_LLVM_COMMIT }}-${{ hashFiles('exp76-qemu/outputs/qemu-rt/.config') }}-${{ hashFiles('exp76-qemu/reports/source-diff.sha256') }}
 
-      - name: Build both RT Images and one nonRT negative-control Image
+      - name: Build both RT Images, three full QEMU_RT ccache variants, and nonRT control
         shell: bash
-        timeout-minutes: 110
+        timeout-minutes: 170
         run: |
           set -euo pipefail
           export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
@@ -249,12 +249,19 @@ jobs:
           ccache --zero-stats
           for variant in pipa-rt qemu-rt qemu-nonrt; do
             echo "BUILD_VARIANT=$variant"
-            make -C "$K" O="$BASE/$variant" ARCH=arm64 \
-              CC='ccache clang' LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
-              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
-              -j"$(nproc)" Image > "exp76-qemu/logs/build-$variant.log" 2>&1 || {
-                tail -n 120 "exp76-qemu/logs/build-$variant.log"; exit 1;
-              }
+            if [ "$variant" = qemu-rt ]; then
+              bash tools/exp76-ccache-3images.sh \
+                "$K" "$BASE/$variant" \
+                "$GITHUB_WORKSPACE/exp76-qemu/reports" \
+                "$GITHUB_WORKSPACE/exp76-qemu/logs"
+            else
+              make -C "$K" O="$BASE/$variant" ARCH=arm64 \
+                CC='ccache clang' LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
+                CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+                -j"$(nproc)" Image > "exp76-qemu/logs/build-$variant.log" 2>&1 || {
+                  tail -n 120 "exp76-qemu/logs/build-$variant.log"; exit 1;
+                }
+            fi
             test -s "$BASE/$variant/arch/arm64/boot/Image"
             if [ "$variant" != pipa-rt ]; then
               test -s "$BASE/$variant/Module.symvers"
@@ -264,68 +271,6 @@ jobs:
               > "exp76-qemu/reports/sha256-$variant.txt"
             ccache --show-stats > "exp76-qemu/reports/ccache-build-$variant.txt"
           done
-
-      - name: Measure three same-config RT object rebuilds with ccache (cold/warm/warm)
-        shell: bash
-        run: |
-          set -euo pipefail
-          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
-          export CCACHE_DIR="$GITHUB_WORKSPACE/exp76-qemu/ccache-object-benchmark"
-          export CCACHE_BASEDIR="$GITHUB_WORKSPACE"
-          export CCACHE_COMPILERCHECK=content
-          export CCACHE_MAXSIZE=5G
-          export CCACHE_TEMPDIR="$RUNNER_TEMP/exp76-object-ccache-tmp"
-          mkdir -p "$CCACHE_DIR" "$CCACHE_TEMPDIR"
-          ccache --clear
-          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
-          OUT="$GITHUB_WORKSPACE/exp76-qemu/outputs/qemu-rt"
-          for phase in cold warm_partial warm_mature; do
-            rm -f "$OUT/kernel/sched/core.o"
-            ccache --zero-stats
-            start="$(date +%s)"
-            make -C "$K" O="$OUT" ARCH=arm64 \
-              CC='ccache clang' LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
-              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
-              -j2 kernel/sched/core.o > "exp76-qemu/logs/ccache-object-$phase.log" 2>&1 || {
-                tail -n 100 "exp76-qemu/logs/ccache-object-$phase.log"; exit 1;
-              }
-            test -s "$OUT/kernel/sched/core.o"
-            echo "$(( $(date +%s) - start ))" > "exp76-qemu/reports/ccache-object-$phase.duration_s"
-            ccache --show-stats --format=json > "exp76-qemu/reports/ccache-object-$phase.json"
-          done
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=Path("exp76-qemu/reports")
-          observations=[]
-          for phase in ("cold","warm_partial","warm_mature"):
-              data=json.loads((p/f"ccache-object-{phase}.json").read_text())
-              counts=data.get("stats",data)
-              hits=sum(int(counts.get(k,0)) for k in
-                       ("direct_cache_hit","preprocessed_cache_hit"))
-              misses=int(counts.get("cache_miss",0))
-              total=hits+misses
-              if total==0:
-                  raise RuntimeError(f"ccache stats unavailable in {phase}: {counts}")
-              observations.append({
-                  "phase":phase,"warm":phase!="cold",
-                  "cache_hit":hits,"cache_miss":misses,
-                  "hit_rate_pct":round(100*hits/total,3),
-                  "duration_s":int((p/f"ccache-object-{phase}.duration_s").read_text()),
-                  "scope":"single_rt_translation_unit_kernel/sched/core.o"
-              })
-          if observations[0]["cache_hit"]!=0:
-              raise RuntimeError("unexpected hit in isolated cold ccache")
-          report={
-              "ccache_runs":observations,
-              "ccache_warm_hit_rate_pct":observations[-1]["hit_rate_pct"],
-              "scope":"OBJECT_ONLY_THREE_BUILDS_NOT_THREE_FULL_KERNEL_IMAGES",
-              "full_image_warm_hit_rate_pct":None,
-              "rt_handoff_ready":False
-          }
-          (p/"ccache-benchmark.json").write_text(json.dumps(report,indent=2)+"\n")
-          print(json.dumps(report,indent=2))
-          PY
 
       - name: Build external V3 probe against matching RT and nonRT QEMU kernels
         shell: bash
