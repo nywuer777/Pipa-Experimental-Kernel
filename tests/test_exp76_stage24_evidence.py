@@ -69,6 +69,7 @@ def main() -> None:
         assert empty["rcu_tree_plugin_reject_audit"] is None
         assert empty["rcu_update_reject_audit"] is None
         assert empty["srcu_hotplug_reject_audit"] is None
+        assert empty["rcu_expedited_cpu_selection_audit"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -898,6 +899,32 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage100-report" / "stage100-status.json", {
+            "stage": "EXP76_STAGE100_RCU_EXPEDITED_CPU_SELECTION_REJECT_NONFLASH",
+            "verification_scope": "SOURCE_AND_REJECT_PROVENANCE_ONLY",
+            "original_exp_rcu_reject_sha256": "3" * 64,
+            "original_exp_rcu_rejected_hunks_pending": 2,
+            "e404_exp_rcu_source_sha256": "4" * 64,
+            "e404_tree_source_sha256": "5" * 64,
+            "e404_old_selector_token_presence": {
+                "sync_rcu_exp_select_node_cpus": True,
+                "sync_rcu_exp_select_cpus": False,
+            },
+            "stage82_reject_inventory_verified": True,
+            "stage93_linked_rcu_tree_verified": True,
+            "stage99_srcu_provenance_verified": True,
+            "classification": "OLD_RT_EXPEDITED_CPU_SELECTION_DIFF_REQUIRES_E404_SEMANTIC_REVIEW",
+            "original_rejected_files_remaining": 64,
+            "source_modified": False,
+            "original_rejects_deleted": False,
+            "rejected_hunks_semantically_resolved": 0,
+            "rt_exp_rcu_cpu_selection_runtime_verified": False,
+            "rcu_grace_period_runtime_verified": False,
+            "rt_rcu_runtime_semantics_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1405,6 +1432,29 @@ def main() -> None:
         assert not srcu["rcu_grace_period_runtime_verified"]
         assert not srcu["device_boot_verified"]
         assert not srcu["kernel_built"] and not srcu["flash_ready"]
+        exp_rcu = failed["rcu_expedited_cpu_selection_audit"]
+        assert exp_rcu["stage"] == "EXP76_STAGE100_RCU_EXPEDITED_CPU_SELECTION_REJECT_NONFLASH"
+        assert exp_rcu["verification_scope"] == "SOURCE_AND_REJECT_PROVENANCE_ONLY"
+        assert exp_rcu["original_exp_rcu_reject_sha256"] == "3" * 64
+        assert exp_rcu["original_exp_rcu_rejected_hunks_pending"] == 2
+        assert exp_rcu["e404_exp_rcu_source_sha256"] == "4" * 64
+        assert exp_rcu["e404_tree_source_sha256"] == "5" * 64
+        assert exp_rcu["e404_old_selector_token_presence"] == {
+            "sync_rcu_exp_select_node_cpus": True,
+            "sync_rcu_exp_select_cpus": False,
+        }
+        assert exp_rcu["stage82_reject_inventory_verified"]
+        assert exp_rcu["stage93_linked_rcu_tree_verified"]
+        assert exp_rcu["stage99_srcu_provenance_verified"]
+        assert exp_rcu["original_rejected_files_remaining"] == 64
+        assert exp_rcu["source_modified"] is False
+        assert exp_rcu["original_rejects_deleted"] is False
+        assert exp_rcu["rejected_hunks_semantically_resolved"] == 0
+        assert not exp_rcu["rt_exp_rcu_cpu_selection_runtime_verified"]
+        assert not exp_rcu["rcu_grace_period_runtime_verified"]
+        assert not exp_rcu["rt_rcu_runtime_semantics_verified"]
+        assert not exp_rcu["device_boot_verified"]
+        assert not exp_rcu["kernel_built"] and not exp_rcu["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
