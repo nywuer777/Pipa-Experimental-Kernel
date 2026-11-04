@@ -10,6 +10,7 @@
 #include <linux/kthread.h>
 #include <linux/ktime.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/preempt.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
@@ -21,8 +22,15 @@
 
 #ifdef CONFIG_PREEMPT_RT_FULL
 static DEFINE_SPINLOCK(exp76_lock);
+static bool exp76_noop_mode;
+module_param_named(noop_mode, exp76_noop_mode, bool, 0444);
+MODULE_PARM_DESC(noop_mode, "Negative control: bypass spinlock (QEMU only)");
+
+#define EXP76_LOCK() do { if (!exp76_noop_mode) spin_lock(&exp76_lock); } while (0)
+#define EXP76_UNLOCK() do { if (!exp76_noop_mode) spin_unlock(&exp76_lock); } while (0)
 static DECLARE_COMPLETION(exp76_t1_held);
 static DECLARE_COMPLETION(exp76_t2_attempting);
+static DECLARE_COMPLETION(exp76_noop_acquired);
 static DECLARE_COMPLETION(exp76_t1_done);
 static DECLARE_COMPLETION(exp76_t2_done);
 static struct task_struct *exp76_t1;
@@ -50,13 +58,21 @@ static int exp76_owner(void *unused)
     ktime_t before;
     int rc = 0;
 
-    spin_lock(&exp76_lock);
+    EXP76_LOCK();
     pr_info("EXP76_RT_SPIN_SLEEP T1_HELD\n");
     complete(&exp76_t1_held);
 
     if (!wait_for_completion_timeout(&exp76_t2_attempting,
                                      msecs_to_jiffies(EXP76_HANDSHAKE_MS))) {
         pr_err("EXP76_RT_SPIN_SLEEP FAIL_T2_HANDSHAKE_TIMEOUT\n");
+        rc = -ETIMEDOUT;
+        goto out_unlock;
+    }
+
+    if (exp76_noop_mode &&
+        !wait_for_completion_timeout(&exp76_noop_acquired,
+                                     msecs_to_jiffies(EXP76_HANDSHAKE_MS))) {
+        pr_err("EXP76_RT_SPIN_SLEEP FAIL_NOOP_HANDSHAKE_TIMEOUT\n");
         rc = -ETIMEDOUT;
         goto out_unlock;
     }
@@ -80,7 +96,7 @@ static int exp76_owner(void *unused)
 out_unlock:
     /* Mark release before unlock; t2 reads marker after its lock acquire. */
     WRITE_ONCE(exp76_t1_releasing, true);
-    spin_unlock(&exp76_lock);
+    EXP76_UNLOCK();
     pr_info("EXP76_RT_SPIN_SLEEP T1_RELEASED\n");
 
     WRITE_ONCE(exp76_t1_rc, rc);
@@ -110,10 +126,13 @@ static int exp76_contender(void *unused)
     pr_info("EXP76_RT_SPIN_SLEEP T2_ATTEMPT\n");
     complete(&exp76_t2_attempting);
 
-    spin_lock(&exp76_lock);
+    EXP76_LOCK();
     acquired = ktime_get();
     saw_release = READ_ONCE(exp76_t1_releasing);
-    spin_unlock(&exp76_lock);
+    /* Force the no-op negative to observe ownership before T1 releases. */
+    if (exp76_noop_mode)
+        complete(&exp76_noop_acquired);
+    EXP76_UNLOCK();
 
     exp76_t2_wait_us = ktime_to_us(ktime_sub(acquired, begin));
     if (!saw_release) {
@@ -141,17 +160,20 @@ static int __init exp76_spin_sleep_init(void)
 {
 #ifndef CONFIG_PREEMPT_RT_FULL
     pr_err("EXP76_RT_SPIN_SLEEP BLOCKED_CONFIG PREEMPT_RT_FULL=n\n");
+    pr_info("EXP76_RT_SPIN_SLEEP END status=BLOCKED_CONFIG\n");
     return -EOPNOTSUPP;
 #else
     unsigned long done_t1, done_t2;
     int rc;
 
-    pr_info("EXP76_RT_SPIN_SLEEP BEGIN test_id=EXP76_RT_SPIN_SLEEP_QEMU_V2\n");
+    pr_info("EXP76_RT_SPIN_SLEEP BEGIN test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3 mode=%s\n",
+            exp76_noop_mode ? "noop" : "normal");
 
     exp76_t1 = kthread_run(exp76_owner, NULL, "exp76_rt_owner");
     if (IS_ERR(exp76_t1)) {
         rc = PTR_ERR(exp76_t1);
         pr_err("EXP76_RT_SPIN_SLEEP FAIL_CREATE_T1 rc=%d\n", rc);
+        pr_info("EXP76_RT_SPIN_SLEEP END status=FAIL\n");
         return rc;
     }
 
@@ -160,6 +182,7 @@ static int __init exp76_spin_sleep_init(void)
         rc = PTR_ERR(exp76_t2);
         pr_err("EXP76_RT_SPIN_SLEEP FAIL_CREATE_T2 rc=%d\n", rc);
         kthread_stop(exp76_t1);
+        pr_info("EXP76_RT_SPIN_SLEEP END status=FAIL\n");
         return rc;
     }
 
@@ -180,15 +203,20 @@ static int __init exp76_spin_sleep_init(void)
     kthread_stop(exp76_t2);
     kthread_stop(exp76_t1);
 
-    if (!done_t1 || !done_t2)
+    if (!done_t1 || !done_t2) {
+        pr_info("EXP76_RT_SPIN_SLEEP END status=FAIL\n");
         return -ETIMEDOUT;
+    }
 
-    if (READ_ONCE(exp76_t1_rc) || READ_ONCE(exp76_t2_rc))
+    if (READ_ONCE(exp76_t1_rc) || READ_ONCE(exp76_t2_rc)) {
+        pr_info("EXP76_RT_SPIN_SLEEP END status=FAIL\n");
         return -EINVAL;
+    }
 
     pr_info("EXP76_RT_SPIN_SLEEP PASS elapsed_us=%lld wait_us=%lld preemptible=1 irq_enabled=1\n",
             (long long)exp76_t1_sleep_us,
             (long long)exp76_t2_wait_us);
+    pr_info("EXP76_RT_SPIN_SLEEP END status=PASS\n");
     return 0;
 #endif
 }
