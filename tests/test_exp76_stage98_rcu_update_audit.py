@@ -128,13 +128,9 @@ def main() -> None:
             original_reject = (good[0] / M["REJECT"]).read_bytes()
             result = run(good)
             assert result["original_rcu_update_rejected_hunks_pending"] == 3
-            assert result["original_rcu_update_hunk_headers"] == list(
-                M["HUNK_PREFIXES"]
-            ) if all(
-                h == prefix + " context" for h, prefix in zip(
-                    result["original_rcu_update_hunk_headers"], M["HUNK_PREFIXES"]
-                )
-            ) else False
+            assert result["original_rcu_update_hunk_headers"] == [
+                prefix + " context" for prefix in M["HUNK_PREFIXES"]
+            ]
             assert result["stage82_inventory_proven"]
             assert result["stage93_linked_exports_proven"]
             assert result["stage97_rcu_plugin_proven"]
