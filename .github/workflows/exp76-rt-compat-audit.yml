@@ -1,0 +1,176 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 RT feasibility audit / NO FLASH
+name: EXP76 PREEMPT_RT compatibility audit (NO FLASH)
+
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-rt-compat-audit.yml'
+      - 'tools/exp76-rt-compat-audit.sh'
+      - 'tools/exp76-rt-conflict-report.py'
+      - 'tools/exp76-rt-stage1-port.py'
+      - 'tools/exp76-rt-stage2-port.py'
+      - 'tools/exp76-rt-stage3-rtmutex.py'
+      - 'tools/exp76-rt-stage4-spinlock.py'
+      - 'tools/exp76-spinlock-type-abi-audit.py'
+      - 'tools/exp76-rt-stage5-spinlock-types.py'
+      - 'tools/exp76-rt-stage6-irq-work.py'
+      - 'tools/exp76-rt-stage7-locking.py'
+      - 'tools/exp76-rt-stage8-rcu-equivalence.py'
+      - 'tools/exp76-rt-stage9-rcu-softirq-abi.py'
+      - 'tools/exp76-rt-stage10-rcuwait.py'
+      - 'tools/exp76-rt-stage11-rcuwait-lifecycle.py'
+      - 'tools/exp76-rt-stage12-rcupdate.py'
+      - 'tools/exp76-rt-stage13-unified-rcu.py'
+      - 'tools/exp76-rt-stage14-wake-q.py'
+      - 'tools/exp76-rt-stage15-sched-features.py'
+      - 'tools/exp76-stage15-feature-cc-preflight.py'
+      - 'tools/exp76-rt-stage16-affinity-abi.py'
+      - 'tools/exp76-rt-stage17-wake-flags.py'
+      - 'tools/exp76-rt-stage19-header-fixes.py'
+      - 'tools/exp76-rt-stage20-headers.py'
+      - 'tools/exp76-rt-stage21-rcu-include.py'
+      - 'tools/exp76-rt-stage26-fork-affinity.py'
+      - 'tests/test_exp76_stage26_fork_affinity.py'
+      - 'tools/exp76-rt-stage27-core-affinity.py'
+      - 'tests/test_exp76_stage27_core_affinity.py'
+      - 'tools/exp76-rt-stage28-task-state.py'
+      - 'tests/test_exp76_stage28_task_state.py'
+      - 'tools/exp76-rt-stage29-migration-abi.py'
+      - 'tests/test_exp76_stage29_migration_abi.py'
+      - 'tools/exp76-rt-stage31-class-affinity.py'
+      - 'tests/test_exp76_stage31_class_affinity.py'
+      - 'tools/exp76-rt-stage34-timer-swork.py'
+      - 'tests/test_exp76_stage34_timer_swork.py'
+      - 'tools/exp76-rt-stage35-might-sleep.py'
+      - 'tests/test_exp76_stage35_might_sleep.py'
+      - 'tools/exp76-stage36-migration-contract.py'
+      - 'tests/test_exp76_stage36_migration_contract.py'
+      - 'tools/exp76-rt-stage38-softirq-entry.py'
+      - 'tests/test_exp76_stage38_softirq_entry.py'
+      - 'tools/exp76-rt-stage40-sleeping-lock.py'
+      - 'tests/test_exp76_stage40_sleeping_lock.py'
+      - 'tools/exp76-rt-stage41-migration-lifecycle.py'
+      - 'tests/test_exp76_stage41_migration_lifecycle.py'
+      - 'tools/exp76-rt-stage42-hotplug-tlb.py'
+      - 'tests/test_exp76_stage42_hotplug_tlb.py'
+      - 'tools/exp76-rt-stage47-rcu-workqueue.py'
+      - 'tests/test_exp76_stage47_rcu_workqueue.py'
+      - 'tools/exp76-rt-stage56-slub-posix.py'
+      - 'tests/test_exp76_stage56_slub_posix.py'
+      - 'tools/exp76-rt-stage57-rwlock-nohz.py'
+      - 'tests/test_exp76_stage57_rwlock_nohz.py'
+      - 'tools/exp76-rt-stage58-rwlock-outofline.py'
+      - 'tests/test_exp76_stage58_rwlock_outofline.py'
+      - 'tools/exp76-rt-stage63-nandswap-spinlock.py'
+      - 'tests/test_exp76_stage63_nandswap_spinlock.py'
+      - 'tools/exp76-rt-stage64-ion-spinlock.py'
+      - 'tests/test_exp76_stage64_ion_spinlock.py'
+      - 'tools/exp76-export-partial-source.py'
+      - 'tools/exp76-uname-probe.ps1'
+      - 'tools/exp76-fix-uname.py'
+      - 'tests/test_exp76_uname.py'
+      - 'docs/EXP76-PREEMPT-RT-UNAME.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp76-rt-compat-audit
+  cancel-in-progress: false
+
+jobs:
+  rt-compat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate EXP76 source audit tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/exp76-rt-compat-audit.sh
+          python3 tests/test_exp76_uname.py
+          python3 -m py_compile tools/exp76-rt-conflict-report.py
+          python3 -m py_compile tools/exp76-rt-stage1-port.py
+          python3 -m py_compile tools/exp76-rt-stage2-port.py
+          python3 -m py_compile tools/exp76-rt-stage3-rtmutex.py
+          python3 -m py_compile tools/exp76-rt-stage4-spinlock.py
+          python3 -m py_compile tools/exp76-spinlock-type-abi-audit.py
+          python3 -m py_compile tools/exp76-rt-stage5-spinlock-types.py
+          python3 -m py_compile tools/exp76-rt-stage6-irq-work.py
+          python3 -m py_compile tools/exp76-rt-stage7-locking.py
+          python3 -m py_compile tools/exp76-rt-stage8-rcu-equivalence.py
+          python3 -m py_compile tools/exp76-rt-stage9-rcu-softirq-abi.py
+          python3 -m py_compile tools/exp76-rt-stage10-rcuwait.py
+          python3 -m py_compile tools/exp76-rt-stage11-rcuwait-lifecycle.py
+          python3 -m py_compile tools/exp76-rt-stage12-rcupdate.py
+          python3 -m py_compile tools/exp76-rt-stage13-unified-rcu.py
+          python3 -m py_compile tools/exp76-rt-stage14-wake-q.py
+          python3 -m py_compile tools/exp76-rt-stage15-sched-features.py
+          python3 -m py_compile tools/exp76-stage15-feature-cc-preflight.py
+          python3 -m py_compile tools/exp76-rt-stage16-affinity-abi.py
+          python3 -m py_compile tools/exp76-rt-stage17-wake-flags.py
+          python3 -m py_compile tools/exp76-rt-stage19-header-fixes.py
+          python3 -m py_compile tools/exp76-rt-stage20-headers.py
+          python3 -m py_compile tools/exp76-rt-stage21-rcu-include.py
+          python3 -m py_compile tools/exp76-rt-stage26-fork-affinity.py
+          python3 tests/test_exp76_stage26_fork_affinity.py
+          python3 -m py_compile tools/exp76-rt-stage27-core-affinity.py
+          python3 tests/test_exp76_stage27_core_affinity.py
+          python3 -m py_compile tools/exp76-rt-stage28-task-state.py
+          python3 tests/test_exp76_stage28_task_state.py
+          python3 -m py_compile tools/exp76-rt-stage29-migration-abi.py
+          python3 tests/test_exp76_stage29_migration_abi.py
+          python3 -m py_compile tools/exp76-rt-stage31-class-affinity.py
+          python3 tests/test_exp76_stage31_class_affinity.py
+          python3 -m py_compile tools/exp76-rt-stage34-timer-swork.py
+          python3 tests/test_exp76_stage34_timer_swork.py
+          python3 -m py_compile tools/exp76-rt-stage35-might-sleep.py
+          python3 tests/test_exp76_stage35_might_sleep.py
+          python3 -m py_compile tools/exp76-stage36-migration-contract.py
+          python3 tests/test_exp76_stage36_migration_contract.py
+          python3 -m py_compile tools/exp76-rt-stage38-softirq-entry.py
+          python3 tests/test_exp76_stage38_softirq_entry.py
+          python3 -m py_compile tools/exp76-rt-stage40-sleeping-lock.py
+          python3 tests/test_exp76_stage40_sleeping_lock.py
+          python3 -m py_compile tools/exp76-rt-stage41-migration-lifecycle.py
+          python3 tests/test_exp76_stage41_migration_lifecycle.py
+          python3 -m py_compile tools/exp76-rt-stage42-hotplug-tlb.py
+          python3 tests/test_exp76_stage42_hotplug_tlb.py
+          python3 -m py_compile tools/exp76-rt-stage47-rcu-workqueue.py
+          python3 tests/test_exp76_stage47_rcu_workqueue.py
+          python3 -m py_compile tools/exp76-rt-stage56-slub-posix.py
+          python3 tests/test_exp76_stage56_slub_posix.py
+          python3 -m py_compile tools/exp76-rt-stage57-rwlock-nohz.py
+          python3 tests/test_exp76_stage57_rwlock_nohz.py
+          python3 -m py_compile tools/exp76-rt-stage58-rwlock-outofline.py
+          python3 tests/test_exp76_stage58_rwlock_outofline.py
+          python3 -m py_compile tools/exp76-rt-stage63-nandswap-spinlock.py
+          python3 tests/test_exp76_stage63_nandswap_spinlock.py
+          python3 -m py_compile tools/exp76-rt-stage64-ion-spinlock.py
+          python3 tests/test_exp76_stage64_ion_spinlock.py
+          python3 -m py_compile tools/exp76-export-partial-source.py
+          test -s docs/EXP76-PREEMPT-RT-UNAME.md
+          test -s tools/exp76-uname-probe.ps1
+          echo 'EXP76_BASELINE_WORKFLOW=CHECKED; NO_RT_BUILD; FLASH_READY=false'
+
+      - name: Verify official RT source and audit pinned E404 plus partial EXP overlays
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh
+          test -s exp76-rt-report/summary.txt
+          cat exp76-rt-report/summary.txt
+
+      - name: Publish text audit evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-compat-AUDIT-ONLY-${{ github.run_number }}
+          path: |
+            exp76-rt-report/
+          if-no-files-found: warn
+          retention-days: 90

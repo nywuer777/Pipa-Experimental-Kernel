@@ -1,0 +1,1672 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 pinned Clang21 arm64 object diagnostics / NO FLASH
+name: EXP76 Clang21 RT scheduler object diagnostics (NO FLASH)
+
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-stage18-clang21-diagnostic.yml'
+      - 'tools/exp76-stage18-clang21-object-diagnostic.sh'
+      - 'tests/test_exp76_stage22_prepare_parser.py'
+      - 'tools/exp76-stage23-prepare-gate.py'
+      - 'tests/test_exp76_stage23_prepare_gate.py'
+      - 'tools/exp76-stage24-collect-ci-evidence.py'
+      - 'tests/test_exp76_stage24_evidence.py'
+      - 'tools/exp76-rt-stage19-header-fixes.py'
+      - 'tools/exp76-rt-stage20-headers.py'
+      - 'tools/exp76-rt-stage21-rcu-include.py'
+      - 'tools/exp76-rt-stage26-fork-affinity.py'
+      - 'tests/test_exp76_stage26_fork_affinity.py'
+      - 'tools/exp76-rt-stage27-core-affinity.py'
+      - 'tests/test_exp76_stage27_core_affinity.py'
+      - 'tools/exp76-rt-stage28-task-state.py'
+      - 'tests/test_exp76_stage28_task_state.py'
+      - 'tools/exp76-rt-stage29-migration-abi.py'
+      - 'tests/test_exp76_stage29_migration_abi.py'
+      - 'tools/exp76-stage30-object-coverage.py'
+      - 'tests/test_exp76_stage30_object_coverage.py'
+      - 'tools/exp76-rt-stage31-class-affinity.py'
+      - 'tests/test_exp76_stage31_class_affinity.py'
+      - 'tools/exp76-rt-stage34-timer-swork.py'
+      - 'tests/test_exp76_stage34_timer_swork.py'
+      - 'tools/exp76-rt-stage35-might-sleep.py'
+      - 'tests/test_exp76_stage35_might_sleep.py'
+      - 'tools/exp76-stage36-migration-contract.py'
+      - 'tests/test_exp76_stage36_migration_contract.py'
+      - 'tools/exp76-rt-stage38-softirq-entry.py'
+      - 'tests/test_exp76_stage38_softirq_entry.py'
+      - 'tools/exp76-rt-stage40-sleeping-lock.py'
+      - 'tests/test_exp76_stage40_sleeping_lock.py'
+      - 'tools/exp76-rt-stage41-migration-lifecycle.py'
+      - 'tests/test_exp76_stage41_migration_lifecycle.py'
+      - 'tools/exp76-rt-stage42-hotplug-tlb.py'
+      - 'tests/test_exp76_stage42_hotplug_tlb.py'
+      - 'tools/exp76-stage46-cross-subsystem-coverage.py'
+      - 'tests/test_exp76_stage46_cross_subsystem.py'
+      - 'tools/exp76-stage50-kernel-subtree.py'
+      - 'tests/test_exp76_stage50_kernel_subtree.py'
+      - 'tools/exp76-rt-stage47-rcu-workqueue.py'
+      - 'tests/test_exp76_stage47_rcu_workqueue.py'
+      - 'tools/exp76-rt-stage51-neigh-const.py'
+      - 'tests/test_exp76_stage51_neigh_const.py'
+      - 'tools/exp76-rt-stage52-cgroup-cpuset.py'
+      - 'tests/test_exp76_stage52_cgroup_cpuset.py'
+      - 'tools/exp76-rt-stage53-lru-cpudl.py'
+      - 'tests/test_exp76_stage53_lru_cpudl.py'
+      - 'tools/exp76-rt-stage54-posix-timers.py'
+      - 'tests/test_exp76_stage54_posix_timers.py'
+      - 'tools/exp76-rt-stage55-irq-rwsem.py'
+      - 'tests/test_exp76_stage55_irq_rwsem.py'
+      - 'tools/exp76-rt-stage56-slub-posix.py'
+      - 'tests/test_exp76_stage56_slub_posix.py'
+      - 'tools/exp76-rt-stage57-rwlock-nohz.py'
+      - 'tests/test_exp76_stage57_rwlock_nohz.py'
+      - 'tools/exp76-rt-stage58-rwlock-outofline.py'
+      - 'tests/test_exp76_stage58_rwlock_outofline.py'
+      - 'tools/exp76-rt-stage59-kthread-proc.py'
+      - 'tests/test_exp76_stage59_kthread_proc.py'
+      - 'tools/exp76-rt-stage60-futex.py'
+      - 'tests/test_exp76_stage60_futex.py'
+      - 'tools/exp76-rt-stage61-smp-uffd.py'
+      - 'tests/test_exp76_stage61_smp_uffd.py'
+      - 'tools/exp76-rt-stage62-phandle-cache.py'
+      - 'tests/test_exp76_stage62_phandle_cache.py'
+      - 'tools/exp76-rt-stage63-nandswap-spinlock.py'
+      - 'tests/test_exp76_stage63_nandswap_spinlock.py'
+      - 'tools/exp76-rt-stage64-ion-spinlock.py'
+      - 'tests/test_exp76_stage64_ion_spinlock.py'
+      - 'tools/exp76-stage66-mm-subtree.py'
+      - 'tests/test_exp76_stage66_mm_subtree.py'
+      - 'tools/exp76-stage67-fs-subtree.py'
+      - 'tests/test_exp76_stage67_fs_subtree.py'
+      - 'tools/exp76-stage68-ipc-subtree.py'
+      - 'tests/test_exp76_stage68_ipc_subtree.py'
+      - 'tools/exp76-stage69-security-subtree.py'
+      - 'tests/test_exp76_stage69_security_subtree.py'
+      - 'tools/exp76-stage72-net-subtree.py'
+      - 'tests/test_exp76_stage72_net_subtree.py'
+      - 'tools/exp76-stage73-lib-subtree.py'
+      - 'tests/test_exp76_stage73_lib_subtree.py'
+      - 'tools/exp76-rt-stage74-radix-locallock.py'
+      - 'tests/test_exp76_stage74_radix_locallock.py'
+      - 'tools/exp76-stage75-crypto-subtree.py'
+      - 'tests/test_exp76_stage75_crypto_subtree.py'
+      - 'tools/exp76-stage76-drivers-subtree.py'
+      - 'tests/test_exp76_stage76_drivers_subtree.py'
+      - 'tools/exp76-stage77-compile-h-preflight.py'
+      - 'tests/test_exp76_stage77_compile_h_preflight.py'
+      - 'tools/exp76-rt-stage79-functionfs-swait.py'
+      - 'tests/test_exp76_stage79_functionfs_swait.py'
+      - 'tools/exp76-stage81-block-init-subtrees.py'
+      - 'tests/test_exp76_stage81_block_init_subtrees.py'
+      - 'tools/exp76-stage82-rt-reject-inventory.py'
+      - 'tests/test_exp76_stage82_rt_reject_inventory.py'
+      - 'tools/exp76-rt-stage83-arm64-neon-crypto.py'
+      - 'tests/test_exp76_stage83_arm64_neon_crypto.py'
+      - 'tools/exp76-stage84-vmlinux-link.py'
+      - 'tests/test_exp76_stage84_vmlinux_link.py'
+      - 'tools/exp76-rt-stage85-rwsem-idr-link.py'
+      - 'tests/test_exp76_stage85_rwsem_idr_link.py'
+      - 'tools/exp76-stage86-raw-arm64-image.py'
+      - 'tests/test_exp76_stage86_raw_arm64_image.py'
+      - 'tools/exp76-stage87-kasan-vendor-equivalence.py'
+      - 'tests/test_exp76_stage87_kasan_vendor_equivalence.py'
+      - 'tools/exp76-stage88-rt-kconfig-guards.py'
+      - 'tests/test_exp76_stage88_rt_kconfig_guards.py'
+      - 'tools/exp76-stage89-proc-swait.py'
+      - 'tests/test_exp76_stage89_proc_swait.py'
+      - 'tools/exp76-stage90-rt-uts-version.py'
+      - 'tests/test_exp76_stage90_rt_uts_version.py'
+      - 'tools/exp76-stage91-pid-atomic-header.py'
+      - 'tests/test_exp76_stage91_pid_atomic_header.py'
+      - 'tools/exp76-stage92-migration-link-contract.py'
+      - 'tests/test_exp76_stage92_migration_link_contract.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp76-stage18-clang21-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  clang21-object-diagnostic:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    env:
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate object-only diagnostic scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/exp76-stage18-clang21-object-diagnostic.sh
+          python3 tests/test_exp76_stage22_prepare_parser.py
+          python3 -m py_compile tools/exp76-stage23-prepare-gate.py
+          python3 tests/test_exp76_stage23_prepare_gate.py
+          python3 -m py_compile tools/exp76-stage24-collect-ci-evidence.py
+          python3 tests/test_exp76_stage24_evidence.py
+          python3 -m py_compile tools/exp76-rt-stage26-fork-affinity.py
+          python3 tests/test_exp76_stage26_fork_affinity.py
+          python3 -m py_compile tools/exp76-rt-stage27-core-affinity.py
+          python3 tests/test_exp76_stage27_core_affinity.py
+          python3 -m py_compile tools/exp76-rt-stage28-task-state.py
+          python3 tests/test_exp76_stage28_task_state.py
+          python3 -m py_compile tools/exp76-rt-stage29-migration-abi.py
+          python3 tests/test_exp76_stage29_migration_abi.py
+          python3 -m py_compile tools/exp76-stage30-object-coverage.py
+          python3 tests/test_exp76_stage30_object_coverage.py
+          python3 -m py_compile tools/exp76-rt-stage31-class-affinity.py
+          python3 tests/test_exp76_stage31_class_affinity.py
+          python3 -m py_compile tools/exp76-rt-stage34-timer-swork.py
+          python3 tests/test_exp76_stage34_timer_swork.py
+          python3 -m py_compile tools/exp76-rt-stage35-might-sleep.py
+          python3 tests/test_exp76_stage35_might_sleep.py
+          python3 -m py_compile tools/exp76-stage36-migration-contract.py
+          python3 tests/test_exp76_stage36_migration_contract.py
+          python3 -m py_compile tools/exp76-rt-stage38-softirq-entry.py
+          python3 tests/test_exp76_stage38_softirq_entry.py
+          python3 -m py_compile tools/exp76-rt-stage40-sleeping-lock.py
+          python3 tests/test_exp76_stage40_sleeping_lock.py
+          python3 -m py_compile tools/exp76-rt-stage41-migration-lifecycle.py
+          python3 tests/test_exp76_stage41_migration_lifecycle.py
+          python3 -m py_compile tools/exp76-rt-stage42-hotplug-tlb.py
+          python3 tests/test_exp76_stage42_hotplug_tlb.py
+          python3 -m py_compile tools/exp76-stage46-cross-subsystem-coverage.py
+          python3 tests/test_exp76_stage46_cross_subsystem.py
+          python3 -m py_compile tools/exp76-stage50-kernel-subtree.py
+          python3 tests/test_exp76_stage50_kernel_subtree.py
+          echo 'EXP76_STAGE49_RT_LOCKING_KBUILD_TARGETS=10; LINK=false'
+          python3 -m py_compile tools/exp76-rt-stage47-rcu-workqueue.py
+          python3 tests/test_exp76_stage47_rcu_workqueue.py
+          python3 -m py_compile tools/exp76-rt-stage51-neigh-const.py
+          python3 tests/test_exp76_stage51_neigh_const.py
+          python3 -m py_compile tools/exp76-rt-stage52-cgroup-cpuset.py
+          python3 tests/test_exp76_stage52_cgroup_cpuset.py
+          python3 -m py_compile tools/exp76-rt-stage53-lru-cpudl.py
+          python3 tests/test_exp76_stage53_lru_cpudl.py
+          python3 -m py_compile tools/exp76-rt-stage54-posix-timers.py
+          python3 tests/test_exp76_stage54_posix_timers.py
+          python3 -m py_compile tools/exp76-rt-stage55-irq-rwsem.py
+          python3 tests/test_exp76_stage55_irq_rwsem.py
+          python3 -m py_compile tools/exp76-rt-stage56-slub-posix.py
+          python3 tests/test_exp76_stage56_slub_posix.py
+          python3 -m py_compile tools/exp76-rt-stage57-rwlock-nohz.py
+          python3 tests/test_exp76_stage57_rwlock_nohz.py
+          python3 -m py_compile tools/exp76-rt-stage58-rwlock-outofline.py
+          python3 tests/test_exp76_stage58_rwlock_outofline.py
+          python3 -m py_compile tools/exp76-rt-stage59-kthread-proc.py
+          python3 tests/test_exp76_stage59_kthread_proc.py
+          python3 -m py_compile tools/exp76-rt-stage60-futex.py
+          python3 tests/test_exp76_stage60_futex.py
+          python3 -m py_compile tools/exp76-rt-stage61-smp-uffd.py
+          python3 tests/test_exp76_stage61_smp_uffd.py
+          python3 -m py_compile tools/exp76-rt-stage62-phandle-cache.py
+          python3 tests/test_exp76_stage62_phandle_cache.py
+          python3 -m py_compile tools/exp76-rt-stage63-nandswap-spinlock.py
+          python3 tests/test_exp76_stage63_nandswap_spinlock.py
+          python3 -m py_compile tools/exp76-rt-stage64-ion-spinlock.py
+          python3 tests/test_exp76_stage64_ion_spinlock.py
+          python3 -m py_compile tools/exp76-stage66-mm-subtree.py
+          python3 tests/test_exp76_stage66_mm_subtree.py
+          python3 -m py_compile tools/exp76-stage67-fs-subtree.py
+          python3 tests/test_exp76_stage67_fs_subtree.py
+          python3 -m py_compile tools/exp76-stage68-ipc-subtree.py
+          python3 tests/test_exp76_stage68_ipc_subtree.py
+          python3 -m py_compile tools/exp76-stage69-security-subtree.py
+          python3 tests/test_exp76_stage69_security_subtree.py
+          python3 -m py_compile tools/exp76-stage72-net-subtree.py
+          python3 tests/test_exp76_stage72_net_subtree.py
+          python3 -m py_compile tools/exp76-stage73-lib-subtree.py
+          python3 tests/test_exp76_stage73_lib_subtree.py
+          python3 -m py_compile tools/exp76-rt-stage74-radix-locallock.py
+          python3 tests/test_exp76_stage74_radix_locallock.py
+          python3 -m py_compile tools/exp76-stage75-crypto-subtree.py
+          python3 tests/test_exp76_stage75_crypto_subtree.py
+          python3 -m py_compile tools/exp76-stage76-drivers-subtree.py
+          python3 tests/test_exp76_stage76_drivers_subtree.py
+          python3 -m py_compile tools/exp76-stage77-compile-h-preflight.py
+          python3 tests/test_exp76_stage77_compile_h_preflight.py
+          python3 -m py_compile tools/exp76-rt-stage79-functionfs-swait.py
+          python3 tests/test_exp76_stage79_functionfs_swait.py
+          python3 -m py_compile tools/exp76-stage81-block-init-subtrees.py
+          python3 tests/test_exp76_stage81_block_init_subtrees.py
+          python3 -m py_compile tools/exp76-stage82-rt-reject-inventory.py
+          python3 tests/test_exp76_stage82_rt_reject_inventory.py
+          python3 -m py_compile tools/exp76-rt-stage83-arm64-neon-crypto.py
+          python3 tests/test_exp76_stage83_arm64_neon_crypto.py
+          python3 -m py_compile tools/exp76-stage84-vmlinux-link.py
+          python3 tests/test_exp76_stage84_vmlinux_link.py
+          python3 -m py_compile tools/exp76-rt-stage85-rwsem-idr-link.py
+          python3 tests/test_exp76_stage85_rwsem_idr_link.py
+          python3 -m py_compile tools/exp76-stage86-raw-arm64-image.py
+          python3 tests/test_exp76_stage86_raw_arm64_image.py
+          python3 -m py_compile tools/exp76-stage87-kasan-vendor-equivalence.py
+          python3 tests/test_exp76_stage87_kasan_vendor_equivalence.py
+          python3 -m py_compile tools/exp76-stage88-rt-kconfig-guards.py
+          python3 tests/test_exp76_stage88_rt_kconfig_guards.py
+          python3 -m py_compile tools/exp76-stage89-proc-swait.py
+          python3 tests/test_exp76_stage89_proc_swait.py
+          python3 -m py_compile tools/exp76-stage90-rt-uts-version.py
+          python3 tests/test_exp76_stage90_rt_uts_version.py
+          python3 -m py_compile tools/exp76-stage91-pid-atomic-header.py
+          python3 tests/test_exp76_stage91_pid_atomic_header.py
+          python3 -m py_compile tools/exp76-stage92-migration-link-contract.py
+          python3 tests/test_exp76_stage92_migration_link_contract.py
+          ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
+          bash -n tools/exp76-rt-compat-audit.sh
+          ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
+          echo 'EXP76_STAGE18_NO_FLASH_CODE_GATE=PASS'
+
+      - name: Install pinned kernel build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev \
+            python3 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+            rsync device-tree-compiler
+          df -h .
+
+      - name: Obtain exact Android Clang 21 from EXP75
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          git config http.lowSpeedLimit 1000
+          git config http.lowSpeedTime 120
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          clang-r563880c/bin/clang --version
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+          clang-r563880c/bin/clang --version | grep -F 'Android (14054515,'
+          rm -rf .git
+
+      - name: Prepare Stage48 hunk-scoped RCU rejects and RT workqueue
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > stage18-prior-audit.log 2>&1 || {
+            tail -n 100 stage18-prior-audit.log
+            exit 1
+          }
+          test -f exp76-rt-report/stage19/stage19-status.json
+          test -f exp76-rt-report/stage20/stage20-status.json
+          test -f exp76-rt-report/stage21/stage21-status.json
+          test -f exp76-rt-report/stage26/stage26-status.json
+          test -f exp76-rt-report/stage27/stage27-status.json
+          test -f exp76-rt-report/stage28/stage28-status.json
+          test -f exp76-rt-report/stage29/stage29-status.json
+          test -f exp76-rt-report/stage31/stage31-status.json
+          test -f exp76-rt-report/stage34/stage34-status.json
+          test -f exp76-rt-report/stage35/stage35-status.json
+          test -f exp76-rt-report/stage36/stage36-status.json
+          test -f exp76-rt-report/stage38/stage38-status.json
+          test -f exp76-rt-report/stage40/stage40-status.json
+          test -f exp76-rt-report/stage41/stage41-status.json
+          test -f exp76-rt-report/stage42/stage42-status.json
+          test -f exp76-rt-report/stage47/stage47-status.json
+          test -f exp76-rt-report/stage51/stage51-status.json
+          test -f exp76-rt-report/stage52/stage52-status.json
+          test -f exp76-rt-report/stage53/stage53-status.json
+          test -f exp76-rt-report/stage54/stage54-status.json
+          test -f exp76-rt-report/stage55/stage55-status.json
+          test -f exp76-rt-report/stage56/stage56-status.json
+          test -f exp76-rt-report/stage57/stage57-status.json
+          test -f exp76-rt-report/stage58/stage58-status.json
+          test -f exp76-rt-report/stage59/stage59-status.json
+          test -f exp76-rt-report/stage60/stage60-status.json
+          test -f exp76-rt-report/stage61/stage61-status.json
+          test -f exp76-rt-report/stage62/stage62-status.json
+          test -f exp76-rt-report/stage63/stage63-status.json
+          test -f exp76-rt-report/stage64/stage64-status.json
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          test -f exp76-trial-overlay/kernel/sched/cpupri.c.rej
+          echo 'EXP76_STAGE18_SOURCE=PINNED_STAGE48_RCU_HUNK_SCOPED'
+
+      - name: Inventory 64 unresolved PREEMPT_RT hunk rejects (READONLY NONFLASH)
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-stage82-report
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(
+              Path('exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json').read_text()
+          )
+          assert data['remaining_rejected_files'] == 64
+          assert data['total_rejected_hunks'] > 0
+          assert data['remaining_not_in_initial_manifest'] == []
+          assert data['resolution_verified'] is False
+          assert data['source_modified'] is False
+          assert data['rejects_deleted'] is False
+          assert data['full_kernel_link_performed'] is False
+          assert not data['kernel_built'] and not data['flash_ready']
+          print(
+              'EXP76_STAGE82_RT_REJECT_INDEX=64_FILES;' +
+              f"HUNKS={data['total_rejected_hunks']};" +
+              'FLASH_READY=false'
+          )
+          PY
+
+      - name: Verify KASAN quarantine vendor-equivalent RT spinlock hunks (READONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage87-kasan-vendor-equivalence.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage87
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(Path('exp76-rt-report/stage87/stage87-status.json').read_text())
+          assert status['vendor_equivalent_hunks'] == 6
+          assert status['vendor_equivalent_files'] == 1
+          assert status['reviewed_added_lines'] == 9
+          assert status['reviewed_removed_lines'] == 9
+          assert status['all_added_raw_spinlock_lines_present']
+          assert status['all_obsolete_spinlock_lines_absent']
+          assert not status['source_changed'] and not status['rejects_deleted']
+          assert status['rejected_files_remaining'] == 64
+          assert not status['all_rt_semantics_verified']
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE87_KASAN_VENDOR_EQUIVALENT=6_HUNKS; REJECTS_RETAINED=64')
+          PY
+
+      - name: Port verified ARM64 ChaCha20 and Poly1305 NEON RT Kconfig hunk (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt-stage83-arm64-neon-crypto.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage83 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          s = json.loads(Path('exp76-rt-report/stage83/stage83-status.json').read_text())
+          assert s['applied'] is True
+          assert s['rejected_hunks_reviewed'] == 1
+          assert s['config_dependencies_patched'] == [
+              'CRYPTO_CHACHA20_NEON', 'CRYPTO_POLY1305_NEON'
+          ]
+          assert s['nonrt_kernel_mode_neon_preserved'] is True
+          assert s['reject_audit_file_retained'] is True
+          assert s['semantic_backport_review_pending'] is True
+          assert s['remaining_rejected_files'] == 64
+          assert not s['full_kernel_link_performed'] and not s['flash_ready']
+          print('EXP76_STAGE83_ARM64_NEON_RT_GUARDS=APPLIED; REJECTS_RETAINED=64')
+          PY
+          git -C exp76-trial-overlay diff --check
+
+      - name: Port SHA-pinned RT THP + mutex/rwsem owner-spin Kconfig guards (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage88 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('exp76-rt-report/stage88/stage88-status.json').read_text())
+          assert data['applied'] is True
+          assert data['upstream_rejected_hunks_reviewed'] == 2
+          assert data['upstream_rejected_lines_reviewed'] == 3
+          assert data['configs_patched'] == [
+              'TRANSPARENT_HUGEPAGE', 'MUTEX_SPIN_ON_OWNER',
+              'RWSEM_SPIN_ON_OWNER',
+          ]
+          assert data['vendor_rwsem_prerequisites_preserved'] is True
+          assert data['remaining_rejected_files'] == 64
+          assert data['original_rejects_retained'] is True
+          assert not data['rt_semantic_review_complete']
+          assert not data['kernel_built'] and not data['flash_ready']
+          print('EXP76_STAGE88_RT_KCONFIG_THREE_GUARDS=APPLIED; REJECTS_RETAINED=64')
+          PY
+          git -C exp76-trial-overlay diff --check
+
+      - name: Port original RT proc swait include hunk (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage89-proc-swait.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage89 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          state = json.loads(Path('exp76-rt-report/stage89/stage89-status.json').read_text())
+          assert state['applied'] is True
+          assert state['upstream_hunks_reviewed'] == 1
+          assert state['upstream_includes_added'] == 1
+          assert state['vendor_e404_code_preserved'] is True
+          assert state['rt_swait_api_present'] is True
+          assert state['original_reject_retained'] is True
+          assert state['remaining_rejected_files'] == 64
+          assert not state['scheduler_semantic_review_complete']
+          assert not state['kernel_built'] and not state['flash_ready']
+          print('EXP76_STAGE89_PROC_SWAIT_INCLUDE=APPLIED; REJECTS=64; NO FLASH')
+          PY
+          git -C exp76-trial-overlay diff --check
+
+      - name: Port upstream RT compile.h Kbuild hunks into vendor UTS generator (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage90 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path('exp76-rt-report/stage90/stage90-status.json').read_text())
+          assert r['applied']
+          assert r['upstream_reject_hunks_reviewed'] == 2
+          assert r['vendor_cc_version_and_ld_abi_preserved']
+          assert r['rt_uts_version_marker'] == 'PREEMPT_RT'
+          assert not r['uts_release_modified'] and not r['kernel_sys_uname_modified']
+          assert r['original_rejects_retained'] and r['remaining_rejected_files'] == 64
+          assert not r['kernel_built'] and not r['flash_ready']
+          print('EXP76_STAGE90_RT_UTS_GENERATOR=PATCHED; REJECTS=64; NO FLASH')
+          PY
+          git -C exp76-trial-overlay diff --check
+
+      - name: Port pinned RT PID atomic header dependency (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage91-pid-atomic-header.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage91 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(
+              Path('exp76-rt-report/stage91/stage91-status.json').read_text()
+          )
+          assert status['applied'] is True
+          assert status['rejected_hunks_reviewed'] == 1
+          assert status['header_dependencies_added'] == 1
+          assert status['pid_atomic_api_usage_preserved'] is True
+          assert status['vendor_pidfd_abi_preserved'] is True
+          assert status['source_change_only_include'] is True
+          assert status['original_reject_retained'] is True
+          assert status['remaining_rejected_files'] == 64
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE91_PINNED_PID_ATOMIC_DEPENDENCY=PORTED; REJECTS=64; NO FLASH')
+          PY
+          git -C exp76-trial-overlay diff --check
+
+      - name: Patch radix-tree RT local-lock header after source audits (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt-stage74-radix-locallock.py \
+            --tree exp76-trial-overlay \
+            --report exp76-rt-report/stage74 \
+            --mode apply
+          test -f exp76-rt-report/stage74/stage74-status.json
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+
+      - name: Run arm64 prepare gate, then compile only selected scheduler objects
+        shell: bash
+        timeout-minutes: 35
+        run: |
+          set -euo pipefail
+          bash tools/exp76-stage18-clang21-object-diagnostic.sh
+
+      - name: Check effective PREEMPT_RT Kconfig dependency convergence (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage88 \
+            --config exp76-stage18-out/.config \
+            --mode verify-config
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('exp76-rt-report/stage88/stage88-status.json').read_text())
+          assert data['effective_config_verified']
+          assert data['effective_config_disabled'] == [
+              'TRANSPARENT_HUGEPAGE', 'MUTEX_SPIN_ON_OWNER',
+              'RWSEM_SPIN_ON_OWNER',
+          ]
+          assert data['remaining_rejected_files'] == 64
+          assert not data['flash_ready']
+          print('EXP76_STAGE88_EFFECTIVE_RT_KCONFIG_GUARDS=VERIFIED; NO FLASH')
+          PY
+
+      - name: Compile additional RT scheduler, locking and hotplug objects (NONFLASH)
+        shell: bash
+        timeout-minutes: 27
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage30-object-coverage.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage30-report \
+            --baseline-report exp76-stage18-report/OBJECT_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 140
+
+      - name: Compile 10 RT Kbuild-selected cross-subsystem objects (22 selected total, NO LINK)
+        shell: bash
+        timeout-minutes: 26
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage46-cross-subsystem-coverage.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage46-report \
+            --baseline-report exp76-stage18-report/OBJECT_DIAGNOSTIC.json \
+            --prior-coverage exp76-stage30-report/OBJECT_COVERAGE.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 120
+          test -f exp76-stage46-report/OBJECT_COVERAGE_CROSS_SUBSYSTEM.json
+
+      - name: Diagnose Kbuild kernel subtree archive after 22/22 objects (NO VMLINUX)
+        shell: bash
+        timeout-minutes: 16
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage50-kernel-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage50-report \
+            --baseline-report exp76-stage18-report/OBJECT_DIAGNOSTIC.json \
+            --prior-coverage exp76-stage30-report/OBJECT_COVERAGE.json \
+            --cross-coverage exp76-stage46-report/OBJECT_COVERAGE_CROSS_SUBSYSTEM.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose MM memory-management archive after kernel subtree gate (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage66-mm-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage66-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose FS filesystem subtree after kernel and MM archives (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage67-fs-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage67-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose IPC messaging archive after kernel, MM and FS gates (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage68-ipc-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage68-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --stage67-report exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose SELinux/security subtree after classified IPC gate (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage69-security-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage69-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --stage67-report exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json \
+            --stage68-report exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage69-report/SECURITY_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose NET networking Kbuild archive after security (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage72-net-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage72-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --stage67-report exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json \
+            --stage68-report exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json \
+            --stage69-report exp76-stage69-report/SECURITY_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage72-report/NET_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose LIB Kbuild archive after NET verification (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage73-lib-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage73-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --stage67-report exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json \
+            --stage68-report exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json \
+            --stage69-report exp76-stage69-report/SECURITY_SUBTREE_DIAGNOSTIC.json \
+            --stage72-report exp76-stage72-report/NET_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage73-report/LIB_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose CRYPTO Kbuild archive after verified LIB gate (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage75-crypto-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage75-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --stage67-report exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json \
+            --stage68-report exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json \
+            --stage69-report exp76-stage69-report/SECURITY_SUBTREE_DIAGNOSTIC.json \
+            --stage72-report exp76-stage72-report/NET_SUBTREE_DIAGNOSTIC.json \
+            --stage73-report exp76-stage73-report/LIB_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage75-report/CRYPTO_SUBTREE_DIAGNOSTIC.json
+
+      - name: Generate pinned compile.h using init/version.o Kbuild prerequisite (NONFLASH)
+        shell: bash
+        timeout-minutes: 7
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage77-compile-h-preflight.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage77-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --stage67-report exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json \
+            --stage68-report exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json \
+            --stage69-report exp76-stage69-report/SECURITY_SUBTREE_DIAGNOSTIC.json \
+            --stage72-report exp76-stage72-report/NET_SUBTREE_DIAGNOSTIC.json \
+            --stage73-report exp76-stage73-report/LIB_SUBTREE_DIAGNOSTIC.json \
+            --stage75-report exp76-stage75-report/CRYPTO_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 270
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          s = json.loads(Path('exp76-stage77-report/COMPILE_H_PREP_DIAGNOSTIC.json').read_text())
+          assert s['exit_code'] == 0 and not s['timed_out']
+          assert s['compile_h_created'] and s['compile_h_anchors_valid']
+          assert s['init_version_object_created'] and s['prior_crypto_subtree_gate']
+          assert s['remaining_rejected_files'] == 64
+          assert not s['full_kernel_link_performed'] and not s['flash_ready']
+          print('EXP76_STAGE77_KBUILD_GENERATED_COMPILE_H=PASS; FLASH_READY=false')
+          PY
+
+      - name: Verify actual generated UTS_VERSION identifies PREEMPT_RT (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-rt-report/stage90 \
+            --config exp76-stage18-out/.config \
+            --compile-h exp76-stage18-out/include/generated/compile.h \
+            --mode verify-header
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          s = json.loads(Path('exp76-rt-report/stage90/stage90-status.json').read_text())
+          assert s['effective_uts_version_verified'] is True
+          assert 'PREEMPT_RT' in s['generated_uts_version']
+          assert s['generated_compiler_metadata_present'] is True
+          assert s['original_rejects_retained']
+          assert s['remaining_rejected_files'] == 64
+          assert not s['uts_release_modified'] and not s['flash_ready']
+          print('EXP76_STAGE90_TRUE_RT_UTS_VERSION=VERIFIED; NO FLASH')
+          PY
+
+      - name: Fix FunctionFS completion swait ABI for PREEMPT_RT (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-rt-report/stage79 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('exp76-rt-report/stage79/stage79-status.json')
+          status = json.loads(p.read_text())
+          assert status['applied'] is True
+          assert status['rt_completion_swait_used'] is True
+          assert status['nonrt_waitqueue_preserved'] is True
+          assert status['normal_waitqueue_checks_preserved'] is True
+          assert status['completion_lifecycle_preserved'] is True
+          assert status['remaining_rejected_files'] == 64
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE79_RT_FUNCTIONFS_SWAIT=APPLIED; FLASH_READY=false')
+          PY
+
+      - name: Diagnose full drivers subtree after verified CRYPTO gate (NONFLASH)
+        shell: bash
+        timeout-minutes: 13
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage76-drivers-subtree.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage76-report \
+            --stage50-report exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json \
+            --stage66-report exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json \
+            --stage67-report exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json \
+            --stage68-report exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json \
+            --stage69-report exp76-stage69-report/SECURITY_SUBTREE_DIAGNOSTIC.json \
+            --stage72-report exp76-stage72-report/NET_SUBTREE_DIAGNOSTIC.json \
+            --stage73-report exp76-stage73-report/LIB_SUBTREE_DIAGNOSTIC.json \
+            --stage75-report exp76-stage75-report/CRYPTO_SUBTREE_DIAGNOSTIC.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage76-report/DRIVERS_SUBTREE_DIAGNOSTIC.json
+
+      - name: Diagnose BLOCK and INIT scoped Kbuild archives after DRIVERS (NONFLASH)
+        shell: bash
+        timeout-minutes: 23
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage81-block-init-subtrees.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage81-report \
+            --stage76-report exp76-stage76-report/DRIVERS_SUBTREE_DIAGNOSTIC.json \
+            --stage77-report exp76-stage77-report/COMPILE_H_PREP_DIAGNOSTIC.json \
+            --stage79-report exp76-rt-report/stage79/stage79-status.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 570
+          test -f exp76-stage81-report/BLOCK_INIT_SUBTREES_DIAGNOSTIC.json
+
+      - name: Restore RT public rwsem ABI and idr preload local unlock (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-rt-report/stage85 \
+            --mode apply
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(
+              Path('exp76-rt-report/stage85/stage85-status.json').read_text()
+          )
+          assert status['applied'] is True
+          assert status['rt_public_wrapper_count'] == 9
+          assert status['idr_preload_end_uses_local_unlock'] is True
+          assert status['non_rt_vendor_rwsem_not_linked'] is True
+          assert status['rejected_files_remaining'] == 64
+          assert not status['full_kernel_link_performed']
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE85_RT_RWSEM_PUBLIC_ABI=9; IDR_LOCAL_UNLOCK=RESTORED; FLASH_READY=false')
+          PY
+          git -C exp76-trial-overlay diff --check
+
+      - name: Attempt pinned ARM64 vmlinux integration (NO IMAGE, NO FLASH)
+        shell: bash
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage84-vmlinux-link.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage84-report \
+            --stage81-report exp76-stage81-report/BLOCK_INIT_SUBTREES_DIAGNOSTIC.json \
+            --stage83-report exp76-rt-report/stage83/stage83-status.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 720
+          test -f exp76-stage84-report/VMLINUX_LINK_DIAGNOSTIC.json
+
+      - name: Verify restored RT symbols and compile isolated ARM64 raw Image (NONFLASH)
+        shell: bash
+        timeout-minutes: 11
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage86-raw-arm64-image.py \
+            --kernel exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --report exp76-stage86-report \
+            --stage84-report exp76-stage84-report/VMLINUX_LINK_DIAGNOSTIC.json \
+            --stage85-report exp76-rt-report/stage85/stage85-status.json \
+            --clang-bin android-clang-prebuilt/clang-r563880c/bin \
+            --timeout 480
+          test -f exp76-stage86-report/RAW_ARM64_IMAGE_DIAGNOSTIC.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(
+              Path('exp76-stage86-report/RAW_ARM64_IMAGE_DIAGNOSTIC.json').read_text()
+          )
+          assert len(data['public_link_symbols_verified']) == 10
+          assert not data['public_link_symbols_missing']
+          assert data['prior_vmlinux_link_proven']
+          assert data['prior_rt_rwsem_idr_link_proven']
+          assert data['remaining_rejected_files'] == 64
+          assert not data['image_artifact_uploaded']
+          assert not data['packaged_boot_image_generated']
+          assert not data['flash_performed'] and not data['flash_ready']
+          assert not data['rt_semantic_review_complete']
+          print(
+              f"EXP76_STAGE86_RAW_ARM64_IMAGE_RC={data['exit_code']};"
+              f"HEADER_VALID={data['raw_arm64_header_valid']};"
+              "FLASH_READY=false"
+          )
+          PY
+
+      - name: Cross-check linked migration-disable and CPU hotplug ABI (NONFLASH)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage92-migration-link-contract.py \
+            --tree exp76-trial-overlay \
+            --output exp76-stage18-out \
+            --stage41-report exp76-rt-report/stage41/stage41-status.json \
+            --stage86-report exp76-stage86-report/RAW_ARM64_IMAGE_DIAGNOSTIC.json \
+            --report exp76-stage92-report
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          status = json.loads(
+              Path('exp76-stage92-report/stage92-status.json').read_text()
+          )
+          assert status['source_stage41_applied']
+          assert status['arm64_stage86_image_link_verified']
+          assert status['smp_preempt_rt_full_config_verified']
+          assert status['cross_file_source_contract_count'] == 14
+          assert status['system_map_symbols_present'] == [
+              'migrate_disable', 'migrate_enable', 'cpu_nr_pinned'
+          ]
+          assert status['system_map_symbols_missing'] == []
+          assert status['remaining_rejected_files'] == 64
+          assert status['verification_scope'] == 'SOURCE_AND_LINK_ONLY'
+          assert not status['migration_runtime_semantics_verified']
+          assert not status['cpu_hotplug_runtime_verified']
+          assert not status['rcu_runtime_verified']
+          assert not status['device_boot_verified']
+          assert not status['kernel_built'] and not status['flash_ready']
+          print('EXP76_STAGE92_MIGRATION_ABI=3_LINKED_SYMBOLS;'
+                'SOURCE_CHECKS=14; RUNTIME_VERIFIED=false; NO_FLASH')
+          PY
+
+      - name: Publish readable CI summary even when compiler fails
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / GitHub Actions / EXP76 CI human-readable report / NO FLASH
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path('exp76-stage18-report')
+          source = root / 'OBJECT_DIAGNOSTIC.json'
+          lines = ['### EXP76 Clang 21 diagnostic (NONFLASH)', '']
+          if not source.is_file():
+              lines += [
+                  'No object diagnostic was generated; preparation, toolchain or',
+                  'source-audit steps may have stopped earlier.',
+              ]
+          else:
+              data = json.loads(source.read_text(encoding='utf-8'))
+              p = data.get('preparation') or {}
+              lines += [
+                  f"PREPARE completed: {p.get('completed', 'unknown')}",
+                  f"PREPARE exit code: {p.get('exit_code', 'unknown')}", '',
+                  '| Object | Attempted | Compiled | Exit code |',
+                  '|---|---|---|---|',
+              ]
+              for name, obj in (data.get('targets') or {}).items():
+                  lines.append(
+                      f"| {name} | {obj.get('attempted')} | "
+                      f"{obj.get('compiled')} | {obj.get('exit_code')} |"
+                  )
+              error_lines = (p.get('errors_excerpt') or [])[:8]
+              if error_lines:
+                  lines += ['', 'First PREPARE errors:', '']
+                  lines += ['    ' + str(item)[:300] for item in error_lines]
+          extra_path = Path('exp76-stage30-report/OBJECT_COVERAGE.json')
+          if extra_path.is_file():
+              extra = json.loads(extra_path.read_text(encoding='utf-8'))
+              lines += ['', '### RT object coverage (additional targets)', '']
+              lines += [
+                  f"Objects attempted: {extra.get('objects_attempted')}",
+                  f"Objects compiled: {extra.get('objects_compiled')}",
+                  '| Object | Compiled | Exit code |',
+                  '|---|---|---|',
+              ]
+              for name, item in (extra.get('targets') or {}).items():
+                  lines.append(f"| {name} | {item.get('compiled')} | {item.get('exit_code')} |")
+              contract = extra.get('migration_contract') or {}
+              lines += [
+                  '',
+                  f"migrate_disabled_sched missing definition: {contract.get('migrate_disabled_sched_missing_local_definition')}",
+                  'RT runtime contract verified: false',
+              ]
+          cross_path = Path('exp76-stage46-report/OBJECT_COVERAGE_CROSS_SUBSYSTEM.json')
+          if cross_path.is_file():
+              cross = json.loads(cross_path.read_text(encoding='utf-8'))
+              lines += ['', '### Cross-subsystem RT objects (Stage46)', '']
+              lines += [
+                  f"Prior 12 compiled: {cross.get('baseline_12_objects_compiled')}",
+                  f"Additional attempted: {cross.get('objects_attempted')}",
+                  f"Additional compiled: {cross.get('objects_compiled')}",
+                  '| Object | Compiled | Exit code |',
+                  '|---|---|---|',
+              ]
+              for name, item in (cross.get('targets') or {}).items():
+                  lines.append(
+                      f"| {name} | {item.get('compiled')} | {item.get('exit_code')} |"
+                  )
+          stage51_file = Path('exp76-rt-report/stage51/stage51-status.json')
+          if stage51_file.is_file():
+              s51 = json.loads(stage51_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage51 RT networking const ABI (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s51.get('applied')}",
+                  f"Preserved E404 skip_cache: {s51.get('e404_skip_cache_signature_preserved')}",
+                  f"Remaining RT rejects: {s51.get('remaining_rejected_files')}",
+              ]
+          stage52_file = Path('exp76-rt-report/stage52/stage52-status.json')
+          if stage52_file.is_file():
+              s52 = json.loads(stage52_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage52 RT cgroup/cpuset ABI (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s52.get('applied')}",
+                  f"Cgroup dependency restored: {s52.get('cgroup_header_restored')}",
+                  f"Raw cpuset lock pairs fixed: {s52.get('vendor_raw_lock_pairs_reconciled')}",
+                  f"Remaining RT rejects: {s52.get('remaining_rejected_files')}",
+              ]
+          stage53_file = Path('exp76-rt-report/stage53/stage53-status.json')
+          if stage53_file.is_file():
+              s53 = json.loads(stage53_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage53 RT LRU drain and E404 deadline affinity (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s53.get('applied')}",
+                  f"RT LRU helper preserved: {s53.get('rt_remote_lru_drain_helper_preserved')}",
+                  f"Non-RT workqueue flush preserved: {s53.get('nonrt_percpu_work_and_flush_preserved')}",
+                  f"E404 deadline cpus_allowed restored: {s53.get('deadline_cpus_allowed_abi_restored')}",
+                  f"Remaining RT rejects: {s53.get('remaining_rejected_files')}",
+              ]
+          stage54_file = Path('exp76-rt-report/stage54/stage54-status.json')
+          if stage54_file.is_file():
+              s54 = json.loads(stage54_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage54 POSIX RT timer ABI (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s54.get('applied')}",
+                  f"Timer RCU head moved: {s54.get('timer_rcu_head_out_of_union')}",
+                  f"Expiry helper linked: {s54.get('posix_timer_lifetime_wait_helper_defined')}",
+                  f"Remaining RT reject files: {s54.get('remaining_rejected_files')}",
+              ]
+          stage55_file = Path('exp76-rt-report/stage55/stage55-status.json')
+          if stage55_file.is_file():
+              s55 = json.loads(stage55_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage55 IRQ work and vendor RWSEM (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s55.get('applied')}",
+                  f"Atomic hard-IRQ bit: {s55.get('irq_work_hard_irq_atomic_or')}",
+                  f"RT/nonRT contention helper: {s55.get('rt_and_nonrt_rwsem_is_contended_helper_verified')}",
+                  f"Remaining rejects: {s55.get('remaining_rejected_files')}",
+              ]
+          stage56_file = Path('exp76-rt-report/stage56/stage56-status.json')
+          if stage56_file.is_file():
+              s56 = json.loads(stage56_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage56 SLUB IRQ and POSIX warning ABI (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s56.get('applied')}",
+                  f"SLUB symmetric IRQ predicate: {s56.get('slub_irq_entry_exit_predicate_matched')}",
+                  f"POSIX RT/nonRT warnings: {s56.get('posix_rt_nonrt_warning_macro_defined')}",
+                  f"Remaining rejects: {s56.get('remaining_rejected_files')}",
+              ]
+          stage57_file = Path('exp76-rt-report/stage57/stage57-status.json')
+          if stage57_file.is_file():
+              s57 = json.loads(stage57_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage57 RT rwlock and NOHZ ABI (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s57.get('applied')}",
+                  f"Waiters under raw spinlock: {s57.get('rt_rwlock_waiters_checked_under_raw_spinlock')}",
+                  f"Stage38 softirq implementation present: {s57.get('rt_and_nonrt_nohz_softirq_implementation_verified')}",
+                  f"Rejects: {s57.get('remaining_rejected_files')}",
+              ]
+          stage58_file = Path('exp76-rt-report/stage58/stage58-status.json')
+          if stage58_file.is_file():
+              s58 = json.loads(stage58_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage58 RT rwlock waiter query / NONFLASH', '']
+              lines += [
+                  f"Applied: {s58.get('applied')}",
+                  f"Out-of-line implementation: {s58.get('rt_waiter_query_out_of_header')}",
+                  f"Waiter lock preserved: {s58.get('raw_spinlock_query_and_unlock_preserved')}",
+                  f"RT rejects: {s58.get('remaining_rejected_files')}",
+              ]
+          stage59_file = Path('exp76-rt-report/stage59/stage59-status.json')
+          if stage59_file.is_file():
+              s59 = json.loads(stage59_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage59 RT kthread worker and E404 /proc affinity (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s59.get('applied')}",
+                  f"Raw worker lock operations reconciled: {s59.get('worker_lock_ops_reconciled')}",
+                  f"Proc mask references restored: {s59.get('proc_affinity_mask_references_restored')}",
+                  f"Remaining RT rejects: {s59.get('remaining_rejected_files')}",
+              ]
+          stage60_file = Path('exp76-rt-report/stage60/stage60-status.json')
+          if stage60_file.is_file():
+              s60 = json.loads(stage60_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage60 futex RT sleeper and hb2 ABI (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s60.get('applied')}",
+                  f"Four-argument RT hrtimer sleeper: {s60.get('on_stack_sleeper_4arg_abi_linked')}",
+                  f"Second futex hash bucket declaration: {s60.get('hb2_only_declaration_restored')}",
+                  f"Remaining rejects: {s60.get('remaining_rejected_files')}",
+              ]
+          stage61_file = Path('exp76-rt-report/stage61/stage61-status.json')
+          if stage61_file.is_file():
+              s61 = json.loads(stage61_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage61 RT SMP softirq and userfaultfd seqlock (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s61.get('applied')}",
+                  f"RT softirq threads used: {s61.get('rt_idle_dispatch_uses_existing_softirq_threads')}",
+                  f"Userfaultfd seqlock layout repaired: {s61.get('userfaultfd_refile_seqlock_layout_reconciled')}",
+                  f"Remaining rejected RT files: {s61.get('remaining_rejected_files')}",
+              ]
+          stage62_file = Path('exp76-rt-report/stage62/stage62-status.json')
+          if stage62_file.is_file():
+              s62 = json.loads(stage62_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage62 OF cache deferred free (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s62.get('applied')}",
+                  f"RT shadow return repaired: {s62.get('rt_shadow_assignment_type_reconciled')}",
+                  f"Freed after unlock: {s62.get('retired_cache_kfree_after_unlock')}",
+                  f"Outstanding RT rejects: {s62.get('outstanding_rt_rejects')}",
+              ]
+          stage63_file = Path('exp76-rt-report/stage63/stage63-status.json')
+          if stage63_file.is_file():
+              s63 = json.loads(stage63_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage63 Oplus nandswap RT spinlock (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s63.get('applied')}",
+                  f"spin_lock_init used: {s63.get('dynamic_spinlock_initialized_with_api')}",
+                  f"Outstanding RT rejects: {s63.get('outstanding_rt_rejects')}",
+              ]
+          stage64_file = Path('exp76-rt-report/stage64/stage64-status.json')
+          if stage64_file.is_file():
+              s64 = json.loads(stage64_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage64 ION secure heap RT spinlock (NONFLASH)', '']
+              lines += [
+                  f"Applied: {s64.get('applied')}",
+                  f"spin_lock_init used: {s64.get('dynamic_spinlock_initialized_with_api')}",
+                  f"Outstanding RT rejects: {s64.get('outstanding_rt_rejects')}",
+              ]
+          subtree_file = Path('exp76-stage50-report/KERNEL_SUBTREE_DIAGNOSTIC.json')
+          if subtree_file.is_file():
+              subtree = json.loads(subtree_file.read_text(encoding='utf-8'))
+              lines += ['', '### Kbuild kernel subtree (Stage50, NONFLASH)', '']
+              lines += [
+                  f"22-object gate passed: {subtree.get('baseline_22_objects_compiled')}",
+                  f"Target: {subtree.get('target')}",
+                  f"Top-level directory scope: {subtree.get('top_level_directory_scope')}",
+                  f"Archive attempted: {subtree.get('attempted')}",
+                  f"Archive created: {subtree.get('archive_created')}",
+                  f"Exit code: {subtree.get('exit_code')}",
+                  f"Timed out: {subtree.get('timed_out')}",
+              ]
+              failures = (subtree.get('errors_excerpt') or [])[:9]
+              if failures:
+                  lines += ['', 'First Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in failures]
+          mm_subtree_file = Path('exp76-stage66-report/MM_SUBTREE_DIAGNOSTIC.json')
+          if mm_subtree_file.is_file():
+              mm_subtree = json.loads(mm_subtree_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage66 MM subtree Kbuild archive (NONFLASH)', '']
+              lines += [
+                  f"Stage50 kernel gate passed: {mm_subtree.get('prior_kernel_subtree_gate')}",
+                  f"Target: {mm_subtree.get('target')}",
+                  f"Top-level directory scope: {mm_subtree.get('top_level_directory_scope')}",
+                  f"Archive created: {mm_subtree.get('archive_created')}",
+                  f"Exit code: {mm_subtree.get('exit_code')}",
+                  f"Timed out: {mm_subtree.get('timed_out')}",
+              ]
+              mm_failures = (mm_subtree.get('errors_excerpt') or [])[:8]
+              if mm_failures:
+                  lines += ['', 'First MM Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in mm_failures]
+          fs_subtree_file = Path('exp76-stage67-report/FS_SUBTREE_DIAGNOSTIC.json')
+          if fs_subtree_file.is_file():
+              fs_subtree = json.loads(fs_subtree_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage67 FS subtree Kbuild archive (NONFLASH)', '']
+              lines += [
+                  f"Stage50 kernel gate passed: {fs_subtree.get('prior_kernel_subtree_gate')}",
+                  f"Stage66 mm gate passed: {fs_subtree.get('prior_mm_subtree_gate')}",
+                  f"Target: {fs_subtree.get('target')}",
+                  f"Top-level directory scope: {fs_subtree.get('top_level_directory_scope')}",
+                  f"Archive created: {fs_subtree.get('archive_created')}",
+                  f"Exit code: {fs_subtree.get('exit_code')}",
+                  f"Timed out: {fs_subtree.get('timed_out')}",
+              ]
+              fs_failures = (fs_subtree.get('errors_excerpt') or [])[:8]
+              if fs_failures:
+                  lines += ['', 'First FS Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in fs_failures]
+          ipc_subtree_file = Path('exp76-stage68-report/IPC_SUBTREE_DIAGNOSTIC.json')
+          if ipc_subtree_file.is_file():
+              ipc_subtree = json.loads(ipc_subtree_file.read_text(encoding='utf-8'))
+              lines += ['', '### Stage68 IPC subtree Kbuild archive (NONFLASH)', '']
+              lines += [
+                  f"Stage50 kernel gate passed: {ipc_subtree.get('prior_kernel_subtree_gate')}",
+                  f"Stage66 mm gate passed: {ipc_subtree.get('prior_mm_subtree_gate')}",
+                  f"Stage67 fs gate passed: {ipc_subtree.get('prior_fs_subtree_gate')}",
+                  f"Target: {ipc_subtree.get('target')}",
+                  f"Top-level directory scope: {ipc_subtree.get('top_level_directory_scope')}",
+                  f"Archive created: {ipc_subtree.get('archive_created')}",
+                  f"Archive has members: {ipc_subtree.get('archive_has_members')}",
+                  f"Archive magic hex: {ipc_subtree.get('archive_magic_hex')}",
+                  f"Compile semantics: {ipc_subtree.get('compile_semantics')}",
+                  f"Enabled IPC config: {ipc_subtree.get('enabled_ipc_configs')}",
+                  f"Exit code: {ipc_subtree.get('exit_code')}",
+                  f"Timed out: {ipc_subtree.get('timed_out')}",
+              ]
+              ipc_errors = (ipc_subtree.get('errors_excerpt') or [])[:8]
+              if ipc_errors:
+                  lines += ['', 'First IPC Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in ipc_errors]
+          security_path = Path('exp76-stage69-report/SECURITY_SUBTREE_DIAGNOSTIC.json')
+          if security_path.is_file():
+              sec = json.loads(security_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage69 security subtree Kbuild (NONFLASH)', '']
+              lines += [
+                  f"Target: {sec.get('target')}",
+                  f"IPC dependency semantics: {sec.get('ipc_compile_semantics')}",
+                  f"Directory scope: {sec.get('top_level_directory_scope')}",
+                  f"Archive created: {sec.get('archive_created')}",
+                  f"Archive has members: {sec.get('archive_has_members')}",
+                  f"Exit code: {sec.get('exit_code')}",
+                  f"Timed out: {sec.get('timed_out')}",
+              ]
+              sec_errors = (sec.get('errors_excerpt') or [])[:8]
+              if sec_errors:
+                  lines += ['', 'First security Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in sec_errors]
+          net_path = Path('exp76-stage72-report/NET_SUBTREE_DIAGNOSTIC.json')
+          if net_path.is_file():
+              net = json.loads(net_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage72 networking subtree Kbuild (NONFLASH)', '']
+              lines += [
+                  f"Target: {net.get('target')}",
+                  f"Directory scope: {net.get('top_level_directory_scope')}",
+                  f"Security gate passed: {net.get('prior_security_subtree_gate')}",
+                  f"Archive created: {net.get('archive_created')}",
+                  f"llvm-ar inspection exit: {net.get('archive_inspection_exit_code')}",
+                  f"Archive members verified: {net.get('archive_has_members')}",
+                  f"Archive member count: {net.get('archive_members_count')}",
+                  f"Exit code: {net.get('exit_code')}",
+                  f"Timed out: {net.get('timed_out')}",
+              ]
+              net_errors = (net.get('errors_excerpt') or [])[:8]
+              if net_errors:
+                  lines += ['', 'First NET Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in net_errors]
+          lib_path = Path('exp76-stage73-report/LIB_SUBTREE_DIAGNOSTIC.json')
+          if lib_path.is_file():
+              lib = json.loads(lib_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage73 library subtree Kbuild (NONFLASH)', '']
+              lines += [
+                  f"Target: {lib.get('target')}",
+                  f"Directory scope: {lib.get('top_level_directory_scope')}",
+                  f"NET gate passed: {lib.get('prior_net_subtree_gate')}",
+                  f"Archive created: {lib.get('archive_created')}",
+                  f"llvm-ar inspection exit: {lib.get('archive_inspection_exit_code')}",
+                  f"Archive members verified: {lib.get('archive_has_members')}",
+                  f"Archive member count: {lib.get('archive_members_count')}",
+                  f"Exit code: {lib.get('exit_code')}",
+                  f"Timed out: {lib.get('timed_out')}",
+              ]
+              lib_errors = (lib.get('errors_excerpt') or [])[:8]
+              if lib_errors:
+                  lines += ['', 'First LIB Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in lib_errors]
+          stage74_path = Path('exp76-rt-report/stage74/stage74-status.json')
+          if stage74_path.is_file():
+              stage74 = json.loads(stage74_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage74 radix-tree RT local-lock include (NONFLASH)', '']
+              lines += [
+                  f"Patch applied: {stage74.get('applied')}",
+                  f"RT lock calls preserved: {stage74.get('rt_lock_calls_preserved')}",
+                  f"RT locallock API verified: {stage74.get('existing_locallock_api_verified')}",
+                  f"Remaining RT rejects: {stage74.get('remaining_rejected_files')}",
+              ]
+          crypto_path = Path('exp76-stage75-report/CRYPTO_SUBTREE_DIAGNOSTIC.json')
+          if crypto_path.is_file():
+              crypto = json.loads(crypto_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage75 crypto subtree Kbuild (NONFLASH)', '']
+              lines += [
+                  f"Target: {crypto.get('target')}",
+                  f"Directory scope: {crypto.get('top_level_directory_scope')}",
+                  f"LIB gate passed: {crypto.get('prior_lib_subtree_gate')}",
+                  f"Archive created: {crypto.get('archive_created')}",
+                  f"llvm-ar inspection exit: {crypto.get('archive_inspection_exit_code')}",
+                  f"Archive members verified: {crypto.get('archive_has_members')}",
+                  f"Archive member count: {crypto.get('archive_members_count')}",
+                  f"Exit code: {crypto.get('exit_code')}",
+                  f"Timed out: {crypto.get('timed_out')}",
+              ]
+              crypto_errors = (crypto.get('errors_excerpt') or [])[:8]
+              if crypto_errors:
+                  lines += ['', 'First CRYPTO Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in crypto_errors]
+          drivers_path = Path('exp76-stage76-report/DRIVERS_SUBTREE_DIAGNOSTIC.json')
+          if drivers_path.is_file():
+              drivers = json.loads(drivers_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage76 driver subtree Kbuild (NONFLASH)', '']
+              lines += [
+                  f"Target: {drivers.get('target')}",
+                  f"Directory scope: {drivers.get('top_level_directory_scope')}",
+                  f"CRYPTO gate passed: {drivers.get('prior_crypto_subtree_gate')}",
+                  f"Archive created: {drivers.get('archive_created')}",
+                  f"llvm-ar inspection exit: {drivers.get('archive_inspection_exit_code')}",
+                  f"Archive members verified: {drivers.get('archive_has_members')}",
+                  f"Archive member count: {drivers.get('archive_members_count')}",
+                  f"Exit code: {drivers.get('exit_code')}",
+                  f"Timed out: {drivers.get('timed_out')}",
+              ]
+              driver_errors = (drivers.get('errors_excerpt') or [])[:8]
+              if driver_errors:
+                  lines += ['', 'First DRIVERS Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in driver_errors]
+          stage77_path = Path('exp76-stage77-report/COMPILE_H_PREP_DIAGNOSTIC.json')
+          if stage77_path.is_file():
+              stage77 = json.loads(stage77_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage77 Kbuild generated compile.h (NONFLASH)', '']
+              lines += [
+                  f"Target: {stage77.get('target')}",
+                  f"Generated header: {stage77.get('generated_header')}",
+                  f"Header created: {stage77.get('compile_h_created')}",
+                  f"Header has required UTS/compiler macros: {stage77.get('compile_h_anchors_valid')}",
+                  f"UTS_MACHINE literal: {stage77.get('compile_h_uts_machine')}",
+                  f"Macro validation issues: {stage77.get('compile_h_macro_issues')}",
+                  f"init/version.o created: {stage77.get('init_version_object_created')}",
+                  f"Exit code: {stage77.get('exit_code')}",
+                  f"Timed out: {stage77.get('timed_out')}",
+              ]
+              stage77_errors = (stage77.get('errors_excerpt') or [])[:8]
+              if stage77_errors:
+                  lines += ['', 'First compile.h Kbuild errors:', '']
+                  lines += ['    ' + str(err)[:320] for err in stage77_errors]
+          stage79_path = Path('exp76-rt-report/stage79/stage79-status.json')
+          if stage79_path.is_file():
+              stage79 = json.loads(stage79_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage79 FunctionFS RT completion swait ABI (NONFLASH)', '']
+              lines += [
+                  f"Patch applied: {stage79.get('applied')}",
+                  f"RT completion uses swait_active: {stage79.get('rt_completion_swait_used')}",
+                  f"Non-RT waitqueue preserved: {stage79.get('nonrt_waitqueue_preserved')}",
+                  f"Normal waitqueues preserved: {stage79.get('normal_waitqueue_checks_preserved')}",
+                  f"RT rejects unchanged: {stage79.get('remaining_rejected_files')}",
+              ]
+          stage81_path = Path('exp76-stage81-report/BLOCK_INIT_SUBTREES_DIAGNOSTIC.json')
+          if stage81_path.is_file():
+              stage81 = json.loads(stage81_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage81 BLOCK + INIT archives (NONFLASH)', '']
+              lines += [
+                  f"Predecessor DRIVERS gate: {stage81.get('prior_drivers_subtree_gate')}",
+                  f"Prior compile.h and FunctionFS gates: {stage81.get('prior_compile_h_gate')}, {stage81.get('prior_functionfs_rt_gate')}",
+                  f"Both archives verified: {stage81.get('all_archives_verified')}",
+              ]
+              for name, archive in (stage81.get('targets') or {}).items():
+                  lines += [
+                      f"{name}: make RC={archive.get('exit_code')}; "
+                      f"archive={archive.get('archive_has_members')}; "
+                      f"members={archive.get('archive_members_count')}; "
+                      f"timed out={archive.get('timed_out')}",
+                  ]
+                  for error in (archive.get('errors_excerpt') or [])[:5]:
+                      lines += ['    ' + str(error)[:320]]
+          stage82_path = Path('exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json')
+          if stage82_path.is_file():
+              stage82 = json.loads(stage82_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage82 outstanding RT rejection hunk inventory (NONFLASH)', '']
+              lines += [
+                  f"Reject files: {stage82.get('remaining_rejected_files')}",
+                  f"Rejected hunks: {stage82.get('total_rejected_hunks')}",
+                  f"Added/removed lines: {stage82.get('total_added_lines')} / {stage82.get('total_removed_lines')}",
+                  f"Review categories: {stage82.get('categories')}",
+                  f"Parser warnings: {stage82.get('unparseable_reject_files')}",
+                  'The inventory does not resolve any RT hunk.',
+              ]
+              for path in (stage82.get('priority_order') or [])[:10]:
+                  lines.append('    ' + str(path)[:160])
+          stage83_path = Path('exp76-rt-report/stage83/stage83-status.json')
+          if stage83_path.is_file():
+              stage83 = json.loads(stage83_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage83 ARM64 crypto NEON RT Kconfig port (NONFLASH)', '']
+              lines += [
+                  f"Two config guards applied: {stage83.get('applied')}",
+                  f"Ported configurations: {stage83.get('config_dependencies_patched')}",
+                  f"Reject SHA256: {stage83.get('rejected_hunk_sha256')}",
+                  f"Original reject retained: {stage83.get('reject_audit_file_retained')}",
+                  f"Semantic review pending: {stage83.get('semantic_backport_review_pending')}",
+                  f"RT rejects unchanged: {stage83.get('remaining_rejected_files')}",
+              ]
+          stage84_path = Path('exp76-stage84-report/VMLINUX_LINK_DIAGNOSTIC.json')
+          if stage84_path.is_file():
+              link = json.loads(stage84_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage84 actual arm64 vmlinux integration (NO FLASH)', '']
+              lines += [
+                  f"Build target: {link.get('target')}",
+                  f"Attempted: {link.get('attempted')}",
+                  f"Exit code: {link.get('exit_code')}",
+                  f"Timed out: {link.get('timed_out')}",
+                  f"vmlinux ELF verified: {link.get('vmlinux_elf_verified')}",
+                  f"vmlinux bytes: {link.get('vmlinux_bytes')}",
+                  f"Outstanding RT rejected files: {link.get('remaining_rejected_files')}",
+                  'No boot image or flashing performed.',
+              ]
+              for error in (link.get('first_compiler_linker_errors') or [])[:14]:
+                  lines += ['    ' + str(error)[:320]]
+          stage85_path = Path('exp76-rt-report/stage85/stage85-status.json')
+          if stage85_path.is_file():
+              stage85 = json.loads(stage85_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage85 RT RWSEM + IDR preload link ABI (NONFLASH)', '']
+              lines += [
+                  f"Patch applied: {stage85.get('applied')}",
+                  f"RT public RWSEM wrappers: {stage85.get('rt_public_wrapper_count')}",
+                  f"IDR local unlock restored: {stage85.get('idr_preload_end_uses_local_unlock')}",
+                  f"Original vendor RWSEM excluded from RT: {stage85.get('non_rt_vendor_rwsem_not_linked')}",
+                  f"Original RT rejects remaining: {stage85.get('rejected_files_remaining')}",
+              ]
+          stage86_path = Path('exp76-stage86-report/RAW_ARM64_IMAGE_DIAGNOSTIC.json')
+          if stage86_path.is_file():
+              image = json.loads(stage86_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage86 raw ARM64 Image build and RT symbol map (NONFLASH)', '']
+              lines += [
+                  f"Restored symbols in System.map: {len(image.get('public_link_symbols_verified') or [])} / 10",
+                  f"Missing RT symbols: {image.get('public_link_symbols_missing')}",
+                  f"Raw Image Kbuild exit code: {image.get('exit_code')}",
+                  f"Raw ARM64 header valid: {image.get('raw_arm64_header_valid')}",
+                  f"Raw Image bytes: {image.get('raw_image_bytes')}",
+                  f"Raw Image SHA-256: {image.get('raw_image_sha256')}",
+                  f"Remaining RT rejects: {image.get('remaining_rejected_files')}",
+                  'Raw Image is NOT an installable boot.img; not uploaded.',
+              ]
+              for error in (image.get('first_compiler_errors') or [])[:10]:
+                  lines += ['    ' + str(error)[:320]]
+          stage87_path = Path('exp76-rt-report/stage87/stage87-status.json')
+          if stage87_path.is_file():
+              stage87 = json.loads(stage87_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage87 KASAN vendor-equivalent RT hunks (READONLY)', '']
+              lines += [
+                  f"Target: {stage87.get('target')}",
+                  f"Verified upstream RT hunks already in E404: {stage87.get('vendor_equivalent_hunks')}",
+                  f"Old spinlock lines absent: {stage87.get('all_obsolete_spinlock_lines_absent')}",
+                  f"New raw-spinlock lines present: {stage87.get('all_added_raw_spinlock_lines_present')}",
+                  f"Original rejects retained: {stage87.get('rejected_files_remaining')}",
+                  'This does not validate other PREEMPT_RT semantics.',
+              ]
+          stage88_path = Path('exp76-rt-report/stage88/stage88-status.json')
+          if stage88_path.is_file():
+              stage88 = json.loads(stage88_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage88 RT THP and owner-spin Kconfig guards (NONFLASH)', '']
+              lines += [
+                  f"Two rejected hunks reviewed: {stage88.get('upstream_rejected_hunks_reviewed')}",
+                  f"RT Kconfig dependencies ported: {stage88.get('configs_patched')}",
+                  f"Vendor rwsem prerequisites preserved: {stage88.get('vendor_rwsem_prerequisites_preserved')}",
+                  f"Effective RT .config verified: {stage88.get('effective_config_verified')}",
+                  f"Effective disabled options: {stage88.get('effective_config_disabled')}",
+                  f"Original rejects retained: {stage88.get('remaining_rejected_files')}",
+              ]
+          stage89_path = Path('exp76-rt-report/stage89/stage89-status.json')
+          if stage89_path.is_file():
+              proc = json.loads(stage89_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage89 pinned RT swait proc include (NONFLASH)', '']
+              lines += [
+                  f"Patch applied: {proc.get('applied')}",
+                  f"Target: {proc.get('target')}",
+                  f"Rejected RT hunk reviewed: {proc.get('upstream_hunks_reviewed')}",
+                  f"Original reject retained: {proc.get('original_reject_retained')}",
+                  f"Remaining rejected files: {proc.get('remaining_rejected_files')}",
+                  'Does not establish RT scheduler runtime correctness.',
+              ]
+          stage90_path = Path('exp76-rt-report/stage90/stage90-status.json')
+          if stage90_path.is_file():
+              rt_uts = json.loads(stage90_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage90 actual PREEMPT_RT compile.h UTS_VERSION (NONFLASH)', '']
+              lines += [
+                  f"RT build identifier ported: {rt_uts.get('applied')}",
+                  f"Effective compile.h verified: {rt_uts.get('effective_uts_version_verified')}",
+                  f"Generated UTS_VERSION: {rt_uts.get('generated_uts_version')}",
+                  f"Vendor Clang + linker ABI preserved: {rt_uts.get('vendor_cc_version_and_ld_abi_preserved')}",
+                  f"UTS_RELEASE left unchanged: {not rt_uts.get('uts_release_modified')}",
+                  f"Original RT rejects retained: {rt_uts.get('remaining_rejected_files')}",
+              ]
+          stage91_path = Path('exp76-rt-report/stage91/stage91-status.json')
+          if stage91_path.is_file():
+              pid_atomic = json.loads(stage91_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage91 direct PID atomic dependency (NONFLASH)', '']
+              lines += [
+                  f"Patch applied: {pid_atomic.get('applied')}",
+                  f"Upstream RT hunk reviewed: {pid_atomic.get('rejected_hunks_reviewed')}",
+                  f"PID atomic API preserved: {pid_atomic.get('pid_atomic_api_usage_preserved')}",
+                  f"E404 pidfd ABI preserved: {pid_atomic.get('vendor_pidfd_abi_preserved')}",
+                  f"Original rejects retained: {pid_atomic.get('remaining_rejected_files')}",
+                  'No scheduler runtime verification implied.',
+              ]
+          stage92_path = Path('exp76-stage92-report/stage92-status.json')
+          if stage92_path.is_file():
+              mig = json.loads(stage92_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage92 linked migration and hotplug ABI (NONFLASH)', '']
+              lines += [
+                  f"Previously ported Stage41 source: {mig.get('source_stage41_applied')}",
+                  f"Static cross-file contracts: {mig.get('cross_file_source_contract_count')}",
+                  f"Actual System.map migration entry points: {mig.get('system_map_symbols_present')}",
+                  f"Missing link symbols: {mig.get('system_map_symbols_missing')}",
+                  f"RT runtime semantics verified: {mig.get('migration_runtime_semantics_verified')}",
+                  f"Device boot verified: {mig.get('device_boot_verified')}",
+                  f"Original rejects retained: {mig.get('remaining_rejected_files')}",
+              ]
+          lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
+          output = Path(os.environ['GITHUB_STEP_SUMMARY'])
+          with output.open('a', encoding='utf-8') as stream:
+              stream.write('\n'.join(lines) + '\n')
+          PY
+
+      - name: Publish diagnostics only (NO Image, NO boot.img)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-stage18-clang21-NONFLASH-diagnostic
+          path: |
+            exp76-stage18-report/
+            exp76-stage30-report/
+            exp76-stage46-report/
+            exp76-stage50-report/
+            exp76-stage66-report/
+            exp76-stage67-report/
+            exp76-stage68-report/
+            exp76-stage69-report/
+            exp76-stage72-report/
+            exp76-stage73-report/
+            exp76-stage75-report/
+            exp76-stage76-report/
+            exp76-stage77-report/
+            exp76-stage81-report/
+            exp76-stage82-report/
+            exp76-stage84-report/
+            exp76-stage86-report/
+            exp76-stage92-report/
+            exp76-rt-report/stage16/
+            exp76-rt-report/stage17/
+            exp76-rt-report/stage19/
+            exp76-rt-report/stage20/
+            exp76-rt-report/stage21/
+            exp76-rt-report/stage26/
+            exp76-rt-report/stage27/
+            exp76-rt-report/stage28/
+            exp76-rt-report/stage29/
+            exp76-rt-report/stage31/
+            exp76-rt-report/stage34/
+            exp76-rt-report/stage35/
+            exp76-rt-report/stage36/
+            exp76-rt-report/stage38/
+            exp76-rt-report/stage40/
+            exp76-rt-report/stage41/
+            exp76-rt-report/stage42/
+            exp76-rt-report/stage47/
+            exp76-rt-report/stage51/
+            exp76-rt-report/stage52/
+            exp76-rt-report/stage53/
+            exp76-rt-report/stage54/
+            exp76-rt-report/stage55/
+            exp76-rt-report/stage56/
+            exp76-rt-report/stage57/
+            exp76-rt-report/stage58/
+            exp76-rt-report/stage59/
+            exp76-rt-report/stage60/
+            exp76-rt-report/stage61/
+            exp76-rt-report/stage62/
+            exp76-rt-report/stage63/
+            exp76-rt-report/stage64/
+            exp76-rt-report/stage74/
+            exp76-rt-report/stage79/
+            exp76-rt-report/stage83/
+            exp76-rt-report/stage85/
+            exp76-rt-report/stage87/
+            exp76-rt-report/stage88/
+            exp76-rt-report/stage89/
+            exp76-rt-report/stage90/
+            exp76-rt-report/stage91/
+            stage18-prior-audit.log
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish-ci-evidence:
+    # Separate privilege boundary: the kernel compiler job is read-only.
+    # The publisher writes bounded JSON only to exp76-ci-evidence.
+    if: always()
+    needs: clang21-object-diagnostic
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout pinned source for bounded evidence collector
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Obtain object diagnostic artifact from this run
+        if: always()
+        id: artifact_download
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-stage18-clang21-NONFLASH-diagnostic
+          path: incoming
+
+      - name: Checkout isolated CI evidence branch
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          ref: exp76-ci-evidence
+          path: evidence
+
+      - name: Publish run summary to isolated branch (NO FLASH)
+        if: always()
+        shell: bash
+        env:
+          BUILD_JOB_CONCLUSION: ${{ needs.clang21-object-diagnostic.result }}
+        run: |
+          set -euo pipefail
+          test -d evidence/.git
+          test -f source/tools/exp76-stage24-collect-ci-evidence.py
+          python3 source/tests/test_exp76_stage24_evidence.py
+          python3 source/tools/exp76-stage24-collect-ci-evidence.py \
+            --artifact-root incoming \
+            --evidence-root evidence \
+            --repo "$GITHUB_REPOSITORY" \
+            --source-sha "$GITHUB_SHA" \
+            --run-id "$GITHUB_RUN_ID" \
+            --job-conclusion "$BUILD_JOB_CONCLUSION"
+          git -C evidence config user.name 'github-actions[bot]'
+          git -C evidence config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C evidence add ci-evidence/
+          if ! git -C evidence diff --cached --quiet; then
+            git -C evidence commit -m "ci(exp76): record Clang21 evidence run $GITHUB_RUN_ID"
+            git -C evidence push origin HEAD:exp76-ci-evidence
+          fi
+          echo 'EXP76_STAGE24_EVIDENCE=PUBLISHED; SOURCE_BRANCH_UNTOUCHED=true; FLASH_READY=false'

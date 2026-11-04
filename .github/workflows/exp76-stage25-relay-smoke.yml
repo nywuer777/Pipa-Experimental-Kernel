@@ -1,0 +1,106 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 Stage25 evidence relay smoke / NO FLASH
+name: EXP76 CI evidence relay smoke (NO FLASH)
+
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-stage25-relay-smoke.yml'
+      - 'tools/exp76-stage24-collect-ci-evidence.py'
+      - 'tests/test_exp76_stage24_evidence.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp76-ci-evidence-relay-smoke
+  cancel-in-progress: false
+
+jobs:
+  evidence-relay-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout EXP76 source without building kernel
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Check evidence collector behavior without compiler
+        id: collector_regression
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile source/tools/exp76-stage24-collect-ci-evidence.py
+          python3 source/tests/test_exp76_stage24_evidence.py
+          echo 'EXP76_STAGE25_COLLECTOR_REGRESSION=PASS; KERNEL_BUILT=false; FLASH_READY=false'
+
+      - name: Checkout isolated exp76-ci-evidence branch
+        uses: actions/checkout@v4
+        with:
+          ref: exp76-ci-evidence
+          path: evidence
+
+      - name: Write isolated relay heartbeat
+        if: always()
+        shell: bash
+        env:
+          COLLECTOR_REGRESSION: ${{ steps.collector_regression.outcome }}
+        run: |
+          set -euo pipefail
+          test -d evidence/.git
+          python3 - <<'PY'
+          # Python 3 / GitHub Actions / Stage25 relay heartbeat metadata / no flash
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("evidence/ci-evidence")
+          history = root / "relay-runs"
+          history.mkdir(parents=True, exist_ok=True)
+          run_id = int(os.environ["GITHUB_RUN_ID"])
+          repo = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ["GITHUB_SHA"]
+          assert repo == "nywuer777/Pipa-Experimental-Kernel"
+          assert len(sha) == 40 and all(c in "0123456789abcdef" for c in sha)
+          data = {
+              "schema": "EXP76_STAGE25_RELAY_SMOKE_V1",
+              "run_id": run_id,
+              "run_url": f"https://github.com/{repo}/actions/runs/{run_id}",
+              "repository": repo,
+              "source_sha": sha,
+              "collector_regression": os.environ["COLLECTOR_REGRESSION"],
+              "kernel_compiled": False,
+              "flash_ready": False,
+          }
+          payload = json.dumps(data, indent=2, sort_keys=True) + "\n"
+          target = history / f"{run_id}.json"
+          if target.exists() and target.read_text() != payload:
+              raise ValueError("Conflicting relay evidence for existing run ID")
+          target.write_text(payload, encoding="utf-8")
+          latest = root / "relay-health.json"
+          if not latest.exists() or int(json.loads(latest.read_text())["run_id"]) <= run_id:
+              latest.write_text(payload, encoding="utf-8")
+          PY
+
+          git -C evidence config user.name 'github-actions[bot]'
+          git -C evidence config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C evidence add ci-evidence/relay-health.json ci-evidence/relay-runs/
+          if ! git -C evidence diff --cached --quiet; then
+            git -C evidence commit -m "ci(exp76): relay smoke run $GITHUB_RUN_ID"
+            git -C evidence push origin HEAD:exp76-ci-evidence
+          fi
+
+          {
+            echo '### EXP76 evidence relay smoke'
+            echo
+            echo "Collector regressions: $COLLECTOR_REGRESSION."
+            echo 'Isolated evidence branch push: PASS.'
+            echo "Run ID: $GITHUB_RUN_ID"
+            echo 'KERNEL_BUILT=false; FLASH_READY=false'
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$COLLECTOR_REGRESSION" = "success"
