@@ -1115,6 +1115,61 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    bootv3_raw = read_json(
+        artifact / "exp76-stage96-report" / "stage96-status.json"
+    )
+    bootv3 = None
+    if bootv3_raw is not None:
+        bootv3 = {
+            "stage": str(bootv3_raw.get("stage") or "")[:140],
+            "canonical_exp27_packer_sha256":
+                str(bootv3_raw.get("canonical_exp27_packer_sha256") or "")[:64],
+            "stock_control_metadata_pinned":
+                bootv3_raw.get("stock_control_metadata_pinned") is True,
+            "stock_compact_sha256_reference":
+                str(bootv3_raw.get("stock_compact_sha256_reference") or "")[:64],
+            "stock_compact_bytes_reference":
+                bootv3_raw.get("stock_compact_bytes_reference"),
+            "stock_kernel_bytes_reference":
+                bootv3_raw.get("stock_kernel_bytes_reference"),
+            "stock_ramdisk_bytes_reference":
+                bootv3_raw.get("stock_ramdisk_bytes_reference"),
+            "boot_header_version_reference":
+                bootv3_raw.get("boot_header_version_reference"),
+            "boot_page_alignment_bytes":
+                bootv3_raw.get("boot_page_alignment_bytes"),
+            "exp76_arm64_raw_image_bytes_verified":
+                bootv3_raw.get("exp76_arm64_raw_image_bytes_verified"),
+            "exp76_arm64_raw_image_sha256_verified":
+                str(bootv3_raw.get("exp76_arm64_raw_image_sha256_verified") or "")[:64],
+            "exp76_arm64_magic_verified":
+                bootv3_raw.get("exp76_arm64_magic_verified") is True,
+            "estimated_offline_compact_candidate_bytes":
+                bootv3_raw.get("estimated_offline_compact_candidate_bytes"),
+            "compact_size_budget_remaining_bytes":
+                bootv3_raw.get("compact_size_budget_remaining_bytes"),
+            "fits_pinned_stock_compact_file_size":
+                bootv3_raw.get("fits_pinned_stock_compact_file_size") is True,
+            "effective_rt_config_verified":
+                bootv3_raw.get("effective_rt_config_verified") is True,
+            "stage95_source_audit_proven":
+                bootv3_raw.get("stage95_source_audit_proven") is True,
+            "original_rt_reject_files_retained":
+                bootv3_raw.get("original_rt_reject_files_retained"),
+            "original_stock_boot_bytes_present": False,
+            "original_ramdisk_verified_this_run": False,
+            "dtb_layout_verified": False,
+            "avb_policy_verified": False,
+            "boot_partition_capacity_verified": False,
+            "android_runtime_verified": False,
+            "physical_recovery_verified": False,
+            "candidate_generated": False,
+            "image_artifact_uploaded": False,
+            "boot_image_generated": False,
+            "flash_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -1169,6 +1224,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "rcu_unified_link_contract": rcu_link,
         "zram_vendor_lock_abi_audit": zram,
         "rcu_internal_header_abi_audit": rcu_headers,
+        "bootv3_compact_layout_budget": bootv3,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,

@@ -65,6 +65,7 @@ def main() -> None:
         assert empty["rcu_unified_link_contract"] is None
         assert empty["zram_vendor_lock_abi_audit"] is None
         assert empty["rcu_internal_header_abi_audit"] is None
+        assert empty["bootv3_compact_layout_budget"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -797,6 +798,39 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage96-report" / "stage96-status.json", {
+            "stage": "EXP76_STAGE96_BOOT_V3_OFFLINE_LAYOUT_BUDGET_NONFLASH",
+            "canonical_exp27_packer_sha256": "a" * 64,
+            "stock_control_metadata_pinned": True,
+            "stock_compact_sha256_reference": "202aaaf67fe5c0a963965c4e29f67866b509916e0bdff15dde38ef55b3d321e7",
+            "stock_compact_bytes_reference": 32206848,
+            "stock_kernel_bytes_reference": 30349336,
+            "stock_ramdisk_bytes_reference": 1849345,
+            "boot_header_version_reference": 3,
+            "boot_page_alignment_bytes": 4096,
+            "exp76_arm64_raw_image_bytes_verified": 29212696,
+            "exp76_arm64_raw_image_sha256_verified": "b" * 64,
+            "exp76_arm64_magic_verified": True,
+            "estimated_offline_compact_candidate_bytes": 31072256,
+            "compact_size_budget_remaining_bytes": 1134592,
+            "fits_pinned_stock_compact_file_size": True,
+            "effective_rt_config_verified": True,
+            "stage95_source_audit_proven": True,
+            "original_rt_reject_files_retained": 64,
+            "original_stock_boot_bytes_present": False,
+            "original_ramdisk_verified_this_run": False,
+            "dtb_layout_verified": False,
+            "avb_policy_verified": False,
+            "boot_partition_capacity_verified": False,
+            "android_runtime_verified": False,
+            "physical_recovery_verified": False,
+            "candidate_generated": False,
+            "image_artifact_uploaded": False,
+            "boot_image_generated": False,
+            "flash_performed": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1224,6 +1258,31 @@ def main() -> None:
         assert not rcu_headers["rt_rcu_runtime_semantics_verified"]
         assert not rcu_headers["device_boot_verified"]
         assert not rcu_headers["kernel_built"] and not rcu_headers["flash_ready"]
+        boot = failed["bootv3_compact_layout_budget"]
+        assert boot["stage"] == "EXP76_STAGE96_BOOT_V3_OFFLINE_LAYOUT_BUDGET_NONFLASH"
+        assert boot["canonical_exp27_packer_sha256"] == "a" * 64
+        assert boot["stock_control_metadata_pinned"]
+        assert boot["stock_compact_bytes_reference"] == 32206848
+        assert boot["stock_kernel_bytes_reference"] == 30349336
+        assert boot["stock_ramdisk_bytes_reference"] == 1849345
+        assert boot["exp76_arm64_raw_image_bytes_verified"] == 29212696
+        assert boot["exp76_arm64_raw_image_sha256_verified"] == "b" * 64
+        assert boot["exp76_arm64_magic_verified"]
+        assert boot["estimated_offline_compact_candidate_bytes"] == 31072256
+        assert boot["compact_size_budget_remaining_bytes"] == 1134592
+        assert boot["fits_pinned_stock_compact_file_size"]
+        assert boot["effective_rt_config_verified"]
+        assert boot["stage95_source_audit_proven"]
+        assert boot["original_rt_reject_files_retained"] == 64
+        for key in (
+            "original_stock_boot_bytes_present", "original_ramdisk_verified_this_run",
+            "dtb_layout_verified", "avb_policy_verified",
+            "boot_partition_capacity_verified", "android_runtime_verified",
+            "physical_recovery_verified", "candidate_generated",
+            "image_artifact_uploaded", "boot_image_generated", "flash_performed",
+            "kernel_built", "flash_ready",
+        ):
+            assert boot[key] is False, key
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64
