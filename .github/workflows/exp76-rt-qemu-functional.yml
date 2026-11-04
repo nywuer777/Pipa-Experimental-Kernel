@@ -59,7 +59,7 @@ jobs:
             install -y --no-install-recommends \
             git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
             gcc-aarch64-linux-gnu rsync device-tree-compiler \
-            qemu-system-arm busybox-static cpio gzip xz-utils
+            qemu-system-arm busybox-static cpio gzip xz-utils ccache
           command -v qemu-system-aarch64
           command -v busybox
           command -v cpio
@@ -218,6 +218,12 @@ jobs:
           grep -qx 'CONFIG_MODULES=y' "$BASE/qemu-nonrt/.config"
           grep -qx 'CONFIG_MODULE_UNLOAD=y' "$BASE/qemu-nonrt/.config"
 
+      - name: Restore config/source/Clang-keyed ccache (BUILD only)
+        uses: actions/cache@v4
+        with:
+          path: exp76-qemu/ccache
+          key: exp76-ccache-v1-${{ runner.os }}-${{ env.ANDROID_LLVM_COMMIT }}-${{ hashFiles('exp76-qemu/outputs/qemu-rt/.config') }}-${{ hashFiles('exp76-qemu/reports/source-diff.sha256') }}
+
       - name: Build both RT Images and one nonRT negative-control Image
         shell: bash
         timeout-minutes: 110
@@ -226,10 +232,18 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
           K="$GITHUB_WORKSPACE/exp76-trial-overlay"
           BASE="$GITHUB_WORKSPACE/exp76-qemu/outputs"
+          export CCACHE_DIR="$GITHUB_WORKSPACE/exp76-qemu/ccache"
+          export CCACHE_BASEDIR="$GITHUB_WORKSPACE"
+          export CCACHE_COMPILERCHECK=content
+          export CCACHE_MAXSIZE=5G
+          export CCACHE_TEMPDIR="$RUNNER_TEMP/exp76-ccache-temp"
+          mkdir -p "$CCACHE_DIR" "$CCACHE_TEMPDIR"
+          ccache --max-size=5G
+          ccache --zero-stats
           for variant in pipa-rt qemu-rt qemu-nonrt; do
             echo "BUILD_VARIANT=$variant"
             make -C "$K" O="$BASE/$variant" ARCH=arm64 \
-              CC=clang LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
+              CC='ccache clang' LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
               CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
               -j"$(nproc)" Image > "exp76-qemu/logs/build-$variant.log" 2>&1 || {
                 tail -n 120 "exp76-qemu/logs/build-$variant.log"; exit 1;
@@ -241,6 +255,7 @@ jobs:
             sha256sum "$BASE/$variant/.config" \
               "$BASE/$variant/arch/arm64/boot/Image" \
               > "exp76-qemu/reports/sha256-$variant.txt"
+            ccache --show-stats > "exp76-qemu/reports/ccache-build-$variant.txt"
           done
 
       - name: Build external V3 probe against matching RT and nonRT QEMU kernels
