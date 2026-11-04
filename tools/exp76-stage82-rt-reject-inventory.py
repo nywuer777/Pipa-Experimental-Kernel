@@ -195,8 +195,8 @@ def format_report(data: dict) -> str:
     for path in data["priority_order"]:
         e = lookup[path]
         lines.append(
-            f"| {e['review_score']} | \`{path}\` | {e['hunk_count']} | "
-            f"\`{e['reject_sha256']}\` |"
+            f"| {e['review_score']} | `{path}` | {e['hunk_count']} | "
+            f"`{e['reject_sha256']}` |"
         )
     lines += [
         "", "## Next engineering action", "",
