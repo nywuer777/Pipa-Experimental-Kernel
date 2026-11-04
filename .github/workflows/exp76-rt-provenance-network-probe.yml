@@ -5,6 +5,8 @@ on:
     branches: [exp76-preempt-rt-uname]
     paths:
       - '.github/workflows/exp76-rt-provenance-network-probe.yml'
+      - '.github/workflows/exp76-rt-qemu-functional.yml'
+      - 'tests/exp76-rt-spin-sleep/**'
   workflow_dispatch:
 permissions:
   contents: read
@@ -46,3 +48,8 @@ jobs:
             rt-remote-error.txt
           if-no-files-found: warn
           retention-days: 14
+  qemu-functional:
+    uses: ./.github/workflows/exp76-rt-qemu-functional.yml
+    permissions:
+      contents: read
+
