@@ -1,6 +1,9 @@
 # YAML / GitHub Actions ubuntu-24.04 / EXP76 E404 PREEMPT_RT QEMU negative-control qualification / NO FLASH
 name: EXP76 QEMU RT spinlock qualification (NO FLASH)
 on:
+  push:
+    branches:
+      - exp76-qemu-virtio-clang21
   workflow_call:
   workflow_dispatch:
 
@@ -33,6 +36,8 @@ jobs:
           bash -n tests/exp76-rt-spin-sleep/run-in-guest.sh
           bash tests/exp76-rt-spin-sleep/test-log-verifier.sh
           python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
+          python3 -m py_compile tools/exp76-qemu-virtio-clang21.py
+          python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
           echo 'EXP76_QEMU_STATIC_PREFLIGHT=PASS; QEMU_RUNTIME_NOT_YET_PROVEN'
@@ -169,6 +174,12 @@ jobs:
           python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/stage85 --mode apply
+          # Fix the exact Clang21 VirtIO declaration in the disposable E404 tree.
+          # Keep QEMU VirtIO enabled; the fix is included in source-diff.sha256.
+          python3 tools/exp76-qemu-virtio-clang21.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/virtio-clang21-compat.json \
+            --mode apply
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
