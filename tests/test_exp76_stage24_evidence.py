@@ -70,6 +70,7 @@ def main() -> None:
         assert empty["rcu_update_reject_audit"] is None
         assert empty["srcu_hotplug_reject_audit"] is None
         assert empty["rcu_expedited_cpu_selection_audit"] is None
+        assert empty["rcu_torture_legacy_flavor_audit"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -925,6 +926,29 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage101-report" / "stage101-status.json", {
+            "stage": "EXP76_STAGE101_RCU_TORTURE_LEGACY_FLAVOR_REJECT_NONFLASH",
+            "verification_scope": "SOURCE_AND_REJECT_PROVENANCE_ONLY",
+            "original_rcutorture_reject_sha256": "6" * 64,
+            "original_rcutorture_rejected_hunks_pending": 2,
+            "e404_rcutorture_source_sha256": "7" * 64,
+            "e404_rcu_bh_torture_ops_present": True,
+            "stage82_reject_inventory_verified": True,
+            "stage93_unified_rcu_link_verified": True,
+            "stage95_unified_rcu_headers_verified": True,
+            "stage100_rcu_exp_provenance_verified": True,
+            "classification": "LEGACY_RCU_BH_TORTURE_FLAVOR_REQUIRES_E404_SEMANTIC_REVIEW",
+            "original_rejected_files_remaining": 64,
+            "source_modified": False,
+            "original_rejects_deleted": False,
+            "rejected_hunks_semantically_resolved": 0,
+            "rcu_torture_runtime_verified": False,
+            "rt_rcu_runtime_semantics_verified": False,
+            "rcu_grace_period_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1455,6 +1479,26 @@ def main() -> None:
         assert not exp_rcu["rt_rcu_runtime_semantics_verified"]
         assert not exp_rcu["device_boot_verified"]
         assert not exp_rcu["kernel_built"] and not exp_rcu["flash_ready"]
+        torture = failed["rcu_torture_legacy_flavor_audit"]
+        assert torture["stage"] == "EXP76_STAGE101_RCU_TORTURE_LEGACY_FLAVOR_REJECT_NONFLASH"
+        assert torture["verification_scope"] == "SOURCE_AND_REJECT_PROVENANCE_ONLY"
+        assert torture["original_rcutorture_reject_sha256"] == "6" * 64
+        assert torture["original_rcutorture_rejected_hunks_pending"] == 2
+        assert torture["e404_rcutorture_source_sha256"] == "7" * 64
+        assert torture["e404_rcu_bh_torture_ops_present"]
+        assert torture["stage82_reject_inventory_verified"]
+        assert torture["stage93_unified_rcu_link_verified"]
+        assert torture["stage95_unified_rcu_headers_verified"]
+        assert torture["stage100_rcu_exp_provenance_verified"]
+        assert torture["original_rejected_files_remaining"] == 64
+        assert torture["source_modified"] is False
+        assert torture["original_rejects_deleted"] is False
+        assert torture["rejected_hunks_semantically_resolved"] == 0
+        assert not torture["rcu_torture_runtime_verified"]
+        assert not torture["rt_rcu_runtime_semantics_verified"]
+        assert not torture["rcu_grace_period_runtime_verified"]
+        assert not torture["device_boot_verified"]
+        assert not torture["kernel_built"] and not torture["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

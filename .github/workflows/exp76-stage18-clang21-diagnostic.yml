@@ -137,6 +137,8 @@ on:
       - 'tests/test_exp76_stage99_srcu_hotplug_audit.py'
       - 'tools/exp76-stage100-rcu-expedited-audit.py'
       - 'tests/test_exp76_stage100_rcu_expedited_audit.py'
+      - 'tools/exp76-stage101-rcu-torture-audit.py'
+      - 'tests/test_exp76_stage101_rcu_torture_audit.py'
   workflow_dispatch:
 
 permissions:
@@ -290,6 +292,8 @@ jobs:
           python3 tests/test_exp76_stage99_srcu_hotplug_audit.py
           python3 -m py_compile tools/exp76-stage100-rcu-expedited-audit.py
           python3 tests/test_exp76_stage100_rcu_expedited_audit.py
+          python3 -m py_compile tools/exp76-stage101-rcu-torture-audit.py
+          python3 tests/test_exp76_stage101_rcu_torture_audit.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -1266,6 +1270,38 @@ jobs:
                 'RUNTIME_UNVERIFIED; NO_FLASH')
           PY
 
+      - name: Audit two legacy RT RCU-BH torture flavor rejected hunks (READONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage101-rcu-torture-audit.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --stage93-report exp76-stage93-report/stage93-status.json \
+            --stage95-report exp76-stage95-report/stage95-status.json \
+            --stage100-report exp76-stage100-report/stage100-status.json \
+            --report exp76-stage101-report
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          s = json.loads(Path('exp76-stage101-report/stage101-status.json').read_text())
+          assert s['original_rcutorture_rejected_hunks_pending'] == 2
+          assert s['stage82_reject_inventory_verified']
+          assert s['stage93_unified_rcu_link_verified']
+          assert s['stage95_unified_rcu_headers_verified']
+          assert s['stage100_rcu_exp_provenance_verified']
+          assert s['original_rejected_files_remaining'] == 64
+          assert s['rejected_hunks_semantically_resolved'] == 0
+          assert not s['source_modified'] and not s['original_rejects_deleted']
+          assert not s['rcu_torture_runtime_verified']
+          assert not s['rt_rcu_runtime_semantics_verified']
+          assert not s['rcu_grace_period_runtime_verified']
+          assert not s['device_boot_verified']
+          assert not s['kernel_built'] and not s['flash_ready']
+          print('EXP76_STAGE101_RCU_BH_TORTURE=2_REJECTED_HUNKS_PINNED; '
+                'RUNTIME_UNVERIFIED; NO_FLASH')
+          PY
+
       - name: Publish readable CI summary even when compiler fails
         if: always()
         shell: bash
@@ -1934,6 +1970,17 @@ jobs:
                   f"Expedited RCU runtime verified: {exp_rcu.get('rt_exp_rcu_cpu_selection_runtime_verified')}",
                   f"Original rejected files retained: {exp_rcu.get('original_rejected_files_remaining')}",
               ]
+          stage101_path = Path('exp76-stage101-report/stage101-status.json')
+          if stage101_path.is_file():
+              torture = json.loads(stage101_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage101 legacy RT RCU-BH torture flavor rejects (READONLY)', '']
+              lines += [
+                  f"Pinned RCU torture rejected hunks: {torture.get('original_rcutorture_rejected_hunks_pending')}",
+                  f"E404 torture source SHA256: {torture.get('e404_rcutorture_source_sha256')}",
+                  f"Stage95 unified RCU header ABI: {torture.get('stage95_unified_rcu_headers_verified')}",
+                  f"RCU torture runtime verified: {torture.get('rcu_torture_runtime_verified')}",
+                  f"Original RT rejects retained: {torture.get('original_rejected_files_remaining')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1972,6 +2019,7 @@ jobs:
             exp76-stage98-report/
             exp76-stage99-report/
             exp76-stage100-report/
+            exp76-stage101-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/

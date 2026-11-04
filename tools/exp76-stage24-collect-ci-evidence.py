@@ -1321,6 +1321,46 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    rcu_torture_raw = read_json(
+        artifact / "exp76-stage101-report" / "stage101-status.json"
+    )
+    rcu_torture = None
+    if rcu_torture_raw is not None:
+        rcu_torture = {
+            "stage": str(rcu_torture_raw.get("stage") or "")[:140],
+            "verification_scope":
+                str(rcu_torture_raw.get("verification_scope") or "")[:70],
+            "original_rcutorture_reject_sha256":
+                str(rcu_torture_raw.get("original_rcutorture_reject_sha256") or "")[:64],
+            "original_rcutorture_rejected_hunks_pending":
+                rcu_torture_raw.get("original_rcutorture_rejected_hunks_pending"),
+            "e404_rcutorture_source_sha256":
+                str(rcu_torture_raw.get("e404_rcutorture_source_sha256") or "")[:64],
+            "e404_rcu_bh_torture_ops_present":
+                rcu_torture_raw.get("e404_rcu_bh_torture_ops_present") is True,
+            "stage82_reject_inventory_verified":
+                rcu_torture_raw.get("stage82_reject_inventory_verified") is True,
+            "stage93_unified_rcu_link_verified":
+                rcu_torture_raw.get("stage93_unified_rcu_link_verified") is True,
+            "stage95_unified_rcu_headers_verified":
+                rcu_torture_raw.get("stage95_unified_rcu_headers_verified") is True,
+            "stage100_rcu_exp_provenance_verified":
+                rcu_torture_raw.get("stage100_rcu_exp_provenance_verified") is True,
+            "classification":
+                str(rcu_torture_raw.get("classification") or "")[:140],
+            "original_rejected_files_remaining":
+                rcu_torture_raw.get("original_rejected_files_remaining"),
+            "source_modified": rcu_torture_raw.get("source_modified") is True,
+            "original_rejects_deleted":
+                rcu_torture_raw.get("original_rejects_deleted") is True,
+            "rejected_hunks_semantically_resolved": 0,
+            "rcu_torture_runtime_verified": False,
+            "rt_rcu_runtime_semantics_verified": False,
+            "rcu_grace_period_runtime_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -1380,6 +1420,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "rcu_update_reject_audit": rcu_update,
         "srcu_hotplug_reject_audit": srcu_hotplug,
         "rcu_expedited_cpu_selection_audit": exp_rcu,
+        "rcu_torture_legacy_flavor_audit": rcu_torture,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
