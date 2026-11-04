@@ -64,6 +64,7 @@ def main() -> None:
         assert empty["migration_link_contract"] is None
         assert empty["rcu_unified_link_contract"] is None
         assert empty["zram_vendor_lock_abi_audit"] is None
+        assert empty["rcu_internal_header_abi_audit"] is None
         assert empty["cross_subsystem_coverage"] is None
         assert empty["targets"] == {}
         assert empty["job_conclusion"] == "failure"
@@ -774,6 +775,28 @@ def main() -> None:
             "kernel_built": False,
             "flash_ready": False,
         })
+        put(artifact / "exp76-stage95-report" / "stage95-status.json", {
+            "stage": "EXP76_STAGE95_RCU_INTERNAL_HEADER_GENERATION_AUDIT_NONFLASH",
+            "reviewed_original_rcu_header_rejected_files": 2,
+            "reviewed_original_rcu_header_rejected_hunks": 5,
+            "rcu_headers": ["kernel/rcu/rcu.h", "kernel/rcu/tree.h"],
+            "source_sha256": {"kernel/rcu/tree.h": "a" * 64},
+            "original_reject_sha256": {"kernel/rcu/tree.h": "b" * 64},
+            "vendor_unified_gp_api_declared": True,
+            "vendor_rcu_kthread_setup_declared": True,
+            "obsolete_legacy_rcu_flavor_api_absent": True,
+            "tiny_rcu_stub_path_preserved": True,
+            "stage93_linked_rcu_exports_verified": True,
+            "classification": "OLD_RCU_FLAVOR_API_DIFFERS_FROM_E404_UNIFIED_RCU",
+            "source_modified": False,
+            "original_rejects_deleted": False,
+            "original_rejected_files_remaining": 64,
+            "rcu_header_hunks_runtime_semantics_resolved": 0,
+            "rt_rcu_runtime_semantics_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        })
         put(artifact / "exp76-rt-report" / "stage31" / "stage31-status.json", {
             "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
             "remaining_rejected_files": 64, "applied": True,
@@ -1179,6 +1202,28 @@ def main() -> None:
         assert not zram["rt_scheduler_rcu_runtime_verified"]
         assert not zram["device_boot_verified"]
         assert not zram["kernel_built"] and not zram["flash_ready"]
+        rcu_headers = failed["rcu_internal_header_abi_audit"]
+        assert rcu_headers["stage"] == "EXP76_STAGE95_RCU_INTERNAL_HEADER_GENERATION_AUDIT_NONFLASH"
+        assert rcu_headers["reviewed_original_rcu_header_rejected_files"] == 2
+        assert rcu_headers["reviewed_original_rcu_header_rejected_hunks"] == 5
+        assert rcu_headers["rcu_headers"] == [
+            "kernel/rcu/rcu.h", "kernel/rcu/tree.h",
+        ]
+        assert rcu_headers["source_sha256"]["kernel/rcu/tree.h"] == "a" * 64
+        assert rcu_headers["original_reject_sha256"]["kernel/rcu/tree.h"] == "b" * 64
+        assert rcu_headers["vendor_unified_gp_api_declared"]
+        assert rcu_headers["vendor_rcu_kthread_setup_declared"]
+        assert rcu_headers["obsolete_legacy_rcu_flavor_api_absent"]
+        assert rcu_headers["tiny_rcu_stub_path_preserved"]
+        assert rcu_headers["stage93_linked_rcu_exports_verified"]
+        assert rcu_headers["classification"] == "OLD_RCU_FLAVOR_API_DIFFERS_FROM_E404_UNIFIED_RCU"
+        assert rcu_headers["source_modified"] is False
+        assert rcu_headers["original_rejects_deleted"] is False
+        assert rcu_headers["original_rejected_files_remaining"] == 64
+        assert rcu_headers["rcu_header_hunks_runtime_semantics_resolved"] == 0
+        assert not rcu_headers["rt_rcu_runtime_semantics_verified"]
+        assert not rcu_headers["device_boot_verified"]
+        assert not rcu_headers["kernel_built"] and not rcu_headers["flash_ready"]
         assert failed["cross_subsystem_coverage"]["objects_attempted"] == 9
         assert failed["cross_subsystem_coverage"]["objects_compiled"] == 8
         assert failed["cross_subsystem_coverage"]["remaining_rejected_files"] == 64

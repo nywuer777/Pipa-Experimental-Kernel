@@ -125,6 +125,8 @@ on:
       - 'tests/test_exp76_stage93_rcu_link_contract.py'
       - 'tools/exp76-stage94-zram-vendor-lock-audit.py'
       - 'tests/test_exp76_stage94_zram_vendor_lock_audit.py'
+      - 'tools/exp76-stage95-rcu-headers-audit.py'
+      - 'tests/test_exp76_stage95_rcu_headers_audit.py'
   workflow_dispatch:
 
 permissions:
@@ -266,6 +268,8 @@ jobs:
           python3 tests/test_exp76_stage93_rcu_link_contract.py
           python3 -m py_compile tools/exp76-stage94-zram-vendor-lock-audit.py
           python3 tests/test_exp76_stage94_zram_vendor_lock_audit.py
+          python3 -m py_compile tools/exp76-stage95-rcu-headers-audit.py
+          python3 tests/test_exp76_stage95_rcu_headers_audit.py
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage30-object-coverage.py
           bash -n tools/exp76-rt-compat-audit.sh
           ! grep -E 'make[[:space:]].*(Image|vmlinux|boot.img)' tools/exp76-stage18-clang21-object-diagnostic.sh
@@ -1042,6 +1046,38 @@ jobs:
                 'SOURCE_CHECKS=12; RUNTIME_VERIFIED=false; NO_FLASH')
           PY
 
+      - name: Classify pinned RT RCU internal headers against E404 unified RCU (READONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-stage95-rcu-headers-audit.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-stage82-report/RT_REJECT_HUNK_INVENTORY.json \
+            --stage93-report exp76-stage93-report/stage93-status.json \
+            --report exp76-stage95-report
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          audit = json.loads(Path('exp76-stage95-report/stage95-status.json').read_text())
+          assert audit['reviewed_original_rcu_header_rejected_files'] == 2
+          assert audit['reviewed_original_rcu_header_rejected_hunks'] == 5
+          assert audit['vendor_unified_gp_api_declared']
+          assert audit['vendor_rcu_kthread_setup_declared']
+          assert audit['obsolete_legacy_rcu_flavor_api_absent']
+          assert audit['tiny_rcu_stub_path_preserved']
+          assert audit['stage93_linked_rcu_exports_verified']
+          assert audit['classification'] == 'OLD_RCU_FLAVOR_API_DIFFERS_FROM_E404_UNIFIED_RCU'
+          assert audit['original_rejected_files_remaining'] == 64
+          assert audit['rcu_header_hunks_runtime_semantics_resolved'] == 0
+          assert audit['source_modified'] is False
+          assert audit['original_rejects_deleted'] is False
+          assert not audit['rt_rcu_runtime_semantics_verified']
+          assert not audit['device_boot_verified']
+          assert not audit['kernel_built'] and not audit['flash_ready']
+          print('EXP76_STAGE95_RCU_INTERNAL_HEADERS=2_FILES_5_HUNKS;'
+                'VENDOR_API_DIFFERENT; RUNTIME_UNVERIFIED; NO_FLASH')
+          PY
+
       - name: Publish readable CI summary even when compiler fails
         if: always()
         shell: bash
@@ -1640,6 +1676,18 @@ jobs:
                   f"RT runtime semantics resolved: {zram.get('rt_hunks_semantically_resolved')}",
                   f"Unchanged reject count: {zram.get('original_rejected_files_remaining')}",
               ]
+          stage95_path = Path('exp76-stage95-report/stage95-status.json')
+          if stage95_path.is_file():
+              rcu_h = json.loads(stage95_path.read_text(encoding='utf-8'))
+              lines += ['', '### Stage95 pinned RCU internal header ABI (READONLY)', '']
+              lines += [
+                  f"Original RCU header rejected hunks reviewed: {rcu_h.get('reviewed_original_rcu_header_rejected_hunks')}",
+                  f"Unified E404 GP API: {rcu_h.get('vendor_unified_gp_api_declared')}",
+                  f"Vendor callback kthread API: {rcu_h.get('vendor_rcu_kthread_setup_declared')}",
+                  f"Legacy flavor APIs absent: {rcu_h.get('obsolete_legacy_rcu_flavor_api_absent')}",
+                  f"RT runtime semantics resolved: {rcu_h.get('rcu_header_hunks_runtime_semantics_resolved')}",
+                  f"Remaining original rejects: {rcu_h.get('original_rejected_files_remaining')}",
+              ]
           lines += ['', 'KERNEL_BUILT=false; FLASH_READY=false']
           output = Path(os.environ['GITHUB_STEP_SUMMARY'])
           with output.open('a', encoding='utf-8') as stream:
@@ -1672,6 +1720,7 @@ jobs:
             exp76-stage92-report/
             exp76-stage93-report/
             exp76-stage94-report/
+            exp76-stage95-report/
             exp76-rt-report/stage16/
             exp76-rt-report/stage17/
             exp76-rt-report/stage19/

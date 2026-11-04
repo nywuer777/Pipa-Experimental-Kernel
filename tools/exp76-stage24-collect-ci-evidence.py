@@ -1065,6 +1065,56 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
             "kernel_built": False,
             "flash_ready": False,
         }
+    rcu_headers_raw = read_json(
+        artifact / "exp76-stage95-report" / "stage95-status.json"
+    )
+    rcu_headers = None
+    if rcu_headers_raw is not None:
+        rcu_headers = {
+            "stage": str(rcu_headers_raw.get("stage") or "")[:140],
+            "reviewed_original_rcu_header_rejected_files":
+                rcu_headers_raw.get("reviewed_original_rcu_header_rejected_files"),
+            "reviewed_original_rcu_header_rejected_hunks":
+                rcu_headers_raw.get("reviewed_original_rcu_header_rejected_hunks"),
+            "rcu_headers": [
+                str(x)[:130] for x in
+                (rcu_headers_raw.get("rcu_headers") or [])[:10]
+            ],
+            "source_sha256": {
+                str(path)[:150]: str(digest)[:64]
+                for path, digest in list(
+                    (rcu_headers_raw.get("source_sha256") or {}).items()
+                )[:10]
+            },
+            "original_reject_sha256": {
+                str(path)[:150]: str(digest)[:64]
+                for path, digest in list(
+                    (rcu_headers_raw.get("original_reject_sha256") or {}).items()
+                )[:10]
+            },
+            "vendor_unified_gp_api_declared":
+                rcu_headers_raw.get("vendor_unified_gp_api_declared") is True,
+            "vendor_rcu_kthread_setup_declared":
+                rcu_headers_raw.get("vendor_rcu_kthread_setup_declared") is True,
+            "obsolete_legacy_rcu_flavor_api_absent":
+                rcu_headers_raw.get("obsolete_legacy_rcu_flavor_api_absent") is True,
+            "tiny_rcu_stub_path_preserved":
+                rcu_headers_raw.get("tiny_rcu_stub_path_preserved") is True,
+            "stage93_linked_rcu_exports_verified":
+                rcu_headers_raw.get("stage93_linked_rcu_exports_verified") is True,
+            "classification":
+                str(rcu_headers_raw.get("classification") or "")[:150],
+            "source_modified": rcu_headers_raw.get("source_modified") is True,
+            "original_rejects_deleted":
+                rcu_headers_raw.get("original_rejects_deleted") is True,
+            "original_rejected_files_remaining":
+                rcu_headers_raw.get("original_rejected_files_remaining"),
+            "rcu_header_hunks_runtime_semantics_resolved": 0,
+            "rt_rcu_runtime_semantics_verified": False,
+            "device_boot_verified": False,
+            "kernel_built": False,
+            "flash_ready": False,
+        }
     preparation = None
     if prep is not None:
         preparation = {
@@ -1118,6 +1168,7 @@ def summarize(artifact: Path, *, repo: str, source_sha: str,
         "migration_link_contract": migration_link,
         "rcu_unified_link_contract": rcu_link,
         "zram_vendor_lock_abi_audit": zram,
+        "rcu_internal_header_abi_audit": rcu_headers,
         "stages": stages,
         "kernel_built": False,
         "flash_ready": False,
