@@ -1,0 +1,140 @@
+{
+  "arm64_neon_rt_kconfig_port": null,
+  "artifact_present": false,
+  "block_init_subtrees_diagnostic": null,
+  "compile_h_preflight_diagnostic": null,
+  "cross_subsystem_coverage": null,
+  "crypto_subtree_diagnostic": null,
+  "drivers_subtree_diagnostic": null,
+  "extra_object_coverage": null,
+  "flash_ready": false,
+  "fs_subtree_diagnostic": null,
+  "functionfs_rt_swait_status": null,
+  "ipc_subtree_diagnostic": null,
+  "job_conclusion": "failure",
+  "kasan_raw_spinlock_equivalence": null,
+  "kernel_built": false,
+  "kernel_subtree_diagnostic": null,
+  "lib_subtree_diagnostic": null,
+  "migration_link_contract": null,
+  "mm_subtree_diagnostic": null,
+  "net_subtree_diagnostic": null,
+  "pid_atomic_rt_header_port": null,
+  "preparation": null,
+  "proc_swait_rt_include_port": null,
+  "raw_arm64_image_diagnostic": null,
+  "rcu_internal_header_abi_audit": null,
+  "rcu_unified_link_contract": null,
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "rt_kconfig_guard_port": null,
+  "rt_reject_hunk_inventory": null,
+  "rt_uts_version_generator_port": null,
+  "run_id": 41827363841,
+  "run_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/41827363841",
+  "rwsem_idr_rt_link_repair": null,
+  "schema": "EXP76_STAGE24_EVIDENCE_V1",
+  "security_subtree_diagnostic": null,
+  "source_sha": "53ddf50c5b38a8ad8eb5ac3fccdca0d401bee6d0",
+  "stages": {
+    "stage19": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage20": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage21": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage26": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage27": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage28": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage29": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage31": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage34": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage35": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage36": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage38": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage40": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage41": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage42": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    },
+    "stage47": {
+      "applied": null,
+      "present": false,
+      "remaining_rejected_files": null,
+      "stage": null
+    }
+  },
+  "status": null,
+  "targets": {},
+  "vmlinux_integration_diagnostic": null,
+  "zram_vendor_lock_abi_audit": null
+}
