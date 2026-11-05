@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_ROUND17_PINNED_QEMU_INVOCATION_ABC_AND_EL1_TRACE",
+  "scope": "RT_ONLY",
+  "source_runs": {
+    "old_image": 41930944374,
+    "scm_off_image": 42065457440,
+    "scm_off_same_sha_primary": 42065541890,
+    "panic_profile": 42050248789,
+    "silent_profile": 42065457440,
+    "abc_run": 42075655648,
+    "abc_artifact": 13437683828,
+    "trace_run": 42076252812,
+    "trace_artifact": 13437749221
+  },
+  "image_inputs": {
+    "old": {
+      "sha256": "8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1",
+      "bytes": 31252504,
+      "file": "Linux kernel ARM64 boot executable Image, little-endian, 4K pages",
+      "magic_at_0x38": "ARMd",
+      "text_offset": 524288
+    },
+    "scmoff": {
+      "sha256": "74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234",
+      "bytes": 30822424,
+      "file": "Linux kernel ARM64 boot executable Image, little-endian, 4K pages",
+      "magic_at_0x38": "ARMd",
+      "text_offset": 524288
+    },
+    "initramfs": {
+      "source_run": 42065457440,
+      "sha256": "9ba0811c6bfcea578e56a4710ac6b3c12d54c9f8bec1784be96fde13bfc277ab",
+      "bytes": 1005776,
+      "init_present": true,
+      "init_mode": "0100755",
+      "init_bytes": 118,
+      "init_sha256": "0a77cc08e49187c2352b51fc866161697f434b663c484de2e9130c4546d094ac",
+      "init_has_guest_running": true
+    }
+  },
+  "config_diff": {
+    "old_to_scmoff_total": 11,
+    "arm64_serial_earlycon_printk_psci_rt_config_changes": 0,
+    "old_qcom_scm": "y",
+    "scmoff_qcom_scm": "n",
+    "changed_keys": [
+      "CONFIG_DEVFREQ_GOV_QCOM_ADRENO_TZ",
+      "CONFIG_DEVFREQ_GOV_QCOM_GPUBW_MON",
+      "CONFIG_QCOM_ADRENO_DEFAULT_GOVERNOR",
+      "CONFIG_QCOM_KGSL",
+      "CONFIG_QCOM_KGSL_IOMMU",
+      "CONFIG_QCOM_KGSL_USE_SHMEM",
+      "CONFIG_QCOM_MDT_LOADER",
+      "CONFIG_QCOM_QHEE_ENABLE_MEM_PROTECTION",
+      "CONFIG_QCOM_SCM",
+      "CONFIG_QCOM_SCM_64",
+      "CONFIG_QCOM_SCM_DOWNLOAD_MODE_DEFAULT"
+    ]
+  },
+  "abc": {
+    "binary_version": "QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)",
+    "same_initramfs_across_cases": true,
+    "original_panic_run_initramfs_bytes_unavailable": true,
+    "paths_remapped_for_download": true,
+    "argv_source": "abc_artifact/cmdlines/A,B,C.qemu-cmdline.txt and argv.json",
+    "cases": [
+      {
+        "id": "A",
+        "image": "old",
+        "profile": "42050248789",
+        "exit_code": 0,
+        "duration_seconds": 0.279203,
+        "console_bytes": 1698,
+        "console_lines": 42,
+        "console_sha256": "fa1bd6c02dafe68da0af7e2088d399426a9a126bb6c9d4f3354a12b3fd15704f",
+        "panic": true,
+        "pc": "0xffffffa966080b2c",
+        "lr": "0xffffffa966080af8",
+        "guest_running": false
+      },
+      {
+        "id": "B",
+        "image": "scmoff",
+        "profile": "42050248789",
+        "exit_code": 0,
+        "duration_seconds": 5.262399,
+        "console_bytes": 0,
+        "console_lines": 0,
+        "console_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "panic_observed": false,
+        "guest_running": false
+      },
+      {
+        "id": "C",
+        "image": "old",
+        "profile": "42065457440",
+        "exit_code": 0,
+        "duration_seconds": 0.279759,
+        "console_bytes": 1698,
+        "console_lines": 42,
+        "console_sha256": "402be2c1b07c6715da5a67072eb9635dfd1d99eabe3f3f7074bc840600b5f628",
+        "panic": true,
+        "pc": "0xffffff8010080b2c",
+        "lr": "0xffffff8010080af8",
+        "guest_running": false
+      }
+    ]
+  },
+  "separate_scmoff_execution_trace": {
+    "run_id": 42076252812,
+    "artifact_id": 13437749221,
+    "host_exit_code": 0,
+    "duration_seconds": 0.293567,
+    "console_bytes": 0,
+    "console_lines": 0,
+    "trace_lines": 39995,
+    "trace_bytes": 749277,
+    "trace_sha256": "89b96ed7222542b5f3d183ff63ed2a311b605ac0f4ef435eaf0b9cd37a68e2f4",
+    "event": "EL1_DATA_ABORT",
+    "esr": "0x96000005",
+    "far": "0x28",
+    "elr": "0xffffff9989661ed4",
+    "image_instruction_offset": "0x3e1ed4",
+    "unique_binary_sequence_matches": 1,
+    "instruction": "ldaxr w16,[x0]",
+    "preceding_instruction": "prfm pstl1strm,[x0]",
+    "possible_fault_class": "NULL_POINTER_DEREFERENCE_OFFSET_0x28",
+    "c_function": "NOT_SYMBOLIZED_NO_NEW_KERNEL_BUILD_IN_ROUND17",
+    "next_exception": "HVC handled as PSCI call, exact PSCI operation not measured",
+    "note": "Trace uses -d in_asm and is a separate QEMU invocation, so does not prove that A/B/C case B had the identical fault."
+  },
+  "state": "SCM_OFF_IMAGE_VALID_EARLY_EL1_DATA_ABORT_IN_DIAGNOSTIC_TRACE_GUEST_INIT_NOT_PROVEN",
+  "runtime_gates": {
+    "qemu_kernel_rt_functional": "FAIL",
+    "rt_spin_sleep_v3": "NOT_EXECUTED",
+    "rt_semantics_verified": "NOT_VERIFIED",
+    "pipa_scm_hardware": "NO_HARDWARE",
+    "rt_handoff_ready": false,
+    "flash_ready": false
+  },
+  "no_kernel_rebuild_this_round": true,
+  "no_kernel_config_change_this_round": true,
+  "no_new_branches_this_round": true,
+  "no_new_modules_this_round": true
+}
