@@ -1,0 +1,81 @@
+# YAML / GitHub Actions Ubuntu 24.04 / prune only proven ancestor stage20..stage50 refs / NO FLASH
+name: EXP76 retire ancestor stage snapshots (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-retire-ancestor-stages.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  retire-stages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preflight every stage branch SHA, merged-ancestor status and open PRs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          mkdir -p exp76-stage-retirement
+          python3 - <<'PY'
+          import json, pathlib, re
+          d=json.loads(pathlib.Path('reports/exp76-stage-snapshots-retirement.json').read_text())
+          xs=d['snapshots']
+          assert len(xs)==31
+          assert set(int(re.search(r'exp76-stage(\d+)-', x['branch']).group(1)) for x in xs)==set(range(20,51))
+          assert all(x['ahead_by']==0 and x['unique_commits']==0 for x in xs)
+          pathlib.Path('exp76-stage-retirement/targets.txt').write_text(''.join(x['branch']+'\n' for x in xs))
+          PY
+          gh api "repos/$REPO/pulls?state=open&per_page=100" > exp76-stage-retirement/open-prs.json
+          python3 - <<'PY'
+          import json,pathlib
+          names=set(pathlib.Path('exp76-stage-retirement/targets.txt').read_text().splitlines())
+          prs=json.loads(pathlib.Path('exp76-stage-retirement/open-prs.json').read_text())
+          blocked=[p['number'] for p in prs if p['head']['ref'] in names or p['base']['ref'] in names]
+          if blocked: raise SystemExit('BLOCKED_PR_DEPENDENCY='+str(blocked))
+          PY
+          : > exp76-stage-retirement/expected-shas.tsv
+          while IFS= read -r branch; do
+            test -n "$branch"
+            current=$(gh api "repos/$REPO/branches/$branch" --jq '.commit.sha')
+            protected=$(gh api "repos/$REPO/branches/$branch" --jq '.protected')
+            ahead=$(gh api "repos/$REPO/compare/exp76-preempt-rt-uname...$branch" --jq '.ahead_by')
+            test "$protected" = false || { echo "BLOCKED_PROTECTED=$branch"; exit 3; }
+            test "$ahead" = 0 || { echo "BLOCKED_UNIQUE=$branch ahead=$ahead"; exit 3; }
+            printf '%s\t%s\n' "$branch" "$current" >> exp76-stage-retirement/expected-shas.tsv
+          done < exp76-stage-retirement/targets.txt
+          test "$(wc -l < exp76-stage-retirement/expected-shas.tsv)" -eq 31
+          echo 'EXP76_STAGE_RETIREMENT_PREFLIGHT=PASS count=31'
+      - name: Delete exact ancestor refs only; fail on concurrent modification
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          : > exp76-stage-retirement/deleted-shas.tsv
+          while IFS=$'\t' read -r branch expected; do
+            current=$(gh api "repos/$REPO/git/ref/heads/$branch" --jq '.object.sha')
+            test "$current" = "$expected" || { echo "BLOCKED_LEASE=$branch"; exit 4; }
+            ahead=$(gh api "repos/$REPO/compare/exp76-preempt-rt-uname...$branch" --jq '.ahead_by')
+            test "$ahead" = 0 || { echo "BLOCKED_UNIQUE=$branch"; exit 4; }
+            gh api --method DELETE "repos/$REPO/git/refs/heads/$branch" >/dev/null
+            printf '%s\t%s\n' "$branch" "$expected" >> exp76-stage-retirement/deleted-shas.tsv
+            echo "EXP76_STAGE_REF_DELETED=$branch"
+          done < exp76-stage-retirement/expected-shas.tsv
+          test "$(wc -l < exp76-stage-retirement/deleted-shas.tsv)" -eq 31
+          echo 'EXP76_STAGE_RETIREMENT=PASS deleted=31'
+      - name: Publish exact deletion audit even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-stage-snapshot-retirement-NOFLASH
+          path: exp76-stage-retirement/
+          if-no-files-found: warn
+          retention-days: 30
