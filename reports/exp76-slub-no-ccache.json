@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_SLUB_DIRECT_NO_CCACHE_CLANG21",
+  "source_run_id": 42044981302,
+  "artifact_id": 13424332944,
+  "source_branch_sha": "11a551461647408adc4029a3164cadbd8fd190a8",
+  "e404_base": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+  "source": "mm/slub.c",
+  "target": "mm/slub.o",
+  "config_slub_debug": "n",
+  "compiler": "Android Clang 21.0.0 r563880c",
+  "compiler_target": "aarch64-linux-gnu",
+  "CCACHE_DISABLE": "1",
+  "build_output_initially_empty": true,
+  "exit_code": 0,
+  "status": "PASS",
+  "object_sha256": "f50de0489652d731f6880d0cfcbccedfa0755eec8e625b263dc4debd81684730",
+  "conclusion": "The uninitialized_var(flags) invocation is excluded under CONFIG_SLUB_DEBUG=n; no cached slub object was needed",
+  "rt_handoff_ready": false
+}
