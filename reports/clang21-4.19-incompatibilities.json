@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "toolchain_decision": "KEEP_ANDROID_CLANG_21",
+  "toolchain_commit": "b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7",
+  "baseline_e404": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+  "inventory_state": "REQUIRES_RECONSTRUCTED_TREE_SCAN",
+  "uninitialized_var_use_lines": null,
+  "uninitialized_var_call_sites": null,
+  "uninitialized_var_files": null,
+  "header_macro_definition_count": null,
+  "observed_compatibility_errors": [
+    {
+      "id": "CLANG21-4.19-0001",
+      "run_id": 41902392736,
+      "file": "drivers/virtio/virtio_ring.c",
+      "line": 271,
+      "symbol": "uninitialized_var(prev)",
+      "category": "legacy_macro_undefined",
+      "root_cause": "MISSING_IN_E404_COMPILER_HEADERS_PRELIMINARY",
+      "fix_branch": "exp76-qemu-virtio-clang21",
+      "fix_commit": "b11aac4a94fde7b9d2b12a4e16302306cc1384dd",
+      "qemu_rt_image_compiled_run": 41930944374,
+      "virtio_runtime_pass": false
+    }
+  ],
+  "other_compatibility_classes_observed": 0,
+  "rt_handoff_ready": false
+}
