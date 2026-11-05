@@ -30,7 +30,7 @@ jobs:
           name: exp76-qemu-rt-functional-NOFLASH
           run-id: 42065541890
           repository: nywuer777/Pipa-Experimental-Kernel
-          github-token: TOKEN_PLACEHOLDER
+          github-token: ${{ github.token }}
           path: exp76-abc/new
       - name: Install QEMU tools once, do not compile kernel or modules
         shell: bash
