@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "gate": "EXP76_SCHEDULER_E2_CONTEXT_DELTA",
+  "source": "kernel/sched/fair.c",
+  "source_base": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+  "run_id": 42021314572,
+  "artifact_id": 13412646072,
+  "evidence_file": "reports/e2/exp76-scheduler-e2-detail.json",
+  "reject_sha256": "b8c15cc49c3ce680e176b54065795e0bc058b481ca297cb0dff47733d8ff4c2f",
+  "before_sha256": "9f4e1f5d50fb4e89ffe7b40e8324ab5edfd50e25c36aa81ef80009b60fe6be01",
+  "after_sha256": "9f4e1f5d50fb4e89ffe7b40e8324ab5edfd50e25c36aa81ef80009b60fe6be01",
+  "e2_modified_fair_c": false,
+  "port_verified_count": 0,
+  "blocked_count": 6,
+  "hunks": [
+    {
+      "ordinal": 1,
+      "file": "kernel/sched/fair.c",
+      "line_range": {
+        "upstream_original_start": 4151,
+        "upstream_original_end": 4157,
+        "actual_candidate_start": null,
+        "actual_candidate_end": null
+      },
+      "function_anchor": "check_preempt_tick",
+      "expected_context_sha": "9427c6d474edfc9c949361fa1696f29b1c915fe430081218abf1355fea839a76",
+      "actual_context_sha": null,
+      "actual_context_hash_scope": "NO_DEFENSIBLE_WINDOW",
+      "candidate_similarity": null,
+      "equal_best_candidates": null,
+      "old_context_occurrences_before_and_after": 0,
+      "new_context_occurrences_after": 0,
+      "fix_e2_touched_this_hunk": false,
+      "reason_divergence": "context_missing",
+      "semantic_conflict": "NOT_ASSESSED",
+      "state": "BLOCKED_DIVERGED_CONTEXT"
+    },
+    {
+      "ordinal": 2,
+      "file": "kernel/sched/fair.c",
+      "line_range": {
+        "upstream_original_start": 4175,
+        "upstream_original_end": 4181,
+        "actual_candidate_start": null,
+        "actual_candidate_end": null
+      },
+      "function_anchor": "check_preempt_tick",
+      "expected_context_sha": "257dbd2305bb2ae59b3b807b5b9cf115710590016fffe58a591b8a6a2b108765",
+      "actual_context_sha": null,
+      "actual_context_hash_scope": "NO_DEFENSIBLE_WINDOW",
+      "candidate_similarity": null,
+      "equal_best_candidates": null,
+      "old_context_occurrences_before_and_after": 0,
+      "new_context_occurrences_after": 0,
+      "fix_e2_touched_this_hunk": false,
+      "reason_divergence": "context_missing",
+      "semantic_conflict": "NOT_ASSESSED",
+      "state": "BLOCKED_DIVERGED_CONTEXT"
+    },
+    {
+      "ordinal": 3,
+      "file": "kernel/sched/fair.c",
+      "line_range": {
+        "upstream_original_start": 4317,
+        "upstream_original_end": 4323,
+        "actual_candidate_start": 5507,
+        "actual_candidate_end": 5513
+      },
+      "function_anchor": "entity_tick",
+      "expected_context_sha": "2cac785bc0de43d638a2d4abd41b30c4b9df40d298b321a3a6132a7e15992861",
+      "actual_context_sha": "11b3ffb799b5199aa892525d5d256fe3c78df85843511d45ca6bb0338cc123d5",
+      "actual_context_hash_scope": "NEAREST_TEXTUAL_WINDOW_NOT_SEMANTIC_MATCH",
+      "candidate_similarity": 0.857143,
+      "equal_best_candidates": 2,
+      "old_context_occurrences_before_and_after": 0,
+      "new_context_occurrences_after": 0,
+      "fix_e2_touched_this_hunk": false,
+      "reason_divergence": "context_changed",
+      "semantic_conflict": "NOT_ASSESSED",
+      "state": "BLOCKED_DIVERGED_CONTEXT"
+    },
+    {
+      "ordinal": 7,
+      "file": "kernel/sched/fair.c",
+      "line_range": {
+        "upstream_original_start": 5157,
+        "upstream_original_end": 5163,
+        "actual_candidate_start": 6616,
+        "actual_candidate_end": 6622
+      },
+      "function_anchor": "hrtick_start_fair",
+      "expected_context_sha": "9ea5869b978e8d4a9be2f9545bb3119e4455fbd7d8b1ae52ab2985cafdd38391",
+      "actual_context_sha": "e18be2e54639195cd1d145797632dad4d5ba1157f73b2b6f882d96c148400e9f",
+      "actual_context_hash_scope": "NEAREST_TEXTUAL_WINDOW_NOT_SEMANTIC_MATCH",
+      "candidate_similarity": 0.285714,
+      "equal_best_candidates": 1,
+      "old_context_occurrences_before_and_after": 0,
+      "new_context_occurrences_after": 0,
+      "fix_e2_touched_this_hunk": false,
+      "reason_divergence": "context_changed",
+      "semantic_conflict": "NOT_ASSESSED",
+      "state": "BLOCKED_DIVERGED_CONTEXT"
+    },
+    {
+      "ordinal": 15,
+      "file": "kernel/sched/fair.c",
+      "line_range": {
+        "upstream_original_start": 6748,
+        "upstream_original_end": 6754,
+        "actual_candidate_start": 9137,
+        "actual_candidate_end": 9143
+      },
+      "function_anchor": "check_preempt_wakeup",
+      "expected_context_sha": "e92368f4485ad045b2611d9dd1a469a05961f7d115586a4444f5adb1a22d3118",
+      "actual_context_sha": "ec98ae8cada73078e8beb48c59c7fbc49add2ae28a0d059926d9b0768efd8ac8",
+      "actual_context_hash_scope": "NEAREST_TEXTUAL_WINDOW_NOT_SEMANTIC_MATCH",
+      "candidate_similarity": 0.428571,
+      "equal_best_candidates": 5,
+      "old_context_occurrences_before_and_after": 0,
+      "new_context_occurrences_after": 0,
+      "fix_e2_touched_this_hunk": false,
+      "reason_divergence": "context_changed",
+      "semantic_conflict": "NOT_ASSESSED",
+      "state": "BLOCKED_DIVERGED_CONTEXT"
+    },
+    {
+      "ordinal": 20,
+      "file": "kernel/sched/fair.c",
+      "line_range": {
+        "upstream_original_start": 9882,
+        "upstream_original_end": 9888,
+        "actual_candidate_start": 13477,
+        "actual_candidate_end": 13483
+      },
+      "function_anchor": "task_fork_fair",
+      "expected_context_sha": "7076e4541a730fa1db302fdeea108fc5e05e35c59525342df7ab6b8ec35d8371",
+      "actual_context_sha": "7a090078991dfe6c60f8b07867f2745007cec74c7fe3780bb678c3aad5725dbd",
+      "actual_context_hash_scope": "NEAREST_TEXTUAL_WINDOW_NOT_SEMANTIC_MATCH",
+      "candidate_similarity": 0.428571,
+      "equal_best_candidates": 1,
+      "old_context_occurrences_before_and_after": 0,
+      "new_context_occurrences_after": 0,
+      "fix_e2_touched_this_hunk": false,
+      "reason_divergence": "context_changed",
+      "semantic_conflict": "NOT_ASSESSED",
+      "state": "BLOCKED_DIVERGED_CONTEXT"
+    }
+  ],
+  "qemu_runtime_verified": false,
+  "rt_handoff_ready": false
+}
