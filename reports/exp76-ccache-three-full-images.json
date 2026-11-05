@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_CCACHE_THREE_FULL_ARM64_IMAGES",
+  "scope": "FULL_IMAGE_QEMU_RT",
+  "source_ci": {
+    "run_id": 42020698390,
+    "artifact_id": 13412264343,
+    "workflow_exit_code": 1,
+    "reason": "COLD_HIT_ZERO_ASSERT_FAILED",
+    "source_branch_sha": "62bb57d06c9069cf4f54f7fe269658b40930fbf3",
+    "source_baseline_commit": "546eb4ec3511542e17eed9dfced433f656a5e3f2",
+    "mutated_commit": "438dddae7278fb3c65ad23fab795e24e2b26a36f"
+  },
+  "mutation": {
+    "file": "kernel/sched/core.c",
+    "added_comment_lines": 5,
+    "deletions": 0,
+    "numstat": "5\t0\tkernel/sched/core.c"
+  },
+  "results": [
+    {
+      "phase": "cold",
+      "duration_s": 568.64,
+      "direct_cache_hit": 74,
+      "preprocessed_cache_hit": 7,
+      "cache_miss": 3384,
+      "total_cacheable_calls": 3465,
+      "hit_rate_pct": 2.338,
+      "git_commit": "546eb4ec3511542e17eed9dfced433f656a5e3f2",
+      "image_sha256": "9486603f8d5927e0fc2f5cf8314b097952efc3c1773017e5f48c05d3cb9c98ed"
+    },
+    {
+      "phase": "warm_same_commit",
+      "duration_s": 35.023,
+      "direct_cache_hit": 3479,
+      "preprocessed_cache_hit": 0,
+      "cache_miss": 1,
+      "total_cacheable_calls": 3480,
+      "hit_rate_pct": 99.971,
+      "git_commit": "546eb4ec3511542e17eed9dfced433f656a5e3f2",
+      "image_sha256": "1954619ef1ef85247d714d847b6057f0228f2cf5f0f1d421eda9d93e9278c384"
+    },
+    {
+      "phase": "warm_five_line_commit",
+      "duration_s": 35.356,
+      "direct_cache_hit": 3477,
+      "preprocessed_cache_hit": 2,
+      "cache_miss": 1,
+      "total_cacheable_calls": 3480,
+      "hit_rate_pct": 99.971,
+      "git_commit": "438dddae7278fb3c65ad23fab795e24e2b26a36f",
+      "image_sha256": "8d0d64935dd45217c80d22cd50a0a741124630eb043d974692718663f6013402"
+    }
+  ],
+  "gates": {
+    "rt_image_generated_all_three": true,
+    "warm_same_commit_gt_90pct": true,
+    "warm_changed_commit_gt_50pct": true,
+    "strict_cold_zero_hits": false,
+    "source_mutation_commit_different": true,
+    "changed_core_o_cache_invalidation_verified": false,
+    "identical_image_sha_same_commit": false,
+    "conclusion": "MEASURED_WARM_PASS_WITH_ASSERTION_AND_REPRODUCIBILITY_CAVEATS"
+  },
+  "method_notes": [
+    "ccache --clear before cold; cold hits can arise from repeated compiler invocations within the same build; exact origin not yet traced",
+    "warm rebuilds used make -B; measured rates exclude non-cacheable compiler calls",
+    "changed commit modified five comment lines in one translation unit; >95pct global cache hit rate alone is not poisoning",
+    "Image hashes differ even across same-commit phases; build timestamp/version metadata requires reproducibility audit"
+  ],
+  "rt_handoff_ready": false
+}
