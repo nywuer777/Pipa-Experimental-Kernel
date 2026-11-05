@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "repository": "nywuer777/Pipa-Experimental-Kernel",
+  "comparison_base": "exp76-preempt-rt-uname",
+  "snapshot_count": 31,
+  "unique_commits_snapshot_sum": 0,
+  "zero_unique_count": 31,
+  "tag_required_count": 0,
+  "actionable_decision": "ALL_31_REF_HEADS_REACHABLE_FROM_EXP76_MAIN_DELETE_ELIGIBLE",
+  "execution": "NOT_EXECUTED_GITHUB_CONNECTED_TOOLSET_HAS_NO_DELETE_BRANCH_OR_CREATE_TAG_ACTION",
+  "snapshot_refs": [
+    {
+      "branch": "exp76-stage20-prep-6a3bdbd",
+      "ahead_by": 0,
+      "behind_by": 357,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage21-rcu-prep-2be23af",
+      "ahead_by": 0,
+      "behind_by": 350,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage22-prepare-gate-dc66833",
+      "ahead_by": 0,
+      "behind_by": 345,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage23-prepare-evidence-945876e",
+      "ahead_by": 0,
+      "behind_by": 340,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage24-evidence-prep-13671eb",
+      "ahead_by": 0,
+      "behind_by": 336,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage25-relay-smoke-b98c8e7",
+      "ahead_by": 0,
+      "behind_by": 333,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage26-fork-affinity-b7c957",
+      "ahead_by": 0,
+      "behind_by": 325,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage27-core-mask-port-c7fc10c",
+      "ahead_by": 0,
+      "behind_by": 315,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage28-task-state-b16d214",
+      "ahead_by": 0,
+      "behind_by": 305,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage29-migration-abi-a052f06",
+      "ahead_by": 0,
+      "behind_by": 295,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage30-object-coverage-04ce35f",
+      "ahead_by": 0,
+      "behind_by": 287,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage31-class-affinity-6b78ce3",
+      "ahead_by": 0,
+      "behind_by": 278,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage32-fair-numa-affinity-27f7e3a",
+      "ahead_by": 0,
+      "behind_by": 273,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage33-vendor-fair-affinity-53b56b6",
+      "ahead_by": 0,
+      "behind_by": 269,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage34-timer-swork-d69a6b5",
+      "ahead_by": 0,
+      "behind_by": 260,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage35-kernel-might-sleep-89f0e31",
+      "ahead_by": 0,
+      "behind_by": 251,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage36-migration-contract-cdfa1c1",
+      "ahead_by": 0,
+      "behind_by": 241,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage37-reject-counter-46c11ae",
+      "ahead_by": 0,
+      "behind_by": 238,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage38-softirq-entry-guards-e0f49be",
+      "ahead_by": 0,
+      "behind_by": 226,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage39-softirq-invoke-guard-e32defd",
+      "ahead_by": 0,
+      "behind_by": 220,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage40-rt-sleeping-lock-2cbe995",
+      "ahead_by": 0,
+      "behind_by": 210,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage41-rt-migration-lifecycle-1a4e831",
+      "ahead_by": 0,
+      "behind_by": 198,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage42-hotplug-tlb-d28286a",
+      "ahead_by": 0,
+      "behind_by": 185,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage43-cpu-pin-call-sites-7ca48b4",
+      "ahead_by": 0,
+      "behind_by": 179,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage44-scoped-hotplug-0ab9f97",
+      "ahead_by": 0,
+      "behind_by": 174,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage45-bounded-hotplug-f3df27a",
+      "ahead_by": 0,
+      "behind_by": 168,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage46-cross-subsystem-9bd5a31",
+      "ahead_by": 0,
+      "behind_by": 162,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage47-rcu-balance-worker-cc59515",
+      "ahead_by": 0,
+      "behind_by": 152,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage48-rcu-reject-hunk-52cd9c1",
+      "ahead_by": 0,
+      "behind_by": 147,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage49-rt-locking-real-objects-fa7e4e1",
+      "ahead_by": 0,
+      "behind_by": 143,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    },
+    {
+      "branch": "exp76-stage50-kbuild-kernel-subtree-4f04ff7",
+      "ahead_by": 0,
+      "behind_by": 137,
+      "status": "behind",
+      "eligible_to_delete": true,
+      "unique_tag_needed": false
+    }
+  ],
+  "notes": [
+    "Compare base=exp76-preempt-rt-uname, head=snapshot, all GitHub compare results ahead_by=0",
+    "Only branch refs reviewed; no uniqueness claim for uncommitted work on local clones",
+    "Deletion needs supported authorized GitHub ref-deletion capability, absent from currently connected actions"
+  ],
+  "rt_handoff_ready": false
+}
