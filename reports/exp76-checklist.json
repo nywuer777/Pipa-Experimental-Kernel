@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-05T14:10:24.917Z",
-  "source_sha": "aaefc9d694d3bee87ed9c0b5379374020d598ae1",
+  "generated_at": "2026-11-05T14:14:13.231Z",
+  "source_sha": "c043ac16626a45f944ed6b4b2c3f97aceff70ac5",
   "scope": "RT_ONLY",
   "items": {
     "1_series_rt": {
@@ -87,19 +87,21 @@
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-05T14:10:24.917Z",
+      "updated_at": "2026-11-05T14:14:13.231Z",
       "fast_p95_s": 0.226974,
       "fast_benchmark_run": 41897623229,
       "fast_classification": "STYLE_SYNTAX_GATE_ONLY",
       "fast_mutations_detected": 1,
       "fast_technical_gate": "FAIL_AS_TECHNICAL_GATE",
-      "fast_technical_candidate": "PUBLISHED_FIXTURE_CI_PENDING_REAL_KBUILD_UNWIRED",
+      "fast_technical_candidate": "FIXTURE_CI_10_OF_10_PRODUCTION_REAL_KBUILD_UNWIRED",
       "ccache_full_images": "MEASURED_WITH_COLD_ZERO_ASSERTION_FAILURE",
       "ccache_run_id": 42020698390,
       "ccache_warm_same_commit_pct": 99.971,
       "ccache_warm_five_line_commit_pct": 99.971,
       "ccache_warm_same_commit_gt90": true,
-      "ccache_changed_core_object_invalidation": "NOT_VERIFIED"
+      "ccache_changed_core_object_invalidation": "NOT_VERIFIED",
+      "fast_technical_fixture_run_id": 42042165997,
+      "fast_technical_fixture_detected": 10
     },
     "8_panel": {
       "state": "DONE",
