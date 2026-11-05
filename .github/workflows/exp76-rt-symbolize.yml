@@ -1,0 +1,338 @@
+# YAML / GitHub Actions ubuntu-24.04 / EXP76 exact Clang21 QEMU_RT Image symbolization / NO FLASH
+name: EXP76 pinned QEMU RT vmlinux PC LR symbolization (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-rt-symbolize.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  symbolize-original-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+      LLVM_IAS: "1"
+      HOSTCC: gcc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7376e28ce33eebaf86c761181d2a485d8969bb67
+
+      - name: Preflight V3 guest gate and QEMU PIPA config-diff regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tests/exp76-rt-spin-sleep/run-in-guest.sh
+          bash tests/exp76-rt-spin-sleep/test-log-verifier.sh
+          python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
+          python3 -m py_compile tools/exp76-qemu-virtio-clang21.py
+          python3 tools/exp76-qemu-virtio-clang21.py --self-test
+          python3 tests/exp76-rt-spin-sleep/test-config-diff.py
+          git diff --check
+          echo 'EXP76_QEMU_STATIC_PREFLIGHT=PASS; QEMU_RUNTIME_NOT_YET_PROVEN'
+
+      - name: Cache downloaded Ubuntu 24.04 apt archives (not dpkg state)
+        uses: actions/cache@v4
+        with:
+          path: exp76-qemu/apt-archives
+          key: exp76-apt-${{ runner.os }}-${{ runner.arch }}-ubuntu2404-arm64qemu-v1
+
+      - name: Install pinned dependencies, BusyBox static and ARM64 QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Keep the parent and evidence directories owned by runner.
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+          mkdir -p exp76-qemu/apt-archives
+          APT_ARCHIVES="$GITHUB_WORKSPACE/exp76-qemu/apt-archives"
+          sudo mkdir -p "$APT_ARCHIVES/partial"
+          sudo chown -R _apt:root "$APT_ARCHIVES"
+          sudo chmod 755 "$APT_ARCHIVES"
+          sudo chmod 700 "$APT_ARCHIVES/partial"
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Dir::Cache::archives="$APT_ARCHIVES" \
+            -o APT::Keep-Downloaded-Packages=true \
+            install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            gcc-aarch64-linux-gnu rsync device-tree-compiler \
+            qemu-system-arm busybox-static cpio gzip xz-utils ccache
+          command -v qemu-system-aarch64
+          command -v busybox
+          command -v cpio
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+
+      - name: Obtain exact EXP75 Android Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none \
+              origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          test -x clang-r563880c/bin/llvm-objcopy
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+
+      - name: Reconstruct pinned E404 plus official RT patch and EXP76 source ports
+        shell: bash
+        timeout-minutes: 45
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > exp76-qemu/logs/source-reconstruction.log 2>&1 || {
+            tail -n 120 exp76-qemu/logs/source-reconstruction.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          # Restore the pinned KernelSU gitlink; drivers/kernelsu is a
+          # symlink to ../KernelSU/kernel. Do not delete a required source.
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-missing-sources.json
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-qemu/logs/ksu-submodule-init.log 2>&1 || {
+              cat exp76-qemu/logs/ksu-submodule-init.log
+              echo 'BLOCKED_SUBMODULE_KERNELSU'; exit 2;
+            }
+          git -C exp76-trial-overlay submodule status \
+            > exp76-qemu/reports/ksu-gitlink-status.txt
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig || {
+            echo 'BLOCKED_KCONFIG_KERNELSU_UNRESOLVED'; exit 2;
+          }
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-after-submodule.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/e404-kconfig-after-submodule.json').read_text())
+          print('KCONFIG_MISSING_AFTER_SUBMODULE=', d['missing_source_paths_count'])
+          assert 'drivers/kernelsu/Kconfig' not in d['missing_source_paths']
+          PY
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-qemu/reports/stage82
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json').read_text())
+          assert d['remaining_rejected_files']==64
+          assert d['total_rejected_hunks']==209
+          assert d['source_modified'] is False and d['rejects_deleted'] is False
+          PY
+          python3 tools/exp76-rt-stage83-arm64-neon-crypto.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage83 --mode apply
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage88 --mode apply
+          python3 tools/exp76-stage89-proc-swait.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage89 --mode apply
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage90 --mode apply
+          python3 tools/exp76-stage91-pid-atomic-header.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage91 --mode apply
+          python3 tools/exp76-rt-stage74-radix-locallock.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage74 --mode apply
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage79 --mode apply
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage85 --mode apply
+          # Fix the exact Clang21 VirtIO declaration in the disposable E404 tree.
+          # Keep QEMU VirtIO enabled; the fix is included in source-diff.sha256.
+          python3 tools/exp76-qemu-virtio-clang21.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/virtio-clang21-compat.json \
+            --mode apply
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff --binary | sha256sum \
+            > exp76-qemu/reports/source-diff.sha256
+
+      - name: Generate separate effective PIPA_RT, QEMU_RT and QEMU_NONRT configs
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          BASE="$GITHUB_WORKSPACE/exp76-qemu/outputs"
+          mkdir -p "$BASE/pipa-rt" "$BASE/qemu-rt" "$BASE/qemu-nonrt"
+          make -C "$K" O="$BASE/pipa-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            vendor/pipa_defconfig > exp76-qemu/logs/pipa-defconfig.log 2>&1
+          "$K/scripts/config" --file "$BASE/pipa-rt/.config" \
+            -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL \
+            -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL
+          make -C "$K" O="$BASE/pipa-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
+          cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
+          "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
+            -e MODULES -e MODULE_UNLOAD -e ARM_AMBA \
+            -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
+            -e DEVTMPFS -e DEVTMPFS_MOUNT \
+            -e VIRTIO_MENU -e VIRTIO -e VIRTIO_MMIO -e VIRTIO_BLK \
+            -e VIRTIO_CONSOLE -e BLK_DEV_INITRD -e BINFMT_ELF \
+            -d MODULE_SIG_FORCE
+          make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig > exp76-qemu/logs/qemu-rt-olddefconfig.log 2>&1
+          for key in CONFIG_PREEMPT_RT_FULL CONFIG_MODULES CONFIG_MODULE_UNLOAD \
+                     CONFIG_SERIAL_AMBA_PL011 CONFIG_SERIAL_AMBA_PL011_CONSOLE \
+                     CONFIG_DEVTMPFS CONFIG_VIRTIO_MMIO CONFIG_BLK_DEV_INITRD; do
+            grep -qx "$key=y" "$BASE/qemu-rt/.config" || {
+              echo "BLOCKED_CONFIG: $key != y"; exit 3;
+            }
+          done
+          python3 tests/exp76-rt-spin-sleep/check-config-diff.py \
+            --pipa "$BASE/pipa-rt/.config" \
+            --qemu "$BASE/qemu-rt/.config" \
+            --critical tests/exp76-rt-spin-sleep/rt-critical-configs.txt \
+            --report exp76-qemu/reports/QEMU_RT_PIPA_DIFF.json
+          cp "$BASE/qemu-rt/.config" "$BASE/qemu-nonrt/.config"
+          "$K/scripts/config" --file "$BASE/qemu-nonrt/.config" \
+            -d PREEMPT_RT_FULL -e PREEMPT
+          make -C "$K" O="$BASE/qemu-nonrt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig > exp76-qemu/logs/qemu-nonrt-olddefconfig.log 2>&1
+          ! grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/qemu-nonrt/.config"
+          grep -qx 'CONFIG_MODULES=y' "$BASE/qemu-nonrt/.config"
+          grep -qx 'CONFIG_MODULE_UNLOAD=y' "$BASE/qemu-nonrt/.config"
+
+      - name: Compile pinned QEMU_RT Image with exact original source and preserve vmlinux
+        shell: bash
+        timeout-minutes: 100
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          OUT="$GITHUB_WORKSPACE/exp76-qemu/outputs/qemu-rt"
+          mkdir -p exp76-qemu/reports exp76-qemu/logs
+          set +e
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld HOSTCC=gcc \
+            OBJCOPY=llvm-objcopy CROSS_COMPILE=aarch64-linux-gnu- \
+            CLANG_TRIPLE=aarch64-linux-gnu- -j"$(nproc)" Image \
+            > exp76-qemu/logs/pinned-symbols-build.log 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-qemu/reports/pinned-symbols-build-exit.txt
+          if [ "$rc" -ne 0 ]; then
+            grep -n -m30 -E 'error:|fatal|undefined reference|Error [0-9]+' exp76-qemu/logs/pinned-symbols-build.log || true
+            tail -n 80 exp76-qemu/logs/pinned-symbols-build.log
+            exit "$rc"
+          fi
+          test -s "$OUT/arch/arm64/boot/Image"
+          test -s "$OUT/vmlinux"
+          test -s "$OUT/System.map"
+          sha256sum "$OUT/vmlinux" "$OUT/System.map" "$OUT/.config" \
+            "$OUT/arch/arm64/boot/Image" > exp76-qemu/reports/symbol-inputs.sha256
+          aarch64-linux-gnu-nm -n "$OUT/vmlinux" > exp76-qemu/reports/vmlinux-nm-sorted.txt
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 / exact QEMU_RT Image signature -> vmlinux ELF virtual address
+          import hashlib,json,struct,subprocess
+          from pathlib import Path
+          base=Path("exp76-qemu/outputs/qemu-rt")
+          image=(base/"arch/arm64/boot/Image").read_bytes()
+          elf=(base/"vmlinux").read_bytes()
+          sig=bytes.fromhex("8d000094682244391f0d0072e0feff54000021d4")
+          knownsha="8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1"
+          image_sha=hashlib.sha256(image).hexdigest()
+          positions=[]
+          pos=image.find(sig)
+          while pos>=0:
+              positions.append(pos)
+              pos=image.find(sig,pos+1)
+          report={"schema_version":1,"original_image_sha256":knownsha,
+                  "rebuild_image_sha256":image_sha,"image_binary_identical":image_sha==knownsha,
+                  "signature_original_image_start_offset":0xb1c,
+                  "original_pc_image_offset":0xb2c,"original_lr_image_offset":0xaf8,
+                  "signature_matches_rebuilt_Image":positions,
+                  "source_sha":"7376e28ce33eebaf86c761181d2a485d8969bb67",
+                  "vmlinux_sha256":hashlib.sha256(elf).hexdigest(),
+                  "symbolless_original_config":True,"rt_handoff_ready":False}
+          if len(positions)!=1:
+              report["state"]="BLOCKED_SIGNATURE_NONUNIQUE_OR_MISSING"
+          else:
+              p=elf.find(sig)
+              offsets=[]
+              while p>=0:
+                  offsets.append(p)
+                  p=elf.find(sig,p+1)
+              report["signature_matches_vmlinux_file"]=offsets
+              phoff=struct.unpack_from("<Q",elf,32)[0]
+              phentsize=struct.unpack_from("<H",elf,54)[0]
+              phnum=struct.unpack_from("<H",elf,56)[0]
+              targets=[]
+              if len(offsets)==1:
+                  filepc=offsets[0]+16
+                  for i in range(phnum):
+                      h=phoff+i*phentsize
+                      typ,flags,off,vaddr,paddr,filesz,memsz,align=struct.unpack_from("<IIQQQQQQ",elf,h)
+                      if typ==1 and off<=filepc<off+filesz:
+                          targets.append(vaddr+filepc-off)
+              report["matched_vmlinux_pc_vma"]= [hex(x) for x in targets]
+              if len(targets)==1:
+                  pc=targets[0]
+                  lr=pc-0x34
+                  report["matched_vmlinux_lr_vma"]=hex(lr)
+                  dump=[]
+                  for label,address in [("pc",pc),("lr",lr)]:
+                      p=subprocess.run(["aarch64-linux-gnu-addr2line","-e",str(base/"vmlinux"),"-f","-i",hex(address)],text=True,capture_output=True)
+                      dump.append({"label":label,"vma":hex(address),"exit_code":p.returncode,"stdout":p.stdout,"stderr":p.stderr})
+                  report["addr2line"]=dump
+                  p=subprocess.run(["aarch64-linux-gnu-objdump","-d",str(base/"vmlinux"),"--start-address="+hex(pc-0x90),"--stop-address="+hex(pc+0x90)],text=True,capture_output=True)
+                  Path("exp76-qemu/reports/panic-vmlinux-disassembly.txt").write_text(p.stdout+p.stderr)
+                  report["objdump_exit_code"]=p.returncode
+                  report["state"]="MATCHED_VMLINUX_CODE_AND_DISASSEMBLED"
+              else:
+                  report["state"]="BLOCKED_ELF_LOAD_MAPPING"
+          Path("exp76-qemu/reports/panic-addr2line.json").write_text(json.dumps(report,indent=2)+"\n")
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Upload rebuilt ELF, System.map, symbol matches and compiler evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-original-vmlinux-symbols-NOFLASH
+          path: |
+            exp76-qemu/reports/
+            exp76-qemu/logs/pinned-symbols-build.log
+            exp76-qemu/outputs/qemu-rt/.config
+            exp76-qemu/outputs/qemu-rt/vmlinux
+            exp76-qemu/outputs/qemu-rt/System.map
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 20
