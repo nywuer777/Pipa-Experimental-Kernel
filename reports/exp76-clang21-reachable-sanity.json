@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_REACHABLE_OBJECT_SANITY_CHECK",
+  "source_run_id": 42020698390,
+  "source_artifact_id": 13412264343,
+  "source_log_paths": [
+    "logs/build-pipa-rt.log",
+    "logs/ccache-full-cold.log",
+    "logs/ccache-full-warm_same_commit.log",
+    "logs/ccache-full-warm_five_line_commit.log"
+  ],
+  "method": "search exact escaped relative source .o path in complete CC logs, with positive controls; this does not address header expansions",
+  "positive_controls": [
+    {
+      "object": "mm/slub.o",
+      "pipa_log_hits": 1,
+      "qemu_cold_hits": 1,
+      "qemu_warm_same_hits": 1,
+      "qemu_warm_different_hits": 1
+    },
+    {
+      "object": "drivers/virtio/virtio_ring.o",
+      "pipa_log_hits": 0,
+      "qemu_cold_hits": 1,
+      "qemu_warm_same_hits": 1,
+      "qemu_warm_different_hits": 1
+    }
+  ],
+  "negative_controls": [
+    {
+      "file": "drivers/vhost/net.c",
+      "object": "drivers/vhost/net.o",
+      "pipa_log_hits": 0,
+      "qemu_cold_hits": 0,
+      "qemu_warm_same_hits": 0,
+      "qemu_warm_different_hits": 0
+    },
+    {
+      "file": "fs/ubifs/commit.c",
+      "object": "fs/ubifs/commit.o",
+      "pipa_log_hits": 0,
+      "qemu_cold_hits": 0,
+      "qemu_warm_same_hits": 0,
+      "qemu_warm_different_hits": 0
+    },
+    {
+      "file": "drivers/net/wireless/broadcom/b43/xmit.c",
+      "object": "drivers/net/wireless/broadcom/b43/xmit.o",
+      "pipa_log_hits": 0,
+      "qemu_cold_hits": 0,
+      "qemu_warm_same_hits": 0,
+      "qemu_warm_different_hits": 0
+    }
+  ],
+  "negative_matches": 0,
+  "total_negative_checks": 12,
+  "sanity_status": "PASS_NO_FALSE_NEGATIVE_IN_THREE_SAMPLED_FILES",
+  "limitations": [
+    "Three sampled source files are not a guarantee for all 148 files",
+    "Header expansions are not tested by C to object matching",
+    "Compiler output lines and cache-hit lines both refer to requested objects"
+  ],
+  "rt_handoff_ready": false
+}
