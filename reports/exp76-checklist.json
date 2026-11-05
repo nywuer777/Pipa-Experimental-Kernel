@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-05T14:14:13.231Z",
-  "source_sha": "c043ac16626a45f944ed6b4b2c3f97aceff70ac5",
+  "generated_at": "2026-11-05T15:02:26.650Z",
+  "source_sha": "d382a375e12eeaef0a5c94533faf0b45a67a22cb",
   "scope": "RT_ONLY",
   "items": {
     "1_series_rt": {
@@ -55,15 +55,21 @@
       "e2_port_ready": 0
     },
     "5_qemu": {
-      "state": "NOT_READY",
-      "evidence_path": "github-actions/42021714463/exp76-qemu-rt-functional-NOFLASH",
+      "state": "FAIL_PANIC_EARLY",
+      "evidence_path": "github-actions/42050248789/exp76-prebuilt-rt-first-qemu-smoke-NOFLASH",
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-05T14:10:24.917Z",
-      "blocker": "BUILD_ASSERTION_COLD_CACHE_HITS_PREVENTED_GUEST; modules, initramfs and boots skipped",
-      "latest_qemu_run_id": 42021714463,
-      "kconfig_audit_path": "reports/e404-kconfig-missing-sources.json"
+      "updated_at": "2026-11-05T15:02:26.650Z",
+      "blocker": "EARLY_KERNEL_BUG_SWAPPER_PRE_INIT; pc 0xffffffa763080b2c lr 0xffffffa763080af8; needs exact vmlinux symbolization",
+      "latest_qemu_run_id": 42050248789,
+      "kconfig_audit_path": "reports/e404-kconfig-missing-sources.json",
+      "qemu_guest_entered_kernel": true,
+      "kernel_boot_complete": false,
+      "guest_init_reached": false,
+      "panic_evidence_path": "reports/exp76-round14-qemu-early-panic.json",
+      "raw_console_sha256": "99ccddac055e5390e01ace918441796f7a3d08e3bbae693a6767545ab2f358b3",
+      "first_guest_console_kernel": "4.19.404R-rt140"
     },
     "6_build_rt": {
       "state": "PARTIAL_PASS",
