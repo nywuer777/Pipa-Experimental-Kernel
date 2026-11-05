@@ -13,6 +13,7 @@ def generate(root, source_sha, generated_at):
     kconfig=read(root/"reports/e404-kconfig-missing-sources.json")
     mutants=read(root/"reports/exp76-fast-mutations.json")
     technical=read(root/"reports/exp76-fast-technical-mutations.json")
+    first_boot=read(root/"reports/exp76-round14-qemu-early-panic.json")
     ccache=read(root/"reports/exp76-ccache-three-full-images.json")
     reach=read(root/"reports/clang21-reachable-at-build.json")
     e2=read(root/"reports/exp76-e2-actionable-triage.json")
@@ -23,6 +24,8 @@ def generate(root, source_sha, generated_at):
     assert mutants["detected_count"]==1 and mutants["total_mutations"]==10
     assert technical["detected"]==10 and technical["total"]==10
     assert technical["production_kbuild_gate_qualified"] is False
+    assert first_boot["qemu"]["guest_console_generated"] is True
+    assert first_boot["status"]=="KERNEL_ENTERED_PANIC_BEFORE_INIT"
     assert len(ccache["results"])==3 and ccache["gates"]["warm_same_commit_gt_90pct"]
     assert ccache["gates"]["strict_cold_zero_hits"] is False
     assert reach["files_actually_compiled_pipa_rt"]==1
@@ -54,9 +57,14 @@ def generate(root, source_sha, generated_at):
                         scheduler_pending=sched["pending"],semantically_resolved=0,
                         e2_triage_path="reports/exp76-e2-actionable-triage.json",
                         e2_semantic_required=2,e2_context_drift=4,e2_port_ready=0),
-        "5_qemu":item("NOT_READY","github-actions/42021714463/exp76-qemu-rt-functional-NOFLASH",
-                       blocker="BUILD_ASSERTION_COLD_CACHE_HITS_PREVENTED_GUEST; modules, initramfs and boots skipped",
-                       latest_qemu_run_id=42021714463,
+        "5_qemu":item("FAIL_PANIC_EARLY","github-actions/42050248789/exp76-prebuilt-rt-first-qemu-smoke-NOFLASH",
+                       blocker="EARLY_KERNEL_BUG_SWAPPPER_PRE_INIT; unsymbolized pc/lr",
+                       latest_qemu_run_id=first_boot["run_id"],
+                       qemu_guest_entered_kernel=True,
+                       kernel_boot_complete=False,
+                       guest_init_reached=False,
+                       panic_evidence_path="reports/exp76-round14-qemu-early-panic.json",
+                       raw_console_sha256=first_boot["evidence_sha256"]["console_raw"],
                        kconfig_audit_path="reports/e404-kconfig-missing-sources.json"),
         "6_build_rt":item("PARTIAL_PASS","github-actions/41930944374/exp76-qemu-rt-functional-NOFLASH",
                           build_rt_images_generated="PASS",
