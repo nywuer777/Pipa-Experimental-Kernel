@@ -39,6 +39,8 @@ jobs:
           python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
           python3 -m py_compile tools/exp76-qemu-virtio-clang21.py
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
+          python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
           echo 'EXP76_QEMU_STATIC_PREFLIGHT=PASS; QEMU_RUNTIME_NOT_YET_PROVEN'
@@ -181,6 +183,10 @@ jobs:
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/virtio-clang21-compat.json \
             --mode apply
+          # Retain RT RCU quiescent-state API; use E404 vendor API in nonRT.
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
@@ -610,6 +616,8 @@ jobs:
           python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
           python3 -m py_compile tools/exp76-qemu-virtio-clang21.py
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
+          python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
           echo 'EXP76_QEMU_STATIC_PREFLIGHT=PASS; QEMU_RUNTIME_NOT_YET_PROVEN'
@@ -752,6 +760,10 @@ jobs:
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/virtio-clang21-compat.json \
             --mode apply
+          # Retain RT RCU quiescent-state API; use E404 vendor API in nonRT.
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
