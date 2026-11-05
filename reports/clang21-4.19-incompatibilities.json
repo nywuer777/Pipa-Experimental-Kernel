@@ -17,7 +17,7 @@
       "line": 271,
       "symbol": "uninitialized_var(prev)",
       "category": "legacy_macro_undefined",
-      "root_cause": "MISSING_IN_E404_COMPILER_HEADERS_PRELIMINARY",
+      "root_cause": "VENDOR_REMOVED_MACRO_BUT_VIRTIO_CALL_SITE_RETAINED",
       "fix_branch": "exp76-qemu-virtio-clang21",
       "fix_commit": "b11aac4a94fde7b9d2b12a4e16302306cc1384dd",
       "qemu_rt_image_compiled_run": 41930944374,
@@ -25,5 +25,14 @@
     }
   ],
   "other_compatibility_classes_observed": 0,
-  "rt_handoff_ready": false
+  "rt_handoff_ready": false,
+  "macro_removal_e404_commit": "2acbd0de67aeb3863d278e81e0efe7d9084338f0",
+  "macro_removal_e404_commit_date": "2026-04-05T12:32:51Z",
+  "macro_removal_files": [
+    "include/linux/compiler-clang.h",
+    "include/linux/compiler-gcc.h",
+    "tools/include/linux/compiler.h",
+    "tools/virtio/linux/kernel.h"
+  ],
+  "macro_removal_evidence": "https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/commit/2acbd0de67aeb3863d278e81e0efe7d9084338f0"
 }
