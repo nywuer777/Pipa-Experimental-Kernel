@@ -12,6 +12,7 @@ def generate(root, source_sha, generated_at):
     sched=read(root/"reports/exp76-scheduler-batch1.json")
     kconfig=read(root/"reports/e404-kconfig-missing-sources.json")
     mutants=read(root/"reports/exp76-fast-mutations.json")
+    technical=read(root/"reports/exp76-fast-technical-mutations.json")
     ccache=read(root/"reports/exp76-ccache-three-full-images.json")
     reach=read(root/"reports/clang21-reachable-at-build.json")
     e2=read(root/"reports/exp76-e2-actionable-triage.json")
@@ -20,6 +21,8 @@ def generate(root, source_sha, generated_at):
     assert kconfig["before_submodule"]["missing_source_paths_count"]==1
     assert kconfig["after_submodule"]["missing_source_paths_count"]==0
     assert mutants["detected_count"]==1 and mutants["total_mutations"]==10
+    assert technical["detected"]==10 and technical["total"]==10
+    assert technical["production_kbuild_gate_qualified"] is False
     assert len(ccache["results"])==3 and ccache["gates"]["warm_same_commit_gt_90pct"]
     assert ccache["gates"]["strict_cold_zero_hits"] is False
     assert reach["files_actually_compiled_pipa_rt"]==1
@@ -70,7 +73,9 @@ def generate(root, source_sha, generated_at):
                              fast_classification=mutants["classification"],
                              fast_mutations_detected=mutants["detected_count"],
                              fast_technical_gate="FAIL_AS_TECHNICAL_GATE",
-                             fast_technical_candidate="PUBLISHED_FIXTURE_CI_PENDING_REAL_KBUILD_UNWIRED",
+                             fast_technical_candidate="FIXTURE_CI_10_OF_10_PRODUCTION_REAL_KBUILD_UNWIRED",
+                             fast_technical_fixture_run_id=technical["authoritative_ci"]["run_id"],
+                             fast_technical_fixture_detected=technical["detected"],
                              ccache_full_images="MEASURED_WITH_COLD_ZERO_ASSERTION_FAILURE",
                              ccache_run_id=42020698390,
                              ccache_warm_same_commit_pct=ccache["results"][1]["hit_rate_pct"],
