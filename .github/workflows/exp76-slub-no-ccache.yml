@@ -5,6 +5,7 @@ on:
     branches: [exp76-preempt-rt-uname]
     paths:
       - '.github/workflows/exp76-slub-no-ccache.yml'
+      - 'tools/exp76-ccache-core-object-proof.sh'
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,7 +31,7 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             git bc bison flex libssl-dev libelf-dev libncurses-dev \
-            gcc-aarch64-linux-gnu rsync device-tree-compiler
+            gcc-aarch64-linux-gnu rsync device-tree-compiler ccache
       - name: Pin Android Clang21
         shell: bash
         run: |
@@ -107,6 +108,19 @@ jobs:
             > exp76-slub/reports/slub-compile-command.txt || true
           printf 'CCACHE_DISABLE=1\nCONFIG_SLUB_DEBUG=n\nSLUB_DIRECT_OBJECT=PASS\n' \
             > exp76-slub/reports/qualification.txt
+      - name: Verify scheduler core.o cache invalidation for semantic code change
+        shell: bash
+        timeout-minutes: 18
+        run: |
+          set -euo pipefail
+          bash -n tools/exp76-ccache-core-object-proof.sh
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          bash tools/exp76-ccache-core-object-proof.sh \
+            "$GITHUB_WORKSPACE/exp76-trial-overlay" \
+            "$GITHUB_WORKSPACE/exp76-slub/out" \
+            "$GITHUB_WORKSPACE/exp76-slub/reports" \
+            "$GITHUB_WORKSPACE/exp76-slub/logs"
+
       - name: Upload no-ccache object proof and failure logs
         if: always()
         uses: actions/upload-artifact@v4
