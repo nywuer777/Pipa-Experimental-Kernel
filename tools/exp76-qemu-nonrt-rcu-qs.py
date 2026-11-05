@@ -57,6 +57,7 @@ def apply(text):
 
 def self_test():
     old = (
+        "DEFINE_PER_CPU(__u32, active_softirqs);\n" +
         FUNCTION + "\n{\n\tif (pending)\n\t\trcu_bh_qs();\n}\n\n"
         "asmlinkage __visible void do_softirq(void)\n{\n}\n"
     )
