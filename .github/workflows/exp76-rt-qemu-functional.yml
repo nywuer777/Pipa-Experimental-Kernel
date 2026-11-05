@@ -795,6 +795,46 @@ jobs:
           path: exp76-qemu/ccache
           key: exp76-ccache-v1-${{ runner.os }}-${{ env.ANDROID_LLVM_COMMIT }}-${{ hashFiles('exp76-qemu/outputs/qemu-rt/.config') }}-${{ hashFiles('exp76-qemu/reports/source-diff.sha256') }}
 
+      - name: Force uncached Clang21 rebuild of mm/slub.o and audit macro definitions
+        id: slub_uncached
+        shell: bash
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          OUT="$GITHUB_WORKSPACE/exp76-qemu/outputs/qemu-rt"
+          mkdir -p exp76-qemu/reports exp76-qemu/logs
+          grep '^# CONFIG_SLUB_DEBUG is not set' "$OUT/.config" \
+            > exp76-qemu/reports/slub-config-guard.txt
+          grep -rEn --include='*.c' --include='*.h' --exclude-dir=.git \
+            '^[[:space:]]*#[[:space:]]*define[[:space:]]+uninitialized_var' "$K" \
+            > exp76-qemu/reports/uninitialized_var-definitions.txt || true
+          find "$OUT/include/generated" -name 'compiler*' -print \
+            > exp76-qemu/reports/slub-generated-compiler-files.txt 2>/dev/null || true
+          rm -f "$OUT/mm/slub.o" "$OUT/mm/.slub.o.cmd"
+          set +e
+          CCACHE_DISABLE=1 make -C "$K" O="$OUT" ARCH=arm64 \
+            CC='ccache clang' LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            -j4 mm/slub.o > exp76-qemu/logs/slub-uncached-rebuild.log 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-qemu/reports/slub-uncached-exit-code.txt
+          echo "EXP76_SLUB_CCACHE_DISABLE_REBUILD_EXIT=$rc"
+          if [ "$rc" -eq 0 ]; then
+            test -s "$OUT/mm/slub.o"
+            sha256sum "$OUT/mm/slub.o" \
+              > exp76-qemu/reports/slub-uncached-object-sha256.txt
+            echo "EXP76_SLUB_UNCACHED_OBJECT=PASS"
+          else
+            grep -n -m30 -E 'error:|fatal error:|Error [0-9]+' \
+              exp76-qemu/logs/slub-uncached-rebuild.log || true
+            tail -n 40 exp76-qemu/logs/slub-uncached-rebuild.log
+            exit "$rc"
+          fi
+
       - name: Execute independent ccache three-image diagnostic (nonblocking)
         id: ccache_experiment
         shell: bash
