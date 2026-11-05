@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - exp76-qemu-virtio-clang21
+      - exp76-qemu-virtio-block-io
   workflow_call:
   workflow_dispatch:
 
@@ -67,7 +68,7 @@ jobs:
             install -y --no-install-recommends \
             git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
             gcc-aarch64-linux-gnu rsync device-tree-compiler \
-            qemu-system-arm busybox-static cpio gzip xz-utils ccache
+            qemu-system-arm busybox-static cpio gzip xz-utils ccache e2fsprogs
           command -v qemu-system-aarch64
           command -v busybox
           command -v cpio
@@ -209,6 +210,7 @@ jobs:
             -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
             -e DEVTMPFS -e DEVTMPFS_MOUNT \
             -e VIRTIO_MENU -e VIRTIO -e VIRTIO_MMIO -e VIRTIO_BLK \
+            -e EXT4_FS \
             -e VIRTIO_CONSOLE -e BLK_DEV_INITRD -e BINFMT_ELF \
             -d MODULE_SIG_FORCE
           make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
@@ -216,7 +218,8 @@ jobs:
             olddefconfig > exp76-qemu/logs/qemu-rt-olddefconfig.log 2>&1
           for key in CONFIG_PREEMPT_RT_FULL CONFIG_MODULES CONFIG_MODULE_UNLOAD \
                      CONFIG_SERIAL_AMBA_PL011 CONFIG_SERIAL_AMBA_PL011_CONSOLE \
-                     CONFIG_DEVTMPFS CONFIG_VIRTIO_MMIO CONFIG_BLK_DEV_INITRD; do
+                     CONFIG_DEVTMPFS CONFIG_VIRTIO_MMIO CONFIG_VIRTIO_BLK \
+                     CONFIG_EXT4_FS CONFIG_BLK_DEV_INITRD; do
             grep -qx "$key=y" "$BASE/qemu-rt/.config" || {
               echo "BLOCKED_CONFIG: $key != y"; exit 3;
             }
@@ -312,7 +315,7 @@ jobs:
           set -euo pipefail
           ROOT="$GITHUB_WORKSPACE/exp76-qemu/initramfs"
           mkdir -p "$ROOT/bin" "$ROOT/dev" "$ROOT/proc" "$ROOT/sys" \
-            "$ROOT/tmp" "$ROOT/probe" "$ROOT/config"
+            "$ROOT/tmp" "$ROOT/probe" "$ROOT/config" "$ROOT/mnt/virtio"
           cp "$(command -v busybox)" "$ROOT/bin/busybox"
           for x in sh ash mount mkdir cat grep sed awk tr wc tail head \
                    insmod rmmod dmesg timeout mktemp rm ls echo sync \
@@ -326,6 +329,23 @@ jobs:
             "$ROOT/probe/nonrt.ko"
           cp exp76-qemu/outputs/qemu-rt/.config "$ROOT/config/rt.config"
           cp exp76-qemu/outputs/qemu-nonrt/.config "$ROOT/config/nonrt.config"
+          # Real virtio-blk/ext4 guest read, not just a driver-load test.
+          printf "EXP76_VIRTIO_BLOCK_IO_OK\\n" \
+            > exp76-qemu/reports/virtio-block-fixture.txt
+          truncate -s 32M exp76-qemu/virtio-ext4.img
+          mkfs.ext4 -F -q -O ^metadata_csum,^64bit exp76-qemu/virtio-ext4.img
+          debugfs -w -R "write exp76-qemu/reports/virtio-block-fixture.txt /fixture.txt" \
+            exp76-qemu/virtio-ext4.img \
+            > exp76-qemu/logs/virtio-block-image.log 2>&1
+          debugfs -R "stat /fixture.txt" exp76-qemu/virtio-ext4.img \
+            >> exp76-qemu/logs/virtio-block-image.log 2>&1
+          sha256sum exp76-qemu/virtio-ext4.img \
+            > exp76-qemu/reports/virtio-block-image.sha256
+          sha256sum exp76-qemu/reports/virtio-block-fixture.txt \
+            | awk '{print $1 "  /mnt/virtio/fixture.txt"}' \
+            > "$ROOT/config/virtio-block-verify.sha256"
+          cp "$ROOT/config/virtio-block-verify.sha256" \
+            exp76-qemu/reports/virtio-block-verify.sha256
           sudo mknod "$ROOT/dev/console" c 5 1
           sudo mknod "$ROOT/dev/null" c 1 3
           cat > "$ROOT/init" <<'INIT'
@@ -336,6 +356,14 @@ jobs:
           mount -t sysfs sysfs /sys
           mount -t devtmpfs devtmpfs /dev || :
           result=0
+          if [ -b /dev/vda ] \
+             && mount -t ext4 -o ro /dev/vda /mnt/virtio \
+             && sha256sum -c /config/virtio-block-verify.sha256; then
+            echo 'EXP76_VIRTIO_BLK_READ=PASS'
+          else
+            echo 'EXP76_VIRTIO_BLK_READ=FAIL'
+            result=1
+          fi
           if grep -q 'exp76_mode=nonrt' /proc/cmdline; then
             echo 'EXP76_QEMU_SCENARIO=NONRT_BEGIN'
             /bin/sh /probe/gate.sh execute nonrt /probe/nonrt.ko \
@@ -390,6 +418,8 @@ jobs:
             -nographic -no-reboot \
             -kernel exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
             -initrd exp76-qemu/initramfs.cpio.gz \
+            -drive file=exp76-qemu/virtio-ext4.img,if=none,id=vdisk,format=raw,readonly=on \
+            -device virtio-blk-device,drive=vdisk \
             -append 'console=ttyAMA0 panic=-1 exp76_mode=rt' \
             > exp76-qemu/logs/qemu-rt-console.txt 2>&1
           rc=$?
@@ -397,6 +427,7 @@ jobs:
           echo "$rc" > exp76-qemu/reports/qemu-rt-exit-code.txt
           cat exp76-qemu/logs/qemu-rt-console.txt
           [ "$rc" -eq 0 ] || { echo "BLOCKED_QEMU_RT rc=$rc"; exit 1; }
+          grep -q '^EXP76_VIRTIO_BLK_READ=PASS' exp76-qemu/logs/qemu-rt-console.txt
           grep -q '^EXP76_QEMU_RT=PASS' exp76-qemu/logs/qemu-rt-console.txt
           grep -q 'EXPECTED_FAIL_SERIALIZATION=PASS' exp76-qemu/logs/qemu-rt-console.txt
           grep -q 'EXP76_QEMU_TRUNCATED_LOG=PASS expected_exit=2' exp76-qemu/logs/qemu-rt-console.txt
@@ -413,6 +444,8 @@ jobs:
             -nographic -no-reboot \
             -kernel exp76-qemu/outputs/qemu-nonrt/arch/arm64/boot/Image \
             -initrd exp76-qemu/initramfs.cpio.gz \
+            -drive file=exp76-qemu/virtio-ext4.img,if=none,id=vdisk,format=raw,readonly=on \
+            -device virtio-blk-device,drive=vdisk \
             -append 'console=ttyAMA0 panic=-1 exp76_mode=nonrt' \
             > exp76-qemu/logs/qemu-nonrt-console.txt 2>&1
           rc=$?
@@ -420,6 +453,7 @@ jobs:
           echo "$rc" > exp76-qemu/reports/qemu-nonrt-exit-code.txt
           cat exp76-qemu/logs/qemu-nonrt-console.txt
           [ "$rc" -eq 0 ] || { echo "BLOCKED_QEMU_NONRT rc=$rc"; exit 1; }
+          grep -q '^EXP76_VIRTIO_BLK_READ=PASS' exp76-qemu/logs/qemu-nonrt-console.txt
           grep -q '^EXP76_QEMU_NONRT=PASS' exp76-qemu/logs/qemu-nonrt-console.txt
           grep -q 'EXPECTED_BLOCKED_CONFIG=PASS' exp76-qemu/logs/qemu-nonrt-console.txt
           grep -q '^EXP76_QEMU_GUEST_RESULT=0' exp76-qemu/logs/qemu-nonrt-console.txt
