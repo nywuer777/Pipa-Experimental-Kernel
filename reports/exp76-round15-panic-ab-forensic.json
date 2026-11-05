@@ -33,14 +33,26 @@
     "raw_bug_opcode": "0xd4210000",
     "original_w8": "0x85",
     "field_struct_name": "NOT_RESOLVED_PENDING_EXACT_VMLINUX",
-    "pc_function": "do_undefinstr (source/assembly cross-validated; direct addr2line pending)",
-    "lr_function": "do_undefinstr (same raw function span; direct addr2line pending)",
+    "pc_function": "do_undefinstr+0x32c (aarch64-linux-gnu-addr2line confirmed)",
+    "lr_function": "do_undefinstr+0x2f8 (aarch64-linux-gnu-addr2line confirmed)",
     "vmlinux_symbolization_run_id": 42060860315,
     "bug_source": "arch/arm64/kernel/traps.c:441 BUG_ON(!user_mode(regs))",
     "register_offset_meaning": "struct pt_regs.pstate (offset 0x108)",
     "original_w8_masked_low_nibble": "0x5 (EL1h), non-user mode",
     "underlying_exception": "EL1 undefined instruction; original regs->pc not yet recovered",
-    "panicking_idle_task_explanation": "secondary do_exit() kernel/exit.c:826 after undefined-instruction BUG"
+    "panicking_idle_task_explanation": "secondary do_exit() kernel/exit.c:826 after undefined-instruction BUG",
+    "original_fault_address_nokaslr": "0xffffff801056b978",
+    "original_fault_symbol": "is_scm_armv8.cold.1+0x38",
+    "original_fault_source": "drivers/soc/qcom/scm.c:270-308",
+    "original_fault_instruction": "smc #0",
+    "original_fault_opcode": "0xd4000003",
+    "pc_and_lr_symbolization_run": 42060860315,
+    "pc_and_lr_symbolization_artifact": 13433005201,
+    "vmlinux_sha256": "532e28df984d966103e2415623ba6d8edec97e6ae8d95d7fffe82cdfbaef1460",
+    "rebuilt_image_sha256": "2e50b984fe277164004855449f9c7767c95305992c82b3f4967b2d40af34d68c",
+    "original_and_rebuilt_image_sha_identical": false,
+    "identical_bug_opcode_same_image_offset": true,
+    "cause_classification": "QUALCOMM_SCM_SMCCC_SMC_TRAPPED_UNDEFINED_ON_QEMU_VIRT"
   },
   "orig_config": {
     "CONFIG_RANDOMIZE_BASE": "y",
@@ -102,7 +114,8 @@
     "panic_text": "Attempted to kill the idle task!",
     "panic_source": "kernel/exit.c:826 do_exit when task->pid == 0",
     "first_bug_not_idle_loop_return": true,
-    "printk_time_available_in_earlyconsole": false
+    "printk_time_available_in_earlyconsole": false,
+    "lines": 42
   },
   "rt_reject_inventory": {
     "files": 64,
@@ -111,5 +124,21 @@
   },
   "state": "KERNEL_PANIC_EARLY_BEFORE_INIT",
   "rt_handoff_ready": false,
-  "flash_ready": false
+  "flash_ready": false,
+  "secure_world_ab": {
+    "run_id": 42063033808,
+    "artifact_id": 13432830088,
+    "secure_off": {
+      "panic": true,
+      "qemu_exit": 0,
+      "guest_init": false
+    },
+    "secure_on": {
+      "qemu_exit": 124,
+      "timeout_seconds": 75,
+      "guest_kernel_console": false,
+      "guest_init": false
+    },
+    "conclusion": "NO_FUNCTIONAL_BOOT_PASS"
+  }
 }
