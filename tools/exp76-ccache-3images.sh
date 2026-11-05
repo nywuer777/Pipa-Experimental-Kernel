@@ -59,7 +59,7 @@ EOF
   test -s "$OUT/arch/arm64/boot/Image"
   test "$(sha256sum "$OUT/.config" | cut -d' ' -f1)" = "$CONFIG_SHA"
   echo "$(( (END-START)/1000000 ))" > "$REPORT/ccache-full-$PHASE.duration_ms"
-  ccache --show-stats --format=json > "$REPORT/ccache-full-$PHASE.json"
+  ccache --print-stats > "$REPORT/ccache-full-$PHASE.tsv"
   sha256sum "$OUT/arch/arm64/boot/Image" > "$REPORT/ccache-full-$PHASE.image-sha256"
   git -C "$K" rev-parse HEAD > "$REPORT/ccache-full-$PHASE.git-sha"
 done
@@ -71,11 +71,23 @@ from pathlib import Path
 p=Path(sys.argv[1])
 rows=[]
 for phase in ("cold","warm_same_commit","warm_five_line_commit"):
-    data=json.loads((p/f"ccache-full-{phase}.json").read_text())
-    counts=data.get("stats",data)
-    direct=int(counts.get("direct_cache_hit",0))
-    preprocessed=int(counts.get("preprocessed_cache_hit",0))
-    misses=int(counts.get("cache_miss",0))
+    # --print-stats uses stable TSV in ccache 4.x; --show-stats
+    # does not accept --format=json in the Ubuntu 24.04 runner.
+    raw=(p/f"ccache-full-{phase}.tsv").read_text()
+    counts={}
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        key, sep, value=line.partition("\t")
+        if not sep or not value.strip().isdigit() or key in counts:
+            raise RuntimeError("invalid ccache TSV counter in "+phase+": "+repr(line))
+        counts[key]=int(value)
+    for key in ("direct_cache_hit","preprocessed_cache_hit","cache_miss"):
+        if key not in counts:
+            raise RuntimeError("missing ccache counter in "+phase+": "+key)
+    direct=counts["direct_cache_hit"]
+    preprocessed=counts["preprocessed_cache_hit"]
+    misses=counts["cache_miss"]
     total=direct+preprocessed+misses
     if total==0:
         raise RuntimeError("ccache did not record calls in "+phase+": "+repr(counts))
