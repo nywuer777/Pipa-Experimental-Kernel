@@ -14,6 +14,7 @@ def generate(root, source_sha, generated_at):
     mutants=read(root/"reports/exp76-fast-mutations.json")
     technical=read(root/"reports/exp76-fast-technical-mutations.json")
     first_boot=read(root/"reports/exp76-round14-qemu-early-panic.json")
+    round16=read(root/"reports/exp76-round16-scm-off-build-smoke.json")
     ccache=read(root/"reports/exp76-ccache-three-full-images.json")
     reach=read(root/"reports/clang21-reachable-at-build.json")
     e2=read(root/"reports/exp76-e2-actionable-triage.json")
@@ -26,6 +27,11 @@ def generate(root, source_sha, generated_at):
     assert technical["production_kbuild_gate_qualified"] is False
     assert first_boot["qemu"]["guest_console_generated"] is True
     assert first_boot["status"]=="KERNEL_ENTERED_PANIC_BEFORE_INIT"
+    assert round16["qemu_rt"]["build_step"]=="PASS"
+    assert round16["qemu_rt"]["config_diff_critical_count"]==0
+    assert round16["qemu_rt"]["smoke_console"]["bytes"]==0
+    assert round16["pipa_rt"]["build_step"]=="PASS"
+    assert round16["pipa_rt"]["same_config_sha_as_round12"] is True
     assert len(ccache["results"])==3 and ccache["gates"]["warm_same_commit_gt_90pct"]
     assert ccache["gates"]["strict_cold_zero_hits"] is False
     assert reach["files_actually_compiled_pipa_rt"]==1
@@ -57,29 +63,35 @@ def generate(root, source_sha, generated_at):
                         scheduler_pending=sched["pending"],semantically_resolved=0,
                         e2_triage_path="reports/exp76-e2-actionable-triage.json",
                         e2_semantic_required=2,e2_context_drift=4,e2_port_ready=0),
-        "5_qemu":item("FAIL_PANIC_EARLY","github-actions/42050248789/exp76-prebuilt-rt-first-qemu-smoke-NOFLASH",
-                       blocker="EARLY_KERNEL_BUG_SWAPPPER_PRE_INIT; unsymbolized pc/lr",
-                       latest_qemu_run_id=first_boot["run_id"],
-                       qemu_guest_entered_kernel=True,
-                       kernel_boot_complete=False,
+        "5_qemu":item("FAIL_EMPTY_CONSOLE_SCM_OFF","github-actions/42065541890/exp76-qemu-rt-functional-NOFLASH",
+                       blocker="QEMU_SCM_OFF_IMAGE_BUILT_BUT_NO_SERIAL_CONSOLE_OR_INIT_MARKERS",
+                       latest_qemu_run_id=round16["workflow_run_id"],
+                       last_guest_console_sha256=round16["qemu_rt"]["smoke_console"]["sha256"],
+                       last_guest_console_bytes=0,last_guest_console_lines=0,
+                       last_host_qemu_exit_code=0,
+                       previous_kernel_entry_run_id=first_boot["run_id"],
+                       previous_kernel_panic_sha256=first_boot["evidence_sha256"]["console_raw"],
                        guest_init_reached=False,
-                       panic_evidence_path="reports/exp76-round14-qemu-early-panic.json",
-                       raw_console_sha256=first_boot["evidence_sha256"]["console_raw"],
-                       qemu_scm_policy="QEMU_ONLY_QCOM_SCM_N_PENDING_EFFECTIVE_CONFIG_AND_BOOT",
+                       qemu_scm_policy="QEMU_ONLY_QCOM_SCM_N_EFFECTIVE_CONFIG_VERIFIED",
                        qemu_rt_validates_if_pass=["scheduler","RCU","locking","time","IRQ","mm","arch/arm64","init"],
                        qemu_rt_does_not_validate=["Qualcomm SCM TrustZone","physical PIPA firmware","PIPA hardware boot"],
                        pipa_rt_scm_expected="CONFIG_QCOM_SCM=y",
                        pipa_rt_scm_validated="NO_HARDWARE",
+                       latest_evidence_path="reports/exp76-round16-scm-off-build-smoke.json",
                        kconfig_audit_path="reports/e404-kconfig-missing-sources.json"),
-        "6_build_rt":item("PARTIAL_PASS","github-actions/41930944374/exp76-qemu-rt-functional-NOFLASH",
+        "6_build_rt":item("PARTIAL_PASS","github-actions/42065541890/exp76-pipa-rt-unchanged-scm-build-NOFLASH",
                           build_rt_images_generated="PASS",
-                          build_rt_compiled_end_to_end="PASS_WITH_INSTRUMENTATION_CAVEAT",
-                          build_aggregate_step="FAIL_CCACHE_STATS",
-                          pipa_rt_image_sha256="f818b0be240b738864669a44015d6fd1d7e1b24bd6154c5199394caacdcaa83f",
-                          qemu_rt_image_sha256="8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1",
+                          build_aggregate_step="QEMU_SMOKE_FAILED_AFTER_IMAGES_GENERATED",
+                          pipa_rt_image_sha256=round16["pipa_rt"]["image_sha256"],
+                          qemu_rt_image_sha256=round16["qemu_rt"]["image_sha256"],
+                          pipa_rt_effective_config_sha256=round16["pipa_rt"]["config_sha256"],
+                          qemu_rt_effective_config_sha256=round16["qemu_rt"]["config_sha256"],
+                          pipa_rt_qcom_scm="y",qemu_rt_qcom_scm="n",
+                          pipa_rt_scm_hardware="NO_HARDWARE",
+                          image_source_run=round16["workflow_run_id"],
                           toolchain="ANDROID_CLANG_21_r563880c",
                           abi_diff="NOT_MEASURED",
-                          runtime_functional="NOT_READY"),
+                          runtime_functional="FAIL_EMPTY_CONSOLE_SCM_OFF"),
         "7_fast_ccache":item("PARTIAL","reports/exp76-ccache-three-full-images.json",
                              fast_p95_s=0.226974,
                              fast_benchmark_run=41897623229,
