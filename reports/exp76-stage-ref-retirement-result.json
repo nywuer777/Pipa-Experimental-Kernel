@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_STAGE_SNAPSHOT_RETIREMENT_ACTUAL",
+  "status": "COMPLETED",
+  "run_id": 42048846179,
+  "artifact_id": 13424794379,
+  "deleted_refs_count": 31,
+  "expected_refs_count": 31,
+  "sha_lease_matches": 31,
+  "remaining_exp76_stage_refs": 0,
+  "branch_that_preserves_history": "exp76-preempt-rt-uname",
+  "default_branch": "main",
+  "all_stage_commits_present_on_default_main": false,
+  "deleted_refs_included_in_exp76_integration_ancestry": true,
+  "stage_ref_tag_count_created": 0,
+  "scope": "RT_ONLY",
+  "evidence": [
+    "actions/42048846179/artifacts/13424794379/expected-shas.tsv",
+    "actions/42048846179/artifacts/13424794379/deleted-shas.tsv",
+    "GitHub branch search query exp76-stage returned zero"
+  ],
+  "caution": "Do not delete the exp76-preempt-rt-uname integration branch; main does not yet contain these commits",
+  "rt_handoff_ready": false
+}
