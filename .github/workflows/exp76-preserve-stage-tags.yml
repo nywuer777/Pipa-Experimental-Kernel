@@ -1,0 +1,64 @@
+# YAML / GitHub Actions Ubuntu 24.04 / preserve removed EXP76 stage refs as verified tags / NO FLASH
+name: EXP76 preserve 31 retired stages as tags (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-preserve-stage-tags.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  preserve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact previously verified snapshot deletion inventory
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-stage-snapshot-retirement-NOFLASH
+          run-id: 42048846179
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-stage-retired
+      - name: Verify SHA ancestry and preserve stage snapshots as GitHub tags
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          test -s exp76-stage-retired/deleted-shas.tsv
+          test "$(wc -l < exp76-stage-retired/deleted-shas.tsv)" -eq 31
+          mkdir -p exp76-stage-preservation
+          : > exp76-stage-preservation/tags.tsv
+          while IFS=$'\t' read -r branch sha; do
+            stage="$(printf '%s\n' "$branch" | sed -nE 's/^exp76-stage([0-9][0-9])-.*/\1/p')"
+            test -n "$stage"
+            [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+            tag="exp76-snapshot-stage${stage}-20261105"
+            ahead="$(gh api "repos/$REPO/compare/exp76-preempt-rt-uname...$sha" --jq '.ahead_by')"
+            test "$ahead" -eq 0
+            actual="$(gh api "repos/$REPO/commits/$sha" --jq '.sha')"
+            test "$actual" = "$sha"
+            if current="$(gh api "repos/$REPO/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null)"; then
+              test "$current" = "$sha" || { echo "BLOCKED_TAG_SHA_CONFLICT=$tag"; exit 4; }
+            else
+              gh api --method POST "repos/$REPO/git/refs" \
+                -f "ref=refs/tags/$tag" -f "sha=$sha" >/dev/null
+            fi
+            printf '%s\t%s\t%s\n' "$tag" "$sha" "$branch" >> exp76-stage-preservation/tags.tsv
+            echo "EXP76_STAGE_TAG_VERIFIED=$tag"
+          done < exp76-stage-retired/deleted-shas.tsv
+          test "$(wc -l < exp76-stage-preservation/tags.tsv)" -eq 31
+          echo 'EXP76_STAGE_TAG_PRESERVATION=PASS total=31'
+      - name: Upload exact tag map and provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-stage-preserved-tags-NOFLASH
+          path: exp76-stage-preservation/
+          if-no-files-found: warn
+          retention-days: 30
