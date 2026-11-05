@@ -38,6 +38,7 @@ jobs:
           bash tests/exp76-rt-spin-sleep/test-log-verifier.sh
           python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
           python3 -m py_compile tools/exp76-qemu-virtio-clang21.py
+          python3 -m py_compile tools/exp76-qemu-scm-config-audit.py
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
@@ -210,6 +211,7 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
             olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
+          grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
           cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
           "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
             -e MODULES -e MODULE_UNLOAD -e ARM_AMBA \
@@ -218,10 +220,19 @@ jobs:
             -e VIRTIO_MENU -e VIRTIO -e VIRTIO_MMIO -e VIRTIO_BLK \
             -e EXT4_FS \
             -e VIRTIO_CONSOLE -e BLK_DEV_INITRD -e BINFMT_ELF \
-            -d MODULE_SIG_FORCE
+            -d MODULE_SIG_FORCE \
+            -d QCOM_KGSL -d QCOM_MDT_LOADER -d QCOM_SCM
           make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
             CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
             olddefconfig > exp76-qemu/logs/qemu-rt-olddefconfig.log 2>&1
+          grep -qx '# CONFIG_QCOM_SCM is not set' "$BASE/qemu-rt/.config" || {
+            echo 'BLOCKED_QEMU_ONLY_QCOM_SCM_RESELECTED_BY_KCONFIG'; exit 3;
+          }
+          grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
+          python3 tools/exp76-qemu-scm-config-audit.py \
+            --pipa "$BASE/pipa-rt/.config" \
+            --qemu "$BASE/qemu-rt/.config" \
+            --output exp76-qemu/reports/qemu-vendor-scm-audit.json
           for key in CONFIG_PREEMPT_RT_FULL CONFIG_MODULES CONFIG_MODULE_UNLOAD \
                      CONFIG_SERIAL_AMBA_PL011 CONFIG_SERIAL_AMBA_PL011_CONSOLE \
                      CONFIG_DEVTMPFS CONFIG_VIRTIO_MMIO CONFIG_VIRTIO_BLK \
@@ -346,10 +357,10 @@ jobs:
           set +e
           timeout -k 5s 100s qemu-system-aarch64 \
             -M virt -cpu cortex-a72 -smp 4 -m 512 \
-            -nographic -no-reboot \
+            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
             -kernel exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
             -initrd exp76-qemu/smoke-initramfs.cpio.gz \
-            -append 'console=ttyAMA0 panic=-1' \
+            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init' \
             > exp76-qemu/logs/qemu-rt-smoke-console.txt 2>&1
           rc=$?
           set -e
@@ -358,6 +369,7 @@ jobs:
           grep -E 'EXP76_QEMU_RT_SMOKE=|Kernel panic|Oops:|Unable to mount root' \
             exp76-qemu/logs/qemu-rt-smoke-console.txt || true
           if [ "$rc" -ne 0 ] \
+             || grep -q 'Kernel panic' exp76-qemu/logs/qemu-rt-smoke-console.txt \
              || ! grep -q '^EXP76_QEMU_RT_SMOKE=BEGIN' \
                exp76-qemu/logs/qemu-rt-smoke-console.txt \
              || ! grep -q '^EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' \
@@ -559,12 +571,12 @@ jobs:
           set +e
           timeout -k 5s 120s qemu-system-aarch64 \
             -M virt -cpu cortex-a72 -smp 4 -m 512 \
-            -nographic -no-reboot \
+            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
             -kernel exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
             -initrd exp76-qemu/initramfs.cpio.gz \
             -drive file=exp76-qemu/virtio-ext4.img,if=none,id=vdisk,format=raw,readonly=on \
             -device virtio-blk-device,drive=vdisk \
-            -append 'console=ttyAMA0 panic=-1 exp76_mode=rt' \
+            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init exp76_mode=rt' \
             > exp76-qemu/logs/qemu-rt-console.txt 2>&1
           rc=$?
           set -e
@@ -585,12 +597,12 @@ jobs:
           set +e
           timeout -k 5s 120s qemu-system-aarch64 \
             -M virt -cpu cortex-a72 -smp 4 -m 512 \
-            -nographic -no-reboot \
+            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
             -kernel exp76-qemu/outputs/qemu-nonrt/arch/arm64/boot/Image \
             -initrd exp76-qemu/initramfs.cpio.gz \
             -drive file=exp76-qemu/virtio-ext4.img,if=none,id=vdisk,format=raw,readonly=on \
             -device virtio-blk-device,drive=vdisk \
-            -append 'console=ttyAMA0 panic=-1 exp76_mode=nonrt' \
+            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init exp76_mode=nonrt' \
             > exp76-qemu/logs/qemu-nonrt-console.txt 2>&1
           rc=$?
           set -e
@@ -734,6 +746,7 @@ jobs:
           bash tests/exp76-rt-spin-sleep/test-log-verifier.sh
           python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
           python3 -m py_compile tools/exp76-qemu-virtio-clang21.py
+          python3 -m py_compile tools/exp76-qemu-scm-config-audit.py
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
@@ -906,6 +919,7 @@ jobs:
             CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
             olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
+          grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
           cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
           "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
             -e MODULES -e MODULE_UNLOAD -e ARM_AMBA \
@@ -914,10 +928,19 @@ jobs:
             -e VIRTIO_MENU -e VIRTIO -e VIRTIO_MMIO -e VIRTIO_BLK \
             -e EXT4_FS \
             -e VIRTIO_CONSOLE -e BLK_DEV_INITRD -e BINFMT_ELF \
-            -d MODULE_SIG_FORCE
+            -d MODULE_SIG_FORCE \
+            -d QCOM_KGSL -d QCOM_MDT_LOADER -d QCOM_SCM
           make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
             CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
             olddefconfig > exp76-qemu/logs/qemu-rt-olddefconfig.log 2>&1
+          grep -qx '# CONFIG_QCOM_SCM is not set' "$BASE/qemu-rt/.config" || {
+            echo 'BLOCKED_QEMU_ONLY_QCOM_SCM_RESELECTED_BY_KCONFIG'; exit 3;
+          }
+          grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
+          python3 tools/exp76-qemu-scm-config-audit.py \
+            --pipa "$BASE/pipa-rt/.config" \
+            --qemu "$BASE/qemu-rt/.config" \
+            --output exp76-qemu/reports/qemu-vendor-scm-audit.json
           for key in CONFIG_PREEMPT_RT_FULL CONFIG_MODULES CONFIG_MODULE_UNLOAD \
                      CONFIG_SERIAL_AMBA_PL011 CONFIG_SERIAL_AMBA_PL011_CONSOLE \
                      CONFIG_DEVTMPFS CONFIG_VIRTIO_MMIO CONFIG_VIRTIO_BLK \
