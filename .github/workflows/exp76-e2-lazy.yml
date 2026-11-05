@@ -26,6 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile tools/exp76-e2-lazy-port.py
+          python3 -m py_compile tools/exp76-e2-detail.py tools/exp76-clang21-compat-audit.py
           mkdir -p reports/e2 exp76-qemu/logs
           echo "$GITHUB_SHA" > reports/e2/e2-branch-commit.txt
       - name: Install isolated kernel build requirements
@@ -88,6 +89,13 @@ jobs:
           sha256sum reports/e2/e2-actual-tree-diff.patch \
             > reports/e2/e2-diff-sha256.txt
           echo "E2_PORT_EXIT=$result"
+          python3 tools/exp76-e2-detail.py \
+            --tree exp76-trial-overlay \
+            --e2-result reports/e2/e2-lazy-result.json \
+            --report reports/e2/exp76-scheduler-e2-detail.json
+          python3 tools/exp76-clang21-compat-audit.py \
+            --tree exp76-trial-overlay \
+            --report reports/e2/clang21-4.19-incompatibilities.json
       - name: Generate RT config and compile kernel/sched/core.o
         shell: bash
         timeout-minutes: 30
