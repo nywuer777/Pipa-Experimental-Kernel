@@ -1,0 +1,104 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 QEMU SCM-off instruction translation trace / NO FLASH
+name: EXP76 RT SCM-off guest execution trace (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-rt-scm-off-qemu-tb-trace.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  scm-off-qemu-trace:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact successful Clang21 SCM-off Image build, no kernel work
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42065541890
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-trace/image-artifact
+      - name: Install QEMU and verify exact Image / initramfs
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm
+          mkdir -p exp76-trace/reports
+          printf '%s  %s\n' \
+            74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234 \
+            exp76-trace/image-artifact/outputs/qemu-rt/arch/arm64/boot/Image \
+            | sha256sum --check
+          test -s exp76-trace/image-artifact/smoke-initramfs.cpio.gz
+          grep -qx '# CONFIG_QCOM_SCM is not set' exp76-trace/image-artifact/outputs/qemu-rt/.config
+          qemu-system-aarch64 --version > exp76-trace/reports/qemu-version.txt
+          sha256sum "$(command -v qemu-system-aarch64)" > exp76-trace/reports/qemu-executable.sha256
+      - name: Trace SCM-off execution using QEMU translated basic blocks without rebuilding
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / GH Ubuntu24 QEMU TCG trace of existing Clang21 SCM-off ARM64 Image / NO FLASH
+          import collections,gzip,hashlib,json,shlex,subprocess,time
+          from pathlib import Path
+          root=Path("exp76-trace")
+          image=root/"image-artifact/outputs/qemu-rt/arch/arm64/boot/Image"
+          initrd=root/"image-artifact/smoke-initramfs.cpio.gz"
+          dlog=root/"reports/scm-off-in-asm.log"
+          cmd=["qemu-system-aarch64",
+            "-M","virt","-cpu","cortex-a72","-smp","4","-m","512",
+            "-nodefaults","-serial","stdio","-monitor","none","-display","none",
+            "-nic","none","-no-reboot",
+            "-d","in_asm,int,guest_errors,unimp","-D",str(dlog),
+            "-kernel",str(image),"-initrd",str(initrd),
+            "-append","earlycon=pl011,0x09000000 console=ttyAMA0,115200 "
+                      "ignore_loglevel loglevel=8 panic=5 init=/init"]
+          (root/"reports/trace-qemu-cmdline.txt").write_text(shlex.join(cmd)+"\n")
+          args=shlex.split((root/"reports/trace-qemu-cmdline.txt").read_text())
+          start=time.monotonic_ns()
+          try:
+              p=subprocess.run(args,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
+                               timeout=25,check=False)
+              rc=p.returncode;out=p.stdout;timed_out=False
+          except subprocess.TimeoutExpired as e:
+              rc=124;out=e.stdout or b"";timed_out=True
+          duration=(time.monotonic_ns()-start)/1e9
+          (root/"reports/trace-console.txt").write_bytes(out)
+          tail=collections.deque(maxlen=180)
+          count=0
+          with dlog.open("rt",errors="replace") as source, gzip.open(str(dlog)+".gz","wt") as archive:
+              for line in source:
+                  tail.append(line.rstrip("\n"));archive.write(line);count+=1
+          dlog_sha=hashlib.sha256(dlog.read_bytes()).hexdigest()
+          report={"schema_version":1,"kind":"QEMU_SCMOFF_INSTRUCTION_TRACE_NOT_FUNCTIONAL_BOOT",
+                  "original_image_run":42065541890,
+                  "image_sha256":"74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234",
+                  "qemu_exit":rc,"timed_out":timed_out,"duration_seconds":round(duration,6),
+                  "console_sha256":hashlib.sha256(out).hexdigest(),
+                  "console_bytes":len(out),"console_lines":len(out.splitlines()),
+                  "debug_trace_bytes":dlog.stat().st_size,"debug_trace_lines":count,
+                  "debug_trace_sha256":dlog_sha,"last_trace_lines":list(tail),
+                  "trace_qemu_cmdline_sha256":hashlib.sha256(
+                       (root/"reports/trace-qemu-cmdline.txt").read_bytes()).hexdigest(),
+                  "kernel_build_performed":False,"module_build_performed":False,
+                  "rt_handoff_ready":False,"flash_ready":False}
+          (root/"reports/trace-results.json").write_text(json.dumps(report,indent=2)+"\n")
+          dlog.unlink()
+          print("EXP76_SCMOFF_TRACE",json.dumps({k:v for k,v in report.items() if k!="last_trace_lines"},indent=2))
+          print("EXP76_LAST_TRACE_LINES")
+          print("\n".join(list(tail)[-50:]))
+          PY
+      - name: Upload QEMU in_asm full compressed trace, command, console and timing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-scm-off-instruction-trace-NOFLASH
+          path: exp76-trace/reports/
+          retention-days: 30
+          if-no-files-found: warn
