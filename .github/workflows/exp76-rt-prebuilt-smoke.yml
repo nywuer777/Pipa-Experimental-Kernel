@@ -32,7 +32,11 @@ jobs:
           echo '8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1  '"$IMAGE" | sha256sum --check
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' exp76-prebuilt/outputs/qemu-rt/.config
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm cpio curl file binutils
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm ipxe-qemu cpio curl file binutils
+          test -s /usr/lib/ipxe/qemu/efi-virtio.rom
+          sudo install -m 0644 /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/efi-virtio.rom
+          test -s /usr/share/qemu/efi-virtio.rom
+          echo 'EXP76_QEMU_VIRTIO_ROM=PASS'
           sha256sum "$IMAGE" > exp76-boot-evidence/pinned-image.sha256
           echo 'EXP76_QEMU_RT_IMAGE_RUN=41930944374'
       - name: Assemble static AArch64 BusyBox initramfs
