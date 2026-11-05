@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_CCACHE_REAL_CORE_OBJECT_SEMANTIC_INVALIDATION",
+  "source_run_id": 42046025223,
+  "artifact_id": 13423619630,
+  "source_branch": "exp76-preempt-rt-uname",
+  "config_sha256": "3092002233a598f0ea22d6323347510a7de69f6891b6068a0033d82bfaa0b413",
+  "source_sha256_before": "15912b32829885aece36b04222b8e00a46f3518bf383b7e6163d29cdc089c92c",
+  "source_sha256_after": "d5cea4c45621de319cda10d1146440cb0037a2c830b4ba7d3229919e20c92c64",
+  "status": "PASS",
+  "kernel_object": "kernel/sched/core.o",
+  "cache_initially_cleared": true,
+  "phases": [
+    {
+      "phase": "baseline",
+      "misses": 72,
+      "direct_hits": 54,
+      "object_sha256": "a409e13b1d158a19b3d359110f20d5d3f37abc60d29eae67e27f0a76a3da4d71",
+      "exit_code": 0
+    },
+    {
+      "phase": "semantic_mutation",
+      "misses": 1,
+      "direct_hits": 60,
+      "object_sha256": "0f952ea5654c4a810207507d87e0d406492f911dadaf230e1e64410c36e8604b",
+      "exit_code": 0
+    },
+    {
+      "phase": "semantic_repeat",
+      "misses": 0,
+      "direct_hits": 61,
+      "object_sha256": "0f952ea5654c4a810207507d87e0d406492f911dadaf230e1e64410c36e8604b",
+      "exit_code": 0
+    }
+  ],
+  "mutation": "appended static const unsigned long exp76_ccache_semantic_probe __attribute__((used))",
+  "caveat": "This proves core.o semantic content change misses in isolated object test; it does not identify the sole miss in the older comment-only five-line image test 42020698390",
+  "rt_handoff_ready": false
+}
