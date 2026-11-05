@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "stage": "EXP76_ROUND16_QEMU_ONLY_SCM_CONFIG_AND_BOOT",
+  "source_branch": "exp76-qemu-virtio-block-io",
+  "workflow_run_id": 42065541890,
+  "precursor_run_id": 42065457440,
+  "qemu_artifact_id": 13434239333,
+  "pipa_artifact_id": 13433224099,
+  "toolchain": "Android Clang 21 r563880c",
+  "e404_base": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+  "qemu_rt": {
+    "build_step": "PASS",
+    "image_size_bytes": 30822424,
+    "image_sha256": "74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234",
+    "config_sha256": "7ea8eb1f6f3202469edf6b63e56c66fe456f3bb391805083a513e72a32c5cdc0",
+    "qcom_scm": "n",
+    "qcom_kgsl": "n",
+    "qcom_mdt_loader": "n",
+    "preempt_rt_full": "y",
+    "config_diff_critical_count": 0,
+    "config_diff_noncritical_count": 56,
+    "vendor_symbol_diff_count": 11,
+    "smoke_step": "FAIL",
+    "qemu_host_exit": 0,
+    "smoke_console": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "lines": 0,
+      "kernel_panic_observed": false,
+      "guest_begin_observed": false,
+      "guest_running_observed": false
+    },
+    "state": "IMAGE_PASS_GUEST_UNVERIFIED_EMPTY_CONSOLE"
+  },
+  "pipa_rt": {
+    "build_step": "PASS",
+    "image_size_bytes": 29212696,
+    "image_sha256": "6bce099a167671d56d031e3c3cf55908e06dcbbbe6e0c142e0d8bbd76b4ae218",
+    "config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5",
+    "same_config_sha_as_round12": true,
+    "qcom_scm": "y",
+    "preempt_rt_full": "y",
+    "hardware_scm_verified": false,
+    "state": "IMAGE_PASS_HARDWARE_NOT_TESTED"
+  },
+  "vendor_inventory": {
+    "enabled_total": 112,
+    "boot_path_critical_risk_count": 26,
+    "runtime_optional_heuristic_count": 37,
+    "unknown_count": 49,
+    "early_smc_observed_count": 1,
+    "classification_source": "reports/qemu-vendor-scm-audit.json in qemu artifact"
+  },
+  "ci_jobs": {
+    "qemu_boot": "failure",
+    "pipa_rt_build": "success",
+    "ccache_diagnostic": "success"
+  },
+  "semantics": {
+    "spin_sleep_guest_insmod_executed": false,
+    "kthreads_contention_pass": false,
+    "state": "NOT_EXECUTED_GUEST_SMOKE_BLOCKED"
+  },
+  "subsequent_diagnostic_run_id": 42068813550,
+  "physical_scm_scope": "NOT_COVERED_BY_GENERIC_QEMU_VIRT",
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}
