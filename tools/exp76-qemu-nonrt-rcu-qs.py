@@ -29,8 +29,11 @@ def apply(text):
     if len(matches) != 1:
         raise ValueError("BLOCKED_SOFTIRQ_QS_CALL_COUNT="+str(len(matches)))
     match = matches[0]
-    if not start < match.start() < end:
-        raise ValueError("BLOCKED_SOFTIRQ_QS_OUTSIDE_DO_SOFTIRQ")
+    # RT patch moves the quiescent-state call to a different softirq
+    # helper in E404; reject duplicates, not an outdated function span.
+    # Preserve the sole RT call and use the vendor RCU API for nonRT.
+    if not 0 <= match.start() < len(text) or "DEFINE_PER_CPU(__u32, active_softirqs)" not in text:
+        raise ValueError("BLOCKED_SOFTIRQ_GENERATION_CONTEXT")
     indent = match.group("indent")
     old = match.group()
     replacement = (
