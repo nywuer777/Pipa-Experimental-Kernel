@@ -315,7 +315,27 @@ jobs:
           ROOT="$GITHUB_WORKSPACE/exp76-qemu/initramfs"
           mkdir -p "$ROOT/bin" "$ROOT/dev" "$ROOT/proc" "$ROOT/sys" \
             "$ROOT/tmp" "$ROOT/probe" "$ROOT/config" "$ROOT/mnt/virtio"
-          cp "$(command -v busybox)" "$ROOT/bin/busybox"
+          # Ubuntu hosted runner is x86_64; guest requires a static AArch64 ELF.
+          # Pin the official Noble arm64 package; never copy host BusyBox to guest.
+          BB_DEB="exp76-qemu/busybox-static_1.36.1-6ubuntu3.1_arm64.deb"
+          curl --fail --location --retry 3 --max-time 90 \
+            https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb \
+            --output "$BB_DEB"
+          test "$(dpkg-deb --field "$BB_DEB" Architecture)" = arm64
+          mkdir -p exp76-qemu/arm64-busybox-pkg
+          dpkg-deb --extract "$BB_DEB" exp76-qemu/arm64-busybox-pkg
+          BB="$(find exp76-qemu/arm64-busybox-pkg -type f -name busybox | head -n 1)"
+          test -n "$BB" && test -s "$BB"
+          readelf -h "$BB" > exp76-qemu/reports/arm64-busybox-elf-header.txt
+          grep -Eq 'Machine:.*AArch64' exp76-qemu/reports/arm64-busybox-elf-header.txt
+          if readelf -l "$BB" | grep -q 'INTERP'; then
+            echo 'BLOCKED_BUSYBOX_NOT_STATIC_ARM64'; exit 4
+          fi
+          cp "$BB" "$ROOT/bin/busybox"
+          chmod 0755 "$ROOT/bin/busybox"
+          sha256sum "$BB_DEB" "$ROOT/bin/busybox" \
+            > exp76-qemu/reports/sha256-busybox-arm64.txt
+          echo 'EXP76_BUSYBOX_ARM64_STATIC=PASS'
           for x in sh ash mount mkdir cat grep sed awk tr wc tail head \
                    insmod rmmod dmesg timeout mktemp rm ls echo sync \
                    reboot poweroff sleep uname sha256sum; do
