@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-05T16:34:14.875Z",
-  "source_sha": "985367205de49babefb59acbb81fb6fafa20221e",
+  "generated_at": "2026-11-05T16:57:00.025Z",
+  "source_sha": "e590173c8e655df89bebdcb3de622b7eab76f62f",
   "scope": "RT_ONLY",
   "items": {
     "1_series_rt": {
@@ -55,14 +55,14 @@
       "e2_port_ready": 0
     },
     "5_qemu": {
-      "state": "FAIL_PANIC_EARLY",
-      "evidence_path": "github-actions/42050248789/exp76-prebuilt-rt-first-qemu-smoke-NOFLASH",
+      "state": "FAIL_EMPTY_CONSOLE_SCM_OFF",
+      "evidence_path": "github-actions/42065541890/exp76-qemu-rt-functional-NOFLASH",
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-05T15:02:26.650Z",
-      "blocker": "EARLY_KERNEL_BUG_SWAPPER_PRE_INIT; pc 0xffffffa763080b2c lr 0xffffffa763080af8; needs exact vmlinux symbolization",
-      "latest_qemu_run_id": 42050248789,
+      "updated_at": "2026-11-05T16:57:00.025Z",
+      "blocker": "QEMU_SCM_OFF_IMAGE_BUILT_BUT_NO_SERIAL_CONSOLE_OR_INIT_MARKERS",
+      "latest_qemu_run_id": 42065541890,
       "kconfig_audit_path": "reports/e404-kconfig-missing-sources.json",
       "qemu_guest_entered_kernel": true,
       "kernel_boot_complete": false,
@@ -70,7 +70,7 @@
       "panic_evidence_path": "reports/exp76-round14-qemu-early-panic.json",
       "raw_console_sha256": "99ccddac055e5390e01ace918441796f7a3d08e3bbae693a6767545ab2f358b3",
       "first_guest_console_kernel": "4.19.404R-rt140",
-      "qemu_scm_policy": "QEMU_ONLY_QCOM_SCM_N_PENDING_EFFECTIVE_CONFIG_AND_BOOT",
+      "qemu_scm_policy": "QEMU_ONLY_QCOM_SCM_N_EFFECTIVE_CONFIG_VERIFIED",
       "qemu_rt_validates_if_pass": [
         "scheduler",
         "RCU",
@@ -92,24 +92,36 @@
       "vendor_config_early_smc_verified": 1,
       "qemu_scm_policy_branch": "exp76-qemu-virtio-block-io",
       "qemu_scm_policy_run": 42065541890,
-      "effective_scm_off_verified": false,
-      "actual_qemu_guest_boot_with_scm_off": false
+      "effective_scm_off_verified": true,
+      "actual_qemu_guest_boot_with_scm_off": false,
+      "last_host_qemu_exit_code": 0,
+      "last_guest_console_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "last_guest_console_bytes": 0,
+      "last_guest_console_lines": 0,
+      "previous_kernel_entry_run_id": 42050248789,
+      "latest_evidence_path": "reports/exp76-round16-scm-off-build-smoke.json"
     },
     "6_build_rt": {
       "state": "PARTIAL_PASS",
-      "evidence_path": "github-actions/41930944374/exp76-qemu-rt-functional-NOFLASH",
+      "evidence_path": "github-actions/42065541890/exp76-pipa-rt-unchanged-scm-build-NOFLASH",
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-05T14:10:24.917Z",
+      "updated_at": "2026-11-05T16:57:00.025Z",
       "build_rt_images_generated": "PASS",
       "build_rt_compiled_end_to_end": "PASS_WITH_INSTRUMENTATION_CAVEAT",
-      "build_aggregate_step": "FAIL_CCACHE_STATS",
-      "pipa_rt_image_sha256": "f818b0be240b738864669a44015d6fd1d7e1b24bd6154c5199394caacdcaa83f",
-      "qemu_rt_image_sha256": "8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1",
+      "build_aggregate_step": "QEMU_SMOKE_FAILED_AFTER_IMAGES_GENERATED",
+      "pipa_rt_image_sha256": "6bce099a167671d56d031e3c3cf55908e06dcbbbe6e0c142e0d8bbd76b4ae218",
+      "qemu_rt_image_sha256": "74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234",
       "toolchain": "ANDROID_CLANG_21_r563880c",
       "abi_diff": "NOT_MEASURED",
-      "runtime_functional": "NOT_READY"
+      "runtime_functional": "FAIL_EMPTY_CONSOLE_SCM_OFF",
+      "pipa_rt_effective_config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5",
+      "qemu_rt_effective_config_sha256": "7ea8eb1f6f3202469edf6b63e56c66fe456f3bb391805083a513e72a32c5cdc0",
+      "pipa_rt_qcom_scm": "y",
+      "qemu_rt_qcom_scm": "n",
+      "pipa_rt_scm_hardware": "NO_HARDWARE",
+      "image_source_run": 42065541890
     },
     "7_fast_ccache": {
       "state": "PARTIAL",
