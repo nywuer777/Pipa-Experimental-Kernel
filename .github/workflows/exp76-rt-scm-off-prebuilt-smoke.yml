@@ -1,0 +1,113 @@
+# YAML / GitHub Actions Ubuntu 24.04 / pinned QEMU_RT Image ARM64 smoke / NO FLASH
+name: EXP76 SCM-off Clang21 RT Image QEMU debug (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-rt-scm-off-prebuilt-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  qemu-prebuilt-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact completed Clang21 QEMU_RT Image
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42065457440
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-prebuilt
+      - name: Pin image hash and install ARM64 QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-boot-evidence
+          IMAGE=exp76-prebuilt/outputs/qemu-rt/arch/arm64/boot/Image
+          echo '74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234  '"$IMAGE" | sha256sum --check
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' exp76-prebuilt/outputs/qemu-rt/.config
+          grep -qx '# CONFIG_QCOM_SCM is not set' exp76-prebuilt/outputs/qemu-rt/.config
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm ipxe-qemu cpio curl file binutils
+          test -s /usr/lib/ipxe/qemu/efi-virtio.rom
+          sudo install -m 0644 /usr/lib/ipxe/qemu/efi-virtio.rom /usr/share/qemu/efi-virtio.rom
+          test -s /usr/share/qemu/efi-virtio.rom
+          echo 'EXP76_QEMU_VIRTIO_ROM=PASS'
+          sha256sum "$IMAGE" > exp76-boot-evidence/pinned-image.sha256
+          echo 'EXP76_QEMU_RT_IMAGE_RUN=42065457440'
+      - name: Assemble static AArch64 BusyBox initramfs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-busybox/root exp76-smoke/bin exp76-smoke/dev
+          DEB=exp76-busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
+          curl --fail --location --retry 3 --max-time 90 \
+            https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb \
+            -o "$DEB"
+          test "$(dpkg-deb --field "$DEB" Architecture)" = arm64
+          dpkg-deb --extract "$DEB" exp76-busybox/root
+          BB="$(find exp76-busybox/root -type f -name busybox -print -quit)"
+          test -s "$BB"
+          readelf -h "$BB" > exp76-boot-evidence/busybox-elf.txt
+          grep -Eq 'Machine:.*AArch64' exp76-boot-evidence/busybox-elf.txt
+          if readelf -l "$BB" | grep -q INTERP; then echo 'BLOCKED_NONSTATIC_BUSYBOX'; exit 4; fi
+          cp "$BB" exp76-smoke/bin/busybox
+          chmod 0755 exp76-smoke/bin/busybox
+          for app in sh sync poweroff; do ln -s busybox "exp76-smoke/bin/$app"; done
+          sudo mknod -m 0600 exp76-smoke/dev/console c 5 1
+          sudo mknod -m 0666 exp76-smoke/dev/null c 1 3
+          cat > exp76-smoke/init <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          echo 'EXP76_QEMU_RT_SMOKE=BEGIN'
+          echo 'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING'
+          sync
+          poweroff -f
+          INIT
+          chmod 0755 exp76-smoke/init
+          (cd exp76-smoke && find . -print0 | cpio --null -ov --format=newc 2>/dev/null | gzip -9) > exp76-smoke-initramfs.cpio.gz
+          test -s exp76-smoke-initramfs.cpio.gz
+          sha256sum "$DEB" exp76-smoke/bin/busybox exp76-smoke-initramfs.cpio.gz > exp76-boot-evidence/initramfs-inputs.sha256
+      - name: Execute pinned RT Image on QEMU Cortex-A72
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          set +e
+          timeout -k 5s 100s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 \
+            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
+            -d int,cpu_reset,guest_errors,unimp -D exp76-boot-evidence/qemu-internal-debug.txt \
+            -d guest_errors,cpu_reset,unimp -D exp76-boot-evidence/qemu-internal-debug.txt \
+            -kernel exp76-prebuilt/outputs/qemu-rt/arch/arm64/boot/Image \
+            -initrd exp76-smoke-initramfs.cpio.gz \
+            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 ignore_loglevel loglevel=8 printk.time=1 nokaslr panic=5 init=/init' \
+            > exp76-boot-evidence/qemu-rt-console.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-boot-evidence/qemu-exit-code.txt
+          sha256sum exp76-boot-evidence/qemu-rt-console.txt > exp76-boot-evidence/qemu-rt-console.sha256
+          sed 's/\r$//' exp76-boot-evidence/qemu-rt-console.txt > exp76-boot-evidence/qemu-rt-console-normalized.txt
+          echo "EXP76_PINNED_QEMU_EXIT=$rc"
+          grep -E 'EXP76_QEMU_RT_SMOKE=|Kernel panic|Oops:|Unable to mount root' exp76-boot-evidence/qemu-rt-console-normalized.txt || true
+          if [ "$rc" -ne 0 ] \
+            || ! grep -qx 'EXP76_QEMU_RT_SMOKE=BEGIN' exp76-boot-evidence/qemu-rt-console-normalized.txt \
+            || ! grep -qx 'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' exp76-boot-evidence/qemu-rt-console-normalized.txt; then
+            echo 'EXP76_PINNED_RT_SMOKE=FAIL'
+            head -n 40 exp76-boot-evidence/qemu-rt-console.txt
+            tail -n 40 exp76-boot-evidence/qemu-rt-console.txt
+            exit 1
+          fi
+          echo 'EXP76_PINNED_RT_SMOKE=PASS'
+      - name: Upload serial console, hashes and exit code
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-scm-off-rt-prebuilt-earlycon-debug-NOFLASH
+          path: exp76-boot-evidence/
+          if-no-files-found: warn
+          retention-days: 14
