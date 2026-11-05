@@ -8,6 +8,8 @@ on:
       - '.github/workflows/exp76-fast-ci.yml'
       - 'tests/exp76-rt-spin-sleep/**'
       - 'tests/test-exp76-fast-mutants.py'
+      - 'tools/exp76-fast-technical.py'
+      - 'tests/test-exp76-fast-technical-mutants.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -104,5 +106,43 @@ jobs:
         with:
           name: exp76-fast-mutations-NOFLASH
           path: exp76-qemu/reports/exp76-fast-mutations.json
+          if-no-files-found: warn
+          retention-days: 14
+
+
+  technical-mutation-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Python syntax of candidate technical gate and fixture harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp76-fast-technical.py
+          python3 -m py_compile tests/test-exp76-fast-technical-mutants.py
+      - name: Run independent ten-mutation matrix against technical candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-qemu/reports
+          python3 tests/test-exp76-fast-technical-mutants.py \
+            --output exp76-qemu/reports/exp76-fast-technical-mutations.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/exp76-fast-technical-mutations.json').read_text())
+          assert d['total']==10
+          assert d['detected']>=7
+          assert d['production_kbuild_gate_qualified'] is False
+          print('FAST_TECHNICAL_FIXTURE_DETECTED=',d['detected'],'/10')
+          print('FAST_PRODUCTION_KERNEL_GATE=NOT_QUALIFIED')
+          PY
+      - name: Publish technical mutation audit (not production Kbuild)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-fast-technical-mutations-NOFLASH
+          path: exp76-qemu/reports/exp76-fast-technical-mutations.json
           if-no-files-found: warn
           retention-days: 14
