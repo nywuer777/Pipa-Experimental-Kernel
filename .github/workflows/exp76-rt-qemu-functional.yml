@@ -251,7 +251,7 @@ jobs:
           path: exp76-qemu/ccache
           key: exp76-ccache-v1-${{ runner.os }}-${{ env.ANDROID_LLVM_COMMIT }}-${{ hashFiles('exp76-qemu/outputs/qemu-rt/.config') }}-${{ hashFiles('exp76-qemu/reports/source-diff.sha256') }}
 
-      - name: Build QEMU RT and nonRT Images directly (PIPA RT already proven), without ccache assertions
+      - name: Build QEMU RT Image first, without cache assertion
         shell: bash
         timeout-minutes: 110
         run: |
@@ -265,7 +265,125 @@ jobs:
           export CCACHE_TEMPDIR="$RUNNER_TEMP/exp76-ccache-temp"
           mkdir -p "$CCACHE_DIR" "$CCACHE_TEMPDIR"
           # PIPA_RT Image was qualified in run 41930944374; don't rebuild it before boot.
-          for variant in qemu-rt qemu-nonrt; do
+          for variant in qemu-rt; do
+            echo "EXP76_BOOT_IMAGE_BUILD_BEGIN=$variant"
+            set +e
+            make -C "$K" O="$BASE/$variant" ARCH=arm64 \
+              CC='ccache clang' LD=ld.lld HOSTCC=gcc OBJCOPY=llvm-objcopy \
+              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+              -j"$(nproc)" Image > "exp76-qemu/logs/build-$variant.log" 2>&1
+            rc=$?
+            set -e
+            echo "$rc" > "exp76-qemu/reports/build-$variant-exit-code.txt"
+            if [ "$rc" -ne 0 ]; then
+              echo "EXP76_BOOT_IMAGE_BUILD_FAIL=$variant EXIT=$rc"
+              grep -n -m30 -E 'error:|fatal error:|undefined reference|No rule to make target|Error [0-9]+' \
+                "exp76-qemu/logs/build-$variant.log" || true
+              tail -n 100 "exp76-qemu/logs/build-$variant.log"
+              exit "$rc"
+            fi
+            test -s "$BASE/$variant/arch/arm64/boot/Image"
+            if [ "$variant" != pipa-rt ]; then
+              test -s "$BASE/$variant/Module.symvers"
+            fi
+            sha256sum "$BASE/$variant/.config" \
+              "$BASE/$variant/arch/arm64/boot/Image" \
+              > "exp76-qemu/reports/sha256-$variant.txt"
+            echo "EXP76_BOOT_IMAGE_BUILD_PASS=$variant"
+          done
+
+      - name: Assemble minimal AArch64 initramfs for early RT smoke boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/exp76-qemu/smoke"
+          mkdir -p "$ROOT/bin" "$ROOT/dev"
+          BB_DEB=exp76-qemu/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
+          curl --fail --location --retry 3 --max-time 90 \
+            https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb \
+            --output "$BB_DEB"
+          test "$(dpkg-deb --field "$BB_DEB" Architecture)" = arm64
+          mkdir -p exp76-qemu/arm64-busybox-pkg
+          dpkg-deb --extract "$BB_DEB" exp76-qemu/arm64-busybox-pkg
+          BB="$(find exp76-qemu/arm64-busybox-pkg -type f -name busybox | head -n 1)"
+          test -n "$BB" && test -s "$BB"
+          readelf -h "$BB" | grep -Eq 'Machine:.*AArch64'
+          if readelf -l "$BB" | grep -q 'INTERP'; then
+            echo 'BLOCKED_SMOKE_BUSYBOX_NOT_STATIC'
+            exit 4
+          fi
+          cp "$BB" "$ROOT/bin/busybox"
+          chmod 0755 "$ROOT/bin/busybox"
+          ln -s busybox "$ROOT/bin/sh"
+          ln -s busybox "$ROOT/bin/poweroff"
+          ln -s busybox "$ROOT/bin/sync"
+          sudo mknod "$ROOT/dev/console" c 5 1
+          sudo mknod "$ROOT/dev/null" c 1 3
+          cat > "$ROOT/init" <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          echo 'EXP76_QEMU_RT_SMOKE=BEGIN'
+          echo 'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING'
+          sync
+          poweroff -f
+          INIT
+          chmod 0755 "$ROOT/init"
+          (
+            cd "$ROOT"
+            find . -print0 | cpio --null -ov --format=newc 2>/dev/null | gzip -9
+          ) > exp76-qemu/smoke-initramfs.cpio.gz
+          test -s exp76-qemu/smoke-initramfs.cpio.gz
+          sha256sum "$BB_DEB" "$ROOT/bin/busybox" \
+            exp76-qemu/smoke-initramfs.cpio.gz \
+            > exp76-qemu/reports/sha256-smoke-initramfs.txt
+          echo 'EXP76_QEMU_RT_SMOKE_INITRAMFS=READY'
+
+      - name: QEMU ARM64 RT smoke boot before nonRT build and probe modules
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          set +e
+          timeout -k 5s 100s qemu-system-aarch64 \
+            -M virt -cpu cortex-a72 -smp 4 -m 512 \
+            -nographic -no-reboot \
+            -kernel exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
+            -initrd exp76-qemu/smoke-initramfs.cpio.gz \
+            -append 'console=ttyAMA0 panic=-1' \
+            > exp76-qemu/logs/qemu-rt-smoke-console.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-qemu/reports/qemu-rt-smoke-exit-code.txt
+          echo "EXP76_QEMU_RT_SMOKE_QEMU_EXIT=$rc"
+          grep -E 'EXP76_QEMU_RT_SMOKE=|Kernel panic|Oops:|Unable to mount root' \
+            exp76-qemu/logs/qemu-rt-smoke-console.txt || true
+          if [ "$rc" -ne 0 ] \
+             || ! grep -qx 'EXP76_QEMU_RT_SMOKE=BEGIN' \
+               exp76-qemu/logs/qemu-rt-smoke-console.txt \
+             || ! grep -qx 'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' \
+               exp76-qemu/logs/qemu-rt-smoke-console.txt; then
+            echo "EXP76_QEMU_RT_SMOKE=FAIL"
+            head -n 40 exp76-qemu/logs/qemu-rt-smoke-console.txt
+            tail -n 40 exp76-qemu/logs/qemu-rt-smoke-console.txt
+            exit 1
+          fi
+          echo 'EXP76_QEMU_RT_SMOKE=PASS'
+
+      - name: Build nonRT control Image after successful RT smoke boot
+        shell: bash
+        timeout-minutes: 110
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          BASE="$GITHUB_WORKSPACE/exp76-qemu/outputs"
+          export CCACHE_DIR="$GITHUB_WORKSPACE/exp76-qemu/ccache"
+          export CCACHE_BASEDIR="$GITHUB_WORKSPACE"
+          export CCACHE_COMPILERCHECK=content
+          export CCACHE_TEMPDIR="$RUNNER_TEMP/exp76-ccache-temp"
+          mkdir -p "$CCACHE_DIR" "$CCACHE_TEMPDIR"
+          # PIPA_RT Image was qualified in run 41930944374; don't rebuild it before boot.
+          for variant in qemu-nonrt; do
             echo "EXP76_BOOT_IMAGE_BUILD_BEGIN=$variant"
             set +e
             make -C "$K" O="$BASE/$variant" ARCH=arm64 \
@@ -588,6 +706,7 @@ jobs:
             exp76-qemu/probe-qemu-rt/exp76_rt_spin_sleep.ko
             exp76-qemu/probe-qemu-nonrt/exp76_rt_spin_sleep.ko
             exp76-qemu/initramfs.cpio.gz
+            exp76-qemu/smoke-initramfs.cpio.gz
           if-no-files-found: warn
           include-hidden-files: true
           retention-days: 14
