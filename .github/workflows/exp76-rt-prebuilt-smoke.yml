@@ -76,9 +76,10 @@ jobs:
           set +e
           timeout -k 5s 100s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 \
             -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
+            -d guest_errors,cpu_reset,unimp -D exp76-boot-evidence/qemu-internal-debug.txt \
             -kernel exp76-prebuilt/outputs/qemu-rt/arch/arm64/boot/Image \
             -initrd exp76-smoke-initramfs.cpio.gz \
-            -append 'console=ttyAMA0 panic=-1' \
+            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 ignore_loglevel loglevel=8 panic=5 init=/init' \
             > exp76-boot-evidence/qemu-rt-console.txt 2>&1
           rc=$?
           set -e
