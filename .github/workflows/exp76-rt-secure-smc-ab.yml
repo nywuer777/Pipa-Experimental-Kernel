@@ -1,0 +1,134 @@
+# YAML / GitHub Actions ubuntu-24.04 / EXP76 RT pinned Image CPU A/B panic reproduction / NO FLASH
+name: EXP76 RT QEMU SMC secure-world A/B (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-rt-secure-smc-ab.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  qemu-rt-panic-ab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get SHA-verified original QEMU_RT image and ARM64 tools
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 41930944374
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-prebuilt
+      - name: Verify immutable image and install QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-panic-ab/reports exp76-panic-ab/logs
+          IMAGE=exp76-prebuilt/outputs/qemu-rt/arch/arm64/boot/Image
+          echo '8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1  '"$IMAGE" | sha256sum -c -
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' exp76-prebuilt/outputs/qemu-rt/.config
+          grep -E '^(# )?CONFIG_(RANDOMIZE_BASE|KALLSYMS|RCU_BOOST|RCU_NOCB_CPU|HOTPLUG_CPU)' exp76-prebuilt/outputs/qemu-rt/.config \
+            > exp76-panic-ab/reports/kernel-config-options.txt
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            qemu-system-arm cpio binutils curl
+          sha256sum "$IMAGE" > exp76-panic-ab/reports/Image.sha256
+          echo 'EXP76_PINNED_SOURCE_RUN=41930944374'
+      - name: Generate one verified AArch64 static initramfs for all CPU variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-panic-ab/root/bin exp76-panic-ab/root/dev exp76-panic-ab/arm64/root
+          DEB=exp76-panic-ab/arm64/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
+          curl -fL --retry 3 --retry-delay 3 \
+            'https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb' \
+            -o "$DEB"
+          test "$(dpkg-deb --field "$DEB" Architecture)" = arm64
+          dpkg-deb --extract "$DEB" exp76-panic-ab/arm64/root
+          BB="$(find exp76-panic-ab/arm64/root -type f -name busybox -print -quit)"
+          test -s "$BB"
+          readelf -h "$BB" | grep -Eq 'Machine:.*AArch64'
+          if readelf -l "$BB" | grep -q INTERP; then
+            echo 'BLOCKED_BUSYBOX_NOT_STATIC'; exit 4
+          fi
+          cp "$BB" exp76-panic-ab/root/bin/busybox
+          chmod +x exp76-panic-ab/root/bin/busybox
+          for cmd in sh sync poweroff; do ln -s busybox "exp76-panic-ab/root/bin/$cmd"; done
+          sudo mknod -m 0600 exp76-panic-ab/root/dev/console c 5 1
+          sudo mknod -m 0666 exp76-panic-ab/root/dev/null c 1 3
+          cat > exp76-panic-ab/root/init <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          echo 'EXP76_QEMU_RT_SMOKE=BEGIN'
+          echo 'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING'
+          sync
+          poweroff -f
+          INIT
+          chmod +x exp76-panic-ab/root/init
+          (cd exp76-panic-ab/root && find . -print0 | cpio --null -o --format=newc 2>/dev/null | gzip -9) \
+            > exp76-panic-ab/initramfs.cpio.gz
+          sha256sum "$DEB" exp76-panic-ab/root/bin/busybox exp76-panic-ab/initramfs.cpio.gz \
+            > exp76-panic-ab/reports/initramfs-inputs.sha256
+      - name: Compare Cortex-A72 SMP4, CPU max SMP4, Cortex-A72 SMP1 with nokaslr
+        shell: bash
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 runner / pinned ARM64 QEMU kernel CPU A-B comparison
+          import hashlib,json,re,subprocess,time
+          from pathlib import Path
+          out=Path("exp76-panic-ab")
+          trials=[("secure_off","cortex-a72",1),("secure_on","cortex-a72",1)]
+          results=[]
+          for key,cpu,smp in trials:
+              cmd=["timeout","-k","5s","75s","qemu-system-aarch64",
+                   "-M",("virt,secure=on" if key=="secure_on" else "virt"),"-cpu",cpu,"-smp",str(smp),"-m","512",
+                   "-nodefaults","-serial","stdio","-monitor","none","-display","none",
+                   "-nic","none","-no-reboot","-kernel",
+                   "exp76-prebuilt/outputs/qemu-rt/arch/arm64/boot/Image",
+                   "-initrd","exp76-panic-ab/initramfs.cpio.gz",
+                   "-append","earlycon=pl011,0x09000000 console=ttyAMA0,115200 "
+                             "loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init"]
+              t=time.monotonic()
+              p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+              blob=p.stdout;txt=blob.decode("utf-8","replace")
+              (out/"logs"/f"{key}.console.txt").write_bytes(blob)
+              norm=txt.replace("\r","")
+              (out/"logs"/f"{key}.normalized.txt").write_text(norm)
+              pcs=re.findall(r"(?m)^pc\s*:\s*(\S+)",norm)
+              lrs=re.findall(r"(?m)^lr\s*:\s*(\S+)",norm)
+              results.append({
+                "name":key,"cpu":cpu,"smp":smp,"qemu_exit_code":p.returncode,
+                "elapsed_s":round(time.monotonic()-t,3),
+                "console_sha256":hashlib.sha256(blob).hexdigest(),
+                "console_bytes":len(blob),"kernel_entered":"bootconsole" in norm or "psci:" in norm,
+                "panic":"Kernel panic" in norm,"oops":"Oops" in norm,
+                "pc":pcs,"lr":lrs,
+                "init_begin":"EXP76_QEMU_RT_SMOKE=BEGIN" in norm,
+                "init_running":"EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in norm,
+                "first_40_lines":norm.splitlines()[:40]})
+              print(f"EXP76_CPU_AB={key} EXIT={p.returncode} BYTES={len(blob)} "
+                    f"PANIC={results[-1]['panic']} PC={pcs} LR={lrs}",flush=True)
+              print("\n".join(norm.splitlines()[-8:]),flush=True)
+          data={"schema_version":1,"image_source_run":41930944374,
+                "kernel_image_sha256":"8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1",
+                "cmdline_has_nokaslr":True,"results":results,
+                "qemu_functional_pass":all(v["init_running"] and not v["panic"] for v in results),
+                "rt_handoff_ready":False}
+          (out/"reports"/"cpu-ab-results.json").write_text(json.dumps(data,indent=2)+"\n")
+          PY
+      - name: Publish full serial logs for all three CPU variants, no truncation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-smc-secure-ab-console-NOFLASH
+          path: |
+            exp76-panic-ab/reports/
+            exp76-panic-ab/logs/
+          retention-days: 30
+          if-no-files-found: warn
