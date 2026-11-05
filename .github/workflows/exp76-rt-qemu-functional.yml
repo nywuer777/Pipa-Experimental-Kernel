@@ -1049,3 +1049,241 @@ jobs:
           if-no-files-found: warn
           include-hidden-files: true
           retention-days: 14
+
+  pipa-rt-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+      LLVM_IAS: "1"
+      HOSTCC: gcc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight V3 guest gate and QEMU PIPA config-diff regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tests/exp76-rt-spin-sleep/run-in-guest.sh
+          bash tests/exp76-rt-spin-sleep/test-log-verifier.sh
+          python3 -m py_compile tests/exp76-rt-spin-sleep/check-config-diff.py
+          python3 -m py_compile tools/exp76-qemu-virtio-clang21.py
+          python3 -m py_compile tools/exp76-qemu-scm-config-audit.py
+          python3 tools/exp76-qemu-virtio-clang21.py --self-test
+          python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
+          python3 tests/exp76-rt-spin-sleep/test-config-diff.py
+          git diff --check
+          echo 'EXP76_QEMU_STATIC_PREFLIGHT=PASS; QEMU_RUNTIME_NOT_YET_PROVEN'
+
+      - name: Cache downloaded Ubuntu 24.04 apt archives (not dpkg state)
+        uses: actions/cache@v4
+        with:
+          path: exp76-qemu/apt-archives
+          key: exp76-apt-${{ runner.os }}-${{ runner.arch }}-ubuntu2404-arm64qemu-v1
+
+      - name: Install pinned dependencies, BusyBox static and ARM64 QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Keep the parent and evidence directories owned by runner.
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+          mkdir -p exp76-qemu/apt-archives
+          APT_ARCHIVES="$GITHUB_WORKSPACE/exp76-qemu/apt-archives"
+          sudo mkdir -p "$APT_ARCHIVES/partial"
+          sudo chown -R _apt:root "$APT_ARCHIVES"
+          sudo chmod 755 "$APT_ARCHIVES"
+          sudo chmod 700 "$APT_ARCHIVES/partial"
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Dir::Cache::archives="$APT_ARCHIVES" \
+            -o APT::Keep-Downloaded-Packages=true \
+            install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            gcc-aarch64-linux-gnu rsync device-tree-compiler \
+            qemu-system-arm busybox-static cpio gzip xz-utils ccache e2fsprogs
+          command -v qemu-system-aarch64
+          command -v busybox
+          command -v cpio
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+
+      - name: Obtain exact EXP75 Android Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none \
+              origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          test -x clang-r563880c/bin/llvm-objcopy
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+
+      - name: Reconstruct pinned E404 plus official RT patch and EXP76 source ports
+        shell: bash
+        timeout-minutes: 45
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > exp76-qemu/logs/source-reconstruction.log 2>&1 || {
+            tail -n 120 exp76-qemu/logs/source-reconstruction.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          # Restore the pinned KernelSU gitlink; drivers/kernelsu is a
+          # symlink to ../KernelSU/kernel. Do not delete a required source.
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-missing-sources.json
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-qemu/logs/ksu-submodule-init.log 2>&1 || {
+              cat exp76-qemu/logs/ksu-submodule-init.log
+              echo 'BLOCKED_SUBMODULE_KERNELSU'; exit 2;
+            }
+          git -C exp76-trial-overlay submodule status \
+            > exp76-qemu/reports/ksu-gitlink-status.txt
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig || {
+            echo 'BLOCKED_KCONFIG_KERNELSU_UNRESOLVED'; exit 2;
+          }
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-after-submodule.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/e404-kconfig-after-submodule.json').read_text())
+          print('KCONFIG_MISSING_AFTER_SUBMODULE=', d['missing_source_paths_count'])
+          assert 'drivers/kernelsu/Kconfig' not in d['missing_source_paths']
+          PY
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-qemu/reports/stage82
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json').read_text())
+          assert d['remaining_rejected_files']==64
+          assert d['total_rejected_hunks']==209
+          assert d['source_modified'] is False and d['rejects_deleted'] is False
+          PY
+          python3 tools/exp76-rt-stage83-arm64-neon-crypto.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage83 --mode apply
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage88 --mode apply
+          python3 tools/exp76-stage89-proc-swait.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage89 --mode apply
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage90 --mode apply
+          python3 tools/exp76-stage91-pid-atomic-header.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage91 --mode apply
+          python3 tools/exp76-rt-stage74-radix-locallock.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage74 --mode apply
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage79 --mode apply
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage85 --mode apply
+          # Fix the exact Clang21 VirtIO declaration in the disposable E404 tree.
+          # Keep QEMU VirtIO enabled; the fix is included in source-diff.sha256.
+          python3 tools/exp76-qemu-virtio-clang21.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/virtio-clang21-compat.json \
+            --mode apply
+          # Retain RT RCU quiescent-state API; use E404 vendor API in nonRT.
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff --binary | sha256sum \
+            > exp76-qemu/reports/source-diff.sha256
+
+      - name: Generate independent PIPA_RT effective config and assert Qualcomm SCM=y
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          OUT="$GITHUB_WORKSPACE/exp76-qemu/outputs/pipa-rt"
+          mkdir -p "$OUT"
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            vendor/pipa_defconfig > exp76-qemu/logs/pipa-independent-config.log 2>&1
+          "$K/scripts/config" --file "$OUT/.config" \
+            -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL \
+            -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig >> exp76-qemu/logs/pipa-independent-config.log 2>&1
+          grep -qx 'CONFIG_QCOM_SCM=y' "$OUT/.config"
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$OUT/.config"
+          echo 'EXP76_PIPA_RT_SCM=y'
+      - name: Independently build and SHA PIPA_RT ARM64 Image, no hardware boot
+        shell: bash
+        timeout-minutes: 110
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          OUT="$GITHUB_WORKSPACE/exp76-qemu/outputs/pipa-rt"
+          set +e
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld HOSTCC=gcc \
+            OBJCOPY=llvm-objcopy CROSS_COMPILE=aarch64-linux-gnu- \
+            CLANG_TRIPLE=aarch64-linux-gnu- -j"$(nproc)" Image \
+            > exp76-qemu/logs/pipa-independent-build.log 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-qemu/reports/pipa-independent-build-exit-code.txt
+          if [ "$rc" -ne 0 ]; then
+            echo "EXP76_PIPA_RT_IMAGE_EXIT=$rc"
+            grep -n -m30 -E 'error:|fatal error:|undefined reference|Error [0-9]+' exp76-qemu/logs/pipa-independent-build.log || true
+            tail -n 100 exp76-qemu/logs/pipa-independent-build.log
+            exit "$rc"
+          fi
+          test -s "$OUT/arch/arm64/boot/Image"
+          sha256sum "$OUT/arch/arm64/boot/Image" "$OUT/.config" \
+            > exp76-qemu/reports/pipa-independent-sha256.txt
+          echo 'EXP76_PIPA_RT_IMAGE=PASS'
+          echo 'EXP76_PIPA_RT_SCM_HARDWARE=NOT_TESTED'
+      - name: Publish PIPA_RT Image, SHA and build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-pipa-rt-unchanged-scm-build-NOFLASH
+          path: |
+            exp76-qemu/outputs/pipa-rt/arch/arm64/boot/Image
+            exp76-qemu/outputs/pipa-rt/.config
+            exp76-qemu/reports/pipa-independent-*
+            exp76-qemu/logs/pipa-independent-*
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
