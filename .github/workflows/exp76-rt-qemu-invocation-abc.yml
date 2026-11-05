@@ -1,0 +1,215 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 pinned ARM64 QEMU 3-way invocation A-B-C / NO FLASH
+name: EXP76 RT pinned QEMU invocation ABC forensic (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-rt-qemu-invocation-abc.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pinned-qemu-abc:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain exact old RT image from 41930944374
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 41930944374
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-abc/old
+      - name: Obtain exact SCM-off RT image and smoke initramfs from 42065457440
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42065457440
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: TOKEN_PLACEHOLDER
+          path: exp76-abc/new
+      - name: Install QEMU tools once, do not compile kernel or modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            qemu-system-arm cpio file binutils
+          mkdir -p exp76-abc/reports exp76-abc/consoles exp76-abc/cmdlines exp76-abc/qemu-debug
+          qemu-system-aarch64 --version | tee exp76-abc/reports/qemu-version.txt
+          sha256sum "$(command -v qemu-system-aarch64)" > exp76-abc/reports/qemu-binary.sha256
+      - name: Verify both Images, arm64 boot header, cpio /init and exact immutable hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          file exp76-abc/old/outputs/qemu-rt/arch/arm64/boot/Image \
+               exp76-abc/new/outputs/qemu-rt/arch/arm64/boot/Image \
+            > exp76-abc/reports/image-file.txt
+          sha256sum exp76-abc/old/outputs/qemu-rt/arch/arm64/boot/Image \
+                    exp76-abc/new/outputs/qemu-rt/arch/arm64/boot/Image \
+                    exp76-abc/new/smoke-initramfs.cpio.gz \
+            > exp76-abc/reports/image-and-initramfs-sha256.txt
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' exp76-abc/old/outputs/qemu-rt/.config
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' exp76-abc/new/outputs/qemu-rt/.config
+          grep -qx 'CONFIG_QCOM_SCM=y' exp76-abc/old/outputs/qemu-rt/.config
+          grep -qx '# CONFIG_QCOM_SCM is not set' exp76-abc/new/outputs/qemu-rt/.config
+          gzip -dc exp76-abc/new/smoke-initramfs.cpio.gz | cpio -it 2>/dev/null \
+            > exp76-abc/reports/initramfs-file-list.txt
+          grep -Eq '^(\./)?init$' exp76-abc/reports/initramfs-file-list.txt
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 / ARM64 Image and newc cpio input verification, NO FLASH
+          import gzip,hashlib,json,struct
+          from pathlib import Path
+          root=Path("exp76-abc")
+          paths={"old":root/"old/outputs/qemu-rt/arch/arm64/boot/Image",
+                 "new":root/"new/outputs/qemu-rt/arch/arm64/boot/Image"}
+          expect={"old":"8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1",
+                  "new":"74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234"}
+          entries={}
+          for key,p in paths.items():
+              raw=p.read_bytes()
+              digest=hashlib.sha256(raw).hexdigest()
+              assert digest==expect[key], f"{key} Image digest differs"
+              assert raw[0x38:0x3c]==b"ARMd", f"{key} not ARM64 Image"
+              text_offset=struct.unpack_from("<Q",raw,8)[0]
+              image_size=struct.unpack_from("<Q",raw,16)[0]
+              entries[key]={"path":str(p),"sha256":digest,"file_bytes":len(raw),
+                            "first64_hex":raw[:64].hex(),"magic_at_0x38":raw[0x38:0x3c].decode(),
+                            "text_offset":text_offset,"declared_memory_image_size":image_size}
+          ram=root/"new/smoke-initramfs.cpio.gz"
+          decomp=gzip.decompress(ram.read_bytes())
+          off=0;found={}
+          while off < len(decomp):
+              header=decomp[off:off+110]
+              assert header[:6] in (b"070701",b"070702"),f"cpio header invalid at {off}"
+              fields=[int(header[6+8*i:14+8*i],16) for i in range(13)]
+              namesize=fields[11];length=fields[6]
+              name=decomp[off+110:off+110+namesize].rstrip(b"\x00").decode()
+              off=(off+110+namesize+3)&~3
+              body=decomp[off:off+length]
+              off=(off+length+3)&~3
+              if name in ("./init","init"):
+                  assert body.startswith(b"#!/bin/sh\n")
+                  assert fields[1]&0o111
+                  found={"entry":name,"bytes":length,"mode":oct(fields[1]),
+                         "sha256":hashlib.sha256(body).hexdigest(),
+                         "contains_guest_running":b"EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in body}
+              if name=="TRAILER!!!":
+                  break
+          assert found and found["contains_guest_running"],"initramfs missing correct executable /init"
+          s={"schema_version":1,"images":entries,
+             "initramfs":{"path":str(ram),"bytes":ram.stat().st_size,
+                          "sha256":hashlib.sha256(ram.read_bytes()).hexdigest(),
+                          "init":found},
+             "old_new_size_difference_percent":round(100*(len(paths["new"].read_bytes())/len(paths["old"].read_bytes())-1),5),
+             "pipa_config_not_modified":True,"kernel_build_performed":False}
+          (root/"reports"/"input-sanity.json").write_text(json.dumps(s,indent=2)+"\n")
+          print(json.dumps(s,indent=2))
+          PY
+      - name: Run exact historically sourced QEMU argument profiles A B C, capture durations and full logs
+        shell: bash
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 / replay run-420502 vs run-420654 QEMU flags, NO BUILD NO FLASH
+          import hashlib,json,re,shlex,subprocess,time
+          from pathlib import Path
+          base=Path("exp76-abc")
+          old=str(base/"old/outputs/qemu-rt/arch/arm64/boot/Image")
+          new=str(base/"new/outputs/qemu-rt/arch/arm64/boot/Image")
+          ram=str(base/"new/smoke-initramfs.cpio.gz")
+          common=["-M","virt","-cpu","cortex-a72","-smp","4","-m","512",
+                  "-nodefaults","-serial","stdio","-monitor","none","-display","none",
+                  "-nic","none","-no-reboot"]
+          cmdline_panic="earlycon=pl011,0x09000000 console=ttyAMA0,115200 ignore_loglevel loglevel=8 panic=5 init=/init"
+          cmdline_scm="earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init"
+          cases=[
+            {"id":"A","source_profile_run":42050248789,"source_image_run":41930944374,
+             "description":"OLD IMAGE + ORIGINAL PANIC QEMU FLAGS",
+             "image":old,"cmdline":cmdline_panic,"debug":True},
+            {"id":"B","source_profile_run":42050248789,"source_image_run":42065457440,
+             "description":"SCM-OFF IMAGE + ORIGINAL PANIC QEMU FLAGS",
+             "image":new,"cmdline":cmdline_panic,"debug":True},
+            {"id":"C","source_profile_run":42065457440,"source_image_run":41930944374,
+             "description":"OLD IMAGE + SCM-OFF NO-CONSOLE QEMU FLAGS",
+             "image":old,"cmdline":cmdline_scm,"debug":False}
+          ]
+          results=[]
+          for case in cases:
+              key=case["id"]
+              args=["qemu-system-aarch64"]+list(common)
+              if case["debug"]:
+                  args+=["-d","guest_errors,cpu_reset,unimp","-D",str(base/"qemu-debug"/f"{key}.qemu-debug.txt")]
+              args+=["-kernel",case["image"],"-initrd",ram,"-append",case["cmdline"]]
+              cmdfile=base/"cmdlines"/f"{key}.qemu-cmdline.txt"
+              cmdfile.write_text(shlex.join(args)+"\n")
+              # The published text is the single source of argv consumed by the child process.
+              executed=shlex.split(cmdfile.read_text())
+              assert executed==args, f"roundtrip error in {key} argv"
+              (base/"cmdlines"/f"{key}.argv.json").write_text(json.dumps(executed,indent=2)+"\n")
+              console=base/"consoles"/f"{key}.console.txt"
+              start=time.monotonic_ns()
+              try:
+                  p=subprocess.run(executed,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
+                                   timeout=100,check=False)
+                  rc=p.returncode;data=p.stdout;timed_out=False
+              except subprocess.TimeoutExpired as e:
+                  rc=124;data=e.stdout or b""
+                  timed_out=True
+              elapsed=round((time.monotonic_ns()-start)/1e9,6)
+              console.write_bytes(data)
+              txt=data.decode("utf-8","replace").replace("\r","")
+              pcs=re.findall(r"(?m)^pc\s*:\s*(\S+)",txt)
+              lrs=re.findall(r"(?m)^lr\s*:\s*(\S+)",txt)
+              digest=hashlib.sha256(data).hexdigest()
+              norm=base/"consoles"/f"{key}.normalized.txt"
+              norm.write_text(txt)
+              record={k:v for k,v in case.items() if k not in ("cmdline",)}
+              record.update({
+                 "append_verbatim":case["cmdline"],"full_cmdfile":str(cmdfile),
+                 "command_sha256":hashlib.sha256(cmdfile.read_bytes()).hexdigest(),
+                 "execution_timeout_seconds":100,"qemu_exit_code":rc,"timed_out":timed_out,
+                 "duration_seconds":elapsed,"console_bytes":len(data),
+                 "console_lines":len(data.splitlines()),"console_sha256":digest,
+                 "panic":"Kernel panic" in txt,"oops":"Oops" in txt,
+                 "guest_begin":"EXP76_QEMU_RT_SMOKE=BEGIN" in txt,
+                 "guest_running":"EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in txt,
+                 "kernel_earlycon":"bootconsole" in txt,
+                 "pc":pcs,"lr":lrs,
+                 "console_tail_40":txt.splitlines()[-40:],
+                 "qemu_guest_functional":("EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in txt and "Kernel panic" not in txt)})
+              results.append(record)
+              print("EXP76_CASE",key,"RC",rc,"DURATION_SEC",elapsed,"BYTES",len(data),
+                    "LINES",len(data.splitlines()),"SHA256",digest,
+                    "PANIC",record["panic"],"GUEST_RUNNING",record["guest_running"],flush=True)
+              print("\n".join(txt.splitlines()[-25:]),flush=True)
+          report={"schema_version":1,"source_runs":{"old_image":41930944374,
+                    "scmoff_image":42065457440,"panic_invocation":42050248789,
+                    "silent_invocation":42065457440},
+                    "same_initramfs_across_all_cases":True,
+                    "original_420502_initramfs_not_archived":True,
+                    "path_remapping_for_downloaded_artifacts":True,
+                    "all_other_qemu_flags_copied_from_source_workflows":True,
+                    "cases":results,"kernel_build_performed":False,
+                    "rt_handoff_ready":False,"flash_ready":False}
+          path=base/"reports"/"abc-forensic-results.json"
+          path.write_text(json.dumps(report,indent=2)+"\n")
+          print("EXP76_ABC_REPORT",path)
+          PY
+      - name: Always publish immutable cmdline, argv, binaries sanity, full serial, hashes and timing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-rt-pinned-qemu-abc-forensic-NOFLASH
+          path: |
+            exp76-abc/reports/
+            exp76-abc/cmdlines/
+            exp76-abc/consoles/
+            exp76-abc/qemu-debug/
+          retention-days: 30
+          if-no-files-found: warn
