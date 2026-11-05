@@ -33,9 +33,11 @@ jobs:
           d=json.loads(Path('reports/exp76-checklist.json').read_text())
           assert len(d['items']) == 8
           assert not d['rt_handoff_ready']
-          assert set(d['reasons_not_ready']) == {'4','5','7'}
+          assert set(d['reasons_not_ready']) == {'4','5','6','7'}
           assert d['items']['4_hunks']['classified'] == 16
-          assert d['items']['7_fast_ccache']['ccache_full_images'] == 'NOT_MEASURED'
+          assert d['items']['6_build_rt']['build_rt_images_generated'] == 'PASS'
+          assert d['items']['7_fast_ccache']['ccache_full_images'] == 'MEASURED_WITH_COLD_ZERO_ASSERTION_FAILURE'
+          assert d['items']['7_fast_ccache']['ccache_warm_same_commit_gt90'] is True
           print('EXP76_CHECKLIST_GENERATOR=PASS')
           PY
       - name: Publish exact generated checklist
