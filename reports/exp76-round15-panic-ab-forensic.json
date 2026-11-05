@@ -33,9 +33,14 @@
     "raw_bug_opcode": "0xd4210000",
     "original_w8": "0x85",
     "field_struct_name": "NOT_RESOLVED_PENDING_EXACT_VMLINUX",
-    "pc_function": "NOT_RESOLVED_PENDING_EXACT_VMLINUX",
-    "lr_function": "NOT_RESOLVED_PENDING_EXACT_VMLINUX",
-    "vmlinux_symbolization_run_id": 42060860315
+    "pc_function": "do_undefinstr (source/assembly cross-validated; direct addr2line pending)",
+    "lr_function": "do_undefinstr (same raw function span; direct addr2line pending)",
+    "vmlinux_symbolization_run_id": 42060860315,
+    "bug_source": "arch/arm64/kernel/traps.c:441 BUG_ON(!user_mode(regs))",
+    "register_offset_meaning": "struct pt_regs.pstate (offset 0x108)",
+    "original_w8_masked_low_nibble": "0x5 (EL1h), non-user mode",
+    "underlying_exception": "EL1 undefined instruction; original regs->pc not yet recovered",
+    "panicking_idle_task_explanation": "secondary do_exit() kernel/exit.c:826 after undefined-instruction BUG"
   },
   "orig_config": {
     "CONFIG_RANDOMIZE_BASE": "y",
