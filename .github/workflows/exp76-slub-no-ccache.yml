@@ -1,0 +1,119 @@
+# YAML / GitHub Actions Ubuntu 24.04 / E404 PREEMPT_RT direct no-ccache slub.o proof / NO FLASH
+name: EXP76 SLUB direct Clang21 compile no ccache (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-slub-no-ccache.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  direct-slub:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+      LLVM_IAS: "1"
+      HOSTCC: gcc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install E404 build prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-slub/logs exp76-slub/reports
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            git bc bison flex libssl-dev libelf-dev libncurses-dev \
+            gcc-aarch64-linux-gnu rsync device-tree-compiler
+      - name: Pin Android Clang21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none \
+              origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+      - name: Reconstruct exact RT tree and restore KernelSU
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > exp76-slub/logs/reconstruct.log 2>&1 || {
+            tail -n 80 exp76-slub/logs/reconstruct.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-slub/logs/ksu.log 2>&1
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig
+      - name: Force mm/slub.o fresh compilation with CCACHE_DISABLE=1
+        shell: bash
+        timeout-minutes: 18
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          OUT="$GITHUB_WORKSPACE/exp76-slub/out"
+          mkdir -p "$OUT"
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            vendor/pipa_defconfig > exp76-slub/logs/defconfig.log 2>&1
+          "$K/scripts/config" --file "$OUT/.config" \
+            -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL \
+            -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig >> exp76-slub/logs/defconfig.log 2>&1
+          grep -qx '# CONFIG_SLUB_DEBUG is not set' "$OUT/.config"
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$OUT/.config"
+          test ! -e "$OUT/mm/slub.o"
+          export CCACHE_DISABLE=1
+          set +e
+          make -C "$K" O="$OUT" ARCH=arm64 CC=clang LD=ld.lld HOSTCC=gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            -j2 V=1 mm/slub.o > exp76-slub/logs/force-slub.log 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > exp76-slub/reports/slub-direct-exit-code.txt
+          echo "EXP76_SLUB_DIRECT_EXIT=$rc"
+          if [ "$rc" -ne 0 ]; then
+            grep -n -m30 -E 'error:|fatal error:|No rule to make target' \
+              exp76-slub/logs/force-slub.log || true
+            tail -n 90 exp76-slub/logs/force-slub.log
+            exit "$rc"
+          fi
+          test -s "$OUT/mm/slub.o"
+          sha256sum "$OUT/mm/slub.o" > exp76-slub/reports/slub-o-sha256.txt
+          sha256sum "$OUT/.config" > exp76-slub/reports/config-sha256.txt
+          grep -E 'clang.*slub\.c|CC +mm/slub\.o' exp76-slub/logs/force-slub.log \
+            > exp76-slub/reports/slub-compile-command.txt || true
+          printf 'CCACHE_DISABLE=1\nCONFIG_SLUB_DEBUG=n\nSLUB_DIRECT_OBJECT=PASS\n' \
+            > exp76-slub/reports/qualification.txt
+      - name: Upload no-ccache object proof and failure logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-slub-clang21-nocache-NOFLASH
+          path: |
+            exp76-slub/logs/
+            exp76-slub/reports/
+          if-no-files-found: warn
+          retention-days: 14
