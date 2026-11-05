@@ -37,7 +37,8 @@ def apply(text):
         "#ifdef CONFIG_PREEMPT_RT_FULL\n"
         + indent + TOKEN + "\n"
         + "#else\n"
-        + indent + FALLBACK + "\n"
+        + indent + "if (__this_cpu_read(ksoftirqd) == current)\n"
+        + indent + "\t" + FALLBACK + "\n"
         + "#endif"
     )
     if replacement in text:
@@ -59,7 +60,7 @@ def self_test():
     new,state=apply(old)
     assert state == "APPLIED"
     assert apply(new) == (new, "ALREADY_APPLIED")
-    assert "#else\n\t\trcu_softirq_qs();\n#endif" in new
+    assert "if (__this_cpu_read(ksoftirqd) == current)" in new
     try:
         apply(old.replace(TOKEN, "rcu_softirq_qs();"))
     except ValueError as e:
