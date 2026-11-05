@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_FAST_TECHNICAL_FIXTURE_MUTATIONS",
+  "authoritative_ci": {
+    "run_id": 42042165997,
+    "artifact_id": 13422071882,
+    "source_sha": "62485f631591433ea4bb725a6e4f0cc0b0148cc5"
+  },
+  "total": 10,
+  "detected": 10,
+  "mutations": [
+    {
+      "id": "M1",
+      "detected": true,
+      "failing_checks": [
+        "compile_C:kernel/fast_mutation.c"
+      ]
+    },
+    {
+      "id": "M2",
+      "detected": true,
+      "failing_checks": [
+        "compile_C:kernel/fast_mutation.c"
+      ]
+    },
+    {
+      "id": "M3",
+      "detected": true,
+      "failing_checks": [
+        "defconfig_symbol_existence"
+      ]
+    },
+    {
+      "id": "M4",
+      "detected": true,
+      "failing_checks": [
+        "mixed_whitespace_in_changed_C"
+      ]
+    },
+    {
+      "id": "M5",
+      "detected": true,
+      "failing_checks": [
+        "py_compile"
+      ]
+    },
+    {
+      "id": "M6",
+      "detected": true,
+      "failing_checks": [
+        "make_recipe_parse"
+      ]
+    },
+    {
+      "id": "M7",
+      "detected": true,
+      "failing_checks": [
+        "preprocess_header:kernel/fast_mutation.h"
+      ]
+    },
+    {
+      "id": "M8",
+      "detected": true,
+      "failing_checks": [
+        "compile_C:kernel/fast_mutation.c"
+      ]
+    },
+    {
+      "id": "M9",
+      "detected": true,
+      "failing_checks": [
+        "compile_C:kernel/fast_mutation.c"
+      ]
+    },
+    {
+      "id": "M10",
+      "detected": true,
+      "failing_checks": [
+        "kconfig_literal_sources"
+      ]
+    }
+  ],
+  "c_compiler_mode": "HOST_FIXTURE_SYNTAX_ONLY",
+  "production_kernel_objects_compiled": 0,
+  "production_kbuild_gate_qualified": false,
+  "old_fast_gate_baseline": {
+    "run_id": 41901112038,
+    "detected": 1,
+    "total": 10
+  },
+  "rt_handoff_ready": false
+}
