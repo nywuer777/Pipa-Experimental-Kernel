@@ -9,8 +9,8 @@
     "branches_with_unique_commits": 0,
     "branches_with_no_unique_commits": 31,
     "tag_creation_required": 0,
-    "branch_deleted": 0,
-    "branches_retained_pending_access": 31,
+    "branch_deleted": 31,
+    "branches_retained_pending_access": 0,
     "tag_created": 0
   },
   "snapshots": [
@@ -367,5 +367,20 @@
   "open_pull_requests_checked": 2,
   "open_pull_requests_using_stage_refs": 0,
   "open_pull_requests_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/pulls",
-  "readiness_for_deletion": "QUALIFIED_BY_ANCESTRY_AND_OPEN_PR_CHECK; REF_DELETION_ACTION_UNAVAILABLE"
+  "readiness_for_deletion": "COMPLETED; ALL 31 ANCESTRAL SNAPSHOT REFS DELETED",
+  "executed": {
+    "run_id": 42048846179,
+    "artifact_id": 13424794379,
+    "job_conclusion": "success",
+    "deleted_refs_count": 31,
+    "verified_exp76_stage_refs_remaining": 0,
+    "verified_active_exp76_refs_remaining": 5,
+    "artifact_contains": [
+      "deleted-shas.tsv",
+      "expected-shas.tsv",
+      "open-prs.json",
+      "targets.txt"
+    ],
+    "deletion_method": "GitHub Actions GH_TOKEN contents:write with SHA lease and ahead_by zero validation"
+  }
 }
