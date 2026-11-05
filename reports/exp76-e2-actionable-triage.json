@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_E2_ACTIONABLE_CLASSIFICATION",
+  "source_evidence": {
+    "run_id": 42021314572,
+    "artifact_id": 13412646072,
+    "raw_report_branch": "exp76-rt-e2-lazy",
+    "raw_report_path": "reports/exp76-scheduler-e2-detail.json",
+    "e404_base": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+    "reject_sha256": "b8c15cc49c3ce680e176b54065795e0bc058b481ca297cb0dff47733d8ff4c2f"
+  },
+  "summary": {
+    "selected_hunks": 6,
+    "port_verified": 0,
+    "semantic_required": 2,
+    "context_drift": 4,
+    "port_ready": 0,
+    "source_changed_by_e2": false
+  },
+  "hunks": [
+    {
+      "ordinal": 1,
+      "upstream_line_range": [
+        4151,
+        4157
+      ],
+      "symbol": "check_preempt_tick",
+      "classification": "SEMANTIC_REQUIRED",
+      "reason": "check_preempt_tick is absent from pinned fair.c; no exact function target",
+      "next_action": "Trace upstream slice-expiry preemption through E404 entity_tick() and task_tick_fair(); identify how EEVDF eligibility/deadline logic replaces preemption tick, then design lazy resched policy and tests",
+      "context_sha": "9427c6d474edfc9c949361fa1696f29b1c915fe430081218abf1355fea839a76",
+      "candidate_sha": null,
+      "file": "kernel/sched/fair.c",
+      "fix_e2_touched_this_hunk": false,
+      "port_verified": false,
+      "manual_semantic_equivalence_verified": false
+    },
+    {
+      "ordinal": 2,
+      "upstream_line_range": [
+        4175,
+        4181
+      ],
+      "symbol": "check_preempt_tick",
+      "classification": "SEMANTIC_REQUIRED",
+      "reason": "same function absent; cannot apply hunk mechanically",
+      "next_action": "Review both original tick-condition branches together with H1; explicitly analyze no-HRTICK and queued tick semantics before integrating resched_curr_lazy",
+      "context_sha": "257dbd2305bb2ae59b3b807b5b9cf115710590016fffe58a591b8a6a2b108765",
+      "candidate_sha": null,
+      "file": "kernel/sched/fair.c",
+      "fix_e2_touched_this_hunk": false,
+      "port_verified": false,
+      "manual_semantic_equivalence_verified": false
+    },
+    {
+      "ordinal": 3,
+      "upstream_line_range": [
+        4317,
+        4323
+      ],
+      "symbol": "entity_tick",
+      "classification": "CONTEXT_DRIFT",
+      "reason": "entity_tick exists but RT reject context absent; candidate nonunique (2 equal windows), similarity 0.857",
+      "next_action": "Diff reject old/new body against current entity_tick queued branch around pinned fair.c:5492-5513; determine whether replacing immediate resched affects preemption latency",
+      "context_sha": "2cac785bc0de43d638a2d4abd41b30c4b9df40d298b321a3a6132a7e15992861",
+      "candidate_sha": "11b3ffb799b5199aa892525d5d256fe3c78df85843511d45ca6bb0338cc123d5",
+      "actual_candidate_line_range": [
+        5507,
+        5513
+      ],
+      "file": "kernel/sched/fair.c",
+      "fix_e2_touched_this_hunk": false,
+      "port_verified": false,
+      "manual_semantic_equivalence_verified": false
+    },
+    {
+      "ordinal": 7,
+      "upstream_line_range": [
+        5157,
+        5163
+      ],
+      "symbol": "hrtick_start_fair",
+      "classification": "CONTEXT_DRIFT",
+      "reason": "hrtick_start_fair exists but candidate textual similarity 0.286; rewritten deadline logic",
+      "next_action": "Compare upstream RT early resched condition with E404 se->deadline/se->vruntime branch near fair.c:6413-6432; guard against changing urgent deadline preemption",
+      "context_sha": "9ea5869b978e8d4a9be2f9545bb3119e4455fbd7d8b1ae52ab2985cafdd38391",
+      "candidate_sha": "e18be2e54639195cd1d145797632dad4d5ba1157f73b2b6f882d96c148400e9f",
+      "actual_candidate_line_range": [
+        6616,
+        6622
+      ],
+      "file": "kernel/sched/fair.c",
+      "fix_e2_touched_this_hunk": false,
+      "port_verified": false,
+      "manual_semantic_equivalence_verified": false
+    },
+    {
+      "ordinal": 15,
+      "upstream_line_range": [
+        6748,
+        6754
+      ],
+      "symbol": "check_preempt_wakeup",
+      "classification": "CONTEXT_DRIFT",
+      "reason": "wakeup path refactored with PREEMPT_WAKEUP_SHORT and EEVDF; 5 equally scored windows (ambiguous)",
+      "next_action": "Analyze wake-up early exits and PREEMPT_WAKEUP_* branches near fair.c:9030-9147; never choose candidate by similarity alone",
+      "context_sha": "e92368f4485ad045b2611d9dd1a469a05961f7d115586a4444f5adb1a22d3118",
+      "candidate_sha": "ec98ae8cada73078e8beb48c59c7fbc49add2ae28a0d059926d9b0768efd8ac8",
+      "actual_candidate_line_range": [
+        9137,
+        9143
+      ],
+      "file": "kernel/sched/fair.c",
+      "fix_e2_touched_this_hunk": false,
+      "port_verified": false,
+      "manual_semantic_equivalence_verified": false
+    },
+    {
+      "ordinal": 20,
+      "upstream_line_range": [
+        9882,
+        9888
+      ],
+      "symbol": "task_fork_fair",
+      "classification": "CONTEXT_DRIFT",
+      "reason": "task_fork_fair exists but fork placement logic differs, similarity 0.429",
+      "next_action": "Diff RT child preemption intent against E404 place_entity(... ENQUEUE_INITIAL) and rq_unlock flow near fair.c:13312-13331; decide whether lazy resched is required in vendor fork path",
+      "context_sha": "7076e4541a730fa1db302fdeea108fc5e05e35c59525342df7ab6b8ec35d8371",
+      "candidate_sha": "7a090078991dfe6c60f8b07867f2745007cec74c7fe3780bb678c3aad5725dbd",
+      "actual_candidate_line_range": [
+        13477,
+        13483
+      ],
+      "file": "kernel/sched/fair.c",
+      "fix_e2_touched_this_hunk": false,
+      "port_verified": false,
+      "manual_semantic_equivalence_verified": false
+    }
+  ],
+  "source_integrity": {
+    "before_sha256": "9f4e1f5d50fb4e89ffe7b40e8324ab5edfd50e25c36aa81ef80009b60fe6be01",
+    "after_sha256": "9f4e1f5d50fb4e89ffe7b40e8324ab5edfd50e25c36aa81ef80009b60fe6be01"
+  },
+  "gate": "BLOCKED_UNTIL_SEMANTIC_REVIEW",
+  "rt_handoff_ready": false
+}
