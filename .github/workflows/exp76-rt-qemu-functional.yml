@@ -245,7 +245,7 @@ jobs:
           path: exp76-qemu/ccache
           key: exp76-ccache-v1-${{ runner.os }}-${{ env.ANDROID_LLVM_COMMIT }}-${{ hashFiles('exp76-qemu/outputs/qemu-rt/.config') }}-${{ hashFiles('exp76-qemu/reports/source-diff.sha256') }}
 
-      - name: Build RT Images directly, without ccache assertions
+      - name: Build QEMU RT and nonRT Images directly (PIPA RT already proven), without ccache assertions
         shell: bash
         timeout-minutes: 110
         run: |
@@ -258,7 +258,8 @@ jobs:
           export CCACHE_COMPILERCHECK=content
           export CCACHE_TEMPDIR="$RUNNER_TEMP/exp76-ccache-temp"
           mkdir -p "$CCACHE_DIR" "$CCACHE_TEMPDIR"
-          for variant in pipa-rt qemu-rt qemu-nonrt; do
+          # PIPA_RT Image was qualified in run 41930944374; don't rebuild it before boot.
+          for variant in qemu-rt qemu-nonrt; do
             echo "EXP76_BOOT_IMAGE_BUILD_BEGIN=$variant"
             set +e
             make -C "$K" O="$BASE/$variant" ARCH=arm64 \
