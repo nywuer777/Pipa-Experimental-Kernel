@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "stage": "EXP76_ROUND15_PINNED_IMAGE_ARM64_KERNEL_PANIC_TRIAGE",
+  "source": {
+    "pinned_image_run_id": 41930944374,
+    "pinned_image_sha256": "8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1",
+    "original_panic_run_id": 42050248789,
+    "original_panic_artifact": 13426157667,
+    "ab_run_id": 42060014887,
+    "ab_artifact": 13430751634,
+    "source_sha": "7376e28ce33eebaf86c761181d2a485d8969bb67"
+  },
+  "forensic": {
+    "kaslr_original_pc": "0xffffffa763080b2c",
+    "kaslr_original_lr": "0xffffffa763080af8",
+    "nokaslr_pc": "0xffffff8010080b2c",
+    "nokaslr_lr": "0xffffff8010080af8",
+    "image_pc_offset": "0xb2c",
+    "image_lr_offset": "0xaf8",
+    "five_instruction_motif_offset": "0xb1c",
+    "five_instruction_motif_matches_in_image": 1,
+    "disassembly": [
+      "0xaf8 ldrb w8, [x19, #0x108]",
+      "0xafc tst w8, #0xf",
+      "0xb00 b.ne 0xb2c",
+      "0xb1c bl 0xd50",
+      "0xb20 ldrb w8, [x19, #0x108]",
+      "0xb24 tst w8, #0xf",
+      "0xb28 b.eq 0xb04",
+      "0xb2c brk #0x800"
+    ],
+    "raw_bug_opcode": "0xd4210000",
+    "original_w8": "0x85",
+    "field_struct_name": "NOT_RESOLVED_PENDING_EXACT_VMLINUX",
+    "pc_function": "NOT_RESOLVED_PENDING_EXACT_VMLINUX",
+    "lr_function": "NOT_RESOLVED_PENDING_EXACT_VMLINUX",
+    "vmlinux_symbolization_run_id": 42060860315
+  },
+  "orig_config": {
+    "CONFIG_RANDOMIZE_BASE": "y",
+    "CONFIG_KALLSYMS": "n",
+    "CONFIG_PREEMPT_RT_FULL": "y",
+    "CONFIG_RCU_BOOST": "y",
+    "CONFIG_RCU_NOCB_CPU": "y",
+    "CONFIG_HOTPLUG_CPU": "y"
+  },
+  "a_b": {
+    "nokaslr": true,
+    "printk_time": true,
+    "tests": [
+      {
+        "cpu": "cortex-a72",
+        "smp": 4,
+        "qemu_exit": 0,
+        "elapsed_seconds": 0.245,
+        "panic": true,
+        "pc": "0xffffff8010080b2c",
+        "lr": "0xffffff8010080af8",
+        "console_sha256": "402be2c1b07c6715da5a67072eb9635dfd1d99eabe3f3f7074bc840600b5f628",
+        "console_bytes": 1698,
+        "init_reached": false
+      },
+      {
+        "cpu": "max",
+        "smp": 4,
+        "qemu_exit": 124,
+        "elapsed_seconds": 75.007,
+        "panic": false,
+        "console_sha256": "e70b7c9284a67c068e8c7f9f4a1fa227eaf306bf64bbfb6042f6fffd3e9a88e1",
+        "console_bytes": 70,
+        "init_reached": false,
+        "status": "TIMEOUT_NO_KERNEL_CONSOLE"
+      },
+      {
+        "cpu": "cortex-a72",
+        "smp": 1,
+        "qemu_exit": 0,
+        "elapsed_seconds": 0.219,
+        "panic": true,
+        "pc": "0xffffff8010080b2c",
+        "lr": "0xffffff8010080af8",
+        "console_sha256": "ce75cce99f275b8c4b1c89eebc18b9a25a07debaacff8a395ff6f9e0b70cd2d8",
+        "console_bytes": 1698,
+        "init_reached": false
+      }
+    ]
+  },
+  "orig_console": {
+    "bytes": 1698,
+    "raw_sha256": "99ccddac055e5390e01ace918441796f7a3d08e3bbae693a6767545ab2f358b3",
+    "contains_call_trace": true,
+    "call_trace_raw": [
+      "0xffffffa763080b2c",
+      "0xffffffa76356b978"
+    ],
+    "panic_text": "Attempted to kill the idle task!",
+    "panic_source": "kernel/exit.c:826 do_exit when task->pid == 0",
+    "first_bug_not_idle_loop_return": true,
+    "printk_time_available_in_earlyconsole": false
+  },
+  "rt_reject_inventory": {
+    "files": 64,
+    "hunks": 209,
+    "matching_idle_cpu_do_idle_play_dead_paths": 0
+  },
+  "state": "KERNEL_PANIC_EARLY_BEFORE_INIT",
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}
