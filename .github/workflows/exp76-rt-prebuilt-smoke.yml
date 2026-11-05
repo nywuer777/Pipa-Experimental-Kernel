@@ -75,7 +75,7 @@ jobs:
           set -euo pipefail
           set +e
           timeout -k 5s 100s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 \
-            -nographic -no-reboot \
+            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
             -kernel exp76-prebuilt/outputs/qemu-rt/arch/arm64/boot/Image \
             -initrd exp76-smoke-initramfs.cpio.gz \
             -append 'console=ttyAMA0 panic=-1' \
