@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_FIRST_ARM64_RT_KERNEL_CONSOLE_PANIC",
+  "scope": "RT_ONLY",
+  "run_id": 42050248789,
+  "artifact_id": 13426157667,
+  "workflow_source_commit": "f61b18dbbc52fa5d47ef5648b374692924ddb937",
+  "tested_image": {
+    "source_run_id": 41930944374,
+    "source_commit": "7376e28ce33eebaf86c761181d2a485d8969bb67",
+    "sha256": "8b5f5cce769e35fb469510cc58e6881504473483418da12933c467ad454e50d1",
+    "kind": "QEMU_RT_PREEMPT_RT_FULL",
+    "architecture": "arm64",
+    "compiler": "Android Clang 21.0.0"
+  },
+  "qemu": {
+    "architecture": "aarch64",
+    "machine": "virt",
+    "cpu": "cortex-a72",
+    "smp": 4,
+    "ram_mib": 512,
+    "exit_code": 0,
+    "earlycon": "pl011,0x09000000",
+    "host_rom_error": false,
+    "guest_console_generated": true
+  },
+  "kernel": {
+    "release": "4.19.404R-rt140",
+    "first_linux_console": true,
+    "psci": "PSCIv1.1",
+    "last_early_init": "psci: SMC Calling Convention v1.0",
+    "panic": "Kernel panic - not syncing: Attempted to kill the idle task!",
+    "oops": "Internal error: Oops - BUG: 0 [#1] PREEMPT SMP",
+    "cpu": 0,
+    "pid": 0,
+    "comm": "swapper",
+    "pc": "0xffffffa763080b2c",
+    "lr": "0xffffffa763080af8",
+    "code_hex": "9400008d 39442268 72000d1f 54fffee0 (d4210000)",
+    "init_markers_found": false
+  },
+  "evidence_sha256": {
+    "console_raw": "99ccddac055e5390e01ace918441796f7a3d08e3bbae693a6767545ab2f358b3",
+    "console_normalized": "edf8db1656619708d35a7eb5257f09096e5516e0bd0b86311d7e4ebcf81e43a4",
+    "debug_log": "2e9a19d6de62ed00e6bfc9f6363a4b81826132d78784269696172cb30a454f1d",
+    "initramfs": "54dbbb8aabdbf88d37e7e675971e60034fef3c9d6652d3e1e027f888f13bfc58"
+  },
+  "status": "KERNEL_ENTERED_PANIC_BEFORE_INIT",
+  "qemu_functional": "FAIL",
+  "rt_handoff_ready": false,
+  "flash_ready": false,
+  "next_steps": [
+    "Retrieve or build exact matching vmlinux and System.map for Image digest from source run 41930944374, with identical config and localversion",
+    "Use llvm-addr2line or scripts/faddr2line to identify PC and LR at the correct virtual offset; do not infer function from raw address",
+    "Check RT rejection hunks relevant to early scheduler, RCU and locking after symbolization",
+    "Re-run same smoke with identical QEMU flags and verify failure and console hashes"
+  ]
+}
