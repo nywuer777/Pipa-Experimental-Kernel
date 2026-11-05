@@ -358,9 +358,9 @@ jobs:
           grep -E 'EXP76_QEMU_RT_SMOKE=|Kernel panic|Oops:|Unable to mount root' \
             exp76-qemu/logs/qemu-rt-smoke-console.txt || true
           if [ "$rc" -ne 0 ] \
-             || ! grep -qx 'EXP76_QEMU_RT_SMOKE=BEGIN' \
+             || ! grep -q '^EXP76_QEMU_RT_SMOKE=BEGIN' \
                exp76-qemu/logs/qemu-rt-smoke-console.txt \
-             || ! grep -qx 'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' \
+             || ! grep -q '^EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' \
                exp76-qemu/logs/qemu-rt-smoke-console.txt; then
             echo "EXP76_QEMU_RT_SMOKE=FAIL"
             head -n 40 exp76-qemu/logs/qemu-rt-smoke-console.txt
