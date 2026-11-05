@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-05T15:02:26.650Z",
-  "source_sha": "d382a375e12eeaef0a5c94533faf0b45a67a22cb",
+  "generated_at": "2026-11-05T16:34:14.875Z",
+  "source_sha": "985367205de49babefb59acbb81fb6fafa20221e",
   "scope": "RT_ONLY",
   "items": {
     "1_series_rt": {
@@ -69,7 +69,31 @@
       "guest_init_reached": false,
       "panic_evidence_path": "reports/exp76-round14-qemu-early-panic.json",
       "raw_console_sha256": "99ccddac055e5390e01ace918441796f7a3d08e3bbae693a6767545ab2f358b3",
-      "first_guest_console_kernel": "4.19.404R-rt140"
+      "first_guest_console_kernel": "4.19.404R-rt140",
+      "qemu_scm_policy": "QEMU_ONLY_QCOM_SCM_N_PENDING_EFFECTIVE_CONFIG_AND_BOOT",
+      "qemu_rt_validates_if_pass": [
+        "scheduler",
+        "RCU",
+        "locking",
+        "time",
+        "IRQ",
+        "mm",
+        "arch/arm64",
+        "init"
+      ],
+      "qemu_rt_does_not_validate": [
+        "Qualcomm SCM TrustZone",
+        "physical PIPA firmware",
+        "PIPA hardware boot"
+      ],
+      "pipa_rt_scm_expected": "CONFIG_QCOM_SCM=y",
+      "pipa_rt_scm_validated": "NO_HARDWARE",
+      "vendor_config_risk_candidates": 26,
+      "vendor_config_early_smc_verified": 1,
+      "qemu_scm_policy_branch": "exp76-qemu-virtio-block-io",
+      "qemu_scm_policy_run": 42065541890,
+      "effective_scm_off_verified": false,
+      "actual_qemu_guest_boot_with_scm_off": false
     },
     "6_build_rt": {
       "state": "PARTIAL_PASS",
