@@ -4,11 +4,11 @@
   "toolchain_decision": "KEEP_ANDROID_CLANG_21",
   "toolchain_commit": "b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7",
   "baseline_e404": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
-  "inventory_state": "REQUIRES_RECONSTRUCTED_TREE_SCAN",
-  "uninitialized_var_use_lines": null,
-  "uninitialized_var_call_sites": null,
-  "uninitialized_var_files": null,
-  "header_macro_definition_count": null,
+  "inventory_state": "MEASURED_E404_RT_RECONSTRUCTED_TREE",
+  "uninitialized_var_use_lines": 230,
+  "uninitialized_var_call_sites": 238,
+  "uninitialized_var_files": 148,
+  "header_macro_definition_count": 0,
   "observed_compatibility_errors": [
     {
       "id": "CLANG21-4.19-0001",
@@ -34,5 +34,12 @@
     "tools/include/linux/compiler.h",
     "tools/virtio/linux/kernel.h"
   ],
-  "macro_removal_evidence": "https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/commit/2acbd0de67aeb3863d278e81e0efe7d9084338f0"
+  "macro_removal_evidence": "https://github.com/kvsnr113/xiaomi_sm8250_kernel_e404/commit/2acbd0de67aeb3863d278e81e0efe7d9084338f0",
+  "inventory_run_id": 42021314572,
+  "inventory_artifact_id": 13412646072,
+  "inventory_artifact_file": "reports/e2/clang21-4.19-incompatibilities.json",
+  "checked_c_h_files": 55236,
+  "virtio_modified_by_rt_overlay": false,
+  "uninitialized_var_uses_are_build_failures": false,
+  "remaining_compiler_incompatibilities": "UNMEASURED_FOR_FULL_CONFIG_MATRIX"
 }
