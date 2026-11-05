@@ -28,7 +28,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: exp76-qemu-rt-functional-NOFLASH
-          run-id: 42065457440
+          run-id: 42065541890
           repository: nywuer777/Pipa-Experimental-Kernel
           github-token: TOKEN_PLACEHOLDER
           path: exp76-abc/new
