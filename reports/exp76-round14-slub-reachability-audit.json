@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "stage": "EXP76_ROUND14_MACRO_REACHABILITY_MANUAL_CONTROLS",
+  "inventory_run_id": 42021314572,
+  "inventory_artifact_id": 13412646072,
+  "build_run_id": 42020698390,
+  "build_artifact_id": 13412264343,
+  "method": "Exact anchored CC/LD object paths in both captured PIPA and QEMU RT build logs, not basename matching",
+  "source_guard": "mm/slub.c line 1220 inside #ifdef CONFIG_SLUB_DEBUG opened at E404 line 447",
+  "pipa_rt_config_slub_debug": false,
+  "qemu_rt_config_slub_debug": false,
+  "rows": [
+    {
+      "source": "mm/slub.c",
+      "in_macro_inventory": true,
+      "pipa_rt_cc_object_lines": 1,
+      "qemu_rt_cc_object_lines": 1
+    },
+    {
+      "source": "fs/isofs/namei.c",
+      "in_macro_inventory": true,
+      "pipa_rt_cc_object_lines": 0,
+      "qemu_rt_cc_object_lines": 0
+    },
+    {
+      "source": "drivers/vhost/net.c",
+      "in_macro_inventory": true,
+      "pipa_rt_cc_object_lines": 0,
+      "qemu_rt_cc_object_lines": 0
+    },
+    {
+      "source": "arch/x86/kernel/quirks.c",
+      "in_macro_inventory": true,
+      "pipa_rt_cc_object_lines": 0,
+      "qemu_rt_cc_object_lines": 0
+    },
+    {
+      "source": "drivers/gpu/drm/scheduler/sched_main.c",
+      "in_macro_inventory": false,
+      "pipa_rt_cc_object_lines": 0,
+      "qemu_rt_cc_object_lines": 0
+    },
+    {
+      "source": "fs/ext4/extents.c",
+      "in_macro_inventory": false,
+      "pipa_rt_cc_object_lines": 1,
+      "qemu_rt_cc_object_lines": 1
+    }
+  ],
+  "negative_controls_confirmed": 3,
+  "user_suggested_paths_not_in_inventory": [
+    "drivers/gpu/drm/scheduler/sched_main.c",
+    "fs/ext4/extents.c"
+  ],
+  "uncached_mm_slub_object_ci_run": 42045758738,
+  "uncached_mm_slub_object_status": "PENDING_CI_EXECUTION",
+  "limits": [
+    "Negative controls only test these three relative object paths, not all possible translation-unit inclusions",
+    "An object CC line does not prove a source line survives preprocessing",
+    "ccache stats are aggregate, not per-object"
+  ],
+  "rt_handoff_ready": false
+}
