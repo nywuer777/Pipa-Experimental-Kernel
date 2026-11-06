@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-06T13:25:03.403Z",
-  "source_sha": "4ed396a7f5bc56920de247d5917496fd9fb5d922",
+  "generated_at": "2026-11-06T13:40:00Z",
+  "source_sha": "cc9700b01898b60f79c88808af2d5754033133f8",
   "scope": "RT_ONLY",
   "items": {
     "1_series_rt": {
@@ -42,7 +42,7 @@
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-06T13:23:12.063Z",
+      "updated_at": "2026-11-06T13:40:00Z",
       "boot_critical_total": 157,
       "non_blocking_port_total": 52,
       "classified": 16,
@@ -58,17 +58,20 @@
       "swork_runtime_repair_applied": true,
       "swork_port_verified": false,
       "new_port_verified_count": 0,
-      "r19_evidence": "reports/exp76-round19-swork-build-boot.json"
+      "r19_evidence": "reports/exp76-round19-swork-build-boot.json",
+      "r20_rejected_boot_family_files": 16,
+      "r20_rejected_boot_family_hunks": 80,
+      "r20_rejected_counts_are_not_pending_port_count": true
     },
     "5_qemu": {
-      "state": "FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT",
-      "evidence_path": "github-actions/42216342473/exp76-qemu-rt-functional-NOFLASH",
+      "state": "FAIL_EARLY_BOOT_NO_INITCALL_PROGRESS",
+      "evidence_path": "github-actions/42226476787/exp76-r20-rt-initcall-nohz-irq-NOFLASH",
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-06T13:23:12.063Z",
-      "blocker": "R19_NOHZ_SWORK_ORDER_REPAIR_BUILT; GUEST_STALLS_IN_CPU_DO_IDLE_WFI_BEFORE_INIT",
-      "latest_qemu_run_id": 42216342473,
+      "updated_at": "2026-11-06T13:40:00Z",
+      "blocker": "R20_INITCALL_DEBUG_CALLING_0; NOHZ_OFF_NO_ADVANCE; 20_CPU0_IRQ_DELIVERED; PID1_BLOCK_REASON_UNRESOLVED",
+      "latest_qemu_run_id": 42226476787,
       "kconfig_audit_path": "reports/e404-kconfig-missing-sources.json",
       "qemu_guest_entered_kernel": true,
       "kernel_boot_complete": false,
@@ -101,11 +104,11 @@
       "effective_scm_off_verified": true,
       "actual_qemu_guest_boot_with_scm_off": false,
       "last_host_qemu_exit_code": 124,
-      "last_guest_console_sha256": "cdb3b76fa0a066a541c5badeed60231eeec775addccffe7de27f1a2dfbccc53b",
-      "last_guest_console_bytes": 3284,
-      "last_guest_console_lines": 46,
+      "last_guest_console_sha256": "23d4bbf79d85be00b73c091f8a32952aecdf9d08cb43d565667d47e0a4edb50b",
+      "last_guest_console_bytes": 3236,
+      "last_guest_console_lines": 45,
       "previous_kernel_entry_run_id": 42050248789,
-      "latest_evidence_path": "reports/exp76-round19-swork-build-boot.json",
+      "latest_evidence_path": "reports/exp76-round20-initcall-nohz-irq.json",
       "abc_control_run_id": 42075655648,
       "abc_artifact_id": 13437683828,
       "trace_artifact_id": 13437749221,
@@ -198,7 +201,39 @@
       "r19_snapshot_pc_symbol": "cpu_do_idle+0x8",
       "r19_snapshot_x30_caller": "arch_cpu_idle+0xc",
       "r19_snapshot_smp1_and_smp4_same_pc": true,
-      "r19_snapshot_limitations": "T+1s HMP register response unparsed; T+5/T+15 CPU0 PC stable, other cores not measured"
+      "r19_snapshot_limitations": "T+1s HMP register response unparsed; T+5/T+15 CPU0 PC stable, other cores not measured",
+      "test_initcall_debug_nosmp": {
+        "exit_code": 124,
+        "duration_seconds": 42.026782,
+        "console_bytes": 3236,
+        "console_lines": 45,
+        "console_sha256": "23d4bbf79d85be00b73c091f8a32952aecdf9d08cb43d565667d47e0a4edb50b",
+        "initcall_calling_count": 0,
+        "guest_running": false
+      },
+      "test_nohz_off": {
+        "exit_code": 124,
+        "duration_seconds": 42.029664,
+        "console_bytes": 3222,
+        "console_lines": 45,
+        "console_sha256": "f0b5b8e4fb16e8f95a74f5e1dc98766fdf5db7f33e58e764eb482e3efdc070e4",
+        "guest_running": false
+      },
+      "test_qemu_irq": {
+        "exit_code": 124,
+        "duration_seconds": 42.027488,
+        "console_bytes": 3213,
+        "console_lines": 45,
+        "console_sha256": "95b87059abdf40e61876447808d78236762ed3676eab8abbf1bd20550b77f645",
+        "qemu_irq_exception5_count": 20,
+        "irq_last_elr_symbol": "arch_cpu_idle+0x10",
+        "guest_running": false
+      },
+      "nonrt_control_status": "BLOCKED_NO_ARCHIVED_NONRT_IMAGE",
+      "initcall_debug_calling_count": 0,
+      "cpu0_irq_exception_count": 20,
+      "irq_last_elr_symbol": "arch_cpu_idle+0x10",
+      "earliest_last_printk_source": "arch/arm64/kernel/topology.c:161 parse_cluster()"
     },
     "6_build_rt": {
       "state": "PARTIAL_PASS",
@@ -206,7 +241,7 @@
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-06T13:23:12.063Z",
+      "updated_at": "2026-11-06T13:40:00Z",
       "build_rt_images_generated": "PASS",
       "build_rt_compiled_end_to_end": "PASS_WITH_INSTRUMENTATION_CAVEAT",
       "build_aggregate_step": "QEMU_SMOKE_TIMEOUT_AFTER_BOTH_RT_IMAGES_COMPILED",
@@ -214,7 +249,7 @@
       "qemu_rt_image_sha256": "94318cad94a3206337e6b9c9d15c74c5b6c59baa12d2f990a03856981ac45cb7",
       "toolchain": "ANDROID_CLANG_21_r563880c",
       "abi_diff": "NOT_MEASURED",
-      "runtime_functional": "FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT",
+      "runtime_functional": "FAIL_EARLY_BOOT_NO_INITCALL_PROGRESS",
       "pipa_rt_effective_config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5",
       "qemu_rt_effective_config_sha256": "7ea8eb1f6f3202469edf6b63e56c66fe456f3bb391805083a513e72a32c5cdc0",
       "pipa_rt_qcom_scm": "y",
@@ -320,5 +355,6 @@
   "readiness_rule": "RT handoff requires valid measured PASS of all in-scope gates",
   "RT_SCOPE_CONTRACT_PATH": "reports/exp76-rt-scope-handoff.json",
   "RT_FORENSIC_R18_PATH": "reports/exp76-round18-swork-atomic-caller.json",
-  "RT_R19_SOURCE_AND_BOOT_REPORT": "reports/exp76-round19-swork-build-boot.json"
+  "RT_R19_SOURCE_AND_BOOT_REPORT": "reports/exp76-round19-swork-build-boot.json",
+  "RT_R20_INITCALL_IRQ_REPORT": "reports/exp76-round20-initcall-nohz-irq.json"
 }
