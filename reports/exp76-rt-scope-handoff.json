@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "stage": "EXP76_ROUND18_SCOPE_AND_KAI_HANDOFF_CONTRACT",
+  "source_evidence": {
+    "qemu_scm_off_run": 42065457440,
+    "qemu_scm_off_image_sha256": "74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234",
+    "pipa_rt_run": 42065541890,
+    "pipa_rt_image_sha256": "6bce099a167671d56d031e3c3cf55908e06dcbbbe6e0c142e0d8bbd76b4ae218",
+    "qemu_data_abort_run": 42076252812,
+    "abc_control_run": 42075655648
+  },
+  "qemu_rt_scope": {
+    "hardware": "QEMU virt ARM64",
+    "config": {
+      "CONFIG_PREEMPT_RT_FULL": "y",
+      "CONFIG_QCOM_SCM": "n",
+      "CONFIG_QCOM_KGSL": "n",
+      "CONFIG_QCOM_MDT_LOADER": "n"
+    },
+    "may_validate_if_positive_guest_gates": [
+      "scheduler",
+      "RCU",
+      "locking",
+      "time",
+      "IRQ",
+      "mm",
+      "arch/arm64",
+      "init"
+    ],
+    "NOT_validated_currently": [
+      "complete guest kernel boot",
+      "init process execution",
+      "RT spin sleep V3 contention",
+      "RT semantics under load",
+      "VirtIO block I/O"
+    ],
+    "not_in_scope_even_if_boot_passes": [
+      "real QCOM TrustZone SCM/SMC",
+      "Qualcomm device and vendor peripheral firmware paths",
+      "PIPA physical device boot",
+      "PIPA vendor module ABI compatibility",
+      "Android tablet hardware function"
+    ],
+    "important_qualification": "A kernel printing /init markers alone is insufficient to validate all listed subsystem semantics. V3 guest test must independently pass."
+  },
+  "pipa_rt_scope": {
+    "validated": [
+      "Clang21 PIPA_RT ARM64 Image compilation completed",
+      "config SHA matches established PIPA_RT baseline",
+      "CONFIG_PREEMPT_RT_FULL=y",
+      "CONFIG_QCOM_SCM=y"
+    ],
+    "not_validated": [
+      "PIPA tablet boot",
+      "SCM TrustZone response on real Snapdragon hardware",
+      "device touchscreen, display, storage, peripheral functionality",
+      "loadable vendor modules (MODULES=n baseline)",
+      "vendor module ABI diff"
+    ],
+    "pipa_rt_scm_validated": "NO_HARDWARE"
+  },
+  "handoff_to_kai_expects": [
+    {
+      "gate": "QEMU_RT_GUEST_BOOT",
+      "status": "FAIL_EL1_DATA_ABORT",
+      "requirement": "QEMU kernel boot, reached /init, guest positive marker, no panic"
+    },
+    {
+      "gate": "QEMU_RT_SPIN_SLEEP_V3",
+      "status": "NOT_EXECUTED",
+      "requirement": "insmod rt.ko, contention PASS, negative control and host review PASS"
+    },
+    {
+      "gate": "PIPA_RT_IMAGE_BUILD",
+      "status": "PASS",
+      "requirement": "PIPA_RT Clang21 Image and effective config verified"
+    },
+    {
+      "gate": "VENDOR_MODULE_ABI",
+      "status": "BLOCKED_MODULES_N_AND_BASELINE",
+      "requirement": "Vendor module ABI compatibility evidence; resolve before device handoff"
+    },
+    {
+      "gate": "PIPA_TRUSTZONE_SCM",
+      "status": "EXPECTED_UNKNOWN_NO_HARDWARE",
+      "requirement": "Only real PIPA hardware can exercise proprietary TrustZone firmware and device SCM path"
+    }
+  ],
+  "future_build_artifact_contract": {
+    "mandatory": [
+      "outputs/qemu-rt/vmlinux",
+      "outputs/qemu-rt/System.map",
+      "outputs/qemu-rt/.config",
+      "outputs/qemu-rt/arch/arm64/boot/Image",
+      "outputs/pipa-rt/vmlinux",
+      "outputs/pipa-rt/System.map",
+      "outputs/pipa-rt/.config",
+      "outputs/pipa-rt/arch/arm64/boot/Image"
+    ],
+    "provenance": [
+      "Git source SHA",
+      "RT patch series/overlay SHA",
+      "Clang prebuilt revision",
+      "Image SHA-256",
+      "vmlinux SHA-256"
+    ],
+    "status": "REQUIRED_NEXT_BUILD_NOT_YET_IMPLEMENTED_IN_WORKFLOW",
+    "reason": "Modifying the auto-triggered QEMU workflow would start a kernel build contrary to round 18 NO_BUILD instruction"
+  },
+  "rt_semantics_verified": false,
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}
