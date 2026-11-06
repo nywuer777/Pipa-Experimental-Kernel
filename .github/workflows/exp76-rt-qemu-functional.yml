@@ -294,11 +294,14 @@ jobs:
               exit "$rc"
             fi
             test -s "$BASE/$variant/arch/arm64/boot/Image"
+            test -s "$BASE/$variant/vmlinux"
+            test -s "$BASE/$variant/System.map"
             if [ "$variant" != pipa-rt ]; then
               test -s "$BASE/$variant/Module.symvers"
             fi
             sha256sum "$BASE/$variant/.config" \
               "$BASE/$variant/arch/arm64/boot/Image" \
+              "$BASE/$variant/vmlinux" "$BASE/$variant/System.map" \
               > "exp76-qemu/reports/sha256-$variant.txt"
             echo "EXP76_BOOT_IMAGE_BUILD_PASS=$variant"
           done
@@ -413,11 +416,14 @@ jobs:
               exit "$rc"
             fi
             test -s "$BASE/$variant/arch/arm64/boot/Image"
+            test -s "$BASE/$variant/vmlinux"
+            test -s "$BASE/$variant/System.map"
             if [ "$variant" != pipa-rt ]; then
               test -s "$BASE/$variant/Module.symvers"
             fi
             sha256sum "$BASE/$variant/.config" \
               "$BASE/$variant/arch/arm64/boot/Image" \
+              "$BASE/$variant/vmlinux" "$BASE/$variant/System.map" \
               > "exp76-qemu/reports/sha256-$variant.txt"
             echo "EXP76_BOOT_IMAGE_BUILD_PASS=$variant"
           done
@@ -714,7 +720,11 @@ jobs:
             exp76-qemu/outputs/qemu-nonrt/.config
             exp76-qemu/outputs/pipa-rt/arch/arm64/boot/Image
             exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image
+            exp76-qemu/outputs/qemu-rt/vmlinux
+            exp76-qemu/outputs/qemu-rt/System.map
             exp76-qemu/outputs/qemu-nonrt/arch/arm64/boot/Image
+            exp76-qemu/outputs/qemu-nonrt/vmlinux
+            exp76-qemu/outputs/qemu-nonrt/System.map
             exp76-qemu/probe-qemu-rt/exp76_rt_spin_sleep.ko
             exp76-qemu/probe-qemu-nonrt/exp76_rt_spin_sleep.ko
             exp76-qemu/initramfs.cpio.gz
@@ -1046,6 +1056,8 @@ jobs:
             exp76-qemu/logs/ccache*
             exp76-qemu/outputs/qemu-rt/.config
             exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image
+            exp76-qemu/outputs/qemu-rt/vmlinux
+            exp76-qemu/outputs/qemu-rt/System.map
           if-no-files-found: warn
           include-hidden-files: true
           retention-days: 14
@@ -1270,7 +1282,10 @@ jobs:
             exit "$rc"
           fi
           test -s "$OUT/arch/arm64/boot/Image"
+          test -s "$OUT/vmlinux"
+          test -s "$OUT/System.map"
           sha256sum "$OUT/arch/arm64/boot/Image" "$OUT/.config" \
+            "$OUT/vmlinux" "$OUT/System.map" \
             > exp76-qemu/reports/pipa-independent-sha256.txt
           echo 'EXP76_PIPA_RT_IMAGE=PASS'
           echo 'EXP76_PIPA_RT_SCM_HARDWARE=NOT_TESTED'
@@ -1281,6 +1296,8 @@ jobs:
           name: exp76-pipa-rt-unchanged-scm-build-NOFLASH
           path: |
             exp76-qemu/outputs/pipa-rt/arch/arm64/boot/Image
+            exp76-qemu/outputs/pipa-rt/vmlinux
+            exp76-qemu/outputs/pipa-rt/System.map
             exp76-qemu/outputs/pipa-rt/.config
             exp76-qemu/reports/pipa-independent-*
             exp76-qemu/logs/pipa-independent-*
