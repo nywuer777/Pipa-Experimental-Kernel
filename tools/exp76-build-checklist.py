@@ -41,6 +41,8 @@ def generate(root, source_sha, generated_at):
     assert round17["separate_scmoff_execution_trace"]["far"]=="0x28"
     assert round18["scm_off_trace"]["far"]=="0x28"
     assert round18["symbol_identification"]["direct_caller"].startswith("swork_queue")
+    assert round18["cpu_register_proof"]["caller_glob_worker_x9"]=="0x0"
+    assert round18["cpu_register_proof"]["atomic_x0"]=="0x28"
     assert round18["vmlinux_scmoff_archived"] is False
     assert scope_contract["rt_handoff_ready"] is False
     assert len(ccache["results"])==3 and ccache["gates"]["warm_same_commit_gt_90pct"]
@@ -74,16 +76,20 @@ def generate(root, source_sha, generated_at):
                         scheduler_pending=sched["pending"],semantically_resolved=0,
                         e2_triage_path="reports/exp76-e2-actionable-triage.json",
                         e2_semantic_required=2,e2_context_drift=4,e2_port_ready=0),
-        "5_qemu":item("FAIL_EL1_DATA_ABORT_SCM_OFF","github-actions/42076252812/exp76-rt-scm-off-instruction-trace-NOFLASH",
-                       blocker="SCM_OFF_QEMU_TRACE_SHOWS_EL1_DATA_ABORT_FAR_0x28_AT_LDAXR; SYMBOL_NOT_YET_RESOLVED",
-                       latest_qemu_run_id=round17["separate_scmoff_execution_trace"]["run_id"],
+        "5_qemu":item("FAIL_EARLY_SWORK_NULL_WORKER","github-actions/42199563450/exp76-rt-scm-off-instruction-trace-NOFLASH",
+                       blocker="EARLY_NOHZ_TIMER_SWORK_QUEUE_LOADS_NULL_GLOBAL_WORKER; DATA_ABORT_FAR_0x28",
+                       latest_qemu_run_id=round18["cpu_register_proof"]["run_id"],
+                       register_trace_artifact_id=round18["cpu_register_proof"]["artifact_id"],
+                       register_trace_x9=round18["cpu_register_proof"]["caller_glob_worker_x9"],
+                       register_trace_atomic_x0=round18["cpu_register_proof"]["atomic_x0"],
+                       RT_SPIN_SLEEP_V3_GUEST="NOT_EXECUTED_MISSING_RT_KO_AND_GUEST_SCRIPT",
                        abc_control_run_id=round17["source_runs"]["abc_run"],
                        trace_artifact_id=round17["separate_scmoff_execution_trace"]["artifact_id"],
                        trace_fault_far=round17["separate_scmoff_execution_trace"]["far"],
                        trace_fault_elr=round17["separate_scmoff_execution_trace"]["elr"],
                        trace_fault_image_offset=round17["separate_scmoff_execution_trace"]["image_instruction_offset"],
                        trace_fault_instruction=round17["separate_scmoff_execution_trace"]["instruction"],
-                       trace_symbol_status="CROSS_BUILD_SWORK_QUEUE_PLUS_0X5C; EXACT_SCM_OFF_ELF_NOT_ARCHIVED",
+                       trace_symbol_status="CROSS_BUILD_SWORK_QUEUE_PLUS_0X5C_AND_QEMU_RUNTIME_NULL_WORKER_CONFIRMED; EXACT_SCM_OFF_ELF_NOT_ARCHIVED",
                        trace_caller_identified_by_unique_code_sequence="swork_queue+0x5c",
                        trace_atomic_helper="__ll_sc___cmpxchg_case_acq_4+0x4",
                        trace_candidate_null_worker="glob_worker loaded as zero before lock at +0x28",
@@ -102,7 +108,7 @@ def generate(root, source_sha, generated_at):
                        HANDOFF_TO_KAI_EXPECTS=scope_contract["handoff_to_kai_expects"],
                        pipa_rt_scm_expected="CONFIG_QCOM_SCM=y",
                        pipa_rt_scm_validated="NO_HARDWARE",
-                       latest_evidence_path="reports/exp76-round17-qemu-abc-early-abort.json",
+                       latest_evidence_path="reports/exp76-round18-swork-atomic-caller.json",
                        kconfig_audit_path="reports/e404-kconfig-missing-sources.json"),
         "6_build_rt":item("PARTIAL_PASS","github-actions/42065541890/exp76-pipa-rt-unchanged-scm-build-NOFLASH",
                           build_rt_images_generated="PASS",
@@ -118,7 +124,7 @@ def generate(root, source_sha, generated_at):
                           image_source_run=round16["workflow_run_id"],
                           toolchain="ANDROID_CLANG_21_r563880c",
                           abi_diff="NOT_MEASURED",
-                          runtime_functional="FAIL_EL1_DATA_ABORT_SCM_OFF"),
+                          runtime_functional="FAIL_EARLY_SWORK_NULL_WORKER"),
         "7_fast_ccache":item("PARTIAL","reports/exp76-ccache-three-full-images.json",
                              fast_p95_s=0.226974,
                              fast_benchmark_run=41897623229,
