@@ -1,0 +1,104 @@
+# YAML / GitHub Actions Ubuntu 24.04 / RT140 real E404 tree swork/timer reject audit / NO FLASH
+name: EXP76 R19 swork RT140 reject + initcall source audit (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-rt-r19-swork-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-audit-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pinned vendor and RT140 reconstruction, no compiler or build
+        shell: bash
+        timeout-minutes: 43
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-r19/logs exp76-r19/reports
+          command -v git
+          command -v xz
+          command -v patch
+          command -v python3
+          bash tools/exp76-rt-compat-audit.sh > exp76-r19/logs/reconstruct.log 2>&1 || {
+            tail -n 100 exp76-r19/logs/reconstruct.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = fed88a6024cd4d46c52eda607a95d97d7371ba81
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-r19/reports/stage82
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 runner / E404 RT140 source vs rejected hunk report / NO FLASH
+          from pathlib import Path
+          import json,re,hashlib
+          root=Path('exp76-trial-overlay')
+          inv=json.loads(Path('exp76-r19/reports/stage82/RT_REJECT_HUNK_INVENTORY.json').read_text())
+          terms=re.compile(r'swork|timers_update_nohz|tick_nohz|tick_setup_sched|early_initcall',re.I)
+          found=[]
+          for item in inv['entries']:
+              for i,h in enumerate(item['hunks'],1):
+                  if terms.search(json.dumps({'path':item['source'],'hunk':h})):
+                      found.append({'reject':item['reject'],'reject_sha256':item['reject_sha256'],
+                        'hunk_index':i,'header':h['header'],'change_excerpt':h['change_excerpt']})
+          paths=['kernel/time/timer.c','kernel/time/timer.c.rej',
+                 'kernel/time/tick-sched.c','kernel/time/hrtimer.c',
+                 'kernel/sched/swork.c','kernel/sched/Makefile',
+                 'include/linux/swork.h','init/main.c']
+          source={}
+          for p in paths:
+              file=root/p
+              if not file.is_file():
+                  source[p]={'exists':False};continue
+              body=file.read_text(errors='replace')
+              lines=body.splitlines()
+              hits=[]
+              for i,s in enumerate(lines):
+                  if terms.search(s) or 'hrtimer_init_thread' in s or 'swork_get' in s or 'swork_init' in s:
+                      hits.append({'line':i+1,'text':s[:220],
+                                   'context':lines[max(0,i-5):min(len(lines),i+10)]})
+              source[p]={'exists':True,'sha256':hashlib.sha256(file.read_bytes()).hexdigest(),
+                         'line_count':len(lines),'matches':hits}
+          patch=Path('exp76-rt.patch').read_text(errors='replace')
+          patches={}
+          for name in ['kernel/time/timer.c','kernel/sched/swork.c','include/linux/swork.h']:
+              mark='diff --git a/'+name+' b/'+name
+              start=patch.find(mark)
+              end=patch.find('diff --git ',start+len(mark)) if start!=-1 else -1
+              seg=patch[start:end if end!=-1 else None] if start!=-1 else ''
+              patches[name]={'found':bool(seg),'patch_sha256':hashlib.sha256(seg.encode()).hexdigest(),
+                             'text':seg[:25000]}
+          report={'schema_version':1,'source_ref':'E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + official RT140 c79d3efb5daccc5a3f58d502189eadc7dd31a962215ca0a16fa8c3eb98cd88ce',
+                  'total_rejected_hunks':inv['total_rejected_hunks'],'rejected_files':inv['remaining_rejected_files'],
+                  'swork_timer_keyword_matches':found,'source':source,'upstream_rt140_patch':patches,
+                  'build_performed':False,'rt_handoff_ready':False}
+          dest=Path('exp76-r19/reports/swork-timer-e404-rt140-audit.json')
+          dest.write_text(json.dumps(report,indent=2)+'\n')
+          print('EXP76_R19_REJECT_MATCHES',len(found),[(m['reject'],m['hunk_index']) for m in found])
+          for key,val in source.items():
+              print('EXP76_SOURCE',key,'EXISTS',val['exists'],'HITS',len(val.get('matches',[])))
+              for hit in val.get('matches',[])[:15]:
+                  print(f"  {hit['line']}: {hit['text']}")
+          PY
+      - name: Upload actual reconstructed source, original reject, upstream patch excerpts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r19-swork-rt140-source-NOFLASH
+          path: |
+            exp76-r19/reports/
+            exp76-r19/logs/
+            exp76-trial-overlay/kernel/time/timer.c
+            exp76-trial-overlay/kernel/time/timer.c.rej
+            exp76-trial-overlay/kernel/time/tick-sched.c
+            exp76-trial-overlay/kernel/sched/swork.c
+            exp76-trial-overlay/kernel/sched/Makefile
+            exp76-trial-overlay/include/linux/swork.h
+            exp76-trial-overlay/init/main.c
+          retention-days: 30
+          if-no-files-found: warn
