@@ -18,6 +18,7 @@ def generate(root, source_sha, generated_at):
     round17=read(root/"reports/exp76-round17-qemu-abc-early-abort.json")
     round18=read(root/"reports/exp76-round18-swork-atomic-caller.json")
     round19=read(root/"reports/exp76-round19-swork-build-boot.json")
+    round20=read(root/"reports/exp76-round20-initcall-nohz-irq.json")
     scope_contract=read(root/"reports/exp76-rt-scope-handoff.json")
     ccache=read(root/"reports/exp76-ccache-three-full-images.json")
     reach=read(root/"reports/clang21-reachable-at-build.json")
@@ -52,6 +53,12 @@ def generate(root, source_sha, generated_at):
     assert round19["guest_stall_diagnostic"]["events"][0]["pc_symbol"]=="cpu_do_idle+0x8"
     assert round19["guest_stall_diagnostic"]["events"][1]["pc_symbol"]=="cpu_do_idle+0x8"
     assert round19["publication"]["vmlinux_and_system_map_published"] is True
+    assert round20["tests"]["initcall_nosmp"]["initcall_calling_count"]==0
+    assert round20["tests"]["nohz_off"]["guest_running"] is False
+    assert round20["tests"]["irq_trace"]["qemu_irq_exception5_count"]==20
+    assert round20["rejected_inventory"]["matched_hunks"]==80
+    assert round20["rejected_inventory"]["matched_files"]==16
+    assert round20["nonrt_control"]["nonrt_image_found"] is False
     assert scope_contract["rt_handoff_ready"] is False
     assert len(ccache["results"])==3 and ccache["gates"]["warm_same_commit_gt_90pct"]
     assert ccache["gates"]["strict_cold_zero_hits"] is False
@@ -89,16 +96,27 @@ def generate(root, source_sha, generated_at):
                         swork_runtime_repair_applied=True,
                         swork_port_verified=False,
                         new_port_verified_count=0,
-                        r19_evidence="reports/exp76-round19-swork-build-boot.json"),
-        "5_qemu":item("FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT",
-                       "github-actions/42216342473/exp76-qemu-rt-functional-NOFLASH",
-                       blocker="R19_NOHZ_SWORK_ORDER_REPAIR_BUILT; GUEST_STALLS_IN_CPU_DO_IDLE_WFI_BEFORE_INIT",
-                       latest_qemu_run_id=round19["ci"]["run_id"],
+                        r19_evidence="reports/exp76-round19-swork-build-boot.json",
+                        r20_rejected_boot_family_files=round20["rejected_inventory"]["matched_files"],
+                        r20_rejected_boot_family_hunks=round20["rejected_inventory"]["matched_hunks"],
+                        r20_rejected_counts_are_not_pending_port_count=True),
+        "5_qemu":item("FAIL_EARLY_BOOT_NO_INITCALL_PROGRESS",
+                       "github-actions/42226476787/exp76-r20-rt-initcall-nohz-irq-NOFLASH",
+                       blocker="R20_INITCALL_DEBUG_CALLING_0; NOHZ_OFF_NO_ADVANCE; 20_CPU0_IRQ_DELIVERED; PID1_BLOCK_REASON_UNRESOLVED",
+                       latest_qemu_run_id=round20["tests"]["run_id"],
+                       test_initcall_debug_nosmp=round20["tests"]["initcall_nosmp"],
+                       test_nohz_off=round20["tests"]["nohz_off"],
+                       test_qemu_irq=round20["tests"]["irq_trace"],
+                       nonrt_control_status=round20["nonrt_control"]["status"],
+                       initcall_debug_calling_count=0,
+                       cpu0_irq_exception_count=20,
+                       irq_last_elr_symbol="arch_cpu_idle+0x10",
+                       earliest_last_printk_source=round20["source_phase_evidence"]["empty_cluster_printk"],
                        qemu_image_sha256=round19["qemu_rt"]["image_sha256"],
-                       last_guest_console_sha256=round19["qemu_rt"]["smoke_console"]["sha256"],
-                       last_guest_console_bytes=round19["qemu_rt"]["smoke_console"]["bytes"],
-                       last_guest_console_lines=round19["qemu_rt"]["smoke_console"]["lines"],
-                       last_host_qemu_exit_code=round19["ci"]["smoke_exit_code"],
+                       last_guest_console_sha256=round20["tests"]["initcall_nosmp"]["console_sha256"],
+                       last_guest_console_bytes=round20["tests"]["initcall_nosmp"]["console_bytes"],
+                       last_guest_console_lines=round20["tests"]["initcall_nosmp"]["console_lines"],
+                       last_host_qemu_exit_code=round20["tests"]["initcall_nosmp"]["exit_code"],
                        guest_init_reached=False,
                        guest_running=False,
                        previous_null_swork_evidence_run_id=round18["cpu_register_proof"]["run_id"],
@@ -116,7 +134,7 @@ def generate(root, source_sha, generated_at):
                        RT_SPIN_SLEEP_V3_GUEST="NOT_EXECUTED",
                        QEMU_RT_SCOPE=scope_contract["qemu_rt_scope"],
                        HANDOFF_TO_KAI_EXPECTS=scope_contract["handoff_to_kai_expects"],
-                       latest_evidence_path="reports/exp76-round19-swork-build-boot.json",
+                       latest_evidence_path="reports/exp76-round20-initcall-nohz-irq.json",
                        kconfig_audit_path="reports/e404-kconfig-missing-sources.json"),
         "6_build_rt":item("PARTIAL_PASS",
                           "github-actions/42216342473/exp76-pipa-rt-unchanged-scm-build-NOFLASH",
@@ -137,7 +155,7 @@ def generate(root, source_sha, generated_at):
                           image_source_run=round19["ci"]["run_id"],
                           toolchain="ANDROID_CLANG_21_r563880c",
                           abi_diff="NOT_MEASURED",
-                          runtime_functional="FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT"),
+                          runtime_functional="FAIL_EARLY_BOOT_NO_INITCALL_PROGRESS"),
         "7_fast_ccache":item("PARTIAL","reports/exp76-ccache-three-full-images.json",
                              fast_p95_s=0.226974,
                              fast_benchmark_run=41897623229,
@@ -168,6 +186,7 @@ def generate(root, source_sha, generated_at):
         "RT_SCOPE_CONTRACT_PATH":"reports/exp76-rt-scope-handoff.json",
         "RT_FORENSIC_R18_PATH":"reports/exp76-round18-swork-atomic-caller.json",
         "RT_R19_SOURCE_AND_BOOT_REPORT":"reports/exp76-round19-swork-build-boot.json",
+        "RT_R20_INITCALL_IRQ_REPORT":"reports/exp76-round20-initcall-nohz-irq.json",
         "rt_handoff_ready":False,
         "reasons_not_ready":["4","5","6","7"],
         "readiness_rule":"RT handoff requires valid measured PASS of all in-scope gates"
