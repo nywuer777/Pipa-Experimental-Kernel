@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "round": 22,
+  "branch": "exp76-rt-sched-h10",
+  "source_base_branch": "exp76-rt19-timer-swork-order",
+  "upstream": "PREEMPT_RT 4.19.325-rt140",
+  "original_reject": "kernel/sched/core.c.rej",
+  "reject_sha256": "4c3caaa61d2556dc1185d00b199c961494a62dadebd6ed8544b26d2ed7fa4799",
+  "hunks": [
+    {
+      "hunk_id": "kernel/sched/core.c.rej#10",
+      "hunk_target": "ttwu_activate",
+      "e404_equivalent": "ttwu_do_activate",
+      "rt140_change": "REMOVE wq_worker_waking_up(p, cpu_of(rq)) conditional for PF_WQ_WORKER",
+      "applied": false,
+      "application_note": "E404 base core.c already lacks wq_worker_waking_up and old ttwu_activate; final reconstructed E404+RT140 gate must verify exact semantics before classifying as pre-applied",
+      "build_sha": null,
+      "boot_reached_ms": null,
+      "new_failure_or_success": "R22_SOURCE_BUILD_BOOT_IN_PROGRESS",
+      "source_gate_report": "exp76-qemu/reports/r22-h10-source-gate.json",
+      "source_change_commit": null,
+      "build_run_id": 42250617858,
+      "boot_console_sha256": null,
+      "port_verified": false
+    }
+  ],
+  "qemu_only_sysrq_expected": [
+    "CONFIG_MAGIC_SYSRQ=y",
+    "CONFIG_MAGIC_SYSRQ_SERIAL=y"
+  ],
+  "pipa_sysrq_expected": "# CONFIG_MAGIC_SYSRQ is not set",
+  "same_qemu_rt_critical_configs_required": true,
+  "independent_pipa_rt_build_required": true,
+  "sysrq_guest_task_trace_required": true,
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}
