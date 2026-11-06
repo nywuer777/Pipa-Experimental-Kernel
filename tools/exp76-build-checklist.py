@@ -16,6 +16,8 @@ def generate(root, source_sha, generated_at):
     first_boot=read(root/"reports/exp76-round14-qemu-early-panic.json")
     round16=read(root/"reports/exp76-round16-scm-off-build-smoke.json")
     round17=read(root/"reports/exp76-round17-qemu-abc-early-abort.json")
+    round18=read(root/"reports/exp76-round18-swork-atomic-caller.json")
+    scope_contract=read(root/"reports/exp76-rt-scope-handoff.json")
     ccache=read(root/"reports/exp76-ccache-three-full-images.json")
     reach=read(root/"reports/clang21-reachable-at-build.json")
     e2=read(root/"reports/exp76-e2-actionable-triage.json")
@@ -37,6 +39,10 @@ def generate(root, source_sha, generated_at):
     assert round17["abc"]["cases"][2]["panic"] is True
     assert round17["abc"]["cases"][1]["console_bytes"]==0
     assert round17["separate_scmoff_execution_trace"]["far"]=="0x28"
+    assert round18["scm_off_trace"]["far"]=="0x28"
+    assert round18["symbol_identification"]["direct_caller"].startswith("swork_queue")
+    assert round18["vmlinux_scmoff_archived"] is False
+    assert scope_contract["rt_handoff_ready"] is False
     assert len(ccache["results"])==3 and ccache["gates"]["warm_same_commit_gt_90pct"]
     assert ccache["gates"]["strict_cold_zero_hits"] is False
     assert reach["files_actually_compiled_pipa_rt"]==1
@@ -77,7 +83,12 @@ def generate(root, source_sha, generated_at):
                        trace_fault_elr=round17["separate_scmoff_execution_trace"]["elr"],
                        trace_fault_image_offset=round17["separate_scmoff_execution_trace"]["image_instruction_offset"],
                        trace_fault_instruction=round17["separate_scmoff_execution_trace"]["instruction"],
-                       trace_symbol_status="NOT_MEASURED_WITHOUT_NEW_KERNEL_BUILD",
+                       trace_symbol_status="CROSS_BUILD_SWORK_QUEUE_PLUS_0X5C; EXACT_SCM_OFF_ELF_NOT_ARCHIVED",
+                       trace_caller_identified_by_unique_code_sequence="swork_queue+0x5c",
+                       trace_atomic_helper="__ll_sc___cmpxchg_case_acq_4+0x4",
+                       trace_candidate_null_worker="glob_worker loaded as zero before lock at +0x28",
+                       trace_caller_evidence_path="reports/exp76-round18-swork-atomic-caller.json",
+                       next_build_vmlinux_systemmap_required=True,
                        last_guest_console_sha256=round16["qemu_rt"]["smoke_console"]["sha256"],
                        last_guest_console_bytes=0,last_guest_console_lines=0,
                        last_host_qemu_exit_code=0,
@@ -87,6 +98,8 @@ def generate(root, source_sha, generated_at):
                        qemu_scm_policy="QEMU_ONLY_QCOM_SCM_N_EFFECTIVE_CONFIG_VERIFIED",
                        qemu_rt_validates_if_pass=["scheduler","RCU","locking","time","IRQ","mm","arch/arm64","init"],
                        qemu_rt_does_not_validate=["Qualcomm SCM TrustZone","physical PIPA firmware","PIPA hardware boot"],
+                       QEMU_RT_SCOPE=scope_contract["qemu_rt_scope"],
+                       HANDOFF_TO_KAI_EXPECTS=scope_contract["handoff_to_kai_expects"],
                        pipa_rt_scm_expected="CONFIG_QCOM_SCM=y",
                        pipa_rt_scm_validated="NO_HARDWARE",
                        latest_evidence_path="reports/exp76-round17-qemu-abc-early-abort.json",
@@ -100,6 +113,8 @@ def generate(root, source_sha, generated_at):
                           qemu_rt_effective_config_sha256=round16["qemu_rt"]["config_sha256"],
                           pipa_rt_qcom_scm="y",qemu_rt_qcom_scm="n",
                           pipa_rt_scm_hardware="NO_HARDWARE",
+                          PIPA_RT_SCOPE=scope_contract["pipa_rt_scope"],
+                          next_build_artifact_contract=scope_contract["future_build_artifact_contract"],
                           image_source_run=round16["workflow_run_id"],
                           toolchain="ANDROID_CLANG_21_r563880c",
                           abi_diff="NOT_MEASURED",
@@ -131,6 +146,8 @@ def generate(root, source_sha, generated_at):
             "owner":"Kai",
             "evidence_path":"arch/arm64/configs/vendor/pipa_defconfig:726",
             "blocker":"PIPA_MODULE_CONFIG_MISMATCH; stock vendor ABI baseline unavailable"},
+        "RT_SCOPE_CONTRACT_PATH":"reports/exp76-rt-scope-handoff.json",
+        "RT_FORENSIC_R18_PATH":"reports/exp76-round18-swork-atomic-caller.json",
         "rt_handoff_ready":False,
         "reasons_not_ready":["4","5","6","7"],
         "readiness_rule":"RT handoff requires valid measured PASS of all in-scope gates"
