@@ -29,11 +29,11 @@
       "init"
     ],
     "NOT_validated_currently": [
-      "complete guest kernel boot",
-      "init process execution",
-      "RT spin sleep V3 contention",
+      "guest /init not reached (R19 WFI timeout)",
+      "RT spin sleep V3 contention not executed",
       "RT semantics under load",
-      "VirtIO block I/O"
+      "VirtIO block I/O",
+      "interrupt/timer wakeup and scheduler startup"
     ],
     "not_in_scope_even_if_boot_passes": [
       "real QCOM TrustZone SCM/SMC",
@@ -63,7 +63,7 @@
   "handoff_to_kai_expects": [
     {
       "gate": "QEMU_RT_GUEST_BOOT",
-      "status": "FAIL_EL1_DATA_ABORT",
+      "status": "FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT",
       "requirement": "QEMU kernel boot, reached /init, guest positive marker, no panic"
     },
     {
@@ -105,10 +105,18 @@
       "Image SHA-256",
       "vmlinux SHA-256"
     ],
-    "status": "REQUIRED_NEXT_BUILD_NOT_YET_IMPLEMENTED_IN_WORKFLOW",
-    "reason": "Modifying the auto-triggered QEMU workflow would start a kernel build contrary to round 18 NO_BUILD instruction"
+    "status": "FULFILLED_IN_R19_FOR_QEMU_RT_AND_PIPA_RT",
+    "reason": "R19 archive includes QEMU and PIPA exact matching Image, vmlinux, System.map, config and SHA manifests",
+    "evidence_run_id": 42216342473,
+    "evidence_artifacts": [
+      13502064470,
+      13501482877
+    ],
+    "remaining_gap": "NonRT control Image/ELF not built: QEMU boot gate failed before nonRT build"
   },
   "rt_semantics_verified": false,
   "rt_handoff_ready": false,
-  "flash_ready": false
+  "flash_ready": false,
+  "latest_r19_source": "reports/exp76-round19-swork-build-boot.json",
+  "latest_qemu_boot_state": "FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT"
 }
