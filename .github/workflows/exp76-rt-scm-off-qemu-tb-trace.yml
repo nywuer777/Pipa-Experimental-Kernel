@@ -1,5 +1,5 @@
 # YAML / GitHub Actions Ubuntu 24.04 / EXP76 QEMU SCM-off instruction translation trace / NO FLASH
-name: EXP76 RT SCM-off guest execution trace (NO FLASH)
+name: EXP76 RT SCM-off CPU register fault trace (NO FLASH)
 on:
   push:
     branches: [exp76-preempt-rt-uname]
@@ -55,10 +55,10 @@ jobs:
             "-M","virt","-cpu","cortex-a72","-smp","4","-m","512",
             "-nodefaults","-serial","stdio","-monitor","none","-display","none",
             "-nic","none","-no-reboot",
-            "-d","in_asm,int,guest_errors,unimp","-D",str(dlog),
+            "-d","cpu,int","-D",str(dlog),
             "-kernel",str(image),"-initrd",str(initrd),
             "-append","earlycon=pl011,0x09000000 console=ttyAMA0,115200 "
-                      "ignore_loglevel loglevel=8 panic=5 init=/init"]
+                      "ignore_loglevel loglevel=8 printk.time=1 nokaslr panic=5 init=/init"]
           (root/"reports/trace-qemu-cmdline.txt").write_text(shlex.join(cmd)+"\n")
           args=shlex.split((root/"reports/trace-qemu-cmdline.txt").read_text())
           start=time.monotonic_ns()
@@ -75,6 +75,12 @@ jobs:
           with dlog.open("rt",errors="replace") as source, gzip.open(str(dlog)+".gz","wt") as archive:
               for line in source:
                   tail.append(line.rstrip("\n"));archive.write(line);count+=1
+          # Capture CPU state around first EL1 Data Abort; no symbol or build needed.
+          lines=dlog.read_text(errors="replace").splitlines()
+          idx=next((i for i,v in enumerate(lines) if "Taking exception 4 [Data Abort]" in v),None)
+          frame_lines=lines[max(0,idx-110):min(len(lines),idx+40)] if idx is not None else []
+          (root/"reports/fault-cpu-register-frame.txt").write_text("\\n".join(frame_lines)+"\\n")
+          print("EXP76_CPU_FRAME_LINES",len(frame_lines),"DATA_ABORT_LINE",idx)
           dlog_sha=hashlib.sha256(dlog.read_bytes()).hexdigest()
           report={"schema_version":1,"kind":"QEMU_SCMOFF_INSTRUCTION_TRACE_NOT_FUNCTIONAL_BOOT",
                   "original_image_run":42065541890,
