@@ -1,10 +1,11 @@
 # YAML / GitHub Actions ubuntu-24.04 / EXP76 E404 PREEMPT_RT QEMU negative-control qualification / NO FLASH
-name: EXP76 QEMU RT spinlock qualification (NO FLASH)
+name: EXP76 R19 QEMU RT swork timer ordering and V3 (NO FLASH)
 on:
   push:
     branches:
       - exp76-qemu-virtio-clang21
       - exp76-qemu-virtio-block-io
+      - exp76-rt19-timer-swork-order
   workflow_call:
   workflow_dispatch:
 
@@ -41,6 +42,7 @@ jobs:
           python3 -m py_compile tools/exp76-qemu-scm-config-audit.py
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
+          python3 tools/exp76-rt19-timer-swork-order.py --self-test
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
@@ -188,6 +190,10 @@ jobs:
           python3 tools/exp76-qemu-nonrt-rcu-qs.py \
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
+          python3 tools/exp76-rt19-timer-swork-order.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r19-timer-swork-order.json \
+            --mode apply
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
@@ -759,6 +765,7 @@ jobs:
           python3 -m py_compile tools/exp76-qemu-scm-config-audit.py
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
+          python3 tools/exp76-rt19-timer-swork-order.py --self-test
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
@@ -906,6 +913,10 @@ jobs:
           python3 tools/exp76-qemu-nonrt-rcu-qs.py \
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
+          python3 tools/exp76-rt19-timer-swork-order.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r19-timer-swork-order.json \
+            --mode apply
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
@@ -1087,6 +1098,7 @@ jobs:
           python3 -m py_compile tools/exp76-qemu-scm-config-audit.py
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
+          python3 tools/exp76-rt19-timer-swork-order.py --self-test
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
@@ -1234,6 +1246,10 @@ jobs:
           python3 tools/exp76-qemu-nonrt-rcu-qs.py \
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
+          python3 tools/exp76-rt19-timer-swork-order.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r19-timer-swork-order.json \
+            --mode apply
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
