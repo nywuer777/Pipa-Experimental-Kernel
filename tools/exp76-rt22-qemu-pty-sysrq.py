@@ -148,8 +148,11 @@ def main():
     (args.out / "console-rt-pty.txt").write_bytes(serial_data)
     (args.out / "host-qemu-stderr.txt").write_bytes(bytes(host))
     guest = serial_data.decode("utf-8", "replace").replace("\r", "")
+    # Require a real guest SysRq command acknowledgement, not its boot option.
     sysrq_lines = [line for line in guest.splitlines()
-                   if re.search(r"sysrq|SysRq|show state|task.*state|call trace|Call trace", line)]
+                   if re.search(r"\bSysRq\s*:\s*(?:Show State|Show Blocked|HELP|[A-Z])", line, re.I)
+                   and "always enabled" not in line.lower()
+                   and "kernel command line:" not in line.lower()]
     report = {
         "schema": 1,
         "case": "R22_H10_ALREADY_SATISFIED_QEMU_SYSRQ_SERIAL",
@@ -172,7 +175,7 @@ def main():
         "pty_actions": actions,
         "sysrq_observed": bool(sysrq_lines),
         "sysrq_evidence_lines": sysrq_lines[-60:],
-        "pid1_stack_captured": bool(re.search(r"(?:^|\\n).*?(?:\\bpid[: ]+1\\b|\\bPID[: ]+1\\b|\\btask:.*\\b1\\b)", guest)),
+        "pid1_stack_captured": bool(sysrq_lines and re.search(r"(?:^|\n).*?(?:\bpid[: ]+1\b|\bPID[: ]+1\b|\btask:.*\b1\b)", guest, re.I)),
         "guest_begin": "EXP76_QEMU_RT_SMOKE=BEGIN" in guest,
         "guest_running": "EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in guest,
         "kernel_panic": "Kernel panic" in guest,
