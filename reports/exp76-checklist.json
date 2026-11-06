@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-05T17:42:05.596Z",
-  "source_sha": "aa93d6093cc219c2474c4dd40ad576a5ac6c2765",
+  "generated_at": "2026-11-06T10:00:45.729Z",
+  "source_sha": "5bf0db7b5f5d4db6340ce21752030ffcc400c43b",
   "scope": "RT_ONLY",
   "items": {
     "1_series_rt": {
@@ -60,7 +60,7 @@
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-05T17:42:05.596Z",
+      "updated_at": "2026-11-06T10:00:45.729Z",
       "blocker": "SCM_OFF_QEMU_TRACE_SHOWS_EL1_DATA_ABORT_FAR_0x28_AT_LDAXR; SYMBOL_NOT_YET_RESOLVED",
       "latest_qemu_run_id": 42076252812,
       "kconfig_audit_path": "reports/e404-kconfig-missing-sources.json",
@@ -107,10 +107,76 @@
       "trace_fault_elr": "0xffffff9989661ed4",
       "trace_fault_image_offset": "0x3e1ed4",
       "trace_fault_instruction": "ldaxr w16,[x0]",
-      "trace_symbol_status": "NOT_MEASURED_WITHOUT_NEW_KERNEL_BUILD",
+      "trace_symbol_status": "CROSS_BUILD_SWORK_QUEUE_PLUS_0X5C; EXACT_SCM_OFF_ELF_NOT_ARCHIVED",
       "latest_guest_console_bytes": 0,
       "latest_guest_console_lines": 0,
-      "previous_scm_early_panic_run_id": 42050248789
+      "previous_scm_early_panic_run_id": 42050248789,
+      "trace_caller_identified_by_unique_code_sequence": "swork_queue+0x5c",
+      "trace_atomic_helper": "__ll_sc___cmpxchg_case_acq_4+0x4",
+      "trace_candidate_null_worker": "glob_worker loaded as zero before lock at +0x28",
+      "trace_caller_evidence_path": "reports/exp76-round18-swork-atomic-caller.json",
+      "next_build_vmlinux_systemmap_required": true,
+      "QEMU_RT_SCOPE": {
+        "hardware": "QEMU virt ARM64",
+        "config": {
+          "CONFIG_PREEMPT_RT_FULL": "y",
+          "CONFIG_QCOM_SCM": "n",
+          "CONFIG_QCOM_KGSL": "n",
+          "CONFIG_QCOM_MDT_LOADER": "n"
+        },
+        "may_validate_if_positive_guest_gates": [
+          "scheduler",
+          "RCU",
+          "locking",
+          "time",
+          "IRQ",
+          "mm",
+          "arch/arm64",
+          "init"
+        ],
+        "NOT_validated_currently": [
+          "complete guest kernel boot",
+          "init process execution",
+          "RT spin sleep V3 contention",
+          "RT semantics under load",
+          "VirtIO block I/O"
+        ],
+        "not_in_scope_even_if_boot_passes": [
+          "real QCOM TrustZone SCM/SMC",
+          "Qualcomm device and vendor peripheral firmware paths",
+          "PIPA physical device boot",
+          "PIPA vendor module ABI compatibility",
+          "Android tablet hardware function"
+        ],
+        "important_qualification": "A kernel printing /init markers alone is insufficient to validate all listed subsystem semantics. V3 guest test must independently pass."
+      },
+      "HANDOFF_TO_KAI_EXPECTS": [
+        {
+          "gate": "QEMU_RT_GUEST_BOOT",
+          "status": "FAIL_EL1_DATA_ABORT",
+          "requirement": "QEMU kernel boot, reached /init, guest positive marker, no panic"
+        },
+        {
+          "gate": "QEMU_RT_SPIN_SLEEP_V3",
+          "status": "NOT_EXECUTED",
+          "requirement": "insmod rt.ko, contention PASS, negative control and host review PASS"
+        },
+        {
+          "gate": "PIPA_RT_IMAGE_BUILD",
+          "status": "PASS",
+          "requirement": "PIPA_RT Clang21 Image and effective config verified"
+        },
+        {
+          "gate": "VENDOR_MODULE_ABI",
+          "status": "BLOCKED_MODULES_N_AND_BASELINE",
+          "requirement": "Vendor module ABI compatibility evidence; resolve before device handoff"
+        },
+        {
+          "gate": "PIPA_TRUSTZONE_SCM",
+          "status": "EXPECTED_UNKNOWN_NO_HARDWARE",
+          "requirement": "Only real PIPA hardware can exercise proprietary TrustZone firmware and device SCM path"
+        }
+      ]
     },
     "6_build_rt": {
       "state": "PARTIAL_PASS",
@@ -118,7 +184,7 @@
       "owner": "Rook",
       "escalation_owner": "nywuer777 (mantenedor CI)",
       "deadline_at": "2026-11-06T18:00:00-03:00",
-      "updated_at": "2026-11-05T17:42:05.596Z",
+      "updated_at": "2026-11-06T10:00:45.729Z",
       "build_rt_images_generated": "PASS",
       "build_rt_compiled_end_to_end": "PASS_WITH_INSTRUMENTATION_CAVEAT",
       "build_aggregate_step": "QEMU_SMOKE_FAILED_AFTER_IMAGES_GENERATED",
@@ -132,7 +198,44 @@
       "pipa_rt_qcom_scm": "y",
       "qemu_rt_qcom_scm": "n",
       "pipa_rt_scm_hardware": "NO_HARDWARE",
-      "image_source_run": 42065541890
+      "image_source_run": 42065541890,
+      "PIPA_RT_SCOPE": {
+        "validated": [
+          "Clang21 PIPA_RT ARM64 Image compilation completed",
+          "config SHA matches established PIPA_RT baseline",
+          "CONFIG_PREEMPT_RT_FULL=y",
+          "CONFIG_QCOM_SCM=y"
+        ],
+        "not_validated": [
+          "PIPA tablet boot",
+          "SCM TrustZone response on real Snapdragon hardware",
+          "device touchscreen, display, storage, peripheral functionality",
+          "loadable vendor modules (MODULES=n baseline)",
+          "vendor module ABI diff"
+        ],
+        "pipa_rt_scm_validated": "NO_HARDWARE"
+      },
+      "next_build_artifact_contract": {
+        "mandatory": [
+          "outputs/qemu-rt/vmlinux",
+          "outputs/qemu-rt/System.map",
+          "outputs/qemu-rt/.config",
+          "outputs/qemu-rt/arch/arm64/boot/Image",
+          "outputs/pipa-rt/vmlinux",
+          "outputs/pipa-rt/System.map",
+          "outputs/pipa-rt/.config",
+          "outputs/pipa-rt/arch/arm64/boot/Image"
+        ],
+        "provenance": [
+          "Git source SHA",
+          "RT patch series/overlay SHA",
+          "Clang prebuilt revision",
+          "Image SHA-256",
+          "vmlinux SHA-256"
+        ],
+        "status": "REQUIRED_NEXT_BUILD_NOT_YET_IMPLEMENTED_IN_WORKFLOW",
+        "reason": "Modifying the auto-triggered QEMU workflow would start a kernel build contrary to round 18 NO_BUILD instruction"
+      }
     },
     "7_fast_ccache": {
       "state": "PARTIAL",
@@ -180,5 +283,7 @@
     "6",
     "7"
   ],
-  "readiness_rule": "RT handoff requires valid measured PASS of all in-scope gates"
+  "readiness_rule": "RT handoff requires valid measured PASS of all in-scope gates",
+  "RT_SCOPE_CONTRACT_PATH": "reports/exp76-rt-scope-handoff.json",
+  "RT_FORENSIC_R18_PATH": "reports/exp76-round18-swork-atomic-caller.json"
 }
