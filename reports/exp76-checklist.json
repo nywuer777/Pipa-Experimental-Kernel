@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-06T13:23:12.063Z",
+  "generated_at": "2026-11-06T13:25:03.403Z",
   "source_sha": "4ed396a7f5bc56920de247d5917496fd9fb5d922",
   "scope": "RT_ONLY",
   "items": {
@@ -141,11 +141,11 @@
           "init"
         ],
         "NOT_validated_currently": [
-          "complete guest kernel boot",
-          "init process execution",
-          "RT spin sleep V3 contention",
+          "guest /init not reached (R19 WFI timeout)",
+          "RT spin sleep V3 contention not executed",
           "RT semantics under load",
-          "VirtIO block I/O"
+          "VirtIO block I/O",
+          "interrupt/timer wakeup and scheduler startup"
         ],
         "not_in_scope_even_if_boot_passes": [
           "real QCOM TrustZone SCM/SMC",
@@ -159,7 +159,7 @@
       "HANDOFF_TO_KAI_EXPECTS": [
         {
           "gate": "QEMU_RT_GUEST_BOOT",
-          "status": "FAIL_EL1_DATA_ABORT",
+          "status": "FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT",
           "requirement": "QEMU kernel boot, reached /init, guest positive marker, no panic"
         },
         {
@@ -255,8 +255,14 @@
           "Image SHA-256",
           "vmlinux SHA-256"
         ],
-        "status": "REQUIRED_NEXT_BUILD_NOT_YET_IMPLEMENTED_IN_WORKFLOW",
-        "reason": "Modifying the auto-triggered QEMU workflow would start a kernel build contrary to round 18 NO_BUILD instruction"
+        "status": "FULFILLED_IN_R19_FOR_QEMU_RT_AND_PIPA_RT",
+        "reason": "R19 archive includes QEMU and PIPA exact matching Image, vmlinux, System.map, config and SHA manifests",
+        "evidence_run_id": 42216342473,
+        "evidence_artifacts": [
+          13502064470,
+          13501482877
+        ],
+        "remaining_gap": "NonRT control Image/ELF not built: QEMU boot gate failed before nonRT build"
       },
       "pipa_rt_vmlinux_sha256": "8a1470446cf2233efbaac011d9211157510a35f0f3e7620eb4e366e7ac71d1bb",
       "qemu_rt_vmlinux_sha256": "28be54db084dd2ad2e93989baaf8fc4241e2452cca88108da68d2f5039be4d8f",
