@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "stage": "EXP76_ROUND18_SWORK_GENERIC_ATOMIC_EARLY_NULL",
+  "image_source_run": 42065457440,
+  "image_sha256": "74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234",
+  "archived_files_check": [
+    "exp76-qemu-rt-functional-NOFLASH 13434009701",
+    "exp76-qemu-rt-functional-NOFLASH 13434239333"
+  ],
+  "vmlinux_scmoff_archived": false,
+  "System_map_scmoff_archived": false,
+  "rebuild_kernel_this_round": false,
+  "historical_cross_build_reference": {
+    "run_id": 42060860315,
+    "elf_sha256": "532e28df984d966103e2415623ba6d8edec97e6ae8d95d7fffe82cdfbaef1460",
+    "caveat": "ELF built under a different effective kernel config and Image hash; not exact source for fault",
+    "matched_64_byte_atomic_helper_signature_count": 1,
+    "matched_caller_signature_count": 1
+  },
+  "scm_off_trace": {
+    "run_id": 42076252812,
+    "trace_artifact": 13437749221,
+    "elr": "0xffffff9989661ed4",
+    "image_fault_offset": "0x3e1ed4",
+    "esr": "0x96000005",
+    "far": "0x28",
+    "instruction": "ldaxr w16,[x0]",
+    "console_bytes": 0
+  },
+  "symbol_identification": {
+    "helper": "__ll_sc___cmpxchg_case_acq_4+0x4",
+    "helper_old_elf_vma": "0xffffff8010461f54",
+    "direct_caller": "swork_queue+0x5c",
+    "caller_original_image_offset": "0x6bfdc",
+    "caller_old_elf_vma": "0xffffff80100ec05c",
+    "direct_call_opcode": "0x940dd7bd",
+    "direct_call_target_image_offset": "0x3e1ed0",
+    "historical_asm": [
+      "ldr x9,[x19,#0x390] (load glob_worker pointer)",
+      "add x9,x9,#0x28 (&glob_worker->lock)",
+      "mov x0,x9",
+      "bl __ll_sc___cmpxchg_case_acq_4",
+      "ldaxr w16,[x0]"
+    ],
+    "null_pointer_heuristic": "If the caller instructions match at runtime, x0=0x28 means glob_worker loaded as 0",
+    "validated_exact_runtime_symbol_elf": false
+  },
+  "rt_patch_comparator": {
+    "historical_source": "PREEMPT_RT Linux 4.19.37-rt19 kernel/sched/swork.c",
+    "historical_source_uri": "https://www.osadl.org/monitoring/patches/rds1/patch-4.19.37-rt19.patch.html",
+    "relevant_operations": [
+      "raw_spin_lock_irqsave(&glob_worker->lock, flags)",
+      "swork_get() creates and assigns glob_worker"
+    ],
+    "exact_pipa_rt140_source_verified": false
+  },
+  "working_hypothesis": "swork_queue invoked before global swork initialization in early tick/timer path; verify caller and initcall ordering before any kernel change",
+  "not_confirmed": "Qualcomm vendor peripheral regression",
+  "qemu_guest_reached_init": false,
+  "v3_guest_executed": false,
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}
