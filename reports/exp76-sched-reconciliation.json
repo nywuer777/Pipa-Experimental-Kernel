@@ -14,15 +14,35 @@
       "e404_equivalent": "ttwu_do_activate",
       "rt140_change": "REMOVE wq_worker_waking_up(p, cpu_of(rq)) conditional for PF_WQ_WORKER",
       "applied": false,
-      "application_note": "E404 base core.c already lacks wq_worker_waking_up and old ttwu_activate; final reconstructed E404+RT140 gate must verify exact semantics before classifying as pre-applied",
-      "build_sha": null,
-      "boot_reached_ms": null,
-      "new_failure_or_success": "R22_SOURCE_BUILD_BOOT_IN_PROGRESS",
+      "application_note": "RT140 H10 deletes wq_worker_waking_up. Reconstructed E404+RT140 uses ttwu_do_activate, and the notification is already absent. No three-way source patch was necessary, no new port.",
+      "build_sha": "9f9b6fe24d8cdb6c19e758b8d22e094760d34c20",
+      "boot_reached_ms": 23.513,
+      "new_failure_or_success": "FAIL_EARLY_BOOT_TIMEOUT_SAME_CPU_TOPOLOGY_LINE",
       "source_gate_report": "exp76-qemu/reports/r22-h10-source-gate.json",
       "source_change_commit": null,
       "build_run_id": 42250617858,
-      "boot_console_sha256": null,
-      "port_verified": false
+      "boot_console_sha256": "0bc3398f069472fade0ff94975725772be9813806544db8ac65a895e5f607738",
+      "port_verified": false,
+      "hunk_sha256": "42ce24c7b87a8cbd9c5740be8a29e17ceea89e617a1f5df2db24a88f74276893",
+      "hunk_header": "@@ -1641,10 +1730,6 @@ static inline void ttwu_activate(struct rq *rq, struct task_struct *p, int en_fl",
+      "hunk_full_text": "@@ -1641,10 +1730,6 @@ static inline void ttwu_activate(struct rq *rq, struct task_struct *p, int en_fl\n {\n \tactivate_task(rq, p, en_flags);\n \tp->on_rq = TASK_ON_RQ_QUEUED;\n-\n-\t/* If a worker is waking up, notify the workqueue: */\n-\tif (p->flags & PF_WQ_WORKER)\n-\t\twq_worker_waking_up(p, cpu_of(rq));\n }\n \n /*\n",
+      "source_status": "ALREADY_SATISFIED_SOURCE_NOOP",
+      "source_guard": "PASS",
+      "source_guard_run_id": 42250617858,
+      "source_gate_sha256": "15912b32829885aece36b04222b8e00a46f3518bf383b7e6163d29cdc089c92c",
+      "qemu_image_sha256": "cd9865449c3949465140ecfdf46791834e321b8c575d578360c19b0383877ce6",
+      "qemu_vmlinux_sha256": "66639618d33f6e14e025b48278dd977280082f47b5bd49c882a6736c0b7c70cf",
+      "qemu_config_sha256": "deffef75c19247e20dcf0f457ae7e6fb364d403b1f63c43e98422b86f6aaa5f6",
+      "build_status": "QEMU_RT_IMAGE_PASS",
+      "boot_reached_ms_basis": "Last printed guest kernel timestamp from PTY, not proof guest CPU stopped at that instant",
+      "boot_console_bytes": 3298,
+      "boot_console_lines": 46,
+      "qemu_host_exit_code": 0,
+      "qemu_terminated_by_host": true,
+      "host_timeout_seconds": 38,
+      "initcall_debug_lines": 0,
+      "guest_running": false,
+      "boot_verified": false
     }
   ],
   "qemu_only_sysrq_expected": [
@@ -34,5 +54,56 @@
   "independent_pipa_rt_build_required": true,
   "sysrq_guest_task_trace_required": true,
   "rt_handoff_ready": false,
-  "flash_ready": false
+  "flash_ready": false,
+  "status": "R22_H10_ALREADY_SATISFIED_SOURCE; QEMU_IMAGE_PASS; GUEST_TIMEOUT",
+  "qemu_only_sysrq_effective": {
+    "CONFIG_MAGIC_SYSRQ": "y",
+    "CONFIG_MAGIC_SYSRQ_SERIAL": "y",
+    "CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE": "0x1",
+    "CONFIG_QCOM_SCM": "n",
+    "critical_config_differences": 0
+  },
+  "pipa_sysrq_effective": {
+    "CONFIG_MAGIC_SYSRQ": "n",
+    "CONFIG_QCOM_SCM": "y",
+    "config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5"
+  },
+  "pipa_build": {
+    "run_id": 42250522391,
+    "job_conclusion": "success",
+    "image_sha256": "a305e09c2b6da3322b251e354b94ed92d10e08359eb15b7afbbe20faf8972405",
+    "vmlinux_sha256": "772c47e8c880938e4e6c7180bdb3dcef83b034f0f58e093904c77eeb135b3de0",
+    "config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5"
+  },
+  "sysrq_pty": {
+    "run_id": 42250617858,
+    "artifact_id": 13520853211,
+    "serial_pty": "/dev/pts/0",
+    "duration_seconds": 38.1465,
+    "console_sha256": "0bc3398f069472fade0ff94975725772be9813806544db8ac65a895e5f607738",
+    "console_bytes": 3298,
+    "console_lines": 46,
+    "attempts": [
+      {
+        "at_seconds": 5.058978,
+        "method": "termios.tcsendbreak+ASCII t",
+        "reported_sent": true
+      },
+      {
+        "at_seconds": 18.126827,
+        "method": "NUL+ASCII t",
+        "reported_sent": true,
+        "warning": "NUL is not SERIAL BREAK"
+      }
+    ],
+    "actual_sysrq_task_dump_found": false,
+    "guest_stack_pid1_found": false,
+    "raw_script_sysrq_observed": true,
+    "raw_script_status_is_false_positive": true,
+    "false_positive_reason": "Only the kernel commandline sysrq_always_enabled=1 and 'sysrq always enabled' message matched; no SysRq: Show State task dump in console",
+    "true_boot_verified": false
+  },
+  "new_port_verified": 0,
+  "qemu_rt_functional": false,
+  "rt_semantics_verified": false
 }
