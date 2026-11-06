@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "round": 20,
+  "scope": "RT_ONLY",
+  "classification": "PRE_INITCALL_EARLY_BOOT_BLOCKING_UNRESOLVED",
+  "date": "2026-11-06",
+  "image": {
+    "origin_run": 42216342473,
+    "source_artifact_id": 13502064470,
+    "sha256": "94318cad94a3206337e6b9c9d15c74c5b6c59baa12d2f990a03856981ac45cb7",
+    "vmlinux_sha256": "28be54db084dd2ad2e93989baaf8fc4241e2452cca88108da68d2f5039be4d8f",
+    "system_map_sha256": "b2dbbacc8ad0222e9f7c9d9c18e53bc1601e8e29172bf3a4ca85b320c882a685",
+    "preempt_rt_full": "y",
+    "qcom_scm": "n"
+  },
+  "tests": {
+    "run_id": 42226476787,
+    "artifact_id": 13505144254,
+    "run_conclusion": "success_diagnostics_only",
+    "same_image_and_initramfs": true,
+    "kernel_build_performed": false,
+    "qemu_timeout_seconds": 42,
+    "initcall_nosmp": {
+      "append_suffix": "initcall_debug=1 nosmp",
+      "exit_code": 124,
+      "duration_seconds": 42.026782,
+      "console_bytes": 3236,
+      "console_lines": 45,
+      "console_sha256": "23d4bbf79d85be00b73c091f8a32952aecdf9d08cb43d565667d47e0a4edb50b",
+      "last_printk": "[    0.056375] /cpus/cpu-map: empty cluster",
+      "initcall_calling_count": 0,
+      "initcall_returned_count": 0,
+      "guest_running": false,
+      "panic": false
+    },
+    "nohz_off": {
+      "append_suffix": "nohz=off",
+      "exit_code": 124,
+      "duration_seconds": 42.029664,
+      "console_bytes": 3222,
+      "console_lines": 45,
+      "console_sha256": "f0b5b8e4fb16e8f95a74f5e1dc98766fdf5db7f33e58e764eb482e3efdc070e4",
+      "last_printk": "[    0.060071] /cpus/cpu-map: empty cluster",
+      "guest_running": false,
+      "panic": false
+    },
+    "irq_trace": {
+      "qemu_flags": "-d int,guest_errors -D exp76-r20/qemu-internal/irq_trace.qemu-debug.txt",
+      "exit_code": 124,
+      "duration_seconds": 42.027488,
+      "console_bytes": 3213,
+      "console_lines": 45,
+      "console_sha256": "95b87059abdf40e61876447808d78236762ed3676eab8abbf1bd20550b77f645",
+      "last_printk": "[    0.048470] /cpus/cpu-map: empty cluster",
+      "qemu_irq_exception5_count": 20,
+      "qemu_psci_hypervisor_call_count": 6,
+      "irq_log_sha256": "89b81d49630100c63907d46414688e3ad91a20a6b0f2b4f78b2ad07abfa8853d",
+      "irq_log_bytes": 5228,
+      "irq_last_elr": "0xffffff8010085410",
+      "irq_last_elr_symbol": "arch_cpu_idle+0x10",
+      "irq_previous_elr": "0xffffff80100d0848",
+      "irq_previous_elr_symbol": "try_to_wake_up+0x208",
+      "irq_delivery_when_idle_observed": true,
+      "guest_running": false,
+      "panic": false
+    }
+  },
+  "source_phase_evidence": {
+    "vendor_base": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+    "empty_cluster_printk": "arch/arm64/kernel/topology.c:161 parse_cluster()",
+    "call_chain": "kernel_init_freeable -> smp_prepare_cpus -> init_cpu_topology -> parse_dt_topology -> parse_cluster",
+    "early_initcall_phase": "kernel_init_freeable -> do_pre_smp_initcalls(), called AFTER smp_prepare_cpus() and workqueue_init()",
+    "tick_init_phase": "start_kernel() before rest_init() (not an early_initcall)",
+    "timer_swork_phase": "kernel/time/timer.c early_initcall(hrtimer_init_thread)",
+    "initcall_debug_interpretation": "No calling lines; cannot name a blocked initcall. Guest reached smp_prepare_cpus topological parse but further progress beyond it is unverified.",
+    "nohz_interpretation": "nohz=off did not reach /init, so nohz activation is not sufficient to explain remaining stall on R19 image",
+    "irq_interpretation": "20 EL1 IRQ exception entries on CPU0 including ELR arch_cpu_idle+0x10. GIC/CPU total IRQ absence hypothesis refuted; type and PID1 wakeup correctness remain unverified."
+  },
+  "rejected_inventory": {
+    "source_run_id": 42216342473,
+    "original_rejected_files": 64,
+    "original_rejected_hunks": 209,
+    "essential_filter": "init/, kernel/fork.c, kernel/kthread.c, kernel/rcu/, kernel/sched/{core,idle,swork}.c, kernel/time/",
+    "matched_files": 16,
+    "matched_hunks": 80,
+    "breakdown": [
+      {
+        "family": "kernel/rcu/",
+        "files": 8,
+        "hunks": 47
+      },
+      {
+        "family": "kernel/sched/core.c",
+        "files": 1,
+        "hunks": 21
+      },
+      {
+        "family": "kernel/time/",
+        "files": 3,
+        "hunks": 8
+      },
+      {
+        "family": "init/",
+        "files": 2,
+        "hunks": 2
+      },
+      {
+        "family": "kernel/fork.c",
+        "files": 1,
+        "hunks": 1
+      },
+      {
+        "family": "kernel/kthread.c",
+        "files": 1,
+        "hunks": 1
+      }
+    ],
+    "critical_warning": "rej is historical: Stage34 timer.c hunk 1 present in effective reconstructed source; unreconciled count cannot be inferred from .rej count",
+    "new_port_verified": 0
+  },
+  "nonrt_control": {
+    "status": "BLOCKED_NO_ARCHIVED_NONRT_IMAGE",
+    "searched": "Locally accessible RT/build ZIPs through round19, selected named GitHub Actions artifacts 41930944374, 42020698390, 42021714463, 42065457440, 42065541890, 42216342473",
+    "nonrt_config_exists": true,
+    "nonrt_image_found": false,
+    "nonrt_build_performed": false,
+    "conclusion": "RT versus vendor causal attribution remains unmeasured"
+  },
+  "next_diagnostics": [
+    "Capture PID1 kernel stack and task state from exact R19 Image through QEMU gdb, identify if blocked in smp_prepare_cpus/workqueue_init or scheduler",
+    "Do not reinterpret initcall_debug=0 as missing serial: earlycon already prints",
+    "Use -d int with timestamps or GIC trace to verify timing of IRQ relative to idle as needed",
+    "Only test nonRT once pinned comparable Image is available, not during no-build round"
+  ],
+  "gates": {
+    "kernel_image_built": true,
+    "initcall_debug_executed": true,
+    "nohz_off_executed": true,
+    "irq_trace_executed": true,
+    "nonrt_control_executed": false,
+    "qemu_rt_guest_init": false,
+    "qemu_rt_functional": false,
+    "rt_semantics_verified": false,
+    "new_port_verified": 0,
+    "rt_handoff_ready": false,
+    "flash_ready": false
+  }
+}
