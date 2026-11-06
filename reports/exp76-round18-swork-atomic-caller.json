@@ -55,10 +55,47 @@
     ],
     "exact_pipa_rt140_source_verified": false
   },
-  "working_hypothesis": "swork_queue invoked before global swork initialization in early tick/timer path; verify caller and initcall ordering before any kernel change",
-  "not_confirmed": "Qualcomm vendor peripheral regression",
+  "working_hypothesis": "Early NO_HZ activation queues RT swork before the global sworker is initialized (or after it was released). Which lifecycle edge is responsible remains unverified.",
+  "not_confirmed": "No QCOM peripheral NULL dereference demonstrated; not a reason to disable additional vendor Kconfig",
   "qemu_guest_reached_init": false,
   "v3_guest_executed": false,
   "rt_handoff_ready": false,
-  "flash_ready": false
+  "flash_ready": false,
+  "cpu_register_proof": {
+    "run_id": 42199563450,
+    "artifact_id": 13493767709,
+    "host_qemu_exit_code": 0,
+    "guest_console_bytes": 0,
+    "guest_console_lines": 0,
+    "trace_sha256": "d80a03763dfb2a0f477a397bb9a49d7f388a837d4cc7d16eced01879e061394f",
+    "trace_bytes": 652313193,
+    "trace_lines": 10887027,
+    "duration_seconds": 5.567935,
+    "caller_register_pc": "0xffffff80100ebfbc",
+    "caller_glob_worker_x9": "0x0",
+    "atomic_helper_pc": "0xffffff8010461ed0",
+    "atomic_x0": "0x28",
+    "atomic_x9": "0x28",
+    "atomic_x30": "0xffffff80100ebfe0",
+    "fault_elr": "0xffffff8010461ed4",
+    "fault_far": "0x28",
+    "root_effect": "NULL glob_worker read before raw_spin_lock_irqsave(&glob_worker->lock) in swork_queue() CONFIRMED via QEMU CPU registers"
+  },
+  "timer_call_path": {
+    "steps": [
+      "tick_setup_sched_timer",
+      "tick_nohz_activate",
+      "timers_update_nohz",
+      "swork_queue",
+      "raw_spin_lock_irqsave(&glob_worker->lock)",
+      "__ll_sc___cmpxchg_case_acq_4",
+      "EL1 Data Abort at FAR=0x28"
+    ],
+    "evidence": [
+      "E404 fixed kernel/time/tick-sched.c: tick_setup_sched_timer -> tick_nohz_activate -> timers_update_nohz",
+      "RT 4.19 historical patch: timers_update_nohz -> swork_queue; swork_get worker initialized via early_initcall",
+      "QEMU trace: tail branch from tick setup resolves to timer wrapper and direct BL resolves to cmpxchg helper"
+    ],
+    "initcall_order_in_exact_RT140_source": "PENDING_SOURCE_CHECK"
+  }
 }
