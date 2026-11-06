@@ -1,11 +1,12 @@
 # YAML / GitHub Actions ubuntu-24.04 / EXP76 E404 PREEMPT_RT QEMU negative-control qualification / NO FLASH
-name: EXP76 R19 QEMU RT swork timer ordering and V3 (NO FLASH)
+name: EXP76 R22 H10 scheduler source gate SysRq PTY RT Image and V3 (NO FLASH)
 on:
   push:
     branches:
       - exp76-qemu-virtio-clang21
       - exp76-qemu-virtio-block-io
       - exp76-rt19-timer-swork-order
+      - exp76-rt-sched-h10
   workflow_call:
   workflow_dispatch:
 
@@ -43,6 +44,7 @@ jobs:
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
           python3 tools/exp76-rt19-timer-swork-order.py --self-test
+          python3 -m py_compile tools/exp76-rt22-h10-verify.py tools/exp76-rt22-qemu-pty-sysrq.py
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
@@ -194,6 +196,9 @@ jobs:
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/r19-timer-swork-order.json \
             --mode apply
+          python3 tools/exp76-rt22-h10-verify.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r22-h10-source-gate.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
@@ -218,6 +223,7 @@ jobs:
             olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
           grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
+          grep -qx '# CONFIG_MAGIC_SYSRQ is not set' "$BASE/pipa-rt/.config"
           cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
           "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
             -e MODULES -e MODULE_UNLOAD -e ARM_AMBA \
@@ -227,14 +233,18 @@ jobs:
             -e EXT4_FS \
             -e VIRTIO_CONSOLE -e BLK_DEV_INITRD -e BINFMT_ELF \
             -d MODULE_SIG_FORCE \
-            -d QCOM_KGSL -d QCOM_MDT_LOADER -d QCOM_SCM
+            -d QCOM_KGSL -d QCOM_MDT_LOADER -d QCOM_SCM \
+            -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL
           make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
             CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
             olddefconfig > exp76-qemu/logs/qemu-rt-olddefconfig.log 2>&1
           grep -qx '# CONFIG_QCOM_SCM is not set' "$BASE/qemu-rt/.config" || {
             echo 'BLOCKED_QEMU_ONLY_QCOM_SCM_RESELECTED_BY_KCONFIG'; exit 3;
           }
+          grep -qx 'CONFIG_MAGIC_SYSRQ=y' "$BASE/qemu-rt/.config"
+          grep -qx 'CONFIG_MAGIC_SYSRQ_SERIAL=y' "$BASE/qemu-rt/.config"
           grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
+          grep -qx '# CONFIG_MAGIC_SYSRQ is not set' "$BASE/pipa-rt/.config"
           python3 tools/exp76-qemu-scm-config-audit.py \
             --pipa "$BASE/pipa-rt/.config" \
             --qemu "$BASE/qemu-rt/.config" \
@@ -358,37 +368,34 @@ jobs:
             > exp76-qemu/reports/sha256-smoke-initramfs.txt
           echo 'EXP76_QEMU_RT_SMOKE_INITRAMFS=READY'
 
-      - name: QEMU ARM64 RT smoke boot before nonRT build and probe modules
+      - name: QEMU ARM64 RT smoke and serial PTY SysRq-t before nonRT build
         shell: bash
         timeout-minutes: 3
         run: |
           set -euo pipefail
-          set +e
-          timeout -k 5s 100s qemu-system-aarch64 \
-            -M virt -cpu cortex-a72 -smp 4 -m 512 \
-            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
-            -kernel exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
-            -initrd exp76-qemu/smoke-initramfs.cpio.gz \
-            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init' \
-            > exp76-qemu/logs/qemu-rt-smoke-console.txt 2>&1
-          rc=$?
-          set -e
-          echo "$rc" > exp76-qemu/reports/qemu-rt-smoke-exit-code.txt
-          echo "EXP76_QEMU_RT_SMOKE_QEMU_EXIT=$rc"
-          grep -E 'EXP76_QEMU_RT_SMOKE=|Kernel panic|Oops:|Unable to mount root' \
-            exp76-qemu/logs/qemu-rt-smoke-console.txt || true
-          if [ "$rc" -ne 0 ] \
-             || grep -q 'Kernel panic' exp76-qemu/logs/qemu-rt-smoke-console.txt \
-             || ! grep -q '^EXP76_QEMU_RT_SMOKE=BEGIN' \
-               exp76-qemu/logs/qemu-rt-smoke-console.txt \
-             || ! grep -q '^EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' \
-               exp76-qemu/logs/qemu-rt-smoke-console.txt; then
-            echo "EXP76_QEMU_RT_SMOKE=FAIL"
-            head -n 40 exp76-qemu/logs/qemu-rt-smoke-console.txt
-            tail -n 40 exp76-qemu/logs/qemu-rt-smoke-console.txt
-            exit 1
-          fi
-          echo 'EXP76_QEMU_RT_SMOKE=PASS'
+          python3 tools/exp76-rt22-qemu-pty-sysrq.py \
+            --image exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image \
+            --initrd exp76-qemu/smoke-initramfs.cpio.gz \
+            --out exp76-qemu/reports/r22-sysrq \
+            --max-seconds 38
+          cp exp76-qemu/reports/r22-sysrq/console-rt-pty.txt \
+             exp76-qemu/logs/qemu-rt-smoke-console.txt
+          python3 - <<'PY'
+          # Python 3 / Ubuntu Actions / fail-closed guest marker and SysRq evidence check
+          import json
+          from pathlib import Path
+          r=json.loads(Path('exp76-qemu/reports/r22-sysrq/sysrq-pty-result.json').read_text())
+          Path('exp76-qemu/reports/qemu-rt-smoke-exit-code.txt').write_text(
+              str(r['qemu_exit_code'])+'\n')
+          print('EXP76_R22_PTY_SHA256=',r['console_sha256'])
+          print('EXP76_R22_PTY_BYTES=',r['console_bytes'],'LINES=',r['console_lines'])
+          print('EXP76_R22_SYSRQ_OBSERVED=',r['sysrq_observed'])
+          print('EXP76_R22_PID1_STACK=',r['pid1_stack_captured'])
+          print('EXP76_R22_GUEST_RUNNING=',r['guest_running'])
+          if not r['qemu_boot_pass']:
+              raise SystemExit('EXP76_R22_QEMU_BOOT=FAIL; see PTY console artifact')
+          print('EXP76_R22_QEMU_BOOT=PASS')
+          PY
 
       - name: Build nonRT control Image after successful RT smoke boot
         shell: bash
@@ -766,6 +773,7 @@ jobs:
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
           python3 tools/exp76-rt19-timer-swork-order.py --self-test
+          python3 -m py_compile tools/exp76-rt22-h10-verify.py tools/exp76-rt22-qemu-pty-sysrq.py
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
@@ -917,6 +925,9 @@ jobs:
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/r19-timer-swork-order.json \
             --mode apply
+          python3 tools/exp76-rt22-h10-verify.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r22-h10-source-gate.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
@@ -941,6 +952,7 @@ jobs:
             olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
           grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
+          grep -qx '# CONFIG_MAGIC_SYSRQ is not set' "$BASE/pipa-rt/.config"
           cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
           "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
             -e MODULES -e MODULE_UNLOAD -e ARM_AMBA \
@@ -950,14 +962,18 @@ jobs:
             -e EXT4_FS \
             -e VIRTIO_CONSOLE -e BLK_DEV_INITRD -e BINFMT_ELF \
             -d MODULE_SIG_FORCE \
-            -d QCOM_KGSL -d QCOM_MDT_LOADER -d QCOM_SCM
+            -d QCOM_KGSL -d QCOM_MDT_LOADER -d QCOM_SCM \
+            -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL
           make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
             CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
             olddefconfig > exp76-qemu/logs/qemu-rt-olddefconfig.log 2>&1
           grep -qx '# CONFIG_QCOM_SCM is not set' "$BASE/qemu-rt/.config" || {
             echo 'BLOCKED_QEMU_ONLY_QCOM_SCM_RESELECTED_BY_KCONFIG'; exit 3;
           }
+          grep -qx 'CONFIG_MAGIC_SYSRQ=y' "$BASE/qemu-rt/.config"
+          grep -qx 'CONFIG_MAGIC_SYSRQ_SERIAL=y' "$BASE/qemu-rt/.config"
           grep -qx 'CONFIG_QCOM_SCM=y' "$BASE/pipa-rt/.config"
+          grep -qx '# CONFIG_MAGIC_SYSRQ is not set' "$BASE/pipa-rt/.config"
           python3 tools/exp76-qemu-scm-config-audit.py \
             --pipa "$BASE/pipa-rt/.config" \
             --qemu "$BASE/qemu-rt/.config" \
@@ -1099,6 +1115,7 @@ jobs:
           python3 tools/exp76-qemu-virtio-clang21.py --self-test
           python3 -m py_compile tools/exp76-qemu-nonrt-rcu-qs.py
           python3 tools/exp76-rt19-timer-swork-order.py --self-test
+          python3 -m py_compile tools/exp76-rt22-h10-verify.py tools/exp76-rt22-qemu-pty-sysrq.py
           python3 tools/exp76-qemu-nonrt-rcu-qs.py --self-test
           python3 tests/exp76-rt-spin-sleep/test-config-diff.py
           git diff --check
@@ -1250,6 +1267,9 @@ jobs:
             --tree exp76-trial-overlay \
             --report exp76-qemu/reports/r19-timer-swork-order.json \
             --mode apply
+          python3 tools/exp76-rt22-h10-verify.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r22-h10-source-gate.json
           test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
           git -C exp76-trial-overlay diff --check
           git -C exp76-trial-overlay diff --binary | sha256sum \
@@ -1274,6 +1294,7 @@ jobs:
             olddefconfig >> exp76-qemu/logs/pipa-independent-config.log 2>&1
           grep -qx 'CONFIG_QCOM_SCM=y' "$OUT/.config"
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$OUT/.config"
+          grep -qx '# CONFIG_MAGIC_SYSRQ is not set' "$OUT/.config"
           echo 'EXP76_PIPA_RT_SCM=y'
       - name: Independently build and SHA PIPA_RT ARM64 Image, no hardware boot
         shell: bash
