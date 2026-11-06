@@ -1,0 +1,135 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 R19 QEMU ARM64 HMP stall snapshot / NO FLASH
+name: EXP76 R19 QEMU post-swork stall snapshots (NO FLASH)
+on:
+  push:
+    branches: [exp76-rt19-timer-swork-order]
+    paths: ['.github/workflows/exp76-r19-qemu-stall-snapshot.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect-guest-stall:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exact run 42216342473 Image, vmlinux and System.map, no rebuild
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42216342473
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r19/postfix
+      - name: Install QEMU and verify three original SHA-256 hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm
+          mkdir -p exp76-r19/out
+          cd exp76-r19/postfix
+          printf '%s  %s\n' 94318cad94a3206337e6b9c9d15c74c5b6c59baa12d2f990a03856981ac45cb7 outputs/qemu-rt/arch/arm64/boot/Image 28be54db084dd2ad2e93989baaf8fc4241e2452cca88108da68d2f5039be4d8f outputs/qemu-rt/vmlinux b2dbbacc8ad0222e9f7c9d9c18e53bc1601e8e29172bf3a4ca85b320c882a685 outputs/qemu-rt/System.map | sha256sum -c -
+          test -s smoke-initramfs.cpio.gz
+      - name: Sample guest registers using QEMU HMP under SMP4 and SMP1
+        shell: bash
+        timeout-minutes: 6
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / Ubuntu GitHub Actions / QEMU ARM64 register snapshots matching ELF / NO BUILD NO FLASH
+          import bisect,hashlib,json,os,re,shlex,socket,subprocess,time
+          from pathlib import Path
+          root=Path('exp76-r19')
+          source=root/'postfix'
+          image=source/'outputs/qemu-rt/arch/arm64/boot/Image'
+          ramdisk=source/'smoke-initramfs.cpio.gz'
+          sym=source/'outputs/qemu-rt/System.map'
+          symbols=[]
+          for l in sym.read_text(errors='replace').splitlines():
+              p=l.split()
+              if len(p)>=3:
+                  try: symbols.append((int(p[0],16),p[2]))
+                  except ValueError: pass
+          symbols.sort()
+          keys=[a for a,n in symbols]
+          def resolve(pc):
+              i=bisect.bisect_right(keys,pc)-1
+              return None if i<0 else {'symbol':symbols[i][1],'offset':hex(pc-symbols[i][0])}
+          def hmp(s,command):
+              s.sendall((command+'\n').encode())
+              s.settimeout(.7)
+              data=b''
+              try:
+                  while True:
+                      block=s.recv(65536)
+                      if not block: break
+                      data+=block
+                      if b'(qemu)' in data: break
+              except socket.timeout: pass
+              return data.decode(errors='replace')
+          records=[]
+          for num in (4,1):
+              name='smp'+str(num)
+              monitor='/tmp/exp76-r19-'+name+'.sock'
+              try: os.unlink(monitor)
+              except FileNotFoundError: pass
+              args=['qemu-system-aarch64','-M','virt','-cpu','cortex-a72',
+                    '-smp',str(num),'-m','512','-nodefaults','-serial','stdio',
+                    '-monitor','unix:'+monitor+',server=on,wait=off','-display','none',
+                    '-nic','none','-no-reboot','-kernel',str(image),'-initrd',str(ramdisk),
+                    '-append','earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init initcall_debug=1']
+              (root/'out'/(name+'-cmd.txt')).write_text(shlex.join(args)+'\n')
+              t=time.monotonic()
+              console=root/'out'/(name+'-console.log')
+              with console.open('wb') as file:
+                  proc=subprocess.Popen(args,stdout=file,stderr=subprocess.STDOUT)
+                  sock=None
+                  for attempt in range(100):
+                      try:
+                          sock=socket.socket(socket.AF_UNIX)
+                          sock.connect(monitor)
+                          break
+                      except OSError:
+                          if sock:sock.close()
+                          sock=None
+                          time.sleep(.05)
+                  snapshots=[]
+                  for checkpoint in (1,5,15):
+                      delay=checkpoint-(time.monotonic()-t)
+                      if delay>0:time.sleep(delay)
+                      entry={'at_seconds':round(time.monotonic()-t,3),'running':proc.poll() is None}
+                      if sock and proc.poll() is None:
+                          entry['cpu_info']=hmp(sock,'info cpus')
+                          entry['register_dump']=hmp(sock,'info registers')
+                          pcs=re.findall(r'PC=([0-9a-fA-F]+)',entry['register_dump'])
+                          entry['pcs']=[{'pc':pc,'resolution':resolve(int(pc,16))} for pc in pcs]
+                      snapshots.append(entry)
+                  if proc.poll() is None:
+                      proc.terminate()
+                      try:proc.wait(timeout=5)
+                      except subprocess.TimeoutExpired:
+                          proc.kill();proc.wait(timeout=3)
+                  if sock:sock.close()
+              raw=console.read_bytes()
+              rec={'case':name,'snapshots':snapshots,'console_bytes':len(raw),
+                   'console_lines':len(raw.splitlines()),'console_sha256':hashlib.sha256(raw).hexdigest(),
+                   'guest_running':b'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' in raw,
+                   'kernel_panic':b'Kernel panic' in raw,'qemu_exit':proc.returncode,
+                   'duration_sec':round(time.monotonic()-t,3),'kernel_build_performed':False}
+              (root/'out'/(name+'-result.json')).write_text(json.dumps(rec,indent=2)+'\n')
+              print('EXP76_R19_STALL',name,'pcs',[(s['at_seconds'],s.get('pcs')) for s in snapshots],
+                    'console',rec['console_bytes'],'guest_running',rec['guest_running'],flush=True)
+              records.append(rec)
+          (root/'out'/'summary.json').write_text(json.dumps({'schema':1,'records':records,
+                     'rt_handoff_ready':False},indent=2)+'\n')
+          PY
+      - name: Publish QEMU host snapshots, full console and exact command
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r19-swork-postfix-guest-stall-NOFLASH
+          path: exp76-r19/out/
+          retention-days: 30
+          if-no-files-found: warn
