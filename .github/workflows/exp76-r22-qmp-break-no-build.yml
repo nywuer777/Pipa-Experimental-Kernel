@@ -1,0 +1,61 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 R22 pinned QEMU RT SysRq task dump using QMP BREAK / NO BUILD NO FLASH
+name: EXP76 R22 QEMU RT SysRq QMP BREAK no-build
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-r22-qmp-break-no-build.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  qmp-break-taskdump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact built SysRq-enabled QEMU Image from R22
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250617858
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-qmp-r22/prebuilt
+      - name: Verify exact Image SHA and both serial SysRq Kconfig flags, no kernel build
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' cd9865449c3949465140ecfdf46791834e321b8c575d578360c19b0383877ce6 \
+            exp76-qmp-r22/prebuilt/outputs/qemu-rt/arch/arm64/boot/Image | sha256sum -c -
+          grep -qx 'CONFIG_MAGIC_SYSRQ=y' exp76-qmp-r22/prebuilt/outputs/qemu-rt/.config
+          grep -qx 'CONFIG_MAGIC_SYSRQ_SERIAL=y' exp76-qmp-r22/prebuilt/outputs/qemu-rt/.config
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' exp76-qmp-r22/prebuilt/outputs/qemu-rt/.config
+          test -s exp76-qmp-r22/prebuilt/smoke-initramfs.cpio.gz
+          python3 -m py_compile tools/exp76-r22-qmp-break.py
+      - name: Install QEMU runtime only
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm
+          mkdir -p exp76-qmp-r22/reports
+          qemu-system-aarch64 --version > exp76-qmp-r22/reports/qemu-version.txt
+      - name: Execute QMP chardev-send-break SysRq-t with original R22 Image
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-r22-qmp-break.py \
+            --image exp76-qmp-r22/prebuilt/outputs/qemu-rt/arch/arm64/boot/Image \
+            --initrd exp76-qmp-r22/prebuilt/smoke-initramfs.cpio.gz \
+            --out exp76-qmp-r22/reports \
+            --seconds 22
+      - name: Publish full guest serial console, QMP response and SHA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r22-qmp-break-sysrq-taskdump-NOFLASH
+          path: exp76-qmp-r22/reports/
+          if-no-files-found: warn
+          retention-days: 30
