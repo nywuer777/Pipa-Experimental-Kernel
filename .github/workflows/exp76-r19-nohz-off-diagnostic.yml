@@ -1,0 +1,88 @@
+# YAML / GitHub Actions ubuntu-24.04 / EXP76 RT140 SCM-off Image pinned NO_HZ disable diagnostic / NO FLASH
+name: EXP76 R19 SCM-off nohz-off QEMU diagnostic (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-r19-nohz-off-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  no-build-qemu-nohz-off:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact SCM-off Image and initramfs from run 42065541890
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42065541890
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r19/prebuilt
+      - name: Verify image and install QEMU only, never compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-r19/reports exp76-r19/logs
+          echo '74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234  exp76-r19/prebuilt/outputs/qemu-rt/arch/arm64/boot/Image' | sha256sum -c -
+          grep -qx '# CONFIG_QCOM_SCM is not set' exp76-r19/prebuilt/outputs/qemu-rt/.config
+          test -s exp76-r19/prebuilt/smoke-initramfs.cpio.gz
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm
+          qemu-system-aarch64 --version > exp76-r19/reports/qemu-version.txt
+      - name: Execute nohz=off against identical SCM-off Image
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / Github Ubuntu24 / QEMU ARM64 NO_HZ boot-path isolation no kernel rebuild / NO FLASH
+          import subprocess,shlex,time,json,hashlib
+          from pathlib import Path
+          root=Path("exp76-r19")
+          image=root/"prebuilt/outputs/qemu-rt/arch/arm64/boot/Image"
+          initrd=root/"prebuilt/smoke-initramfs.cpio.gz"
+          cases=[("nohz_off","nohz=off earlycon=pl011,0x09000000 console=ttyAMA0,115200 ignore_loglevel loglevel=8 printk.time=1 nokaslr panic=5 init=/init initcall_debug=1")]
+          for name,args in cases:
+              cmd=["qemu-system-aarch64","-M","virt","-cpu","cortex-a72","-smp","4","-m","512",
+                   "-nodefaults","-serial","stdio","-monitor","none","-display","none",
+                   "-nic","none","-no-reboot","-d","int,guest_errors,unimp",
+                   "-D",str(root/"logs"/f"{name}.qemu-internal.txt"),
+                   "-kernel",str(image),"-initrd",str(initrd),"-append",args]
+              (root/"reports"/f"{name}.cmdline.txt").write_text(shlex.join(cmd)+"\n")
+              start=time.monotonic_ns()
+              try:
+                  p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=65)
+                  rc=p.returncode;raw=p.stdout;timed_out=False
+              except subprocess.TimeoutExpired as e:
+                  rc=124;raw=e.stdout or b"";timed_out=True
+              elapsed=(time.monotonic_ns()-start)/1e9
+              (root/"logs"/f"{name}.console.txt").write_bytes(raw)
+              decoded=raw.decode(errors="replace").replace("\r","")
+              result={"schema":1,"case":name,"image_sha256":"74779948204ee895a74c19639ce89ab6480b4035fca421dd5d828e155c51c234",
+                      "kernel_build_performed":False,"qemu_exit_code":rc,"timed_out":timed_out,
+                      "duration_sec":round(elapsed,6),"console_sha256":hashlib.sha256(raw).hexdigest(),
+                      "console_bytes":len(raw),"console_lines":len(raw.splitlines()),
+                      "guest_begin":"EXP76_QEMU_RT_SMOKE=BEGIN" in decoded,
+                      "guest_running":"EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in decoded,
+                      "panic":"Kernel panic" in decoded,"oops":"Oops" in decoded,
+                      "functional_pass":("EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in decoded and "Kernel panic" not in decoded),
+                      "last_60_lines":decoded.splitlines()[-60:],
+                      "rt_handoff_ready":False}
+              (root/"reports"/f"{name}.json").write_text(json.dumps(result,indent=2)+"\n")
+              print("EXP76_R19_NOHZ_OFF",json.dumps({k:v for k,v in result.items() if k!="last_60_lines"},indent=2))
+              print("\n".join(decoded.splitlines()[-40:]))
+          PY
+      - name: Upload full diagnostics even when guest fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r19-nohz-off-qemu-trial-NOFLASH
+          path: |
+            exp76-r19/reports/
+            exp76-r19/logs/
+          if-no-files-found: warn
+          retention-days: 21
