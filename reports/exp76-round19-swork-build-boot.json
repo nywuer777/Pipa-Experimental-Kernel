@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "scope": "EXP76_RT_ONLY",
+  "round": 19,
+  "as_of": "2026-11-06",
+  "status": "BUILT_BOOT_TIMEOUT_IDLES_AT_WFI_NO_GUEST_INIT",
+  "base_kernel": {
+    "vendor_base_commit": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+    "toolchain": "ANDROID_CLANG_21_r563880c",
+    "rt_patch": "4.19.325-rt140"
+  },
+  "reject_audit": {
+    "run_id": 42214496365,
+    "artifact_id": 13500975662,
+    "rejected_files_remaining": 64,
+    "rejected_hunks_remaining": 209,
+    "classification": "A_SOURCE_ALREADY_RECONCILED_STAGE34",
+    "candidate_path": "kernel/time/timer.c.rej",
+    "hunk_index": 1,
+    "hunk_status": "SOURCE_ALREADY_APPLIED_NOT_RUNTIME_VERIFIED",
+    "stage34_tool": "tools/exp76-rt-stage34-timer-swork.py",
+    "stage34_preserves_rej": true,
+    "source_contains": [
+      "swork_queue(&timer_update_swork)",
+      "WARN_ON(swork_get())",
+      "INIT_SWORK(&timer_update_swork,timer_update_keys)",
+      "early_initcall(hrtimer_init_thread)"
+    ],
+    "new_port_verified_hunks": 0,
+    "port_verified": false
+  },
+  "source_order_repair": {
+    "branch": "exp76-rt19-timer-swork-order",
+    "implementation_commit": "ad974369ed7994c3a77137db999cf5dfdd095c6b",
+    "ci_commit": "68c5671e46dd442a5ccd6a06e1615bf0bdeb0175",
+    "report_path": "exp76-qemu/reports/r19-timer-swork-order.json",
+    "source_timer_before_sha256": "2c5a9f99c4a3c4bc2fcb5f2d23c6ee6fbf1a20cf061392fe47f3e1b917948bbd",
+    "source_timer_after_sha256": "f2534cabb88f3ad6e9d9579843fae6fed94e39b67b89e59eb06b364d3c98daec",
+    "reason": "Avoid swork_queue before early_initcall(hrtimer_init_thread) swork_get creates glob_worker; replay sticky tick_nohz_active after successful worker creation",
+    "changes_to_swork_queue_implementation": false,
+    "changes_to_pipa_config": false,
+    "rejected_hunks_reapplied_this_round": 0,
+    "boot_verified": false
+  },
+  "ci": {
+    "run_id": 42216342473,
+    "run_conclusion": "failure",
+    "jobs": {
+      "qemu_boot": "failure",
+      "pipa_rt_build": "success",
+      "ccache_diagnostic": "success"
+    },
+    "qemu_artifact_id": 13502064470,
+    "pipa_artifact_id": 13501482877,
+    "smoke_exit_code": 124,
+    "nonrt_control_executed": false,
+    "v3_guest_executed": false
+  },
+  "qemu_rt": {
+    "image_build_exit": 0,
+    "image_bytes": 30822424,
+    "image_sha256": "94318cad94a3206337e6b9c9d15c74c5b6c59baa12d2f990a03856981ac45cb7",
+    "config_sha256": "7ea8eb1f6f3202469edf6b63e56c66fe456f3bb391805083a513e72a32c5cdc0",
+    "vmlinux_sha256": "28be54db084dd2ad2e93989baaf8fc4241e2452cca88108da68d2f5039be4d8f",
+    "system_map_sha256": "b2dbbacc8ad0222e9f7c9d9c18e53bc1601e8e29172bf3a4ca85b320c882a685",
+    "scm": "n",
+    "preempt_rt_full": "y",
+    "smoke_console": {
+      "bytes": 3284,
+      "lines": 46,
+      "sha256": "cdb3b76fa0a066a541c5badeed60231eeec775addccffe7de27f1a2dfbccc53b",
+      "last_kernel_line": "[    0.031732] /cpus/cpu-map: empty cluster",
+      "end_reason": "host_timeout_signal_15",
+      "kernel_panic_observed": false,
+      "previous_far_0x28_observed": false,
+      "begin": false,
+      "guest_running": false
+    },
+    "state": "FAIL_BOOT_TIMEOUT_AFTER_NOHZ_ORDER_REPAIR"
+  },
+  "pipa_rt": {
+    "image_build_exit": 0,
+    "image_sha256": "6997c9b123a48c1f6707f656d4e49ad975825ef812c04a4a07cb6389b1ded850",
+    "image_bytes": 29212696,
+    "config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5",
+    "vmlinux_sha256": "8a1470446cf2233efbaac011d9211157510a35f0f3e7620eb4e366e7ac71d1bb",
+    "system_map_sha256": "ba853e139b078c169fea4a1fb2d5b7cc44098e058cb6b871d1c5c81e1f118216",
+    "scm": "y",
+    "preempt_rt_full": "y",
+    "matches_prior_config_sha": true,
+    "hardware_boot_verified": false
+  },
+  "guest_stall_diagnostic": {
+    "run_id": 42224217274,
+    "artifact_id": 13504239177,
+    "image_source_run": 42216342473,
+    "no_build": true,
+    "events": [
+      {
+        "smp": 4,
+        "console_bytes": 3300,
+        "console_lines": 46,
+        "console_sha256": "37a78336d2e4cfc1a8bb6a0c2705dabf26ed5412c960f2d4c1f09f77232405ee",
+        "pc_at_5s": "0xffffff801009a654",
+        "pc_at_15s": "0xffffff801009a654",
+        "pc_symbol": "cpu_do_idle+0x8",
+        "instruction": "ret after wfi",
+        "x30": "0xffffff801008540c",
+        "caller": "arch_cpu_idle+0xc",
+        "guest_running": false
+      },
+      {
+        "smp": 1,
+        "console_bytes": 3282,
+        "console_lines": 46,
+        "console_sha256": "8f0eb9e52531e5e2d1de75ad099b188cf597747621dba580cc8116327d098844",
+        "pc_at_5s": "0xffffff801009a654",
+        "pc_at_15s": "0xffffff801009a654",
+        "pc_symbol": "cpu_do_idle+0x8",
+        "instruction": "ret after wfi",
+        "x30": "0xffffff801008540c",
+        "caller": "arch_cpu_idle+0xc",
+        "guest_running": false
+      }
+    ],
+    "hmp_sampling_caveat": "T+1s register dump unparsed due monitor command echo; T+5 and T+15 confirm stable CPU0 PC only; other CPUs not sampled",
+    "unresolved_cause": "possible interrupt/timer wakeup or scheduler/init task blockage; not isolated"
+  },
+  "publication": {
+    "vmlinux_and_system_map_published": true,
+    "qemu_rt": true,
+    "pipa_rt": true,
+    "nonrt": false,
+    "toolchain_and_source_provenance": "source diff sha in artifact and workflow head sha",
+    "publication_commit": "fb54ef5fdefab3dd02c446d5efbf3bc04797e2bc",
+    "expected_artifact_file_names": [
+      "outputs/qemu-rt/vmlinux",
+      "outputs/qemu-rt/System.map",
+      "outputs/pipa-rt/vmlinux",
+      "outputs/pipa-rt/System.map"
+    ]
+  },
+  "gates": {
+    "build_rt_images_generated": "PASS",
+    "qemu_rt_boot": "FAIL_EARLY_BOOT_IDLE_WFI_TIMEOUT",
+    "qemu_guest_init": "NOT_REACHED",
+    "rt_semantics_verified": "NOT_EXECUTED",
+    "v3": "NOT_EXECUTED",
+    "port_verified_count_new": 0,
+    "abi_diff": "NOT_MEASURED",
+    "pipa_scm_hardware": "NO_HARDWARE",
+    "rt_handoff_ready": false,
+    "flash_ready": false
+  },
+  "next_action": "Inspect kernel work scheduling/interrupt wakeups at early init for pinned QEMU image with DWARF and per-CPU state; do not classify Stage34 hunk as runtime PORT_VERIFIED until guest boot marker PASS."
+}
