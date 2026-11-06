@@ -85,10 +85,10 @@ def once(text: str, target: str, label: str) -> None:
 
 
 def transform(before: str) -> str:
-    once(before, DECLARATION, TIMER)
-    once(before, ORIGINAL, TIMER)
     if "timer_update_swork_ready" in before:
         raise RuntimeError("Refuse second application")
+    once(before, DECLARATION, TIMER)
+    once(before, ORIGINAL, TIMER)
     after = before.replace(DECLARATION, NEW_DECLARATION, 1)
     after = after.replace(ORIGINAL, REPLACEMENT, 1)
     assert after.count("early_initcall(hrtimer_init_thread);") == 1
