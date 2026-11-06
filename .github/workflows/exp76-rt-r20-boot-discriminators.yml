@@ -1,0 +1,185 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 RT20 pinned ARM64 guest discriminant tests / NO FLASH, NO BUILD
+name: EXP76 R20 RT early boot initcall NOHZ IRQ discriminators (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-rt-r20-boot-discriminators.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  r20-prebuilt-qemu-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact R19 QEMU_RT Image/ELF and original smoke initramfs; no kernel build
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42216342473
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r20/prebuilt
+      - name: Verify pinned Image, matching ELF, System.map, config and initramfs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p exp76-r20/reports exp76-r20/consoles exp76-r20/qemu-internal exp76-r20/commands
+          printf '%s  %s\n' \
+            94318cad94a3206337e6b9c9d15c74c5b6c59baa12d2f990a03856981ac45cb7 exp76-r20/prebuilt/outputs/qemu-rt/arch/arm64/boot/Image \
+            28be54db084dd2ad2e93989baaf8fc4241e2452cca88108da68d2f5039be4d8f exp76-r20/prebuilt/outputs/qemu-rt/vmlinux \
+            b2dbbacc8ad0222e9f7c9d9c18e53bc1601e8e29172bf3a4ca85b320c882a685 exp76-r20/prebuilt/outputs/qemu-rt/System.map \
+            | sha256sum --check
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' exp76-r20/prebuilt/outputs/qemu-rt/.config
+          grep -qx '# CONFIG_QCOM_SCM is not set' exp76-r20/prebuilt/outputs/qemu-rt/.config
+          test -s exp76-r20/prebuilt/smoke-initramfs.cpio.gz
+          python3 - <<'PY'
+          # Python 3 / Ubuntu GitHub Actions / verify arm64 magic and /init in no-build QEMU CPIO
+          import gzip,hashlib,json,struct
+          from pathlib import Path
+          b=Path('exp76-r20/prebuilt/outputs/qemu-rt/arch/arm64/boot/Image').read_bytes()
+          assert b[0x38:0x3c]==b'ARMd'
+          image={'magic':'ARMd','image_bytes':len(b),'image_sha256':hashlib.sha256(b).hexdigest(),
+                 'text_offset':struct.unpack_from('<Q',b,8)[0]}
+          p=Path('exp76-r20/prebuilt/smoke-initramfs.cpio.gz')
+          data=gzip.decompress(p.read_bytes())
+          pos=0;init=None
+          while pos<len(data):
+              h=data[pos:pos+110]
+              if h[:6] not in (b'070701',b'070702'):raise ValueError('cpio header')
+              f=[int(h[6+i*8:14+i*8],16) for i in range(13)]
+              name=data[pos+110:pos+110+f[11]].rstrip(b'\0').decode()
+              pos=(pos+110+f[11]+3)&~3
+              payload=data[pos:pos+f[6]]
+              pos=(pos+f[6]+3)&~3
+              if name in ('init','./init'):
+                  init={'name':name,'bytes':len(payload),'sha256':hashlib.sha256(payload).hexdigest(),
+                        'executable':bool(f[1]&0o111),'contains_guest_marker':b'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' in payload}
+              if name=='TRAILER!!!':break
+          assert init and init['executable'] and init['contains_guest_marker']
+          result={'image':image,'initramfs_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),
+                  'initramfs_bytes':p.stat().st_size,'init':init,'kernel_build_performed':False,
+                  'nonrt_image_available_in_input_artifact':False}
+          Path('exp76-r20/reports/input-validation.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          PY
+      - name: Install QEMU runtime only
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm
+          qemu-system-aarch64 --version > exp76-r20/reports/qemu-version.txt
+          sha256sum "$(command -v qemu-system-aarch64)" > exp76-r20/reports/qemu-executable-sha256.txt
+      - name: Execute initcall_debug nosmp, nohz=off and QEMU IRQ trace against identical pinned Image
+        shell: bash
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / GitHub Actions Ubuntu24 / three independent ARM64 QEMU tests, same RT Image, NO BUILD NO FLASH
+          import concurrent.futures,hashlib,json,re,shlex,subprocess,time
+          from pathlib import Path
+          root=Path('exp76-r20')
+          image=root/'prebuilt/outputs/qemu-rt/arch/arm64/boot/Image'
+          initrd=root/'prebuilt/smoke-initramfs.cpio.gz'
+          original='earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init'
+          runs=[
+            ('initcall_nosmp',original+' initcall_debug=1 nosmp',False),
+            ('nohz_off',original+' nohz=off',False),
+            ('irq_trace',original,True)
+          ]
+          def execute(case):
+              name,append,irq=case
+              argv=['qemu-system-aarch64','-M','virt','-cpu','cortex-a72',
+                    '-smp','4','-m','512','-nodefaults','-serial','stdio',
+                    '-monitor','none','-display','none','-nic','none','-no-reboot']
+              debug=root/'qemu-internal'/(name+'.qemu-debug.txt')
+              if irq:argv+=['-d','int,guest_errors','-D',str(debug)]
+              argv+=['-kernel',str(image),'-initrd',str(initrd),'-append',append]
+              cmdfile=root/'commands'/(name+'.sh-argv.txt')
+              cmdfile.write_text(shlex.join(argv)+'\n')
+              assert shlex.split(cmdfile.read_text())==argv
+              start=time.monotonic_ns()
+              try:
+                  p=subprocess.run(shlex.split(cmdfile.read_text()),stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT,timeout=42,check=False)
+                  rc=p.returncode;console=p.stdout;timed_out=False
+              except subprocess.TimeoutExpired as e:
+                  rc=124;console=e.stdout or b'';timed_out=True
+              elapsed=round((time.monotonic_ns()-start)/1e9,6)
+              logfile=root/'consoles'/(name+'.console.txt')
+              logfile.write_bytes(console)
+              text=console.decode('utf-8','replace').replace('\r','')
+              lines=text.splitlines()
+              initcalls=[x for x in lines if re.search(r'\bcalling\s+[^\s]+',x)]
+              returned=[x for x in lines if re.search(r'\binitcall\s+[^\s]+\s+returned\b',x)]
+              irq_count=None;irq_sha=None;irq_size=None;irq_sample=[]
+              exception_summary={}
+              if irq:
+                  if not debug.exists():raise RuntimeError('No QEMU -d int output')
+                  log=debug.read_bytes()
+                  irq_count=len(re.findall(rb'Taking exception 5(?:\s|\[)',log))
+                  for match in re.findall(rb'Taking exception\s+\d+\s+\[[^\]]+\]',log):
+                      label=match.decode(errors='replace')
+                      exception_summary[label]=exception_summary.get(label,0)+1
+                  irq_size=len(log);irq_sha=hashlib.sha256(log).hexdigest()
+                  irq_sample=[x for x in log.decode(errors='replace').splitlines()
+                              if re.search(r'Taking exception|IRQ|interrupt|vtimer|vIRQ',x,re.I)][:35]
+              record={'schema_version':1,'case':name,'source_run_id':42216342473,
+                      'image_sha256':'94318cad94a3206337e6b9c9d15c74c5b6c59baa12d2f990a03856981ac45cb7',
+                      'same_initramfs_as_original_run':True,
+                      'command_verbatim':cmdfile.read_text().rstrip(),
+                      'command_sha256':hashlib.sha256(cmdfile.read_bytes()).hexdigest(),
+                      'append':append,'duration_seconds':elapsed,'timeout_seconds':42,
+                      'qemu_exit_code':rc,'timed_out':timed_out,
+                      'console_sha256':hashlib.sha256(console).hexdigest(),
+                      'console_bytes':len(console),'console_lines':len(console.splitlines()),
+                      'last_console_line':lines[-1] if lines else None,
+                      'last_kernel_line':next((x for x in reversed(lines) if x.startswith('[')),None),
+                      'initcall_calling_count':len(initcalls),'initcall_returned_count':len(returned),
+                      'first_initcall_calling':initcalls[:3],'last_initcall_calling':initcalls[-5:],
+                      'last_initcall_returned':returned[-5:],
+                      'psci_printed':any('psci:' in x for x in lines),
+                      'guest_begin':any('EXP76_QEMU_RT_SMOKE=BEGIN' in x for x in lines),
+                      'guest_running':any('EXP76_QEMU_RT_SMOKE=GUEST_RUNNING' in x for x in lines),
+                      'panic':any('Kernel panic' in x for x in lines),
+                      'qemu_irq_exception5_count':irq_count,
+                      'qemu_debug_sha256':irq_sha,'qemu_debug_bytes':irq_size,
+                      'qemu_exception_histogram':exception_summary,'irq_sample':irq_sample,
+                      'first_console_45_lines':lines[:45],'last_console_65_lines':lines[-65:],
+                      'kernel_build_performed':False,'rt_semantics_verified':False,'flash_ready':False}
+              (root/'reports'/(name+'.json')).write_text(json.dumps(record,indent=2)+'\n')
+              print('EXP76_R20',name,'exit',rc,'seconds',elapsed,'console_bytes',len(console),
+                    'lines',record['console_lines'],'initcalls',len(initcalls),
+                    'exception5',irq_count,'last_kernel_line',record['last_kernel_line'],
+                    'guest_running',record['guest_running'],flush=True)
+              return record
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+              results=list(pool.map(execute,runs))
+          output={'schema_version':1,'round':20,
+                  'tests':[{'case':r['case'],'duration_seconds':r['duration_seconds'],
+                            'console_sha256':r['console_sha256'],'console_bytes':r['console_bytes'],
+                            'console_lines':r['console_lines'],'exit':r['qemu_exit_code'],
+                            'initcall_calling_count':r['initcall_calling_count'],
+                            'irq_exception_count':r['qemu_irq_exception5_count'],
+                            'guest_running':r['guest_running'],
+                            'panic':r['panic']} for r in results],
+                  'nonrt_baseline':'NOT_AVAILABLE_NO_ARCHIVED_IMAGE',
+                  'no_kernel_build':True,'no_module_build':True,'no_flash':True}
+          (root/'reports'/'r20-summary.json').write_text(json.dumps(output,indent=2)+'\n')
+          PY
+      - name: Always archive all three full serial consoles, commands, IRQ log and timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r20-rt-initcall-nohz-irq-NOFLASH
+          path: |
+            exp76-r20/reports/
+            exp76-r20/consoles/
+            exp76-r20/commands/
+            exp76-r20/qemu-internal/
+          retention-days: 30
+          if-no-files-found: warn
