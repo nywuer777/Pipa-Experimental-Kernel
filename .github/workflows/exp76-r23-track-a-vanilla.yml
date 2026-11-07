@@ -105,7 +105,7 @@ jobs:
             > exp76-r23/track-a/reports/config.log 2>&1
           "$K/scripts/config" --file "$OUT/.config" \
             -e SMP -e HIGH_RES_TIMERS -e PREEMPT_RT_FULL \
-            -e ARM_AMBA -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
+            -e TTY -e ARM_AMBA -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
             -e BLOCK -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT \
             -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF \
             -e ARM_PSCI_FW -e ARM_ARCH_TIMER -e ARM_GIC -e OF \
