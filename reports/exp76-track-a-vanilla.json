@@ -64,5 +64,15 @@
     "net_disabled": true,
     "conclusion": "BASELINE_VANILLA_RT140_BOOT_VALID; NOT_STRICT_QCOM_MSM_N_MINIMAL_CONFIG",
     "qualification": "QEMU virt DT lacks Qualcomm platform nodes; compiled-in symbols do not imply devices were probed"
+  },
+  "config_minimality_audit": {
+    "source_is_vanilla_linux_4_19_325": true,
+    "vanilla_rt140_patch_hunks_apply_without_rejects": true,
+    "all_qcom_msm_virtio_pci_net_symbols_n": false,
+    "enabled_matching_symbol_count": 60,
+    "match_rule": "CONFIG keys containing QCOM, MSM, VIRTIO, PCI, or NET with effective value y; may include ARCH errata and generic PCI symbols",
+    "meaning": "Track A validates vanilla RT140 QEMU boot on measured effective config; cannot claim all ancillary SoC/PCI symbols were disabled",
+    "qemu_virt_hardware_qcom_path_proven_exercised": false,
+    "no_additional_rebuild": true
   }
 }
