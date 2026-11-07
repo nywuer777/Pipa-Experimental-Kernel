@@ -2,8 +2,8 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "BUILD_RETRY_AFTER_BPF_SYSCTL_MHI_KCONFIG_FAILURES",
-  "latest_run_id": 42373423663,
+  "status": "BUILD_RETRY_RUNNING_AFTER_KCONFIG_SYSCTL_RESELECTION",
+  "latest_run_id": 42373976494,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + official RT140 + EXP76 source ports",
@@ -55,8 +55,8 @@
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": true,
-  "latest_completed_run_id": 42370492063,
-  "latest_completed_conclusion": "FAIL_E404_BPF_VERIFIER_IMPLICIT_DECLARATION",
+  "latest_completed_run_id": 42373423663,
+  "latest_completed_conclusion": "FAIL_SYSCTL_RESELECTED_BY_KCONFIG_BEFORE_BUILD",
   "build_exit_code": 2,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
@@ -66,7 +66,7 @@
     "CONFIG_CGROUP_BPF=n"
   ],
   "retry_branch": "exp76-r23-b-minimal",
-  "retry_commit": "21e712cac540e3a2037cd05241a628b6a5d9df9d",
+  "retry_commit": "75b84c97c8c49bfd454224084f75d56c6b41540c",
   "previous_build_log_sha256": "c8a59248ca8671f8b1364e060581723f331541704184ae34b46e40d276bb5168",
   "previous_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "prior_image_generated": false,
@@ -84,14 +84,23 @@
     "CONFIG_PCI=n with CONFIG_MHI_QCOM=y: PCI IRQ vectors API undefined in drivers/bus/mhi/controllers/mhi_qcom.c"
   ],
   "latest_retry_config_request": [
-    "CONFIG_BPF_SYSCALL=n",
+    "CONFIG_BPF_SYSCALL=y",
+    "CONFIG_BPF_JIT=y",
+    "CONFIG_SYSCTL=y",
     "CONFIG_CGROUP_BPF=n",
     "CONFIG_MHI_BUS=n",
     "CONFIG_MHI_QCOM=n",
-    "CONFIG_SYSCTL=n"
+    "CONFIG_PCI=n",
+    "CONFIG_NET=n"
   ],
   "latest_previous_config_sha": "c3df446264b4c526ac5af5adcedaa867e2bdd0393eef7307cb2ea10b373e0fa9",
   "latest_previous_image_generated": false,
   "warning": "Track B uses vendor/pipa_defconfig plus selective disables; a minimal-like profile, not allnoconfig. The many effective config differences confound causality until a functional B boot exists.",
-  "build_status": "LATEST_RUN_IN_PROGRESS_NOT_CLAIMED_PASS"
+  "build_status": "LATEST_RUN_IN_PROGRESS_NOT_CLAIMED_PASS",
+  "last_kconfig_reselections": [
+    "SYSCTL"
+  ],
+  "bpf_sysctl_config_resolution": "CONFIG_BPF_SYSCALL=y CONFIG_BPF_JIT=y CONFIG_SYSCTL=y; avoids E404 sysctl and verifier missing symbols while disabling unnecessary MHI/PCI/QCOM features",
+  "latest_failed_artifact_id": 13574269698,
+  "latest_failed_config_sha": "f8888d550efd6625e74d20656801633e47616dcea850082f612a58f503820834"
 }
