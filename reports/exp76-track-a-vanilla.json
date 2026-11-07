@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "track": "A",
+  "status": "IN_PROGRESS_CLANG21_FETCH",
+  "active_run_id": 42369323810,
+  "first_run_id": 42368893047,
+  "first_run_failed": "KCONFIG_SERIAL_AMBA_PL011_ABSENT_DUE_TTY_N",
+  "corrected": "CONFIG_TTY=y now set before PL011",
+  "vanilla_tag": "v4.19.325",
+  "rt_patch_url": "https://cdn.kernel.org/pub/linux/kernel/projects/rt/4.19/patch-4.19.325-rt140.patch.xz",
+  "rt_patch_archive_sha256": "c79d3efb5daccc5a3f58d502189eadc7dd31a962215ca0a16fa8c3eb98cd88ce",
+  "patch_first_run_applied_without_rejects": true,
+  "first_invalid_config_sha": "4f4f3a18bc5aca40d8b6baeda914cba0aa9e4e2a1b9c71a398f3257e79e0d425",
+  "boots": null,
+  "reached_ms": null,
+  "guest_running": null,
+  "image_sha": null,
+  "config_sha": null,
+  "last_lines": [],
+  "note": "Not a boot result; wait for run 42369323810. The first Kconfig gate prevented an invalid vanilla comparison.",
+  "flash_ready": false
+}
