@@ -46,6 +46,23 @@
   "build_duration_seconds": 205.910044,
   "qemu_arch": "arm64 virt cortex-a72 smp4 512M",
   "artifact_id": 13574060072,
-  "conclusion_scope": "Vanilla RT140 functional on QEMU virt with tested effective config. Does not isolate vendor source vs EXP76 source integration vs Kconfig differences.",
-  "rt_semantics_v3": "NOT_EXECUTED"
+  "conclusion_scope": "Vanilla 4.19.325-rt140 boots on QEMU virt under the recorded effective config (defconfig derived, NOT strictly QCOM/MSM=n). Does not uniquely identify vendor source vs EXP76 integration or config cause.",
+  "rt_semantics_v3": "NOT_EXECUTED",
+  "kconfig_scope_audit": {
+    "source": "reports/effective.config from successful run 42370339274",
+    "base_config": "ARM64_DEFCONFIG_THEN_SELECTED_QEMU_FLAGS",
+    "qcom_msm_enabled_y": 58,
+    "qcom_msm_enabled_m": 5,
+    "all_qcom_msm_disabled": false,
+    "observed_examples": [
+      "CONFIG_ARCH_QCOM=y",
+      "CONFIG_QCOM_SCM=y",
+      "CONFIG_QCOM_SMEM=y",
+      "CONFIG_QCOM_MDT_LOADER=m"
+    ],
+    "pci_disabled": true,
+    "net_disabled": true,
+    "conclusion": "BASELINE_VANILLA_RT140_BOOT_VALID; NOT_STRICT_QCOM_MSM_N_MINIMAL_CONFIG",
+    "qualification": "QEMU virt DT lacks Qualcomm platform nodes; compiled-in symbols do not imply devices were probed"
+  }
 }
