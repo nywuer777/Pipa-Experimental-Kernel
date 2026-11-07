@@ -37,6 +37,8 @@ jobs:
             git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
             gcc-aarch64-linux-gnu rsync device-tree-compiler qemu-system-arm xz-utils patch
           test -s exp76-r23/shared-r22/smoke-initramfs.cpio.gz
+          command -v aarch64-linux-gnu-ar
+          command -v aarch64-linux-gnu-nm
           qemu-system-aarch64 --version > exp76-r23/track-a/reports/qemu-version.txt
       - name: Obtain exact Android Clang21 r563880c used in R22
         shell: bash
