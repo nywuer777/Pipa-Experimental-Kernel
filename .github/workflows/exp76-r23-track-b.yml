@@ -173,7 +173,7 @@ jobs:
           # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
           from pathlib import Path
           import json
-          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB' ,'CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI' ,'MHI_SATELLITE']
+          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB' ,'CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI' ,'MHI_SATELLITE','KSU']
           Path('r23b/reports/disabled-requested.json').write_text(json.dumps(off,indent=2)+'\n')
           PY
           for iter in 1 2 3 4; do
@@ -208,6 +208,7 @@ jobs:
           grep -qx 'CONFIG_BPF_JIT=y' "$O/.config" || { echo 'R23_B_BPF_JIT_MISSING'; exit 8; }
           if grep -qx 'CONFIG_CGROUP_BPF=y' "$O/.config"; then echo 'R23_B_CGROUP_BPF_RESELECTED'; exit 8; fi
           grep -qx 'CONFIG_SYSCTL=y' "$O/.config" || { echo 'R23_B_SYSCTL_MISSING'; exit 8; }
+          if grep -Eq '^CONFIG_KSU=(y|m)$' "$O/.config"; then echo 'R23_B_KSU_RESELECTED'; exit 9; fi
           if grep -qx 'CONFIG_MHI_BUS=y' "$O/.config"; then echo 'R23_B_MHI_BUS_RESELECTED'; exit 8; fi
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
