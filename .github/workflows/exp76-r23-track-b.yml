@@ -3,7 +3,9 @@ name: EXP76 R23 B E404 RT minimal-config QEMU (NO FLASH)
 on:
   push:
     branches: [exp76-r23-b-minimal]
-    paths: ['.github/workflows/exp76-r23-track-b.yml']
+    paths:
+      - '.github/workflows/exp76-r23-track-b.yml'
+      - 'tools/exp76-rt23-build-boot.py'
   workflow_dispatch:
 permissions:
   contents: read
