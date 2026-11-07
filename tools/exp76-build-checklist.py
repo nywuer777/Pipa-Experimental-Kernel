@@ -19,6 +19,7 @@ def generate(root, source_sha, generated_at):
     round18=read(root/"reports/exp76-round18-swork-atomic-caller.json")
     round19=read(root/"reports/exp76-round19-swork-build-boot.json")
     round20=read(root/"reports/exp76-round20-initcall-nohz-irq.json")
+    round22=read(root/"reports/exp76-sched-reconciliation.json")
     scope_contract=read(root/"reports/exp76-rt-scope-handoff.json")
     ccache=read(root/"reports/exp76-ccache-three-full-images.json")
     reach=read(root/"reports/clang21-reachable-at-build.json")
@@ -59,6 +60,11 @@ def generate(root, source_sha, generated_at):
     assert round20["rejected_inventory"]["matched_hunks"]==80
     assert round20["rejected_inventory"]["matched_files"]==16
     assert round20["nonrt_control"]["nonrt_image_found"] is False
+    assert round22["hunks"][0]["source_status"]=="ALREADY_SATISFIED_SOURCE_NOOP"
+    assert round22["hunks"][0]["applied"] is False
+    assert round22["new_port_verified"]==0
+    assert round22["sysrq_pty"]["guest_stack_pid1_found"] is False
+    assert round22["sysrq_qmp_break"]["sysrq_t_dump_found"] is False
     assert scope_contract["rt_handoff_ready"] is False
     assert len(ccache["results"])==3 and ccache["gates"]["warm_same_commit_gt_90pct"]
     assert ccache["gates"]["strict_cold_zero_hits"] is False
@@ -99,11 +105,23 @@ def generate(root, source_sha, generated_at):
                         r19_evidence="reports/exp76-round19-swork-build-boot.json",
                         r20_rejected_boot_family_files=round20["rejected_inventory"]["matched_files"],
                         r20_rejected_boot_family_hunks=round20["rejected_inventory"]["matched_hunks"],
-                        r20_rejected_counts_are_not_pending_port_count=True),
-        "5_qemu":item("FAIL_EARLY_BOOT_NO_INITCALL_PROGRESS",
-                       "github-actions/42226476787/exp76-r20-rt-initcall-nohz-irq-NOFLASH",
-                       blocker="R20_INITCALL_DEBUG_CALLING_0; NOHZ_OFF_NO_ADVANCE; 20_CPU0_IRQ_DELIVERED; PID1_BLOCK_REASON_UNRESOLVED",
-                       latest_qemu_run_id=round20["tests"]["run_id"],
+                        r20_rejected_counts_are_not_pending_port_count=True,
+                        r22_h10=round22["hunks"][0]["hunk_id"],
+                        r22_h10_status=round22["hunks"][0]["source_status"],
+                        r22_h10_source_change_applied=False,
+                        r22_h10_port_verified=False,
+                        r22_reconciliation_report="reports/exp76-sched-reconciliation.json"),
+        "5_qemu":item("FAIL_PRE_INITCALL_SYSRQ_NO_TASK_DUMP",
+                       "github-actions/42250617858/exp76-qemu-rt-functional-NOFLASH",
+                       blocker="R22_H10_SOURCE_ALREADY_SATISFIED; MAGIC_SYSRQ_ENABLED; PTY_AND_QMP_BREAK_SENT_NO_TASK_DUMP; GUEST_NEVER_REACHED_INIT",
+                       latest_qemu_run_id=round22["hunks"][0]["build_run_id"],
+                       r22_h10_status=round22["hunks"][0]["source_status"],
+                       r22_magic_sysrq_y=True,
+                       r22_sysrq_serial_y=True,
+                       r22_sysrq_pty=round22["sysrq_pty"],
+                       r22_sysrq_qmp_break=round22["sysrq_qmp_break"],
+                       r22_pid1_stack_captured=False,
+                       r22_taskdump_unsupported_in_guest_boot_stage=True,
                        test_initcall_debug_nosmp=round20["tests"]["initcall_nosmp"],
                        test_nohz_off=round20["tests"]["nohz_off"],
                        test_qemu_irq=round20["tests"]["irq_trace"],
@@ -112,11 +130,11 @@ def generate(root, source_sha, generated_at):
                        cpu0_irq_exception_count=20,
                        irq_last_elr_symbol="arch_cpu_idle+0x10",
                        earliest_last_printk_source=round20["source_phase_evidence"]["empty_cluster_printk"],
-                       qemu_image_sha256=round19["qemu_rt"]["image_sha256"],
-                       last_guest_console_sha256=round20["tests"]["initcall_nosmp"]["console_sha256"],
-                       last_guest_console_bytes=round20["tests"]["initcall_nosmp"]["console_bytes"],
-                       last_guest_console_lines=round20["tests"]["initcall_nosmp"]["console_lines"],
-                       last_host_qemu_exit_code=round20["tests"]["initcall_nosmp"]["exit_code"],
+                       qemu_image_sha256=round22["hunks"][0]["qemu_image_sha256"],
+                       last_guest_console_sha256=round22["hunks"][0]["boot_console_sha256"],
+                       last_guest_console_bytes=round22["hunks"][0]["boot_console_bytes"],
+                       last_guest_console_lines=round22["hunks"][0]["boot_console_lines"],
+                       last_host_qemu_exit_code=round22["hunks"][0]["qemu_host_exit_code"],
                        guest_init_reached=False,
                        guest_running=False,
                        previous_null_swork_evidence_run_id=round18["cpu_register_proof"]["run_id"],
@@ -134,16 +152,16 @@ def generate(root, source_sha, generated_at):
                        RT_SPIN_SLEEP_V3_GUEST="NOT_EXECUTED",
                        QEMU_RT_SCOPE=scope_contract["qemu_rt_scope"],
                        HANDOFF_TO_KAI_EXPECTS=scope_contract["handoff_to_kai_expects"],
-                       latest_evidence_path="reports/exp76-round20-initcall-nohz-irq.json",
+                       latest_evidence_path="reports/exp76-sched-reconciliation.json",
                        kconfig_audit_path="reports/e404-kconfig-missing-sources.json"),
         "6_build_rt":item("PARTIAL_PASS",
-                          "github-actions/42216342473/exp76-pipa-rt-unchanged-scm-build-NOFLASH",
+                          "github-actions/42250522391/exp76-pipa-rt-unchanged-scm-build-NOFLASH",
                           build_rt_images_generated="PASS",
                           build_aggregate_step="QEMU_SMOKE_TIMEOUT_AFTER_BOTH_RT_IMAGES_COMPILED",
-                          pipa_rt_image_sha256=round19["pipa_rt"]["image_sha256"],
-                          qemu_rt_image_sha256=round19["qemu_rt"]["image_sha256"],
-                          pipa_rt_vmlinux_sha256=round19["pipa_rt"]["vmlinux_sha256"],
-                          qemu_rt_vmlinux_sha256=round19["qemu_rt"]["vmlinux_sha256"],
+                          pipa_rt_image_sha256=round22["pipa_build"]["image_sha256"],
+                          qemu_rt_image_sha256=round22["hunks"][0]["qemu_image_sha256"],
+                          pipa_rt_vmlinux_sha256=round22["pipa_build"]["vmlinux_sha256"],
+                          qemu_rt_vmlinux_sha256=round22["hunks"][0]["qemu_vmlinux_sha256"],
                           pipa_rt_system_map_sha256=round19["pipa_rt"]["system_map_sha256"],
                           qemu_rt_system_map_sha256=round19["qemu_rt"]["system_map_sha256"],
                           pipa_rt_effective_config_sha256=round19["pipa_rt"]["config_sha256"],
@@ -152,10 +170,10 @@ def generate(root, source_sha, generated_at):
                           pipa_rt_scm_hardware="NO_HARDWARE",
                           PIPA_RT_SCOPE=scope_contract["pipa_rt_scope"],
                           vmlinux_system_map_published=True,
-                          image_source_run=round19["ci"]["run_id"],
+                          image_source_run=round22["hunks"][0]["build_run_id"],
                           toolchain="ANDROID_CLANG_21_r563880c",
                           abi_diff="NOT_MEASURED",
-                          runtime_functional="FAIL_EARLY_BOOT_NO_INITCALL_PROGRESS"),
+                          runtime_functional="FAIL_PRE_INITCALL_SYSRQ_NO_TASK_DUMP"),
         "7_fast_ccache":item("PARTIAL","reports/exp76-ccache-three-full-images.json",
                              fast_p95_s=0.226974,
                              fast_benchmark_run=41897623229,
@@ -187,6 +205,7 @@ def generate(root, source_sha, generated_at):
         "RT_FORENSIC_R18_PATH":"reports/exp76-round18-swork-atomic-caller.json",
         "RT_R19_SOURCE_AND_BOOT_REPORT":"reports/exp76-round19-swork-build-boot.json",
         "RT_R20_INITCALL_IRQ_REPORT":"reports/exp76-round20-initcall-nohz-irq.json",
+        "RT_R22_H10_RECONCILIATION_REPORT":"reports/exp76-sched-reconciliation.json",
         "rt_handoff_ready":False,
         "reasons_not_ready":["4","5","6","7"],
         "readiness_rule":"RT handoff requires valid measured PASS of all in-scope gates"
