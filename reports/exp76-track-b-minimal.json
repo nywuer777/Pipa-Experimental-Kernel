@@ -2,10 +2,10 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "BUILD_RETRY_AFTER_BPF_VERIFIER_FAILURE",
-  "latest_run_id": 42372061694,
+  "status": "BUILD_RETRY_AFTER_BPF_SYSCTL_MHI_KCONFIG_FAILURES",
+  "latest_run_id": 42373423663,
   "branch": "exp76-r23-b-minimal",
-  "latest_workflow": ".github/workflows/exp76-r23-track-b.yml",
+  "latest_workflow": "exp76-r23-track-b.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + official RT140 + EXP76 source ports",
   "prior_run_ids": [
     42369125179,
@@ -72,5 +72,26 @@
   "prior_image_generated": false,
   "guest_running": null,
   "failed_before_boot": true,
-  "safe_interpretation": "No comparison between A and B guest boot possible until B Image builds and QEMU runs."
+  "safe_interpretation": "No comparison between A and B guest boot possible until B Image builds and QEMU runs.",
+  "latest_run_branch": "exp76-r23-b-minimal",
+  "prior_failure_runs": [
+    42370492063,
+    42372061694
+  ],
+  "prior_build_error_summary": [
+    "CONFIG_BPF_SYSCALL=y with CONFIG_BPF_JIT=n: bpf_jit_blinding_enabled undefined in kernel/bpf/verifier.c",
+    "CONFIG_BPF_SYSCALL=n with CONFIG_SYSCTL=y: bpf_stats_handler undefined in kernel/sysctl.c",
+    "CONFIG_PCI=n with CONFIG_MHI_QCOM=y: PCI IRQ vectors API undefined in drivers/bus/mhi/controllers/mhi_qcom.c"
+  ],
+  "latest_retry_config_request": [
+    "CONFIG_BPF_SYSCALL=n",
+    "CONFIG_CGROUP_BPF=n",
+    "CONFIG_MHI_BUS=n",
+    "CONFIG_MHI_QCOM=n",
+    "CONFIG_SYSCTL=n"
+  ],
+  "latest_previous_config_sha": "c3df446264b4c526ac5af5adcedaa867e2bdd0393eef7307cb2ea10b373e0fa9",
+  "latest_previous_image_generated": false,
+  "warning": "Track B uses vendor/pipa_defconfig plus selective disables; a minimal-like profile, not allnoconfig. The many effective config differences confound causality until a functional B boot exists.",
+  "build_status": "LATEST_RUN_IN_PROGRESS_NOT_CLAIMED_PASS"
 }
