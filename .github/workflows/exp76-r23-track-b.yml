@@ -207,7 +207,7 @@ jobs:
           grep -qx 'CONFIG_BPF_SYSCALL=y' "$O/.config"
           grep -qx 'CONFIG_BPF_JIT=y' "$O/.config" || { echo 'R23_B_BPF_JIT_NOT_ENABLED'; exit 8; }
           grep -qx '# CONFIG_MHI_QCOM is not set' "$O/.config" || { echo 'R23_B_MHI_PCI_RESELECTED'; exit 9; }
-          if grep -Eq '^CONFIG_CGROUP_BPF=(y|m)
+          grep -qx '# CONFIG_CGROUP_BPF is not set' "$O/.config" || { echo 'R23_B_CGROUP_BPF_RESELECTED'; exit 10; }
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
       - name: Build minimal E404 RT ARM64 Image and boot QEMU
