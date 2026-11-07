@@ -168,12 +168,12 @@ jobs:
           K="$GITHUB_WORKSPACE/exp76-trial-overlay"
           O="$GITHUB_WORKSPACE/r23b/output"
           make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- vendor/pipa_defconfig >r23b/reports/base-config.log 2>&1
-          "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -d BPF_SYSCALL -d CGROUP_BPF
+          "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -e BPF_SYSCALL -e BPF_JIT -d CGROUP_BPF
           python3 - <<'PY'
           # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
           from pathlib import Path
           import json
-          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB','BPF_SYSCALL','CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI','MHI_SATELLITE','SYSCTL']
+          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB' ,'CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI' ,'MHI_SATELLITE']
           Path('r23b/reports/disabled-requested.json').write_text(json.dumps(off,indent=2)+'\n')
           PY
           for iter in 1 2 3 4; do
@@ -204,9 +204,10 @@ jobs:
           print('EXP76_R23_B_RESELECTED',result['kconfig_reselections'])
           PY
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$O/.config"
-          grep -qx '# CONFIG_BPF_SYSCALL is not set' "$O/.config" || { echo 'R23_B_BPF_SYSCALL_RESELECTED'; exit 8; }
+          grep -qx 'CONFIG_BPF_SYSCALL=y' "$O/.config" || { echo 'R23_B_BPF_SYSCALL_MISSING'; exit 8; }
+          grep -qx 'CONFIG_BPF_JIT=y' "$O/.config" || { echo 'R23_B_BPF_JIT_MISSING'; exit 8; }
           if grep -qx 'CONFIG_CGROUP_BPF=y' "$O/.config"; then echo 'R23_B_CGROUP_BPF_RESELECTED'; exit 8; fi
-          if grep -qx 'CONFIG_SYSCTL=y' "$O/.config"; then echo 'R23_B_SYSCTL_RESELECTED'; exit 8; fi
+          grep -qx 'CONFIG_SYSCTL=y' "$O/.config" || { echo 'R23_B_SYSCTL_MISSING'; exit 8; }
           if grep -qx 'CONFIG_MHI_BUS=y' "$O/.config"; then echo 'R23_B_MHI_BUS_RESELECTED'; exit 8; fi
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
