@@ -1,0 +1,51 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 RT23 C independent pre-init QEMU forensics / NO FLASH
+name: EXP76 R23 Track C pinned RT preinit QEMU execution (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-r23-track-c-preinit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  track-c-prebuilt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain exact 812d46e0 Image, matching vmlinux and boot initramfs; do not build
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r23/track-c/input
+      - name: Install QEMU only
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm
+          command -v qemu-system-aarch64
+          python3 -m py_compile tools/exp76-rt23-track-c.py
+      - name: Run pinned guest and symbolize QEMU exceptions/TBs with exact System.map
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt23-track-c.py \
+            --artifact-root exp76-r23/track-c/input \
+            --report-dir exp76-r23/track-c/reports \
+            --timeout 18
+          test -s exp76-r23/track-c/reports/exp76-track-c-preinit.json
+          test -s exp76-r23/track-c/reports/console-rt.txt
+      - name: Archive full guest console, QEMU trace and structured C report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-track-c-preinit-NOFLASH
+          path: exp76-r23/track-c/reports/
+          retention-days: 30
+          if-no-files-found: warn
