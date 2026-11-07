@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-07T11:20:00Z",
+  "generated_at": "2026-11-07T12:43:12.036Z",
   "source_sha": "17388eff5491fdc5c13dbe2106db70cd7fabc1be",
   "scope": "RT_ONLY",
   "items": {
@@ -294,7 +294,15 @@
       },
       "r22_pid1_stack_captured": false,
       "r22_sysrq_task_dump_observed": false,
-      "r22_raw_parser_false_positive": true
+      "r22_raw_parser_false_positive": true,
+      "r23_vanilla_rt140_control": "PASS_GUEST_RUNNING_DIFFERENT_SOURCE_AND_CONFIG",
+      "r23_e404_minimal_control": "IN_PROGRESS_NO_BUILD_PASS_YET",
+      "r23_preinit_failure": "WORKQUEUE_INIT_KTHREAD_CREATE_COMPLETION_WAIT_OBSERVED_WITHOUT_PID1_STACK",
+      "r23_reports": [
+        "reports/exp76-track-a-vanilla.json",
+        "reports/exp76-track-b-minimal.json",
+        "reports/exp76-track-c-preinit.json"
+      ]
     },
     "6_build_rt": {
       "state": "PARTIAL_PASS",
@@ -418,5 +426,39 @@
   "RT_FORENSIC_R18_PATH": "reports/exp76-round18-swork-atomic-caller.json",
   "RT_R19_SOURCE_AND_BOOT_REPORT": "reports/exp76-round19-swork-build-boot.json",
   "RT_R20_INITCALL_IRQ_REPORT": "reports/exp76-round20-initcall-nohz-irq.json",
-  "RT_R22_H10_RECONCILIATION_REPORT": "reports/exp76-sched-reconciliation.json"
+  "RT_R22_H10_RECONCILIATION_REPORT": "reports/exp76-sched-reconciliation.json",
+  "round23_tracks": {
+    "scope": "RT_ONLY",
+    "A": {
+      "status": "PASS_VANILLA_RT140_GUEST_RUNNING",
+      "run": 42370339274,
+      "image_sha256": "f35720d69c8f0e305f4c851c1795c53a0580d55a5c1dbbb9f02cc81ecc30cf9e",
+      "console_sha256": "7ae12f260c3270fe29c64697d67bd837d6241bec210373b945da7e10911c750c",
+      "reached_ms": 1225.309,
+      "config_sha256": "b38d91592a41d0d3df310ae6bb84b07ab01af1fcd934fac30e972af320d41885",
+      "config_scope_caveat": "24 enabled QCOM-prefix and 4 MSM-prefix symbols, not strictly all vendor=n"
+    },
+    "B": {
+      "status": "RETRY_RUNNING_PREVIOUSLY_FAILED_BUILD",
+      "run": 42373423663,
+      "last_completed_build_failure_run": 42372061694,
+      "config_source": "E404 pipa_defconfig with selective device disable; allnoconfig not achieved",
+      "boots": null,
+      "config_sha256": null,
+      "image_sha256": null
+    },
+    "C": {
+      "status": "PRE_INITCALL_WORKQUEUE_KTHREAD_CREATE_WAIT_OBSERVED",
+      "run": 42368810699,
+      "last_pc": "do_idle+0xfc",
+      "exception_count": 52,
+      "console_sha256": "7a98114126238728cacb29e4102265dc835337c6cddf5fe7dcbb603e51a111a7",
+      "ftrace": "UNAVAILABLE_CONFIG_FTRACE_N",
+      "task_stack": "NOT_CAPTURED",
+      "source": "reports/exp76-track-c-preinit.json"
+    },
+    "qemu_rt_functional": false,
+    "rt_handoff_ready": false,
+    "flash_ready": false
+  }
 }
