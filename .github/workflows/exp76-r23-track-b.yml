@@ -168,7 +168,7 @@ jobs:
           K="$GITHUB_WORKSPACE/exp76-trial-overlay"
           O="$GITHUB_WORKSPACE/r23b/output"
           make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- vendor/pipa_defconfig >r23b/reports/base-config.log 2>&1
-          "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -d BPF_SYSCALL -d CGROUP_BPF
+          "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -e BPF_SYSCALL -e BPF_JIT -d CGROUP_BPF -d MHI_QCOM
           python3 - <<'PY'
           # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
           from pathlib import Path
@@ -204,7 +204,9 @@ jobs:
           print('EXP76_R23_B_RESELECTED',result['kconfig_reselections'])
           PY
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$O/.config"
-          grep -qx '# CONFIG_BPF_SYSCALL is not set' "$O/.config" || { echo 'R23_B_BPF_SYSCALL_RESELECTED'; exit 8; }
+          grep -qx 'CONFIG_BPF_SYSCALL=y' "$O/.config"
+          grep -qx 'CONFIG_BPF_JIT=y' "$O/.config" || { echo 'R23_B_BPF_JIT_NOT_ENABLED'; exit 8; }
+          grep -qx '# CONFIG_MHI_QCOM is not set' "$O/.config" || { echo 'R23_B_MHI_PCI_RESELECTED'; exit 9; }
           if grep -Eq '^CONFIG_CGROUP_BPF=(y|m)
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
