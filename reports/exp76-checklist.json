@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-07T12:43:12.036Z",
+  "generated_at": "2026-11-07T12:47:43.450Z",
   "source_sha": "17388eff5491fdc5c13dbe2106db70cd7fabc1be",
   "scope": "RT_ONLY",
   "items": {
@@ -296,7 +296,7 @@
       "r22_sysrq_task_dump_observed": false,
       "r22_raw_parser_false_positive": true,
       "r23_vanilla_rt140_control": "PASS_GUEST_RUNNING_DIFFERENT_SOURCE_AND_CONFIG",
-      "r23_e404_minimal_control": "IN_PROGRESS_NO_BUILD_PASS_YET",
+      "r23_e404_minimal_control": "LATEST_BUILD_RETRY_RUNNING_NO_BOOT_CONCLUSION",
       "r23_preinit_failure": "WORKQUEUE_INIT_KTHREAD_CREATE_COMPLETION_WAIT_OBSERVED_WITHOUT_PID1_STACK",
       "r23_reports": [
         "reports/exp76-track-a-vanilla.json",
@@ -439,13 +439,16 @@
       "config_scope_caveat": "24 enabled QCOM-prefix and 4 MSM-prefix symbols, not strictly all vendor=n"
     },
     "B": {
-      "status": "RETRY_RUNNING_PREVIOUSLY_FAILED_BUILD",
-      "run": 42373423663,
-      "last_completed_build_failure_run": 42372061694,
-      "config_source": "E404 pipa_defconfig with selective device disable; allnoconfig not achieved",
+      "status": "RETRY_RUNNING_NO_FUNCTIONAL_RESULT",
+      "run": 42373976494,
+      "previous_failure_run": 42373423663,
+      "previous_failure": "CONFIG_SYSCTL=y reselected by Kconfig when requested n",
+      "new_config_resolution": "BPF_SYSCALL=y, BPF_JIT=y, SYSCTL=y; MHI_BUS=n MHI_QCOM=n PCI=n",
       "boots": null,
+      "guest_running": null,
+      "image_sha256": null,
       "config_sha256": null,
-      "image_sha256": null
+      "warning": "E404 minimal-like config starts from pipa_defconfig and selectively excludes classes; no functional inference possible before Image and guest markers"
     },
     "C": {
       "status": "PRE_INITCALL_WORKQUEUE_KTHREAD_CREATE_WAIT_OBSERVED",
