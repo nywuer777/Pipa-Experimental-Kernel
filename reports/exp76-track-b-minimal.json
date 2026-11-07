@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "track": "B",
-  "status": "IN_PROGRESS_SOURCE_RECONSTRUCTION",
-  "active_run_id": 42369125179,
+  "status": "IN_PROGRESS_CLANG21_FETCH_AFTER_SOURCE_SYNC",
+  "active_run_id": 42369803225,
   "first_run_id": 42369023217,
   "first_run_failed": "PRECHECK_R19_SWORK_TOOL_MISSING_ON_BASE_BRANCH",
   "corrected": "Existing R19 swork script synced byte-for-byte from exp76-rt19-timer-swork-order",
@@ -36,5 +36,14 @@
   "config_diff_vs_A": null,
   "last_lines": [],
   "note": "No Kconfig or boot result yet; waiting for independent run 42369125179",
-  "flash_ready": false
+  "flash_ready": false,
+  "second_run_id": 42369125179,
+  "second_run_failed": "TOOLS_EXP76_QEMU_VIRTIO_CLANG21_AND_NONRT_RCU_QS_ABSENT_IN_BASE",
+  "second_run_reconstruction_stage": "STAGE64_COMPLETED; STOPPED_MISSING_QEMU_COMPATIBILITY_SCRIPT",
+  "restored_compatibility_scripts": [
+    "tools/exp76-rt19-timer-swork-order.py",
+    "tools/exp76-qemu-virtio-clang21.py",
+    "tools/exp76-qemu-nonrt-rcu-qs.py"
+  ],
+  "runner_build_and_boot_status": "PENDING"
 }
