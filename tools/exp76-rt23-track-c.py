@@ -50,7 +50,7 @@ def main():
         if pc is None:return None
         i=bisect.bisect_right(addresses,pc)-1
         if i<0:return None
-        return {"name":symbols[i][1],"offset":hex(pc-addresses[i][0]),"symbol_address":hex(addresses[i])}
+        return {"name":symbols[i][1],"offset":hex(pc-addresses[i]),"symbol_address":hex(addresses[i])}
     trace=out/"qemu-preinit.log"
     cmd=["qemu-system-aarch64","-M","virt","-cpu","cortex-a72","-smp","4","-m","512",
          "-nodefaults","-serial","stdio","-monitor","none","-display","none","-nic","none",
@@ -114,8 +114,8 @@ def main():
              "last_symbol":last_significant["symbol"] if last_significant else None,
              "last_significant_pc":last_significant,
              "qemu_tb_count":tb_count,
-             "qemu_trace_sha":logsha,"qemu_trace_bytes":trace_bytes,
-             "ftrace_sha":None,"ftrace_available":False,
+             "qemu_trace_sha":logsha,"qemu_trace_sha256":logsha,"qemu_trace_bytes":trace_bytes,
+             "ftrace_sha":None,"ftrace_sha256":None,"ftrace_available":False,
              "ftrace_status":"NOT_AVAILABLE_CONFIG_FTRACE_N",
              "hypothesis":"UNDETERMINED_TRACE_REQUIRES_STACK_OR_POST_IDLING_STATE",
              "build_performed":False,"flash_ready":False}
