@@ -173,7 +173,7 @@ jobs:
           # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
           from pathlib import Path
           import json
-          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB','BPF_SYSCALL','CGROUP_BPF','MHI_QCOM']
+          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB','BPF_SYSCALL','CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI','MHI_SATELLITE','SYSCTL']
           Path('r23b/reports/disabled-requested.json').write_text(json.dumps(off,indent=2)+'\n')
           PY
           for iter in 1 2 3 4; do
@@ -205,7 +205,60 @@ jobs:
           PY
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$O/.config"
           grep -qx '# CONFIG_BPF_SYSCALL is not set' "$O/.config" || { echo 'BPF_SYSCALL_NOT_DISABLED'; exit 8; }
-          if grep -Eq '^CONFIG_MHI_QCOM=(y|m)$' "$O/.config"; then echo 'MHI_QCOM_RESELECTED'; exit 9; fi
+          if grep -Eq '^CONFIG_MHI_QCOM=(y|m)
+          cp "$O/.config" r23b/reports/effective.config
+          sha256sum "$O/.config" >r23b/reports/config-sha256.txt
+      - name: Build minimal E404 RT ARM64 Image and boot QEMU
+        shell: bash
+        timeout-minutes: 130
+        run: |
+          set -euo pipefail
+          export ANDROID_CLANG_BIN="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin"
+          python3 tools/exp76-rt23-build-boot.py --track B --tree exp76-trial-overlay --output r23b/output --reports r23b/reports --initramfs r23b/inputs/smoke-initramfs.cpio.gz --build-seconds 7100 --qemu-seconds 45
+      - name: Always publish config rounds, reselections, raw console, Image ELF and source logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-track-b-minimal-NOFLASH
+          path: |
+            r23b/reports/
+            r23b/logs/
+            r23b/output/.config
+            r23b/output/arch/arm64/boot/Image
+            r23b/output/vmlinux
+            r23b/output/System.map
+            exp76-qemu/reports/source-diff.sha256
+            exp76-qemu/logs/source-reconstruction.log
+          if-no-files-found: warn
+          retention-days: 21
+ "$O/.config"; then echo 'MHI_QCOM_RESELECTED'; exit 9; fi
+          if grep -Eq '^CONFIG_(MHI_BUS|SYSCTL)=(y|m)
+          cp "$O/.config" r23b/reports/effective.config
+          sha256sum "$O/.config" >r23b/reports/config-sha256.txt
+      - name: Build minimal E404 RT ARM64 Image and boot QEMU
+        shell: bash
+        timeout-minutes: 130
+        run: |
+          set -euo pipefail
+          export ANDROID_CLANG_BIN="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin"
+          python3 tools/exp76-rt23-build-boot.py --track B --tree exp76-trial-overlay --output r23b/output --reports r23b/reports --initramfs r23b/inputs/smoke-initramfs.cpio.gz --build-seconds 7100 --qemu-seconds 45
+      - name: Always publish config rounds, reselections, raw console, Image ELF and source logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-track-b-minimal-NOFLASH
+          path: |
+            r23b/reports/
+            r23b/logs/
+            r23b/output/.config
+            r23b/output/arch/arm64/boot/Image
+            r23b/output/vmlinux
+            r23b/output/System.map
+            exp76-qemu/reports/source-diff.sha256
+            exp76-qemu/logs/source-reconstruction.log
+          if-no-files-found: warn
+          retention-days: 21
+ "$O/.config"; then echo 'R23_B_MINIMAL_MHI_OR_SYSCTL_RESELECTED'; exit 10; fi
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
       - name: Build minimal E404 RT ARM64 Image and boot QEMU
