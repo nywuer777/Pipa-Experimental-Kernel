@@ -72,7 +72,7 @@ def main():
     path=str(clang.parent)+":"+env.get("PATH","")
     env["PATH"]=path
     cmd=["make","-C",str(a.tree.absolute()),"O="+str(a.output.absolute()),"ARCH=arm64",
-         "CC=clang","LD=ld.lld","AR=llvm-ar","NM=llvm-nm","OBJCOPY=llvm-objcopy",
+         "CC=clang","LD=ld.lld","AR=aarch64-linux-gnu-ar","NM=aarch64-linux-gnu-nm","OBJCOPY=llvm-objcopy",
          "HOSTCC=gcc","CROSS_COMPILE=aarch64-linux-gnu-",
          "CLANG_TRIPLE=aarch64-linux-gnu-","LLVM_IAS=1","-j8","Image"]
     (a.reports/"build-command.txt").write_text(shlex.join(cmd)+"\n")
