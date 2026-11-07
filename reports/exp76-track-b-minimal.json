@@ -1,19 +1,26 @@
 {
   "schema_version": 1,
   "track": "B",
-  "status": "IN_PROGRESS_CLANG21_FETCH_AFTER_SOURCE_SYNC",
-  "active_run_id": 42369803225,
-  "first_run_id": 42369023217,
-  "first_run_failed": "PRECHECK_R19_SWORK_TOOL_MISSING_ON_BASE_BRANCH",
-  "corrected": "Existing R19 swork script synced byte-for-byte from exp76-rt19-timer-swork-order",
-  "E404_base_commit": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
-  "rt_patch_archive_sha256": "c79d3efb5daccc5a3f58d502189eadc7dd31a962215ca0a16fa8c3eb98cd88ce",
+  "scope": "RT_ONLY",
+  "status": "RT_SOURCE_RECONSTRUCTION_IN_PROGRESS",
+  "latest_run_id": 42369808583,
+  "branch": "exp76-r23-b-minimal",
+  "latest_workflow": "exp76-r23-track-b.yml",
+  "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + official RT140 + EXP76 source ports",
+  "prior_run_ids": [
+    42369125179,
+    42369251386
+  ],
+  "prior_run_failure": "Wrong checkout branch omitted required tools/exp76-qemu-virtio-clang21.py; source preparation failed before Kconfig/build",
+  "correction_branch": "exp76-r23-b-minimal",
+  "source_base_branch": "exp76-rt-sched-h10",
   "boots": null,
   "reached_ms": null,
   "advanced_from_032": null,
-  "guest_running": null,
   "image_sha": null,
   "config_sha": null,
+  "console_sha256": null,
+  "last_lines": [],
   "disabled_list": [
     "QCOM_SCM",
     "QCOM_SMEM",
@@ -26,6 +33,7 @@
     "VIRTIO",
     "VIRTIO_MENU",
     "VIRTIO_MMIO",
+    "VIRTIO_BLK",
     "PCI",
     "PCIE",
     "NET",
@@ -33,17 +41,8 @@
     "QCOM_COMMAND_DB"
   ],
   "kconfig_reselections": null,
-  "config_diff_vs_A": null,
-  "last_lines": [],
-  "note": "No Kconfig or boot result yet; waiting for independent run 42369125179",
-  "flash_ready": false,
-  "second_run_id": 42369125179,
-  "second_run_failed": "TOOLS_EXP76_QEMU_VIRTIO_CLANG21_AND_NONRT_RCU_QS_ABSENT_IN_BASE",
-  "second_run_reconstruction_stage": "STAGE64_COMPLETED; STOPPED_MISSING_QEMU_COMPATIBILITY_SCRIPT",
-  "restored_compatibility_scripts": [
-    "tools/exp76-rt19-timer-swork-order.py",
-    "tools/exp76-qemu-virtio-clang21.py",
-    "tools/exp76-qemu-nonrt-rcu-qs.py"
-  ],
-  "runner_build_and_boot_status": "PENDING"
+  "config_diff_vs_track_a": "NOT_MEASURED_UNTIL_BOTH_EFFECTIVE_CONFIGS_EXIST",
+  "not_a_kernel_runtime_failure": true,
+  "rt_handoff_ready": false,
+  "flash_ready": false
 }
