@@ -1,0 +1,324 @@
+# YAML / GitHub Actions Ubuntu24 / EXP76 RT23 B independent minimal vendor E404 Kconfig build and QEMU boot / NO FLASH
+name: EXP76 R23 Track B minimal E404 RT140 Clang21 ARM64 QEMU NOFLASH
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-r23-track-b-minimal.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  track-b-minimal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+      LLVM_IAS: "1"
+      HOSTCC: gcc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static source and tooling preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/exp76-rt23-build-boot.py
+          python3 tools/exp76-rt19-timer-swork-order.py --self-test
+          bash -n tools/exp76-rt-compat-audit.sh
+      - name: Install pinned dependencies, BusyBox static and ARM64 QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Keep the parent and evidence directories owned by runner.
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+          mkdir -p exp76-qemu/apt-archives
+          APT_ARCHIVES="$GITHUB_WORKSPACE/exp76-qemu/apt-archives"
+          sudo mkdir -p "$APT_ARCHIVES/partial"
+          sudo chown -R _apt:root "$APT_ARCHIVES"
+          sudo chmod 755 "$APT_ARCHIVES"
+          sudo chmod 700 "$APT_ARCHIVES/partial"
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get \
+            -o Dir::Cache::archives="$APT_ARCHIVES" \
+            -o APT::Keep-Downloaded-Packages=true \
+            install -y --no-install-recommends \
+            git make bc bison flex libssl-dev libelf-dev libncurses-dev python3 \
+            gcc-aarch64-linux-gnu rsync device-tree-compiler \
+            qemu-system-arm busybox-static cpio gzip xz-utils ccache e2fsprogs
+          command -v qemu-system-aarch64
+          command -v busybox
+          command -v cpio
+          mkdir -p exp76-qemu/logs exp76-qemu/reports exp76-qemu/outputs
+      - name: Obtain exact EXP75 Android Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none \
+              origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          test -x clang-r563880c/bin/llvm-objcopy
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+      - name: Reconstruct pinned E404 plus official RT patch and EXP76 source ports
+        shell: bash
+        timeout-minutes: 45
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > exp76-qemu/logs/source-reconstruction.log 2>&1 || {
+            tail -n 120 exp76-qemu/logs/source-reconstruction.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          # Restore the pinned KernelSU gitlink; drivers/kernelsu is a
+          # symlink to ../KernelSU/kernel. Do not delete a required source.
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-missing-sources.json
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-qemu/logs/ksu-submodule-init.log 2>&1 || {
+              cat exp76-qemu/logs/ksu-submodule-init.log
+              echo 'BLOCKED_SUBMODULE_KERNELSU'; exit 2;
+            }
+          git -C exp76-trial-overlay submodule status \
+            > exp76-qemu/reports/ksu-gitlink-status.txt
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig || {
+            echo 'BLOCKED_KCONFIG_KERNELSU_UNRESOLVED'; exit 2;
+          }
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-after-submodule.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/e404-kconfig-after-submodule.json').read_text())
+          print('KCONFIG_MISSING_AFTER_SUBMODULE=', d['missing_source_paths_count'])
+          assert 'drivers/kernelsu/Kconfig' not in d['missing_source_paths']
+          PY
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-qemu/reports/stage82
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json').read_text())
+          assert d['remaining_rejected_files']==64
+          assert d['total_rejected_hunks']==209
+          assert d['source_modified'] is False and d['rejects_deleted'] is False
+          PY
+          python3 tools/exp76-rt-stage83-arm64-neon-crypto.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage83 --mode apply
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage88 --mode apply
+          python3 tools/exp76-stage89-proc-swait.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage89 --mode apply
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage90 --mode apply
+          python3 tools/exp76-stage91-pid-atomic-header.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage91 --mode apply
+          python3 tools/exp76-rt-stage74-radix-locallock.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage74 --mode apply
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage79 --mode apply
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage85 --mode apply
+          # Fix the exact Clang21 VirtIO declaration in the disposable E404 tree.
+          # Keep QEMU VirtIO enabled; the fix is included in source-diff.sha256.
+          python3 tools/exp76-qemu-virtio-clang21.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/virtio-clang21-compat.json \
+            --mode apply
+          # Retain RT RCU quiescent-state API; use E404 vendor API in nonRT.
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
+          python3 tools/exp76-rt19-timer-swork-order.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r19-timer-swork-order.json \
+            --mode apply
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff --binary | sha256sum \
+            > exp76-qemu/reports/source-diff.sha256
+      - name: Isolate minimal E404 QEMU_RT config and iteratively resolve Kconfig reselection
+        shell: bash
+        timeout-minutes: 25
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          BASE="$GITHUB_WORKSPACE/exp76-qemu/outputs"
+          mkdir -p "$BASE/pipa-rt" "$BASE/qemu-rt"
+          make -C "$K" O="$BASE/pipa-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            vendor/pipa_defconfig > exp76-qemu/logs/pipa-defconfig.log 2>&1
+          "$K/scripts/config" --file "$BASE/pipa-rt/.config" \
+            -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL \
+            -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL
+          make -C "$K" O="$BASE/pipa-rt" ARCH=arm64 CC=clang LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+            olddefconfig >> exp76-qemu/logs/pipa-defconfig.log 2>&1
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$BASE/pipa-rt/.config"
+          cp "$BASE/pipa-rt/.config" "$BASE/qemu-rt/.config"
+          cp "$BASE/qemu-rt/.config" exp76-qemu/reports/qemu-before-minimal.config
+          for iteration in 1 2 3 4 5 6; do
+            "$K/scripts/config" --file "$BASE/qemu-rt/.config" \
+              -e PREEMPT_RT_FULL -e SMP -e ARM_AMBA \
+              -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
+              -e HIGH_RES_TIMERS -e BLK_DEV_INITRD -e BINFMT_ELF \
+              -e DEVTMPFS -e DEVTMPFS_MOUNT \
+              -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL \
+              -e PRINTK -e ARM_PSCI_FW -e ARM_ARCH_TIMER -e ARM_GIC \
+              -d QCOM_SCM -d QCOM_SMEM -d QCOM_SMD -d QCOM_RPMH \
+              -d QCOM_GLINK -d QCOM_MDT_LOADER -d MSM_KGSL -d QCOM_KGSL \
+              -d VIRTIO -d VIRTIO_MENU -d VIRTIO_MMIO \
+              -d PCI -d PCIE -d NET -d QCOM_CLK_RPMH -d QCOM_COMMAND_DB
+            requested="$(sha256sum "$BASE/qemu-rt/.config" | awk '{print $1}')"
+            make -C "$K" O="$BASE/qemu-rt" ARCH=arm64 CC=clang LD=ld.lld \
+              CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- \
+              olddefconfig >> exp76-qemu/logs/qemu-minimal-config.log 2>&1
+            effective="$(sha256sum "$BASE/qemu-rt/.config" | awk '{print $1}')"
+            echo "$iteration $requested $effective" >> exp76-qemu/reports/kconfig-stabilization.tsv
+            test "$requested" != "$effective" || break
+          done
+          cp "$BASE/qemu-rt/.config" exp76-qemu/reports/qemu-minimal-effective.config
+          sha256sum "$BASE/qemu-rt/.config" > exp76-qemu/reports/qemu-minimal-config.sha256
+          python3 - <<'PY'
+          # Python 3 / Ubuntu24 / classify true Kconfig reselections and actual minimized QEMU options
+          import hashlib,json
+          from pathlib import Path
+          report=Path("exp76-qemu/reports")
+          def parse(path):
+              res={}
+              for line in path.read_text().splitlines():
+                  if line.startswith("CONFIG_") and "=" in line:
+                      k,v=line.split("=",1);res[k]=v
+                  elif line.startswith("# CONFIG_") and line.endswith(" is not set"):
+                      res[line.split()[1]]="n"
+              return res
+          orig=parse(report/"qemu-before-minimal.config")
+          effective=parse(report/"qemu-minimal-effective.config")
+          disabled=["QCOM_SCM","QCOM_SMEM","QCOM_SMD","QCOM_RPMH",
+              "QCOM_GLINK","QCOM_MDT_LOADER","MSM_KGSL","QCOM_KGSL",
+              "VIRTIO","VIRTIO_MENU","VIRTIO_MMIO","PCI","PCIE","NET",
+              "QCOM_CLK_RPMH","QCOM_COMMAND_DB"]
+          reselected=[x for x in disabled if effective.get("CONFIG_"+x,"n")=="y"]
+          diff={k:{"before":orig.get(k,"<absent>"),"after":effective.get(k,"<absent>")}
+                for k in sorted(set(orig)|set(effective)) if orig.get(k)!=effective.get(k)}
+          data={"schema_version":1,"track":"B",
+                "disabled_list":disabled,"kconfig_reselections":reselected,
+                "base_pipa_config_sha":hashlib.sha256(
+                    (Path("exp76-qemu/outputs/pipa-rt/.config")).read_bytes()).hexdigest(),
+                "before_config_sha":hashlib.sha256((report/"qemu-before-minimal.config").read_bytes()).hexdigest(),
+                "config_sha":hashlib.sha256((report/"qemu-minimal-effective.config").read_bytes()).hexdigest(),
+                "diff_vs_vendor_base_config":diff,"diff_vs_track_a":"PENDING_TRACK_A_ARTIFACT",
+                "no_pipa_source_modified":True,"flash_ready":False}
+          (report/"track-b-kconfig-audit.json").write_text(json.dumps(data,indent=2)+"\n")
+          print("EXP76_B_RESELECTED",reselected,"DIFFS",len(diff))
+          if reselected:
+              raise SystemExit("BLOCKED_RESELECTED_KCONFIG_SYMBOLS: "+",".join(reselected))
+          PY
+      - name: Assemble minimal AArch64 initramfs for early RT smoke boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/exp76-qemu/smoke"
+          mkdir -p "$ROOT/bin" "$ROOT/dev"
+          BB_DEB=exp76-qemu/busybox-static_1.36.1-6ubuntu3.1_arm64.deb
+          curl --fail --location --retry 3 --max-time 90 \
+            https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb \
+            --output "$BB_DEB"
+          test "$(dpkg-deb --field "$BB_DEB" Architecture)" = arm64
+          mkdir -p exp76-qemu/arm64-busybox-pkg
+          dpkg-deb --extract "$BB_DEB" exp76-qemu/arm64-busybox-pkg
+          BB="$(find exp76-qemu/arm64-busybox-pkg -type f -name busybox | head -n 1)"
+          test -n "$BB" && test -s "$BB"
+          readelf -h "$BB" | grep -Eq 'Machine:.*AArch64'
+          if readelf -l "$BB" | grep -q 'INTERP'; then
+            echo 'BLOCKED_SMOKE_BUSYBOX_NOT_STATIC'
+            exit 4
+          fi
+          cp "$BB" "$ROOT/bin/busybox"
+          chmod 0755 "$ROOT/bin/busybox"
+          ln -s busybox "$ROOT/bin/sh"
+          ln -s busybox "$ROOT/bin/poweroff"
+          ln -s busybox "$ROOT/bin/sync"
+          sudo mknod "$ROOT/dev/console" c 5 1
+          sudo mknod "$ROOT/dev/null" c 1 3
+          cat > "$ROOT/init" <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          echo 'EXP76_QEMU_RT_SMOKE=BEGIN'
+          echo 'EXP76_QEMU_RT_SMOKE=GUEST_RUNNING'
+          sync
+          poweroff -f
+          INIT
+          chmod 0755 "$ROOT/init"
+          (
+            cd "$ROOT"
+            find . -print0 | cpio --null -ov --format=newc 2>/dev/null | gzip -9
+          ) > exp76-qemu/smoke-initramfs.cpio.gz
+          test -s exp76-qemu/smoke-initramfs.cpio.gz
+          sha256sum "$BB_DEB" "$ROOT/bin/busybox" \
+            exp76-qemu/smoke-initramfs.cpio.gz \
+            > exp76-qemu/reports/sha256-smoke-initramfs.txt
+          echo 'EXP76_QEMU_RT_SMOKE_INITRAMFS=READY'
+      - name: Build Clang21 minimal E404 RT Image and run same QEMU guest smoke
+        shell: bash
+        timeout-minutes: 120
+        env:
+          ANDROID_CLANG_BIN: ${{ github.workspace }}/android-clang-prebuilt/clang-r563880c/bin
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt23-build-boot.py \
+            --track B \
+            --tree exp76-trial-overlay \
+            --output exp76-qemu/outputs/qemu-rt \
+            --reports exp76-qemu/reports \
+            --initramfs exp76-qemu/smoke-initramfs.cpio.gz \
+            --build-seconds 6500 --qemu-seconds 50
+      - name: Archive B full kernel config, logs, Image ELF System.map, console SHA and exact command
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-track-b-minimal-e404-rt-NOFLASH
+          path: |
+            exp76-qemu/reports/
+            exp76-qemu/logs/
+            exp76-qemu/outputs/qemu-rt/.config
+            exp76-qemu/outputs/qemu-rt/arch/arm64/boot/Image
+            exp76-qemu/outputs/qemu-rt/vmlinux
+            exp76-qemu/outputs/qemu-rt/System.map
+          retention-days: 30
+          if-no-files-found: warn
