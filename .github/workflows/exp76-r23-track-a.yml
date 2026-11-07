@@ -1,0 +1,112 @@
+# YAML / GitHub Actions Ubuntu24 / EXP76 R23 vanilla RT140 ARM64 Clang21 / NO FLASH
+name: EXP76 R23 A vanilla RT140 QEMU (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths: ['.github/workflows/exp76-r23-track-a.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  vanilla-rt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 200
+    env:
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact EXP76 ARM64 smoke initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: r23a/inputs
+      - name: Install build tools and QEMU
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r23a/reports r23a/logs r23a/patches
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates make bc bison flex libssl-dev libelf-dev libncurses-dev gcc-aarch64-linux-gnu rsync device-tree-compiler qemu-system-arm xz-utils cpio
+      - name: Obtain exact EXP75 Android Clang 21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then break; fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+      - name: Exact v4.19.325 plus all official RT140 numbered patches, no rejects
+        shell: bash
+        timeout-minutes: 50
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 https://cdn.kernel.org/pub/linux/kernel/projects/rt/4.19/patches-4.19.325-rt140.tar.xz -o r23a/patches/patches-4.19.325-rt140.tar.xz
+          curl --fail --location --retry 3 https://cdn.kernel.org/pub/linux/kernel/projects/rt/4.19/sha256sums.asc -o r23a/patches/sha256sums.asc
+          (cd r23a/patches && grep 'patches-4.19.325-rt140.tar.xz' sha256sums.asc | head -1 | sha256sum -c -)
+          if ! git clone --filter=blob:none --depth=1 --branch v4.19.325 https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git r23a/linux-vanilla >r23a/logs/clone.log 2>&1; then
+            git clone --filter=blob:none --depth=1 --branch v4.19.325 https://github.com/gregkh/linux.git r23a/linux-vanilla >>r23a/logs/clone.log 2>&1
+          fi
+          test "$(git -C r23a/linux-vanilla describe --tags --exact-match)" = v4.19.325
+          mkdir -p r23a/patches/extracted
+          tar -xJf r23a/patches/patches-4.19.325-rt140.tar.xz -C r23a/patches/extracted
+          find r23a/patches/extracted -type f -name '*.patch' | sort -V >r23a/reports/patch-order.txt
+          test "$(wc -l <r23a/reports/patch-order.txt)" -ge 300
+          applied=0
+          while IFS= read -r p; do
+            git -C r23a/linux-vanilla apply --check "$GITHUB_WORKSPACE/$p" >>r23a/logs/rt140-apply.log 2>&1 || { echo "FAILED_RT_PATCH=$p INDEX=$((applied+1))"; exit 41; }
+            git -C r23a/linux-vanilla apply "$GITHUB_WORKSPACE/$p" >>r23a/logs/rt140-apply.log 2>&1
+            applied=$((applied+1))
+          done <r23a/reports/patch-order.txt
+          echo "$applied" >r23a/reports/patch-count.txt
+          test "$(find r23a/linux-vanilla -name '*.rej' | wc -l)" -eq 0
+          sha256sum r23a/patches/patches-4.19.325-rt140.tar.xz >r23a/reports/rt-patch-sha256.txt
+          git -C r23a/linux-vanilla diff --binary | sha256sum >r23a/reports/source-diff-sha256.txt
+      - name: Generate effective vanilla QEMU RT config
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/r23a/linux-vanilla"
+          O="$GITHUB_WORKSPACE/r23a/output"
+          mkdir -p "$O"
+          make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- defconfig >r23a/reports/olddefconfig.log 2>&1
+          "$K/scripts/config" --file "$O/.config" -e EXPERT -e PREEMPT_RT_FULL -e SMP -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -e ARM_ARCH_TIMER -d VIRTIO -d VIRTIO_MENU -d PCI -d NET
+          make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- olddefconfig >>r23a/reports/olddefconfig.log 2>&1
+          sha256sum "$O/.config" >r23a/reports/config-sha256.txt
+          cp "$O/.config" r23a/reports/effective.config
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$O/.config"
+      - name: Build ARM64 Image and run QEMU with exact EXP76 smoke CPIO
+        shell: bash
+        timeout-minutes: 130
+        run: |
+          set -euo pipefail
+          export ANDROID_CLANG_BIN="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin"
+          python3 tools/exp76-rt23-build-boot.py --track A --tree r23a/linux-vanilla --output r23a/output --reports r23a/reports --initramfs r23a/inputs/smoke-initramfs.cpio.gz --build-seconds 7100 --qemu-seconds 45
+      - name: Always archive source provenance config ELF Image and raw console
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-track-a-vanilla-NOFLASH
+          path: |
+            r23a/reports/
+            r23a/logs/
+            r23a/output/.config
+            r23a/output/arch/arm64/boot/Image
+            r23a/output/vmlinux
+            r23a/output/System.map
+          if-no-files-found: warn
+          retention-days: 21
