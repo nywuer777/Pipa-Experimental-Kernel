@@ -3,7 +3,9 @@ name: EXP76 R23 Track C pinned RT preinit QEMU execution (NO FLASH)
 on:
   push:
     branches: [exp76-preempt-rt-uname]
-    paths: ['.github/workflows/exp76-r23-track-c-preinit.yml']
+    paths:
+      - '.github/workflows/exp76-r23-track-c-preinit.yml'
+      - 'tools/exp76-rt23-track-c.py'
   workflow_dispatch:
 permissions:
   contents: read
