@@ -56,7 +56,7 @@
   "qemu_trace_bytes": 65329473,
   "ftrace_sha256": null,
   "ftrace_status": "NOT_AVAILABLE_CONFIG_FTRACE_N",
-  "hypothesis": "WORKQUEUE_INIT_AWAITS_KTHREAD_CREATE_COMPLETION_BEFORE_DO_PRE_SMP_INITCALLS",
+  "hypothesis": "EARLY_WORKQUEUE_KTHREAD_CREATION_COMPLETION_WAIT_OBSERVED; REASON_UNDETERMINED",
   "last_lines_note": "raw full console and command retained in run artifact",
   "build_performed": false,
   "flash_ready": false,
@@ -76,31 +76,71 @@
   "qemu_trace_tb_count": 905145,
   "caveat": "QEMU -d exec trace records CPU execution, but no PID1 stack and no function_graph ftrace; cannot identify a blocking kernel_init call.",
   "execution_coverage": {
-    "kernel_init_freeable_last_tb": "0xffffff80117f0de4 / +0xbc (BL workqueue_init)",
-    "smp_prepare_cpus_tb_count": 18,
-    "workqueue_init_tb_count": 19,
-    "workqueue_init_last_tb": "0xffffff80117f6f24 / +0xc4",
-    "init_rescuer_tb_count": 12,
-    "kthread_create_on_node_tb_count": 1,
-    "__kthread_create_on_node_tb_count": 4,
-    "wake_up_process_tb_count": 1,
-    "wait_for_common_tb_count": 20,
-    "do_one_initcall_tb_count": 0,
-    "smp_init_tb_count": 0,
-    "do_basic_setup_tb_count": 0,
-    "cpu_idle_entry_observed": true,
-    "call_chain": [
-      "kernel_init_freeable",
-      "smp_prepare_cpus",
-      "workqueue_init",
-      "init_rescuer",
-      "kthread_create_on_node",
-      "__kthread_create_on_node",
-      "wake_up_process",
-      "wait_for_common",
-      "do_idle"
-    ],
-    "interpretation": "Kernel executed workqueue_init but did not return to kernel_init_freeable. A wait-for-kthread-creation path was executed. The absent completion cause and PID1 task state are not proven by TCG alone.",
-    "source": "QEMU -d exec TB trace from artifact 13573135940 + System.map 89610a52..."
-  }
+    "trace_source_run": 42368810699,
+    "source_image_run": 42250522391,
+    "exact_system_map_sha256": "89610a52cb25c2572170a765b8ec75a0646f8e5d8e35ae509bab528b043e3356",
+    "trace_TB_count": 905145,
+    "kernel_init_freeable": {
+      "count": 12,
+      "first_tb": 878313,
+      "last_tb": 903906
+    },
+    "smp_prepare_cpus": {
+      "count": 18,
+      "first_tb": 878351,
+      "last_tb": 903905
+    },
+    "workqueue_init": {
+      "count": 19,
+      "first_tb": 903907,
+      "last_tb": 903937
+    },
+    "kthread_create_on_node": {
+      "count": 1,
+      "first_tb": 903954,
+      "last_tb": 903954
+    },
+    "__kthread_create_on_node": {
+      "count": 4,
+      "first_tb": 903955,
+      "last_tb": 904644
+    },
+    "kthreadd": {
+      "count": 18,
+      "first_tb": 878956,
+      "last_tb": 904417
+    },
+    "try_to_wake_up": {
+      "count": 42,
+      "first_tb": 903973,
+      "last_tb": 904643
+    },
+    "wait_for_completion_killable": {
+      "count": 1,
+      "first_tb": 904645,
+      "last_tb": 904645
+    },
+    "wait_for_common": {
+      "count": 20,
+      "first_tb": 878315,
+      "last_tb": 904658
+    },
+    "do_pre_smp_initcalls": {
+      "count": 0
+    },
+    "cpu_startup_entry": {
+      "count": 3,
+      "first_tb": 904757,
+      "last_tb": 904762
+    },
+    "do_idle": {
+      "count": 22,
+      "first_tb": 904763,
+      "last_tb": 905142
+    },
+    "kernel_init_freeable_resumed_after_workqueue_init": false,
+    "caveat": "QEMU TB execution symbols are not a per-PID stack; the observed wait path is consistent with workqueue_init waiting on kthread creation but does not identify why completion was absent."
+  },
+  "trace_workqueue_entry_confirmed": true,
+  "trace_pre_smp_initcalls_seen": false
 }
