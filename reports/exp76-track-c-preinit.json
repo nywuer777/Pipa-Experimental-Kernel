@@ -59,5 +59,20 @@
   "hypothesis": "UNRESOLVED_PREINIT_STATE; TCG TB trace ends in ordinary idle/RCU EQS path; requires PID1 stack or initialized task state for causal attribution",
   "last_lines_note": "raw full console and command retained in run artifact",
   "build_performed": false,
-  "flash_ready": false
+  "flash_ready": false,
+  "last_pc_classification": "IDLE_LOOP_NOT_ROOT_CAUSE",
+  "last_nonidle_tb": {
+    "pc": "0xffffff801127b550",
+    "symbol": "rcu_dynticks_eqs_enter+0x20",
+    "scope": "last executed TB excluding idle family, not necessarily causal"
+  },
+  "recent_pre_idle_tbs": [
+    "clockevents_program_event+0x7c",
+    "hrtimer_start_range_ns+0x47c",
+    "nohz_balance_enter_idle+0xe4",
+    "rcu_idle_enter+0x0",
+    "rcu_dynticks_eqs_enter+0x20"
+  ],
+  "qemu_trace_tb_count": 905145,
+  "caveat": "QEMU -d exec trace records CPU execution, but no PID1 stack and no function_graph ftrace; cannot identify a blocking kernel_init call."
 }
