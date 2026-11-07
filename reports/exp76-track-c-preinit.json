@@ -56,7 +56,7 @@
   "qemu_trace_bytes": 65329473,
   "ftrace_sha256": null,
   "ftrace_status": "NOT_AVAILABLE_CONFIG_FTRACE_N",
-  "hypothesis": "EARLY_WORKQUEUE_KTHREAD_CREATION_COMPLETION_WAIT_OBSERVED; REASON_UNDETERMINED",
+  "hypothesis": "WORKQUEUE_INIT_KTHREAD_CREATE_COMPLETION_NOT_OBSERVED_WITH_KTHREADD_TBS_PRESENT",
   "last_lines_note": "raw full console and command retained in run artifact",
   "build_performed": false,
   "flash_ready": false,
@@ -74,7 +74,7 @@
     "rcu_dynticks_eqs_enter+0x20"
   ],
   "qemu_trace_tb_count": 905145,
-  "caveat": "QEMU -d exec trace records CPU execution, but no PID1 stack and no function_graph ftrace; cannot identify a blocking kernel_init call.",
+  "caveat": "No task_struct stack or DWARF ftrace; TB symbol occurrence audit cannot distinguish kthread trampoline never scheduled from another task state or trace artifact coverage edge.",
   "execution_coverage": {
     "trace_source_run": 42368810699,
     "source_image_run": 42250522391,
@@ -142,5 +142,19 @@
     "caveat": "QEMU TB execution symbols are not a per-PID stack; the observed wait path is consistent with workqueue_init waiting on kthread creation but does not identify why completion was absent."
   },
   "trace_workqueue_entry_confirmed": true,
-  "trace_pre_smp_initcalls_seen": false
+  "trace_pre_smp_initcalls_seen": false,
+  "trace_symbol_occurrence_audit": {
+    "source": "Complete QEMU -d exec TB trace, artifact 13573135940, ELF vmlinux SHA 933ad5ea..., nm -n symbol address mapping",
+    "kthreadd_tb_count": 18,
+    "kthread_trampoline_tb_count": 0,
+    "kthread_trampoline_symbol": "0xffffff80100c8b60 t kthread",
+    "wake_up_new_task_tb_count": 40,
+    "wait_for_common_tb_count": 20,
+    "complete_tb_count": 8,
+    "try_to_wake_up_tb_count": 42,
+    "__schedule_tb_count": 80,
+    "workqueue_init_tb_count": 19,
+    "scope": "CPU TB coverage; absence of symbol TB only proves it was not observed in this trace, not thread-state proof",
+    "implication": "Kthreadd and scheduler activity were observed, but no dispatch through kthread trampoline; workqueue_init waits for thread creation completion"
+  }
 }
