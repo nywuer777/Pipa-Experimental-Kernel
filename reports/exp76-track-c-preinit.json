@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "round": 23,
+  "track": "C",
+  "source_run_id": 42368810699,
+  "source_artifact_id": 13573135940,
+  "source_image_run_id": 42250522391,
+  "last_pc": "0xffffff80100db1fc",
+  "last_symbol": {
+    "name": "do_idle",
+    "offset": "0xfc"
+  },
+  "last_5_exceptions": [
+    {
+      "type": "IRQ",
+      "number": 5,
+      "pc": "0xffffff80105c69cc",
+      "symbol": "pl011_putc+0x6c"
+    },
+    {
+      "type": "IRQ",
+      "number": 5,
+      "pc": "0xffffff80105c69d0",
+      "symbol": "pl011_putc+0x70"
+    },
+    {
+      "type": "IRQ",
+      "number": 5,
+      "pc": "0xffffff80105c696c",
+      "symbol": "pl011_putc+0xc"
+    },
+    {
+      "type": "IRQ",
+      "number": 5,
+      "pc": "0xffffff80100d08a8",
+      "symbol": "try_to_wake_up+0x208"
+    },
+    {
+      "type": "IRQ",
+      "number": 5,
+      "pc": "0xffffff80100db138",
+      "symbol": "do_idle+0x38"
+    }
+  ],
+  "exception_count": 52,
+  "qemu_tb_count": 905145,
+  "boot_reached_ms": 113.691,
+  "guest_running": false,
+  "boots": false,
+  "exit_code": 124,
+  "duration_seconds": 18.023985,
+  "image_sha": "812d46e04131cc1ded7dd26b13728f3d8834ff240d533cac80172dd070e6e907",
+  "config_sha": "deffef75c19247e20dcf0f457ae7e6fb364d403b1f63c43e98422b86f6aaa5f6",
+  "vmlinux_sha": "933ad5ea6857e79a22f72914c08c3f12b97771728fd16a33609897c4fc3d77c6",
+  "system_map_sha": "89610a52cb25c2572170a765b8ec75a0646f8e5d8e35ae509bab528b043e3356",
+  "initramfs_sha": "b9c25fcc2934473c45458b68b2f65f682e55cc3648e803ba64ca410fe6f70e5e",
+  "console_sha256": "7a98114126238728cacb29e4102265dc835337c6cddf5fe7dcbb603e51a111a7",
+  "console_bytes": 3326,
+  "console_lines": 45,
+  "qemu_trace_sha256": "1548cb577f98e5b33f95c15ca1dcd69ed1434e17ebe55d83f03671af37b8ce82",
+  "qemu_trace_bytes": 65329473,
+  "trace_archive": "exp76-r23-track-c-preinit-NOFLASH/qemu-preinit.log.gz",
+  "ftrace_sha": null,
+  "ftrace_status": "NOT_AVAILABLE_CONFIG_FTRACE_N",
+  "hypothesis": "other",
+  "hypothesis_detail": "Exact stall cause not isolated; last significant PC in do_idle and IRQs returned through pl011_putc and try_to_wake_up. No PID1 stack; not grounds to implicate scheduler.",
+  "full_serial_artifact": "exp76-r23-track-c-preinit-NOFLASH/console-rt.txt",
+  "source_code_artifact": "tools/exp76-rt23-track-c.py",
+  "kernel_build_performed": false,
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}
