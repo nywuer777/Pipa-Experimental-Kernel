@@ -26,12 +26,12 @@ def sha(path):
         for block in iter(lambda:f.read(1<<20),b""):h.update(block)
     return h.hexdigest()
 
-def run_logged(argv,where,timeout):
+def run_logged(argv,where,timeout,env=None):
     t=time.monotonic_ns()
     where.parent.mkdir(parents=True,exist_ok=True)
     code=None;timed_out=False
     with where.open("wb") as log:
-        proc=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT)
+        proc=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,env=env)
         try:code=proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out=True
@@ -93,7 +93,7 @@ def main():
         dest.write_text(json.dumps(report,indent=2)+"\n")
         print("EXP76_TRACK_CONFIG_NOT_QUALIFIED",json.dumps(missing,indent=2))
         raise SystemExit(2)
-    built=run_logged(cmd,a.reports/"build.log",a.build_seconds)
+    built=run_logged(cmd,a.reports/"build.log",a.build_seconds,env=env)
     report["build"]=built
     report["build_exit_code"]=built["exit_code"]
     image=a.output/"arch/arm64/boot/Image"
