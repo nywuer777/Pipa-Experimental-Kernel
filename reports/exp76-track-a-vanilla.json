@@ -46,7 +46,7 @@
   "build_duration_seconds": 205.910044,
   "qemu_arch": "arm64 virt cortex-a72 smp4 512M",
   "artifact_id": 13574060072,
-  "conclusion_scope": "Vanilla 4.19.325-rt140 boots on QEMU virt under the recorded effective config (defconfig derived, NOT strictly QCOM/MSM=n). Does not uniquely identify vendor source vs EXP76 integration or config cause.",
+  "conclusion_scope": "Vanilla RT140 completes QEMU boot to /init with the captured config; includes 24 QCOM-prefix and 4 MSM-prefix enabled symbols, so is not literal all-QCOM-n. Shows no generic 4.19 RT140 ARM64 QEMU failure for this config; does not isolate vendor code vs integration vs configs.",
   "rt_semantics_v3": "NOT_EXECUTED",
   "kconfig_scope_audit": {
     "source": "reports/effective.config from successful run 42370339274",
@@ -74,5 +74,20 @@
     "meaning": "Track A validates vanilla RT140 QEMU boot on measured effective config; cannot claim all ancillary SoC/PCI symbols were disabled",
     "qemu_virt_hardware_qcom_path_proven_exercised": false,
     "no_additional_rebuild": true
+  },
+  "effective_config_scope": {
+    "source": "reports/effective.config in artifact 13574060072",
+    "enabled_symbols_count": 1499,
+    "qcom_prefix_y_count": 24,
+    "msm_prefix_y_count": 4,
+    "specific": [
+      "CONFIG_QCOM_SCM=y",
+      "CONFIG_QCOM_SMEM=y",
+      "# CONFIG_NET is not set",
+      "# CONFIG_PCI is not set",
+      "# CONFIG_VIRTIO_MENU is not set"
+    ],
+    "strict_all_QCOM_MSM_disabled_requested": false,
+    "portability_interpretation": "Valid RT140 functional QEMU baseline but not all Qualcomm-related config symbols were disabled. Vendor/platform comparisons require config-qualified caveat."
   }
 }
