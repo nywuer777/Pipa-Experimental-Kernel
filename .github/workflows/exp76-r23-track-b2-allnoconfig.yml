@@ -1,0 +1,238 @@
+# YAML / GitHub Actions Ubuntu24 / EXP76 R23 B E404 minimal Kconfig RT Clang21 / NO FLASH
+name: EXP76 R23 B2 E404 RT strict allnoconfig QEMU (NO FLASH)
+on:
+  push:
+    branches: [exp76-r23-b-minimal]
+    paths:
+      - '.github/workflows/exp76-r23-track-b2-allnoconfig.yml'
+      - 'tools/exp76-rt23-build-boot.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  e404-minimal-rt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 230
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+      LLVM_IAS: "1"
+      HOSTCC: gcc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact EXP76 ARM64 smoke initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: r23b/inputs
+      - name: Install build tools, QEMU and source dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r23b/reports r23b/logs r23b/output exp76-qemu/reports exp76-qemu/logs
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates make bc bison flex libssl-dev libelf-dev libncurses-dev python3 gcc-aarch64-linux-gnu rsync device-tree-compiler qemu-system-arm busybox-static cpio gzip xz-utils e2fsprogs
+      - name: Obtain exactly pinned Android Clang21
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir android-clang-prebuilt
+          cd android-clang-prebuilt
+          git init
+          git remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+          git config core.sparseCheckout true
+          printf '/clang-r563880c/\n' > .git/info/sparse-checkout
+          git config http.version HTTP/1.1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 fetch --depth=1 --filter=blob:none \
+              origin "$ANDROID_LLVM_COMMIT" && git checkout --detach FETCH_HEAD; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 15
+          done
+          test "$(git rev-parse HEAD)" = "$ANDROID_LLVM_COMMIT"
+          test -x clang-r563880c/bin/clang
+          test -x clang-r563880c/bin/ld.lld
+          test -x clang-r563880c/bin/llvm-objcopy
+          clang-r563880c/bin/clang --version | grep -F 'clang version 21.0.0'
+      - name: Reconstruct exact E404 RT140 with previous EXP76 compatibility source ports
+        shell: bash
+        timeout-minutes: 48
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > exp76-qemu/logs/source-reconstruction.log 2>&1 || {
+            tail -n 120 exp76-qemu/logs/source-reconstruction.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          # Restore the pinned KernelSU gitlink; drivers/kernelsu is a
+          # symlink to ../KernelSU/kernel. Do not delete a required source.
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-missing-sources.json
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-qemu/logs/ksu-submodule-init.log 2>&1 || {
+              cat exp76-qemu/logs/ksu-submodule-init.log
+              echo 'BLOCKED_SUBMODULE_KERNELSU'; exit 2;
+            }
+          git -C exp76-trial-overlay submodule status \
+            > exp76-qemu/reports/ksu-gitlink-status.txt
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig || {
+            echo 'BLOCKED_KCONFIG_KERNELSU_UNRESOLVED'; exit 2;
+          }
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-after-submodule.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/e404-kconfig-after-submodule.json').read_text())
+          print('KCONFIG_MISSING_AFTER_SUBMODULE=', d['missing_source_paths_count'])
+          assert 'drivers/kernelsu/Kconfig' not in d['missing_source_paths']
+          PY
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-qemu/reports/stage82
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json').read_text())
+          assert d['remaining_rejected_files']==64
+          assert d['total_rejected_hunks']==209
+          assert d['source_modified'] is False and d['rejects_deleted'] is False
+          PY
+          python3 tools/exp76-rt-stage83-arm64-neon-crypto.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage83 --mode apply
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage88 --mode apply
+          python3 tools/exp76-stage89-proc-swait.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage89 --mode apply
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage90 --mode apply
+          python3 tools/exp76-stage91-pid-atomic-header.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage91 --mode apply
+          python3 tools/exp76-rt-stage74-radix-locallock.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage74 --mode apply
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage79 --mode apply
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage85 --mode apply
+          # Fix the exact Clang21 VirtIO declaration in the disposable E404 tree.
+          # Keep QEMU VirtIO enabled; the fix is included in source-diff.sha256.
+          python3 tools/exp76-qemu-virtio-clang21.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/virtio-clang21-compat.json \
+            --mode apply
+          # Retain RT RCU quiescent-state API; use E404 vendor API in nonRT.
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
+          python3 tools/exp76-rt19-timer-swork-order.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r19-timer-swork-order.json \
+            --mode apply
+          python3 tools/exp76-rt22-h10-verify.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r22-h10-source-gate.json
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff --binary | sha256sum \
+            > exp76-qemu/reports/source-diff.sha256
+      - name: Generate minimal effective QEMU_RT config and measure Kconfig reselections
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin:$PATH"
+          K="$GITHUB_WORKSPACE/exp76-trial-overlay"
+          O="$GITHUB_WORKSPACE/r23b/output"
+          make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- allnoconfig >r23b/reports/base-config.log 2>&1
+          "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -d BPF_SYSCALL -d CGROUP_BPF
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
+          from pathlib import Path
+          import json
+          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB','BPF_SYSCALL','CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI','MHI_SATELLITE','SYSCTL']
+          Path('r23b/reports/disabled-requested.json').write_text(json.dumps(off,indent=2)+'\n')
+          PY
+          for iter in 1 2 3 4; do
+            python3 - <<'PY'
+          # Python 3 / Ubuntu24 / Kconfig scripts/config disables exact requested symbols
+          import json,subprocess
+          off=json.load(open('r23b/reports/disabled-requested.json'))
+          subprocess.run(['exp76-trial-overlay/scripts/config','--file','r23b/output/.config']+sum((['-d',x] for x in off),[]),check=True)
+          PY
+            make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- olddefconfig >>r23b/reports/base-config.log 2>&1
+            cp "$O/.config" "r23b/reports/kconfig-round-$iter.config"
+          done
+          python3 - <<'PY'
+          # Python 3 / Ubuntu24 / report Kconfig symbols automatically reselected
+          import hashlib,json
+          from pathlib import Path
+          desired=json.load(open('r23b/reports/disabled-requested.json'))
+          txt=Path('r23b/output/.config').read_text()
+          found={}
+          for x in desired:
+              name='CONFIG_'+x
+              found[x]=next((v.split('=',1)[1] for v in txt.splitlines() if v.startswith(name+'=')),'n')
+          result={'requested_disabled':desired,'effective':found,
+                  'kconfig_reselections':[x for x,v in found.items() if v!='n'],
+                  'effective_config_sha256':hashlib.sha256(txt.encode()).hexdigest(),
+                  'iterations':4,'arch_timer_symbol_note':'CONFIG_ARCH_TIMER absent in previous E404 effective configs; ARM_ARCH_TIMER is requested on vanilla'}
+          Path('r23b/reports/kconfig-reselections.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('EXP76_R23_B_RESELECTED',result['kconfig_reselections'])
+          PY
+          grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$O/.config"
+          grep -qx 'CONFIG_SMP=y' "$O/.config"
+          grep -qx 'CONFIG_SERIAL_AMBA_PL011=y' "$O/.config"
+          grep -qx 'CONFIG_SERIAL_AMBA_PL011_CONSOLE=y' "$O/.config"
+          grep -qx '# CONFIG_BPF_SYSCALL is not set' "$O/.config" || { echo 'R23_B_BPF_SYSCALL_RESELECTED'; exit 8; }
+          if grep -qx 'CONFIG_CGROUP_BPF=y' "$O/.config"; then echo 'R23_B_CGROUP_BPF_RESELECTED'; exit 8; fi
+          if grep -qx 'CONFIG_SYSCTL=y' "$O/.config"; then echo 'R23_B_SYSCTL_RESELECTED'; exit 8; fi
+          if grep -qx 'CONFIG_MHI_BUS=y' "$O/.config"; then echo 'R23_B_MHI_BUS_RESELECTED'; exit 8; fi
+          cp "$O/.config" r23b/reports/effective.config
+          sha256sum "$O/.config" >r23b/reports/config-sha256.txt
+      - name: Build minimal E404 RT ARM64 Image and boot QEMU
+        shell: bash
+        timeout-minutes: 130
+        run: |
+          set -euo pipefail
+          export ANDROID_CLANG_BIN="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin"
+          python3 tools/exp76-rt23-build-boot.py --track B --tree exp76-trial-overlay --output r23b/output --reports r23b/reports --initramfs r23b/inputs/smoke-initramfs.cpio.gz --build-seconds 7100 --qemu-seconds 45
+      - name: Always publish config rounds, reselections, raw console, Image ELF and source logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-track-b2-allnoconfig-NOFLASH
+          path: |
+            r23b/reports/
+            r23b/logs/
+            r23b/output/.config
+            r23b/output/arch/arm64/boot/Image
+            r23b/output/vmlinux
+            r23b/output/System.map
+            exp76-qemu/reports/source-diff.sha256
+            exp76-qemu/logs/source-reconstruction.log
+          if-no-files-found: warn
+          retention-days: 21
