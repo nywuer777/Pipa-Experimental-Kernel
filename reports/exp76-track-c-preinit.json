@@ -56,7 +56,7 @@
   "qemu_trace_bytes": 65329473,
   "ftrace_sha256": null,
   "ftrace_status": "NOT_AVAILABLE_CONFIG_FTRACE_N",
-  "hypothesis": "UNRESOLVED_PREINIT_STATE; TCG TB trace ends in ordinary idle/RCU EQS path; requires PID1 stack or initialized task state for causal attribution",
+  "hypothesis": "WORKQUEUE_INIT_AWAITS_KTHREAD_CREATE_COMPLETION_BEFORE_DO_PRE_SMP_INITCALLS",
   "last_lines_note": "raw full console and command retained in run artifact",
   "build_performed": false,
   "flash_ready": false,
@@ -74,5 +74,33 @@
     "rcu_dynticks_eqs_enter+0x20"
   ],
   "qemu_trace_tb_count": 905145,
-  "caveat": "QEMU -d exec trace records CPU execution, but no PID1 stack and no function_graph ftrace; cannot identify a blocking kernel_init call."
+  "caveat": "QEMU -d exec trace records CPU execution, but no PID1 stack and no function_graph ftrace; cannot identify a blocking kernel_init call.",
+  "execution_coverage": {
+    "kernel_init_freeable_last_tb": "0xffffff80117f0de4 / +0xbc (BL workqueue_init)",
+    "smp_prepare_cpus_tb_count": 18,
+    "workqueue_init_tb_count": 19,
+    "workqueue_init_last_tb": "0xffffff80117f6f24 / +0xc4",
+    "init_rescuer_tb_count": 12,
+    "kthread_create_on_node_tb_count": 1,
+    "__kthread_create_on_node_tb_count": 4,
+    "wake_up_process_tb_count": 1,
+    "wait_for_common_tb_count": 20,
+    "do_one_initcall_tb_count": 0,
+    "smp_init_tb_count": 0,
+    "do_basic_setup_tb_count": 0,
+    "cpu_idle_entry_observed": true,
+    "call_chain": [
+      "kernel_init_freeable",
+      "smp_prepare_cpus",
+      "workqueue_init",
+      "init_rescuer",
+      "kthread_create_on_node",
+      "__kthread_create_on_node",
+      "wake_up_process",
+      "wait_for_common",
+      "do_idle"
+    ],
+    "interpretation": "Kernel executed workqueue_init but did not return to kernel_init_freeable. A wait-for-kthread-creation path was executed. The absent completion cause and PID1 task state are not proven by TCG alone.",
+    "source": "QEMU -d exec TB trace from artifact 13573135940 + System.map 89610a52..."
+  }
 }
