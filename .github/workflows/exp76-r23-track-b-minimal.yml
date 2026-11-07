@@ -27,6 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile tools/exp76-rt23-build-boot.py
+          test -s tools/exp76-rt19-timer-swork-order.py
           python3 tools/exp76-rt19-timer-swork-order.py --self-test
           bash -n tools/exp76-rt-compat-audit.sh
       - name: Install pinned dependencies, BusyBox static and ARM64 QEMU
