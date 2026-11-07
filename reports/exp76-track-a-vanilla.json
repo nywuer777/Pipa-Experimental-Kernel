@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "track": "A",
-  "status": "IN_PROGRESS_CLANG21_FETCH",
-  "active_run_id": 42369323810,
+  "status": "IN_PROGRESS_CLANG21_FETCH_AFTER_CROSS_BINUTILS_FIX",
+  "active_run_id": 42370000901,
   "first_run_id": 42368893047,
   "first_run_failed": "KCONFIG_SERIAL_AMBA_PL011_ABSENT_DUE_TTY_N",
   "corrected": "CONFIG_TTY=y now set before PL011",
@@ -18,5 +18,11 @@
   "config_sha": null,
   "last_lines": [],
   "note": "Not a boot result; wait for run 42369323810. The first Kconfig gate prevented an invalid vanilla comparison.",
-  "flash_ready": false
+  "flash_ready": false,
+  "second_run_id": 42369323810,
+  "second_run_failed": "KBUILD_AR_LLVM_AR_NM_LLVM_NM_MISSING",
+  "second_config_sha": "2569142bb65a20bbf8c5de5757eec0a8a6e81f4fc2a16d519f4bbb02cdbc22e9",
+  "second_config_required_missing": {},
+  "new_build_tools": "aarch64-linux-gnu-ar and aarch64-linux-gnu-nm",
+  "runner_build_and_boot_status": "PENDING"
 }
