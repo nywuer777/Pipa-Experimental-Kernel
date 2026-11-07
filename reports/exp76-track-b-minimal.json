@@ -2,10 +2,10 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "RT_SOURCE_RECONSTRUCTION_IN_PROGRESS",
-  "latest_run_id": 42370492063,
+  "status": "BUILD_RETRY_AFTER_BPF_VERIFIER_FAILURE",
+  "latest_run_id": 42372061694,
   "branch": "exp76-r23-b-minimal",
-  "latest_workflow": "exp76-r23-track-b.yml",
+  "latest_workflow": ".github/workflows/exp76-r23-track-b.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + official RT140 + EXP76 source ports",
   "prior_run_ids": [
     42369125179,
@@ -54,5 +54,23 @@
   "rt_handoff_ready": false,
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
-  "all_17_requested_disabled_effective_n": true
+  "all_17_requested_disabled_effective_n": true,
+  "latest_completed_run_id": 42370492063,
+  "latest_completed_conclusion": "FAIL_E404_BPF_VERIFIER_IMPLICIT_DECLARATION",
+  "build_exit_code": 2,
+  "error_source": "kernel/bpf/verifier.c:11624",
+  "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
+  "bpf_sycall_broken_profile": "CONFIG_BPF_SYSCALL=y, CONFIG_CGROUP_BPF=y under NET=n",
+  "retry_changes": [
+    "CONFIG_BPF_SYSCALL=n",
+    "CONFIG_CGROUP_BPF=n"
+  ],
+  "retry_branch": "exp76-r23-b-minimal",
+  "retry_commit": "21e712cac540e3a2037cd05241a628b6a5d9df9d",
+  "previous_build_log_sha256": "c8a59248ca8671f8b1364e060581723f331541704184ae34b46e40d276bb5168",
+  "previous_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
+  "prior_image_generated": false,
+  "guest_running": null,
+  "failed_before_boot": true,
+  "safe_interpretation": "No comparison between A and B guest boot possible until B Image builds and QEMU runs."
 }
