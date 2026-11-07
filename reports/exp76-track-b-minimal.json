@@ -3,7 +3,7 @@
   "track": "B",
   "scope": "RT_ONLY",
   "status": "RT_SOURCE_RECONSTRUCTION_IN_PROGRESS",
-  "latest_run_id": 42369808583,
+  "latest_run_id": 42370492063,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + official RT140 + EXP76 source ports",
@@ -40,9 +40,19 @@
     "QCOM_CLK_RPMH",
     "QCOM_COMMAND_DB"
   ],
-  "kconfig_reselections": null,
-  "config_diff_vs_track_a": "NOT_MEASURED_UNTIL_BOTH_EFFECTIVE_CONFIGS_EXIST",
+  "kconfig_reselections": [],
+  "config_diff_vs_track_a": {
+    "source_comparison": "vanilla-v4.19.325-rt140 vs vendor-E404-v4.19.404R-rt140, distinct Kconfig vocabularies",
+    "a_sha": "b38d91592a41d0d3df310ae6bb84b07ab01af1fcd934fac30e972af320d41885",
+    "b_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
+    "changed_or_only_one_side_symbols": 2801,
+    "absent_in_b": 1424,
+    "absent_in_a": 934,
+    "important": "diff counts do not isolate vendor root cause; source bases differ"
+  },
   "not_a_kernel_runtime_failure": true,
   "rt_handoff_ready": false,
-  "flash_ready": false
+  "flash_ready": false,
+  "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
+  "all_17_requested_disabled_effective_n": true
 }
