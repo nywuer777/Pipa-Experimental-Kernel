@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "track": "B2-RTMUTEX-OWNER",
-  "status": "BREAKPOINT_SUCCESS_OWNER_INIT_TASK_PA_LOCK",
+  "status": "PA_LOCK_OWNER_CONFIRMED_ACQUIRE_RELEASE_IMBALANCE_OBSERVED",
   "source_build_run_id": 42629841386,
   "diagnostic_run_id": 42638802109,
   "diagnostic_artifact_id": 13685110062,
@@ -43,5 +43,45 @@
   "inferential_note": "rt_mutex pa_lock still owned by init_task while a new kthread allocates pages. A lock ownership leak or early-boot handoff error is plausible but original acquisition/release chain must be traced.",
   "acquisition_release_trace_run_id": 42639712485,
   "flash_ready": false,
-  "build_performed": false
+  "build_performed": false,
+  "lock_history": {
+    "run_id": 42639712485,
+    "artifact_id": 13683454951,
+    "artifact_zip_sha256": "4a36aa2e24007437d153ab7b556432286e99b114056ba4152b4ff61636696377",
+    "gdb_sha256": "1ba10baf3e12ad8cdac3760bf253597f785c35e00de0b3f5dc82dd5243aa9686",
+    "acquisition_entries": 3,
+    "unlock_entries": 1,
+    "sequence": [
+      {
+        "event": "PA_LOCK_ENTER",
+        "owner_raw": "0x0"
+      },
+      {
+        "event": "PA_LOCK_EXIT",
+        "owner_raw": "0xffffff801032df40",
+        "owner_symbol": "init_task"
+      },
+      {
+        "event": "PA_LOCK_ENTER",
+        "owner_raw": "0x0"
+      },
+      {
+        "event": "PA_LOCK_ENTER",
+        "owner_raw": "0xffffff801032df40",
+        "owner_symbol": "init_task"
+      },
+      {
+        "event": "RT_MUTEX_WAIT",
+        "function": "task_blocks_on_rt_mutex",
+        "owner_raw": "0xffffff801032df41",
+        "owner_symbol": "init_task"
+      }
+    ],
+    "interpretation": "At least one pa_lock acquired by init_task remains held when another task attempts same CPU-local lock; exact second-acquisition callsite under active investigation.",
+    "next_diagnostic": {
+      "run_id": 42640034964,
+      "commit": "bd0111b85fa034d4cd778c01f7e115f263092c1b",
+      "purpose": "GDB acquisition/unlock caller LR and SP_EL0"
+    }
+  }
 }
