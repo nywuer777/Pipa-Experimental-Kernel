@@ -2,8 +2,8 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "R23_B2_CONFIG_FIX_DISPATCHED_NO_NEW_RUNTIME_EVIDENCE",
-  "latest_run_id": 42617620705,
+  "status": "BUILD_BLOCKER_RESOLVED_DEPENDENCIES_RETRY_ACTIVE_NO_IMAGE_NO_BOOT",
+  "latest_run_id": 42620902797,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b2-allnoconfig.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + RT140 patch + EXP76 source ports",
@@ -20,7 +20,7 @@
   "reached_ms": null,
   "advanced_from_032": null,
   "image_sha": null,
-  "config_sha": null,
+  "config_sha": "37337330db8b09998d67f79ffe951c3ccb633a5648759953817d5e8a59dd02e2",
   "console_sha256": null,
   "last_lines": [],
   "disabled_list": [
@@ -57,8 +57,8 @@
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": null,
-  "latest_completed_run_id": 42611704481,
-  "latest_completed_conclusion": "BUILD_FAILED_ION_HEADER_POINTER_TYPE",
+  "latest_completed_run_id": 42617620705,
+  "latest_completed_conclusion": "BUILD_FAILED_MISSING_COMPAT_AND_SCHEDUTIL_DEFINITIONS",
   "build_exit_code": 2,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
@@ -98,7 +98,7 @@
   "latest_previous_config_sha": "c3df446264b4c526ac5af5adcedaa867e2bdd0393eef7307cb2ea10b373e0fa9",
   "latest_previous_image_generated": false,
   "warning": "Track B uses vendor/pipa_defconfig plus selective disables; a minimal-like profile, not allnoconfig. The many effective config differences confound causality until a functional B boot exists.",
-  "build_status": "PENDING_B2_IMAGE_AND_BOOT",
+  "build_status": "RUN_42620902797_IN_PROGRESS_NO_IMAGE_PROVEN",
   "last_kconfig_reselections": [
     "SYSCTL"
   ],
@@ -106,14 +106,14 @@
   "latest_failed_artifact_id": 13574269698,
   "latest_failed_config_sha": "f8888d550efd6625e74d20656801633e47616dcea850082f612a58f503820834",
   "track_b_variant": "E404+RT140 allnoconfig ARM64 QEMU with pinned Clang21",
-  "in_progress_run_id": 42617620705,
+  "in_progress_run_id": 42620902797,
   "in_progress_artifact_name": "exp76-r23-track-b2-allnoconfig-NOFLASH",
   "track_b_build_source_fixes_applied_to_kernel": false,
   "latest_completed_image_sha": null,
   "latest_completed_console_sha256": null,
-  "latest_completed_config_sha": "4f8a345165caae41117d82bf87a5a34f1677d4eaacb96080591e436dfef8270d",
-  "latest_completed_build_exit_code": null,
-  "latest_completed_build_error": "drivers/staging/android/ion/ion_kernel.h:38: return -ENOMEM as struct dma_buf * (Clang -Wint-conversion), encountered from audio/camera/qseecom/cvp",
+  "latest_completed_config_sha": "37337330db8b09998d67f79ffe951c3ccb633a5648759953817d5e8a59dd02e2",
+  "latest_completed_build_exit_code": 2,
+  "latest_completed_build_error": "include/linux/filter.h:551 unknown compat_uptr_t (COMPAT=n); kernel/sched/core.c:5560 effective_cpu_util redefinition; cpu_bw_dl and cpu_util_dl undeclared (CPU_FREQ_GOV_SCHEDUTIL=n)",
   "retry_runs": [
     {
       "run_id": 42610364810,
@@ -168,17 +168,17 @@
     {
       "run_id": 42610364810,
       "profile": "strict_allnoconfig",
-      "state": "COMPLETED_FAILURE_CONFIG_PROMPT_LOOP"
-    },
-    {
-      "run_id": 42611704481,
-      "profile": "vendor_defconfig_wlan_staging_n",
-      "state": "COMPLETED_FAILURE_ION_TYPE"
+      "state": "COMPLETE_FAILURE_CPU_MASK_EMPTY_AND_MEMORYERROR"
     },
     {
       "run_id": 42617620705,
-      "profile": "strict_allnoconfig_mask_zero",
-      "state": "IN_PROGRESS_AT_LAST_CHECK"
+      "profile": "strict_allnoconfig_cpu_masks0",
+      "state": "COMPLETE_BUILD_FAILURE_COMPAT_SCHEDUTIL"
+    },
+    {
+      "run_id": 42620902797,
+      "profile": "strict_allnoconfig_cpu_masks0_nr_cpus8_compat_schedutil",
+      "state": "IN_PROGRESS_LAST_CHECK"
     }
   ],
   "newer_evidence": {
@@ -194,5 +194,29 @@
     "track_b_fallback_build_log_sha256": "0e391ef6e80f1381318aede8d1ff05d8d97cd1656a3acbcf3521ec16e64e9ff5",
     "track_b_fallback_reselections": [],
     "inference": "No B guest evidence yet, therefore cannot call a vendor/runtime subsystem failure from this build."
+  },
+  "updated_evidence": {
+    "completed_run_id": 42617620705,
+    "completed_artifact_id": 13675270371,
+    "completed_artifact_zip_digest": "856099222319c36ad11da29bd59ca5a1faae7acb9943f179a1e9196efec1038c",
+    "build_log_sha256": "c7711303ef92ac64e67d80c0d2c50ce51d2ea2c59a3d48b30e13271fcf99a1cc",
+    "build_log_bytes": 157112,
+    "effective_config_sha256": "37337330db8b09998d67f79ffe951c3ccb633a5648759953817d5e8a59dd02e2",
+    "requested_exclusions_reselected": [],
+    "fixed_cpu_masks": [
+      "LITTLE_CPU_MASK=0",
+      "BIG_CPU_MASK=0",
+      "PRIME_CPU_MASK=0"
+    ],
+    "old_nr_cpus": 64,
+    "correct_kconfig_dependencies": [
+      "COMPAT=y",
+      "CPU_FREQ=y",
+      "CPU_FREQ_GOV_SCHEDUTIL=y",
+      "NR_CPUS=8"
+    ],
+    "fix_commit": "1021584e23dec548d93c210e534371cd24a9c59d",
+    "fix_run_id": 42620902797,
+    "next_gate": "Assert Image and vmlinux exist, then QEMU serial output and GUEST_RUNNING before classifying runtime."
   }
 }
