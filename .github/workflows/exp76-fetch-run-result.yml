@@ -1,0 +1,78 @@
+name: EXP76 fetch run result (proxy)
+on:
+  push:
+    branches: [exp76-rt-pa-lock-fix]
+    paths: ['.github/workflows/exp76-fetch-run-result.yml']
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Commit SHA to inspect
+        required: false
+        type: string
+permissions:
+  contents: write
+  actions: read
+jobs:
+  fetch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TARGET_SHA: ${{ inputs.target_sha || '9c91bf0164a03e4b654718160f19fd8cd00ddbbd' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exp76-rt-pa-lock-fix
+      - name: Fetch runs, jobs, artifacts and error diagnostics
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p fetch-result
+          printf '%s\n' "$TARGET_SHA" > fetch-result/target-sha.txt
+          api="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          get() {
+            local url="$1" out="$2" status
+            status=$(curl -sSL --retry 3 -w '%{http_code}' -o "$out" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" "$url")
+            printf '%s %s\n' "$status" "$url" >> fetch-result/http-status.txt
+            if [[ "$status" != 2* ]]; then
+              echo "HTTP_FAILURE=$status url=$url" >&2
+              cat "$out" >&2
+              return 1
+            fi
+          }
+          get "$api/commits/$TARGET_SHA/check-runs?filter=all&per_page=100" fetch-result/check-runs.json
+          get "$api/actions/runs?head_sha=$TARGET_SHA&per_page=100" fetch-result/runs.json
+          get "$api/actions/workflows/exp76-pa-lock-fix.yml/runs?branch=exp76-rt-pa-lock-fix&per_page=30" fetch-result/branch-runs.json
+          jq '[.workflow_runs[] | {id,name,head_sha,status,conclusion,created_at,updated_at,html_url}]' fetch-result/runs.json > fetch-result/summary.json
+          jq -r '.workflow_runs[].id' fetch-result/runs.json | while read -r id; do
+            mkdir -p "fetch-result/run-$id"
+            get "$api/actions/runs/$id" "fetch-result/run-$id/run.json"
+            get "$api/actions/runs/$id/jobs?per_page=100" "fetch-result/run-$id/jobs.json"
+            get "$api/actions/runs/$id/artifacts?per_page=100" "fetch-result/run-$id/artifacts.json"
+          done
+      - name: Publish proxy evidence to exp76-fetch-result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.email "ci@exp76.invalid"
+          git config user.name "EXP76-CI"
+          # Keep the result branch small and isolated; do not copy repository contents.
+          tmp=$(mktemp -d)
+          cp -a fetch-result/. "$tmp/" 2>/dev/null || true
+          git fetch origin exp76-fetch-result || true
+          if git show-ref --verify --quiet refs/remotes/origin/exp76-fetch-result; then
+            git checkout -B exp76-fetch-result origin/exp76-fetch-result
+          else
+            git checkout --orphan exp76-fetch-result
+            git rm -rf --cached . >/dev/null 2>&1 || true
+          fi
+          rm -rf fetch-result
+          mkdir -p fetch-result
+          cp -a "$tmp/." fetch-result/
+          git add -f fetch-result
+          git commit --allow-empty -m "fetch: runs for $TARGET_SHA (proxy $GITHUB_RUN_ID)"
+          git push origin HEAD:refs/heads/exp76-fetch-result
