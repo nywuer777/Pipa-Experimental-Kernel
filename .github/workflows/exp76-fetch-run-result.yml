@@ -53,6 +53,62 @@ jobs:
             get "$api/actions/runs/$id/jobs?per_page=100" "fetch-result/run-$id/jobs.json"
             get "$api/actions/runs/$id/artifacts?per_page=100" "fetch-result/run-$id/artifacts.json"
           done
+      - name: Download console artifacts
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -f fetch-result/runs.json || exit 0
+          while IFS= read -r id; do
+            test -n "$id" || continue
+            mkdir -p "fetch-result/run-$id/artifacts"
+            gh run download "$id" --dir "fetch-result/run-$id/artifacts" --repo "$GITHUB_REPOSITORY" \
+              || echo "no_artifacts_for_run_$id" | tee "fetch-result/run-$id/artifact-download-error.txt"
+          done < <(jq -r '.workflow_runs[].id' fetch-result/runs.json)
+      - name: Extract console for each run
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -f fetch-result/runs.json || exit 0
+          while IFS= read -r id; do
+            test -n "$id" || continue
+            dir="fetch-result/run-$id"
+            mkdir -p "$dir/console"
+            if test -d "$dir/artifacts"; then
+              find "$dir/artifacts" -type f \( -name '*.txt' -o -name '*.sha256' -o -name '*.log' -o -name '*.patch' -o -name '*.diff' \) -print0 |
+                while IFS= read -r -d '' f; do
+                  rel="${f#"$dir/artifacts/"}"
+                  mkdir -p "$dir/console/$(dirname "$rel")"
+                  cp "$f" "$dir/console/$rel"
+                done
+              found=$(find "$dir/artifacts" -type f -name console.txt -print -quit)
+              if test -n "$found"; then
+                cp "$found" "$dir/console/console.txt"
+                sha256sum "$dir/console/console.txt" > "$dir/console/console.sha256"
+              fi
+              for name in error.txt build-sha256.txt step-exit-code.txt rej-hunk-count.txt; do
+                found=$(find "$dir/artifacts" -type f -name "$name" -print -quit)
+                if test -n "$found"; then cp "$found" "$dir/console/$name"; fi
+              done
+            fi
+          done < <(jq -r '.workflow_runs[].id' fetch-result/runs.json)
+      - name: Verify workflow registration
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p fetch-result
+          curl -sSfL --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows?per_page=100" \
+            -o fetch-result/workflows-registered.json
+          jq '[.workflows[] | {id,name,path,state}]' fetch-result/workflows-registered.json > fetch-result/workflows-summary.json
       - name: Publish proxy evidence to exp76-fetch-result
         if: always()
         shell: bash
