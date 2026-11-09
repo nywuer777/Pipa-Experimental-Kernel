@@ -1,0 +1,25 @@
+{
+  "total_count": 1,
+  "artifacts": [
+    {
+      "id": 13696998708,
+      "node_id": "MDg6QXJ0aWZhY3QxMzY5Njk5ODcwOA==",
+      "name": "exp76-pa-lock-fix-run-42667687187",
+      "size_in_bytes": 103723,
+      "url": "https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/artifacts/13696998708",
+      "archive_download_url": "https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/artifacts/13696998708/zip",
+      "expired": false,
+      "digest": "sha256:112b749d533b600725aa12d5cb87067cc8d9cf0945f4c08b41216c9ed05c1d2c",
+      "created_at": "2026-11-09T17:48:29Z",
+      "updated_at": "2026-11-09T17:48:29Z",
+      "expires_at": "2026-12-09T17:48:27Z",
+      "workflow_run": {
+        "id": 42667687187,
+        "repository_id": 1424149685,
+        "head_repository_id": 1424149685,
+        "head_branch": "exp76-rt-pa-lock-fix",
+        "head_sha": "9c91bf0164a03e4b654718160f19fd8cd00ddbbd"
+      }
+    }
+  ]
+}
