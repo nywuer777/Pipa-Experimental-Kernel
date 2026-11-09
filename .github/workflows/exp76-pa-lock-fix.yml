@@ -27,58 +27,95 @@ jobs:
           test -s exp76-trial-overlay/mm/page_alloc.c.rej || { echo NO_REJ_FILE > reports/error.txt; exit 10; }
           cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
           cp exp76-trial-overlay/mm/page_alloc.c reports/page_alloc.before.c
+          cd exp76-trial-overlay
+          # R42: .rej is evidence, not an automatically applicable patch.
+          # All edits are scoped to parsed function bodies and generated against exact E404 text.
           python3 - <<'PY'
           from pathlib import Path
-          import re
-          raw=Path('reports/page_alloc.c.rej').read_text()
-          n=len(re.findall(r'^@@ ',raw,re.M))
-          Path('reports/rej-hunk-count.txt').write_text(f'rej_hunks={n}\n')
+          import re, difflib, sys
+          root=Path('../reports')
+          rej=(root/'page_alloc.c.rej').read_text()
+          n=len(re.findall(r'^@@ ',rej,re.M))
+          (root/'rej-hunk-count.txt').write_text(f'rej_hunks={n}\n')
           if n!=3:
-              Path('reports/error.txt').write_text(f'UNEXPECTED_REJ_HUNK_COUNT:{n}\n')
-              raise SystemExit(11)
-          # Reject headers are patch-generated; normalize filenames to kernel-relative paths.
-          lines=raw.splitlines(keepends=True)
-          hdr=[i for i,line in enumerate(lines) if line.startswith('@@ ')]
-          if not hdr: raise SystemExit(11)
-          prefix='--- a/mm/page_alloc.c\n+++ b/mm/page_alloc.c\n'
-          Path('reports/pa_lock_raw.patch').write_text(prefix+''.join(lines[hdr[0]:]))
+              (root/'error.txt').write_text(f'UNEXPECTED_REJ_HUNK_COUNT:{n}\n')
+              sys.exit(11)
+          path=Path('mm/page_alloc.c')
+          before=path.read_text()
+          (root/'page_alloc.before.c').write_text(before)
+          def span(source,name):
+              # Find a function definition, not a call or declaration.
+              pattern=r'(?m)^[^\n;{}]*\b'+re.escape(name)+r'\s*\([^;{}]*\)\s*\{'
+              matches=list(re.finditer(pattern,source))
+              if len(matches)!=1: raise ValueError(f'{name}: definition count {len(matches)}')
+              m=matches[0]; depth=1; pos=m.end()
+              while depth and pos<len(source):
+                  depth+=(source[pos]=='{')-(source[pos]=='}')
+                  pos+=1
+              if depth: raise ValueError(f'{name}: unbalanced braces')
+              return m.start(),pos
+          def stats(body):
+              return tuple(len(re.findall(r'\b'+re.escape(x)+r'\s*\(',body)) for x in
+                  ('local_lock_irqsave','local_unlock_irqrestore','local_irq_save','local_irq_restore'))
+          names=['__free_pages_ok','rmqueue_pcplist','rmqueue']
+          pre=[]; fragments=[]
+          try:
+              for name in names:
+                  x,y=span(before,name); body=before[x:y]
+                  a,b,c,d=stats(body)
+                  pre.append(f'{name}: acq={a} rel={b} irq_save={c} irq_restore={d}')
+                  fragments.append(f'=== {name} ===\n'+body)
+              (root/'pre-pairing.txt').write_text('\n'.join(pre)+'\n')
+              (root/'rmqueue-source.txt').write_text(fragments[-1]+'\n')
+              (root/'function-source-before.txt').write_text('\n\n'.join(fragments))
+              after=before
+              for name in names:
+                  x,y=span(after,name); body=after[x:y]
+                  # Rejects describe exact substitutions, never fuzzy context.
+                  if name=='__free_pages_ok':
+                      if body.count('local_irq_save(flags);')!=1 or body.count('local_irq_restore(flags);')!=1:
+                          raise ValueError('FREE_PAGES_EXPECTED_IRQ_PAIR_MISSING')
+                      body=body.replace('local_irq_save(flags);','local_lock_irqsave(pa_lock, flags);')
+                      body=body.replace('local_irq_restore(flags);','local_unlock_irqrestore(pa_lock, flags);')
+                  elif name=='rmqueue_pcplist':
+                      if body.count('local_irq_save(flags);')!=1:
+                          raise ValueError('PCPLIST_EXPECTED_SAVE_MISSING')
+                      body=body.replace('local_irq_save(flags);','local_lock_irqsave(pa_lock, flags);')
+                      # Preserve existing unlock(s), but require a matching release below.
+                  else:
+                      if body.count('local_irq_restore(flags);')!=2:
+                          raise ValueError(f'RMQUEUE_EXPECTED_TWO_RESTORES_GOT_{body.count("local_irq_restore(flags);")}')
+                      body=body.replace('local_irq_restore(flags);','local_unlock_irqrestore(pa_lock, flags);')
+                      # No invented acquire; validate real function-local lock paths.
+                  after=after[:x]+body+after[y:]
+              post=[]
+              for name in names:
+                  x,y=span(after,name); a,b,c,d=stats(after[x:y])
+                  post.append(f'{name}: acq={a} rel={b} irq_save={c} irq_restore={d}')
+                  if c or d or (name=='__free_pages_ok' and (a<1 or b<1)) or (name=='rmqueue_pcplist' and (a<1 or b<1)) or (name=='rmqueue' and b<2):
+                      raise ValueError(f'FAIL_STRUCTURAL {name}: acq={a} rel={b} irq_save={c} irq_restore={d}')
+              (root/'post-pairing.txt').write_text('\n'.join(post)+'\n')
+              patch=''.join(difflib.unified_diff(before.splitlines(True),after.splitlines(True),
+                  fromfile='a/mm/page_alloc.c',tofile='b/mm/page_alloc.c',n=3))
+              if not patch: raise ValueError('ADAPTED_PATCH_EMPTY')
+              (root/'adapted.patch').write_text(patch)
+              (root/'adapted.patch.sha256').write_text(__import__('hashlib').sha256(patch.encode()).hexdigest()+'  adapted.patch\n')
+          except ValueError as exc:
+              (root/'error.txt').write_text(str(exc)+'\n')
+              print(exc,file=sys.stderr)
+              sys.exit(13)
           PY
-          cd exp76-trial-overlay
-          if ! patch --batch --forward --dry-run -p1 < ../reports/pa_lock_raw.patch > ../reports/patch-dry-run.log 2>&1; then
-            echo REJ_DRY_RUN_FAILED > ../reports/error.txt
-            exit 12
+          if ! patch --batch --forward --fuzz=0 --dry-run -p1 < ../reports/adapted.patch > ../reports/patch-dry-run.log 2>&1; then
+            echo FUZZ0_DRY_RUN_FAILED > ../reports/error.txt
+            exit 20
           fi
-          if ! patch --batch --forward -p1 < ../reports/pa_lock_raw.patch > ../reports/patch-apply.log 2>&1; then
-            echo REJ_APPLY_FAILED > ../reports/error.txt
-            exit 12
+          if ! patch --batch --forward --fuzz=0 -p1 < ../reports/adapted.patch > ../reports/patch-apply.log 2>&1; then
+            echo FUZZ0_APPLY_FAILED > ../reports/error.txt
+            exit 20
           fi
           git diff -- mm/page_alloc.c > ../reports/applied.patch
           cp mm/page_alloc.c ../reports/page_alloc.after.c
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          src=Path('mm/page_alloc.c').read_text()
-          funcs=['__free_pages_ok','rmqueue_pcplist','rmqueue']
-          results=[]
-          for name in funcs:
-              m=re.search(r'(?m)^.*\b'+re.escape(name)+r'\s*\([^;]*\)\s*\{',src)
-              if not m:
-                  results.append(f'{name}: FUNCTION_NOT_FOUND')
-                  continue
-              depth=1
-              pos=m.end()
-              start=pos
-              while depth and pos<len(src):
-                  depth+=(src[pos]=='{')-(src[pos]=='}')
-                  pos+=1
-              body=src[start:pos]
-              count=len(re.findall(r'local_(?:lock_irqsave|unlock_irqrestore)\s*\(',body))
-              results.append(f'{name}: lock_ops={count}')
-          Path('../reports/function-lock-counts.txt').write_text('\n'.join(results)+'\n')
-          if any('lock_ops=0' in x or 'FUNCTION_NOT_FOUND' in x for x in results):
-              Path('../reports/error.txt').write_text('FN_UNCHANGED\n')
-              raise SystemExit(13)
-          PY
+          cmp -s mm/page_alloc.c ../reports/page_alloc.after.c
           test -s ../reports/applied.patch || { echo PATCH_NO_OP > ../reports/error.txt; exit 13; }
           test -f .config || { echo CONFIG_MISSING > ../reports/error.txt; exit 20; }
           grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT)=' .config > ../reports/config-check.txt || true
