@@ -1,0 +1,4 @@
+42670520190
+branch=exp76-rt-pa-lock-fix
+commit=3a7a944471426037ffe30d90cadc3eaaad2b8935
+url=https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/42670520190

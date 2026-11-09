@@ -1,0 +1,1 @@
+RT_SEMANTICS_VERIFIED=UNVERIFIED; no guest boot evidence

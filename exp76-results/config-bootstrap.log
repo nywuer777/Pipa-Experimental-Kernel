@@ -1,0 +1,10 @@
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  YACC    scripts/kconfig/zconf.tab.c
+  LEX     scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+*** Default configuration is based on 'defconfig'
+drivers/Kconfig:240: can't open file "drivers/kernelsu/Kconfig"
+make[1]: *** [scripts/kconfig/Makefile:96: defconfig] Error 1
+make: *** [Makefile:565: defconfig] Error 2

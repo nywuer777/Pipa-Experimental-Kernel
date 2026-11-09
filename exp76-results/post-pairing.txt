@@ -1,0 +1,3 @@
+__free_pages_ok: acq=1 rel=1 irq_save=0 irq_restore=0
+rmqueue_pcplist: acq=1 rel=1 irq_save=0 irq_restore=0
+rmqueue: acq=0 rel=2 irq_save=0 irq_restore=0

@@ -1,0 +1,1525 @@
++ set -Eeuo pipefail
++ sudo apt-get update
+Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Get:4 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Get:5 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Get:6 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [678 kB]
+Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [747 kB]
+Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1425 kB]
+Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [313 kB]
+Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1711 kB]
+Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [344 kB]
+Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1839 kB]
+Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [420 kB]
+Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [50.7 kB]
+Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.3 kB]
+Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1157 kB]
+Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [234 kB]
+Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1228 kB]
+Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [248 kB]
+Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1721 kB]
+Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [394 kB]
+Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [45.4 kB]
+Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [12.4 kB]
+Fetched 13.0 MB in 1s (11.5 MB/s)
+Reading package lists...
++ sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils
+Reading package lists...
+Building dependency tree...
+Reading state information...
+bc is already the newest version (1.07.1-3ubuntu4).
+bc set to manually installed.
+bison is already the newest version (2:3.8.2+dfsg-1ubuntu0.24.04.1).
+flex is already the newest version (2.6.4-8.2build1).
+libssl-dev is already the newest version (3.0.13-0ubuntu3.16).
+xz-utils is already the newest version (5.6.1+really5.4.5-1ubuntu0.4).
+The following additional packages will be installed:
+  glib-networking glib-networking-common glib-networking-services
+  gsettings-desktop-schemas gstreamer1.0-plugins-base
+  gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu
+  ipxe-qemu-256k-compat-efi-roms libaa1 libasyncns0 libavc1394-0
+  libboost-iostreams1.83.0 libboost-thread1.83.0 libbrlapi0.8 libcaca0
+  libcacard0 libcdparanoia0 libdaxctl1 libdecor-0-0 libdecor-0-plugin-1-gtk
+  libdv4t64 libfdt1 libflac12t64 libgstreamer-plugins-base1.0-0
+  libgstreamer-plugins-good1.0-0 libiec61883-0 libiscsi7 libjack-jackd2-0
+  libmp3lame0 libmpg123-0t64 libndctl6 libnfs14 libopus0 liborc-0.4-0t64
+  libpcsclite1 libpipewire-0.3-0t64 libpipewire-0.3-common libpmem1
+  libpmemobj1 libproxy1v5 libpulse0 librados2 libraw1394-11 librbd1
+  librdmacm1t64 libsamplerate0 libsdl2-2.0-0 libshout3 libsndfile1
+  libsoup-3.0-0 libsoup-3.0-common libspa-0.2-modules libspeex1
+  libspice-server1 libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0
+  liburing2 libusbredirparser1t64 libv4l-0t64 libv4lconvert0t64
+  libvirglrenderer1 libvisual-0.4-0 libvorbisenc2 libvpx9 libvte-2.91-0
+  libvte-2.91-common libwavpack1 libwebrtc-audio-processing1 libxv1
+  llvm-runtime qemu-block-extra qemu-efi-aarch64 qemu-efi-arm
+  qemu-system-common qemu-system-data qemu-system-gui
+  qemu-system-modules-opengl qemu-system-modules-spice qemu-utils
+  session-migration
+Suggested packages:
+  gvfs libdv-bin oss-compat libvisual-0.4-plugins jackd2 opus-tools pcscd
+  pipewire pulseaudio libraw1394-doc speex gstreamer1.0-libav
+  gstreamer1.0-plugins-ugly samba vde2
+The following NEW packages will be installed:
+  clang glib-networking glib-networking-common glib-networking-services
+  gsettings-desktop-schemas gstreamer1.0-plugins-base
+  gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu
+  ipxe-qemu-256k-compat-efi-roms libaa1 libasyncns0 libavc1394-0
+  libboost-iostreams1.83.0 libboost-thread1.83.0 libbrlapi0.8 libcaca0
+  libcacard0 libcdparanoia0 libdaxctl1 libdecor-0-0 libdecor-0-plugin-1-gtk
+  libdv4t64 libelf-dev libfdt1 libflac12t64 libgstreamer-plugins-base1.0-0
+  libgstreamer-plugins-good1.0-0 libiec61883-0 libiscsi7 libjack-jackd2-0
+  libmp3lame0 libmpg123-0t64 libndctl6 libnfs14 libopus0 liborc-0.4-0t64
+  libpcsclite1 libpipewire-0.3-0t64 libpipewire-0.3-common libpmem1
+  libpmemobj1 libproxy1v5 libpulse0 librados2 libraw1394-11 librbd1
+  librdmacm1t64 libsamplerate0 libsdl2-2.0-0 libshout3 libsndfile1
+  libsoup-3.0-0 libsoup-3.0-common libspa-0.2-modules libspeex1
+  libspice-server1 libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0
+  liburing2 libusbredirparser1t64 libv4l-0t64 libv4lconvert0t64
+  libvirglrenderer1 libvisual-0.4-0 libvorbisenc2 libvpx9 libvte-2.91-0
+  libvte-2.91-common libwavpack1 libwebrtc-audio-processing1 libxv1 lld llvm
+  llvm-runtime qemu-block-extra qemu-efi-aarch64 qemu-efi-arm qemu-system-arm
+  qemu-system-common qemu-system-data qemu-system-gui
+  qemu-system-modules-opengl qemu-system-modules-spice qemu-utils
+  session-migration
+0 upgraded, 88 newly installed, 0 to remove and 27 not upgraded.
+Need to get 45.6 MB of archives.
+After this operation, 648 MB of additional disk space will be used.
+Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Get:2 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 clang amd64 1:18.0-59~exp2 [5846 B]
+Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libproxy1v5 amd64 0.5.4-4build1 [26.5 kB]
+Get:4 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-common all 2.80.0-1build1 [6702 B]
+Get:5 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-services amd64 2.80.0-1build1 [12.8 kB]
+Get:6 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 session-migration amd64 0.3.9build1 [9034 B]
+Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gsettings-desktop-schemas all 46.1-0ubuntu1 [35.6 kB]
+Get:8 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking amd64 2.80.0-1build1 [64.1 kB]
+Get:9 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcdparanoia0 amd64 3.10.2+debian-14build3 [48.5 kB]
+Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 liborc-0.4-0t64 amd64 1:0.4.38-1ubuntu0.1 [207 kB]
+Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgstreamer-plugins-base1.0-0 amd64 1.24.2-1ubuntu0.5 [862 kB]
+Get:12 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libopus0 amd64 1.4-1build1 [208 kB]
+Get:13 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtheora0 amd64 1.1.1+dfsg.1-16.1build3 [211 kB]
+Get:14 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvisual-0.4-0 amd64 0.4.2-2build1 [115 kB]
+Get:15 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvorbisenc2 amd64 1.3.7-1build3 [80.8 kB]
+Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-plugins-base amd64 1.24.2-1ubuntu0.5 [721 kB]
+Get:17 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libaa1 amd64 1.4p5-51.1 [49.9 kB]
+Get:18 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libraw1394-11 amd64 2.1.2-2build3 [26.2 kB]
+Get:19 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libavc1394-0 amd64 0.5.4-5build3 [15.4 kB]
+Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libcaca0 amd64 0.99.beta20-4ubuntu0.2 [209 kB]
+Get:21 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdv4t64 amd64 1.0.0-17.1build1 [63.2 kB]
+Get:22 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libflac12t64 amd64 1.4.3+ds-2.1ubuntu2 [197 kB]
+Get:23 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libgstreamer-plugins-good1.0-0 amd64 1.24.2-1ubuntu1.8 [34.3 kB]
+Get:24 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiec61883-0 amd64 1.2.0-6build1 [24.5 kB]
+Get:25 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmp3lame0 amd64 3.100-6build1 [142 kB]
+Get:26 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libmpg123-0t64 amd64 1.32.5-1ubuntu1.1 [169 kB]
+Get:27 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libasyncns0 amd64 0.8-6build4 [11.3 kB]
+Get:28 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsndfile1 amd64 1.2.2-1ubuntu5.24.04.1 [209 kB]
+Get:29 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpulse0 amd64 1:16.1+dfsg1-2ubuntu10.1 [292 kB]
+Get:30 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspeex1 amd64 1.2.1-2ubuntu2.24.04.1 [59.6 kB]
+Get:31 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libshout3 amd64 2.4.6-1build2 [50.3 kB]
+Get:32 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtag1v5-vanilla amd64 1.13.1-1build1 [326 kB]
+Get:33 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtag1v5 amd64 1.13.1-1build1 [11.7 kB]
+Get:34 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtwolame0 amd64 0.4.0-2build3 [52.3 kB]
+Get:35 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libv4lconvert0t64 amd64 1.26.1-4build3 [87.6 kB]
+Get:36 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libv4l-0t64 amd64 1.26.1-4build3 [46.9 kB]
+Get:37 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvpx9 amd64 1.14.0-1ubuntu2.3 [1143 kB]
+Get:38 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwavpack1 amd64 5.6.0-1build1 [84.6 kB]
+Get:39 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsoup-3.0-common all 3.4.4-5ubuntu0.10 [12.9 kB]
+Get:40 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsoup-3.0-0 amd64 3.4.4-5ubuntu0.10 [292 kB]
+Get:41 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-plugins-good amd64 1.24.2-1ubuntu1.8 [2236 kB]
+Get:42 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libxv1 amd64 2:1.0.11-1.1build1 [10.7 kB]
+Get:43 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-x amd64 1.24.2-1ubuntu0.5 [85.1 kB]
+Get:44 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 ipxe-qemu all 1.21.1+git-20220113.fbbdc3926-0ubuntu2 [1565 kB]
+Get:45 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 ipxe-qemu-256k-compat-efi-roms all 1.0.0+git-20150424.a25a16d-0ubuntu5 [548 kB]
+Get:46 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libboost-iostreams1.83.0 amd64 1.83.0-2.1ubuntu3.2 [260 kB]
+Get:47 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libboost-thread1.83.0 amd64 1.83.0-2.1ubuntu3.2 [276 kB]
+Get:48 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libbrlapi0.8 amd64 6.6-4ubuntu5 [31.4 kB]
+Get:49 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpcsclite1 amd64 2.0.3-1build1 [21.4 kB]
+Get:50 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libcacard0 amd64 1:2.8.0-3build4 [36.5 kB]
+Get:51 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdaxctl1 amd64 77-2ubuntu2 [21.4 kB]
+Get:52 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdecor-0-0 amd64 0.2.2-1build2 [16.5 kB]
+Get:53 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libdecor-0-plugin-1-gtk amd64 0.2.2-1build2 [22.2 kB]
+Get:54 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libelf-dev amd64 0.190-1.1ubuntu0.1 [68.5 kB]
+Get:55 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librdmacm1t64 amd64 50.0-2ubuntu0.2 [70.7 kB]
+Get:56 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libiscsi7 amd64 1.19.0-3build4 [68.7 kB]
+Get:57 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libsamplerate0 amd64 0.2.2-4build1 [1344 kB]
+Get:58 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libjack-jackd2-0 amd64 1.9.21~dfsg-3ubuntu3 [289 kB]
+Get:59 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libndctl6 amd64 77-2ubuntu2 [62.8 kB]
+Get:60 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 libnfs14 amd64 5.0.2-1ubuntu0.24.04.2 [109 kB]
+Get:61 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libwebrtc-audio-processing1 amd64 0.3.1-0ubuntu6 [290 kB]
+Get:62 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspa-0.2-modules amd64 1.0.5-1ubuntu3.3 [628 kB]
+Get:63 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpipewire-0.3-0t64 amd64 1.0.5-1ubuntu3.3 [252 kB]
+Get:64 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libpipewire-0.3-common all 1.0.5-1ubuntu3.3 [19.5 kB]
+Get:65 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpmem1 amd64 1.13.1-1.1ubuntu2 [84.8 kB]
+Get:66 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libpmemobj1 amd64 1.13.1-1.1ubuntu2 [116 kB]
+Get:67 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librados2 amd64 19.2.3-0ubuntu0.24.04.3 [4041 kB]
+Get:68 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librbd1 amd64 19.2.3-0ubuntu0.24.04.3 [3413 kB]
+Get:69 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libsdl2-2.0-0 amd64 2.30.0+dfsg-1ubuntu3.1 [686 kB]
+Get:70 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libspice-server1 amd64 0.15.1-1build2 [349 kB]
+Get:71 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 liburing2 amd64 2.5-1build1 [21.1 kB]
+Get:72 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libusbredirparser1t64 amd64 0.13.0-2.1build1 [16.5 kB]
+Get:73 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvirglrenderer1 amd64 1.0.0-1ubuntu2 [226 kB]
+Get:74 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvte-2.91-common amd64 0.76.0-1ubuntu0.1 [13.5 kB]
+Get:75 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvte-2.91-0 amd64 0.76.0-1ubuntu0.1 [230 kB]
+Get:76 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 lld amd64 1:18.0-59~exp2 [5494 B]
+Get:77 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 llvm-runtime amd64 1:18.0-59~exp2 [5496 B]
+Get:78 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 llvm amd64 1:18.0-59~exp2 [4146 B]
+Get:79 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libfdt1 amd64 1.7.0-2build1 [20.1 kB]
+Get:80 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-common amd64 1:8.2.2+ds-0ubuntu1.18 [1255 kB]
+Get:81 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-data all 1:8.2.2+ds-0ubuntu1.18 [1796 kB]
+Get:82 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-arm amd64 1:8.2.2+ds-0ubuntu1.18 [11.0 MB]
+Get:83 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-utils amd64 1:8.2.2+ds-0ubuntu1.18 [2221 kB]
+Get:84 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-block-extra amd64 1:8.2.2+ds-0ubuntu1.18 [114 kB]
+Get:85 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-modules-opengl amd64 1:8.2.2+ds-0ubuntu1.18 [186 kB]
+Get:86 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-gui amd64 1:8.2.2+ds-0ubuntu1.18 [312 kB]
+Get:87 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-system-modules-spice amd64 1:8.2.2+ds-0ubuntu1.18 [70.2 kB]
+Get:88 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-efi-aarch64 all 2024.02-2ubuntu0.10 [4115 kB]
+Get:89 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 qemu-efi-arm all 2024.02-2ubuntu0.10 [777 kB]
+Fetched 45.6 MB in 5s (9062 kB/s)
+Selecting previously unselected package clang.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 215960 files and directories currently installed.)
+Preparing to unpack .../00-clang_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking clang (1:18.0-59~exp2) ...
+Selecting previously unselected package libproxy1v5:amd64.
+Preparing to unpack .../01-libproxy1v5_0.5.4-4build1_amd64.deb ...
+Unpacking libproxy1v5:amd64 (0.5.4-4build1) ...
+Selecting previously unselected package glib-networking-common.
+Preparing to unpack .../02-glib-networking-common_2.80.0-1build1_all.deb ...
+Unpacking glib-networking-common (2.80.0-1build1) ...
+Selecting previously unselected package glib-networking-services.
+Preparing to unpack .../03-glib-networking-services_2.80.0-1build1_amd64.deb ...
+Unpacking glib-networking-services (2.80.0-1build1) ...
+Selecting previously unselected package session-migration.
+Preparing to unpack .../04-session-migration_0.3.9build1_amd64.deb ...
+Unpacking session-migration (0.3.9build1) ...
+Selecting previously unselected package gsettings-desktop-schemas.
+Preparing to unpack .../05-gsettings-desktop-schemas_46.1-0ubuntu1_all.deb ...
+Unpacking gsettings-desktop-schemas (46.1-0ubuntu1) ...
+Selecting previously unselected package glib-networking:amd64.
+Preparing to unpack .../06-glib-networking_2.80.0-1build1_amd64.deb ...
+Unpacking glib-networking:amd64 (2.80.0-1build1) ...
+Selecting previously unselected package libcdparanoia0:amd64.
+Preparing to unpack .../07-libcdparanoia0_3.10.2+debian-14build3_amd64.deb ...
+Unpacking libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+Selecting previously unselected package liborc-0.4-0t64:amd64.
+Preparing to unpack .../08-liborc-0.4-0t64_1%3a0.4.38-1ubuntu0.1_amd64.deb ...
+Unpacking liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+Selecting previously unselected package libgstreamer-plugins-base1.0-0:amd64.
+Preparing to unpack .../09-libgstreamer-plugins-base1.0-0_1.24.2-1ubuntu0.5_amd64.deb ...
+Unpacking libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.5) ...
+Selecting previously unselected package libopus0:amd64.
+Preparing to unpack .../10-libopus0_1.4-1build1_amd64.deb ...
+Unpacking libopus0:amd64 (1.4-1build1) ...
+Selecting previously unselected package libtheora0:amd64.
+Preparing to unpack .../11-libtheora0_1.1.1+dfsg.1-16.1build3_amd64.deb ...
+Unpacking libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+Selecting previously unselected package libvisual-0.4-0:amd64.
+Preparing to unpack .../12-libvisual-0.4-0_0.4.2-2build1_amd64.deb ...
+Unpacking libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+Selecting previously unselected package libvorbisenc2:amd64.
+Preparing to unpack .../13-libvorbisenc2_1.3.7-1build3_amd64.deb ...
+Unpacking libvorbisenc2:amd64 (1.3.7-1build3) ...
+Selecting previously unselected package gstreamer1.0-plugins-base:amd64.
+Preparing to unpack .../14-gstreamer1.0-plugins-base_1.24.2-1ubuntu0.5_amd64.deb ...
+Unpacking gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.5) ...
+Selecting previously unselected package libaa1:amd64.
+Preparing to unpack .../15-libaa1_1.4p5-51.1_amd64.deb ...
+Unpacking libaa1:amd64 (1.4p5-51.1) ...
+Selecting previously unselected package libraw1394-11:amd64.
+Preparing to unpack .../16-libraw1394-11_2.1.2-2build3_amd64.deb ...
+Unpacking libraw1394-11:amd64 (2.1.2-2build3) ...
+Selecting previously unselected package libavc1394-0:amd64.
+Preparing to unpack .../17-libavc1394-0_0.5.4-5build3_amd64.deb ...
+Unpacking libavc1394-0:amd64 (0.5.4-5build3) ...
+Selecting previously unselected package libcaca0:amd64.
+Preparing to unpack .../18-libcaca0_0.99.beta20-4ubuntu0.2_amd64.deb ...
+Unpacking libcaca0:amd64 (0.99.beta20-4ubuntu0.2) ...
+Selecting previously unselected package libdv4t64:amd64.
+Preparing to unpack .../19-libdv4t64_1.0.0-17.1build1_amd64.deb ...
+Unpacking libdv4t64:amd64 (1.0.0-17.1build1) ...
+Selecting previously unselected package libflac12t64:amd64.
+Preparing to unpack .../20-libflac12t64_1.4.3+ds-2.1ubuntu2_amd64.deb ...
+Unpacking libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+Selecting previously unselected package libgstreamer-plugins-good1.0-0:amd64.
+Preparing to unpack .../21-libgstreamer-plugins-good1.0-0_1.24.2-1ubuntu1.8_amd64.deb ...
+Unpacking libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.8) ...
+Selecting previously unselected package libiec61883-0:amd64.
+Preparing to unpack .../22-libiec61883-0_1.2.0-6build1_amd64.deb ...
+Unpacking libiec61883-0:amd64 (1.2.0-6build1) ...
+Selecting previously unselected package libmp3lame0:amd64.
+Preparing to unpack .../23-libmp3lame0_3.100-6build1_amd64.deb ...
+Unpacking libmp3lame0:amd64 (3.100-6build1) ...
+Selecting previously unselected package libmpg123-0t64:amd64.
+Preparing to unpack .../24-libmpg123-0t64_1.32.5-1ubuntu1.1_amd64.deb ...
+Unpacking libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+Selecting previously unselected package libasyncns0:amd64.
+Preparing to unpack .../25-libasyncns0_0.8-6build4_amd64.deb ...
+Unpacking libasyncns0:amd64 (0.8-6build4) ...
+Selecting previously unselected package libsndfile1:amd64.
+Preparing to unpack .../26-libsndfile1_1.2.2-1ubuntu5.24.04.1_amd64.deb ...
+Unpacking libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+Selecting previously unselected package libpulse0:amd64.
+Preparing to unpack .../27-libpulse0_1%3a16.1+dfsg1-2ubuntu10.1_amd64.deb ...
+Unpacking libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+Selecting previously unselected package libspeex1:amd64.
+Preparing to unpack .../28-libspeex1_1.2.1-2ubuntu2.24.04.1_amd64.deb ...
+Unpacking libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+Selecting previously unselected package libshout3:amd64.
+Preparing to unpack .../29-libshout3_2.4.6-1build2_amd64.deb ...
+Unpacking libshout3:amd64 (2.4.6-1build2) ...
+Selecting previously unselected package libtag1v5-vanilla:amd64.
+Preparing to unpack .../30-libtag1v5-vanilla_1.13.1-1build1_amd64.deb ...
+Unpacking libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+Selecting previously unselected package libtag1v5:amd64.
+Preparing to unpack .../31-libtag1v5_1.13.1-1build1_amd64.deb ...
+Unpacking libtag1v5:amd64 (1.13.1-1build1) ...
+Selecting previously unselected package libtwolame0:amd64.
+Preparing to unpack .../32-libtwolame0_0.4.0-2build3_amd64.deb ...
+Unpacking libtwolame0:amd64 (0.4.0-2build3) ...
+Selecting previously unselected package libv4lconvert0t64:amd64.
+Preparing to unpack .../33-libv4lconvert0t64_1.26.1-4build3_amd64.deb ...
+Unpacking libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+Selecting previously unselected package libv4l-0t64:amd64.
+Preparing to unpack .../34-libv4l-0t64_1.26.1-4build3_amd64.deb ...
+Unpacking libv4l-0t64:amd64 (1.26.1-4build3) ...
+Selecting previously unselected package libvpx9:amd64.
+Preparing to unpack .../35-libvpx9_1.14.0-1ubuntu2.3_amd64.deb ...
+Unpacking libvpx9:amd64 (1.14.0-1ubuntu2.3) ...
+Selecting previously unselected package libwavpack1:amd64.
+Preparing to unpack .../36-libwavpack1_5.6.0-1build1_amd64.deb ...
+Unpacking libwavpack1:amd64 (5.6.0-1build1) ...
+Selecting previously unselected package libsoup-3.0-common.
+Preparing to unpack .../37-libsoup-3.0-common_3.4.4-5ubuntu0.10_all.deb ...
+Unpacking libsoup-3.0-common (3.4.4-5ubuntu0.10) ...
+Selecting previously unselected package libsoup-3.0-0:amd64.
+Preparing to unpack .../38-libsoup-3.0-0_3.4.4-5ubuntu0.10_amd64.deb ...
+Unpacking libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.10) ...
+Selecting previously unselected package gstreamer1.0-plugins-good:amd64.
+Preparing to unpack .../39-gstreamer1.0-plugins-good_1.24.2-1ubuntu1.8_amd64.deb ...
+Unpacking gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.8) ...
+Selecting previously unselected package libxv1:amd64.
+Preparing to unpack .../40-libxv1_2%3a1.0.11-1.1build1_amd64.deb ...
+Unpacking libxv1:amd64 (2:1.0.11-1.1build1) ...
+Selecting previously unselected package gstreamer1.0-x:amd64.
+Preparing to unpack .../41-gstreamer1.0-x_1.24.2-1ubuntu0.5_amd64.deb ...
+Unpacking gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.5) ...
+Selecting previously unselected package ipxe-qemu.
+Preparing to unpack .../42-ipxe-qemu_1.21.1+git-20220113.fbbdc3926-0ubuntu2_all.deb ...
+Unpacking ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+Selecting previously unselected package ipxe-qemu-256k-compat-efi-roms.
+Preparing to unpack .../43-ipxe-qemu-256k-compat-efi-roms_1.0.0+git-20150424.a25a16d-0ubuntu5_all.deb ...
+Unpacking ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+Selecting previously unselected package libboost-iostreams1.83.0:amd64.
+Preparing to unpack .../44-libboost-iostreams1.83.0_1.83.0-2.1ubuntu3.2_amd64.deb ...
+Unpacking libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+Selecting previously unselected package libboost-thread1.83.0:amd64.
+Preparing to unpack .../45-libboost-thread1.83.0_1.83.0-2.1ubuntu3.2_amd64.deb ...
+Unpacking libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+Selecting previously unselected package libbrlapi0.8:amd64.
+Preparing to unpack .../46-libbrlapi0.8_6.6-4ubuntu5_amd64.deb ...
+Unpacking libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+Selecting previously unselected package libpcsclite1:amd64.
+Preparing to unpack .../47-libpcsclite1_2.0.3-1build1_amd64.deb ...
+Unpacking libpcsclite1:amd64 (2.0.3-1build1) ...
+Selecting previously unselected package libcacard0:amd64.
+Preparing to unpack .../48-libcacard0_1%3a2.8.0-3build4_amd64.deb ...
+Unpacking libcacard0:amd64 (1:2.8.0-3build4) ...
+Selecting previously unselected package libdaxctl1:amd64.
+Preparing to unpack .../49-libdaxctl1_77-2ubuntu2_amd64.deb ...
+Unpacking libdaxctl1:amd64 (77-2ubuntu2) ...
+Selecting previously unselected package libdecor-0-0:amd64.
+Preparing to unpack .../50-libdecor-0-0_0.2.2-1build2_amd64.deb ...
+Unpacking libdecor-0-0:amd64 (0.2.2-1build2) ...
+Selecting previously unselected package libdecor-0-plugin-1-gtk:amd64.
+Preparing to unpack .../51-libdecor-0-plugin-1-gtk_0.2.2-1build2_amd64.deb ...
+Unpacking libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+Selecting previously unselected package libelf-dev:amd64.
+Preparing to unpack .../52-libelf-dev_0.190-1.1ubuntu0.1_amd64.deb ...
+Unpacking libelf-dev:amd64 (0.190-1.1ubuntu0.1) ...
+Selecting previously unselected package librdmacm1t64:amd64.
+Preparing to unpack .../53-librdmacm1t64_50.0-2ubuntu0.2_amd64.deb ...
+Unpacking librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+Selecting previously unselected package libiscsi7:amd64.
+Preparing to unpack .../54-libiscsi7_1.19.0-3build4_amd64.deb ...
+Unpacking libiscsi7:amd64 (1.19.0-3build4) ...
+Selecting previously unselected package libsamplerate0:amd64.
+Preparing to unpack .../55-libsamplerate0_0.2.2-4build1_amd64.deb ...
+Unpacking libsamplerate0:amd64 (0.2.2-4build1) ...
+Selecting previously unselected package libjack-jackd2-0:amd64.
+Preparing to unpack .../56-libjack-jackd2-0_1.9.21~dfsg-3ubuntu3_amd64.deb ...
+Unpacking libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+Selecting previously unselected package libndctl6:amd64.
+Preparing to unpack .../57-libndctl6_77-2ubuntu2_amd64.deb ...
+Unpacking libndctl6:amd64 (77-2ubuntu2) ...
+Selecting previously unselected package libnfs14:amd64.
+Preparing to unpack .../58-libnfs14_5.0.2-1ubuntu0.24.04.2_amd64.deb ...
+Unpacking libnfs14:amd64 (5.0.2-1ubuntu0.24.04.2) ...
+Selecting previously unselected package libwebrtc-audio-processing1:amd64.
+Preparing to unpack .../59-libwebrtc-audio-processing1_0.3.1-0ubuntu6_amd64.deb ...
+Unpacking libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+Selecting previously unselected package libspa-0.2-modules:amd64.
+Preparing to unpack .../60-libspa-0.2-modules_1.0.5-1ubuntu3.3_amd64.deb ...
+Unpacking libspa-0.2-modules:amd64 (1.0.5-1ubuntu3.3) ...
+Selecting previously unselected package libpipewire-0.3-0t64:amd64.
+Preparing to unpack .../61-libpipewire-0.3-0t64_1.0.5-1ubuntu3.3_amd64.deb ...
+Unpacking libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3.3) ...
+Selecting previously unselected package libpipewire-0.3-common.
+Preparing to unpack .../62-libpipewire-0.3-common_1.0.5-1ubuntu3.3_all.deb ...
+Unpacking libpipewire-0.3-common (1.0.5-1ubuntu3.3) ...
+Selecting previously unselected package libpmem1:amd64.
+Preparing to unpack .../63-libpmem1_1.13.1-1.1ubuntu2_amd64.deb ...
+Unpacking libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+Selecting previously unselected package libpmemobj1:amd64.
+Preparing to unpack .../64-libpmemobj1_1.13.1-1.1ubuntu2_amd64.deb ...
+Unpacking libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+Selecting previously unselected package librados2.
+Preparing to unpack .../65-librados2_19.2.3-0ubuntu0.24.04.3_amd64.deb ...
+Unpacking librados2 (19.2.3-0ubuntu0.24.04.3) ...
+Selecting previously unselected package librbd1.
+Preparing to unpack .../66-librbd1_19.2.3-0ubuntu0.24.04.3_amd64.deb ...
+Unpacking librbd1 (19.2.3-0ubuntu0.24.04.3) ...
+Selecting previously unselected package libsdl2-2.0-0:amd64.
+Preparing to unpack .../67-libsdl2-2.0-0_2.30.0+dfsg-1ubuntu3.1_amd64.deb ...
+Unpacking libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+Selecting previously unselected package libspice-server1:amd64.
+Preparing to unpack .../68-libspice-server1_0.15.1-1build2_amd64.deb ...
+Unpacking libspice-server1:amd64 (0.15.1-1build2) ...
+Selecting previously unselected package liburing2:amd64.
+Preparing to unpack .../69-liburing2_2.5-1build1_amd64.deb ...
+Unpacking liburing2:amd64 (2.5-1build1) ...
+Selecting previously unselected package libusbredirparser1t64:amd64.
+Preparing to unpack .../70-libusbredirparser1t64_0.13.0-2.1build1_amd64.deb ...
+Unpacking libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+Selecting previously unselected package libvirglrenderer1:amd64.
+Preparing to unpack .../71-libvirglrenderer1_1.0.0-1ubuntu2_amd64.deb ...
+Unpacking libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+Selecting previously unselected package libvte-2.91-common.
+Preparing to unpack .../72-libvte-2.91-common_0.76.0-1ubuntu0.1_amd64.deb ...
+Unpacking libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+Selecting previously unselected package libvte-2.91-0:amd64.
+Preparing to unpack .../73-libvte-2.91-0_0.76.0-1ubuntu0.1_amd64.deb ...
+Unpacking libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+Selecting previously unselected package lld:amd64.
+Preparing to unpack .../74-lld_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking lld:amd64 (1:18.0-59~exp2) ...
+Selecting previously unselected package llvm-runtime:amd64.
+Preparing to unpack .../75-llvm-runtime_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking llvm-runtime:amd64 (1:18.0-59~exp2) ...
+Selecting previously unselected package llvm.
+Preparing to unpack .../76-llvm_1%3a18.0-59~exp2_amd64.deb ...
+Unpacking llvm (1:18.0-59~exp2) ...
+Selecting previously unselected package libfdt1:amd64.
+Preparing to unpack .../77-libfdt1_1.7.0-2build1_amd64.deb ...
+Unpacking libfdt1:amd64 (1.7.0-2build1) ...
+Selecting previously unselected package qemu-system-common.
+Preparing to unpack .../78-qemu-system-common_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+Unpacking qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-system-data.
+Preparing to unpack .../79-qemu-system-data_1%3a8.2.2+ds-0ubuntu1.18_all.deb ...
+Unpacking qemu-system-data (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-system-arm.
+Preparing to unpack .../80-qemu-system-arm_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+Unpacking qemu-system-arm (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-utils.
+Preparing to unpack .../81-qemu-utils_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+Unpacking qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-block-extra.
+Preparing to unpack .../82-qemu-block-extra_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+Unpacking qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-system-modules-opengl.
+Preparing to unpack .../83-qemu-system-modules-opengl_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+Unpacking qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-system-gui.
+Preparing to unpack .../84-qemu-system-gui_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+Unpacking qemu-system-gui (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-system-modules-spice.
+Preparing to unpack .../85-qemu-system-modules-spice_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+Unpacking qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.18) ...
+Selecting previously unselected package qemu-efi-aarch64.
+Preparing to unpack .../86-qemu-efi-aarch64_2024.02-2ubuntu0.10_all.deb ...
+Unpacking qemu-efi-aarch64 (2024.02-2ubuntu0.10) ...
+Selecting previously unselected package qemu-efi-arm.
+Preparing to unpack .../87-qemu-efi-arm_2024.02-2ubuntu0.10_all.deb ...
+Unpacking qemu-efi-arm (2024.02-2ubuntu0.10) ...
+Setting up libpipewire-0.3-common (1.0.5-1ubuntu3.3) ...
+Setting up libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+Setting up session-migration (0.3.9build1) ...
+Created symlink /etc/systemd/user/graphical-session-pre.target.wants/session-migration.service → /usr/lib/systemd/user/session-migration.service.
+Setting up libraw1394-11:amd64 (2.1.2-2build3) ...
+Setting up libproxy1v5:amd64 (0.5.4-4build1) ...
+Setting up libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+Setting up libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+Setting up libcaca0:amd64 (0.99.beta20-4ubuntu0.2) ...
+Setting up libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+Setting up libtwolame0:amd64 (0.4.0-2build3) ...
+Setting up libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+Setting up libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+Setting up lld:amd64 (1:18.0-59~exp2) ...
+Setting up libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+Setting up libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+Setting up libsoup-3.0-common (3.4.4-5ubuntu0.10) ...
+Setting up libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+Setting up libfdt1:amd64 (1.7.0-2build1) ...
+Setting up qemu-efi-aarch64 (2024.02-2ubuntu0.10) ...
+Setting up libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+Setting up libnfs14:amd64 (5.0.2-1ubuntu0.24.04.2) ...
+Setting up liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+Setting up libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+Setting up libspa-0.2-modules:amd64 (1.0.5-1ubuntu3.3) ...
+Setting up libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+Setting up clang (1:18.0-59~exp2) ...
+Setting up llvm-runtime:amd64 (1:18.0-59~exp2) ...
+Setting up libopus0:amd64 (1.4-1build1) ...
+Setting up libxv1:amd64 (2:1.0.11-1.1build1) ...
+Setting up libelf-dev:amd64 (0.190-1.1ubuntu0.1) ...
+Setting up llvm (1:18.0-59~exp2) ...
+Setting up libdv4t64:amd64 (1.0.0-17.1build1) ...
+Setting up libpcsclite1:amd64 (2.0.3-1build1) ...
+Setting up libdaxctl1:amd64 (77-2ubuntu2) ...
+Setting up qemu-system-data (1:8.2.2+ds-0ubuntu1.18) ...
+Setting up libv4l-0t64:amd64 (1.26.1-4build3) ...
+Setting up libvpx9:amd64 (1.14.0-1ubuntu2.3) ...
+Setting up libtag1v5:amd64 (1.13.1-1build1) ...
+Setting up libasyncns0:amd64 (0.8-6build4) ...
+Setting up libwavpack1:amd64 (5.6.0-1build1) ...
+Setting up libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+Setting up ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+Setting up libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+Setting up libdecor-0-0:amd64 (0.2.2-1build2) ...
+Setting up qemu-efi-arm (2024.02-2ubuntu0.10) ...
+Setting up libndctl6:amd64 (77-2ubuntu2) ...
+Setting up librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+Setting up ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+Setting up libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+Setting up libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+Setting up glib-networking-common (2.80.0-1build1) ...
+Setting up liburing2:amd64 (2.5-1build1) ...
+Setting up libiscsi7:amd64 (1.19.0-3build4) ...
+Setting up libsamplerate0:amd64 (0.2.2-4build1) ...
+Setting up libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+Setting up libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3.3) ...
+Setting up libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+Setting up libmp3lame0:amd64 (3.100-6build1) ...
+Setting up libvorbisenc2:amd64 (1.3.7-1build3) ...
+Setting up libaa1:amd64 (1.4p5-51.1) ...
+Setting up libiec61883-0:amd64 (1.2.0-6build1) ...
+Setting up libavc1394-0:amd64 (0.5.4-5build3) ...
+Setting up gsettings-desktop-schemas (46.1-0ubuntu1) ...
+Setting up glib-networking-services (2.80.0-1build1) ...
+Setting up librados2 (19.2.3-0ubuntu0.24.04.3) ...
+Setting up libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.5) ...
+Setting up libcacard0:amd64 (1:2.8.0-3build4) ...
+Setting up libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.8) ...
+Setting up gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.5) ...
+Setting up libshout3:amd64 (2.4.6-1build2) ...
+Setting up libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+Setting up librbd1 (19.2.3-0ubuntu0.24.04.3) ...
+Setting up libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+Setting up libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+Setting up qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
+Setting up qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/run-qemu.mount → /usr/lib/systemd/system/run-qemu.mount.
+Setting up gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.5) ...
+Setting up qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/qemu-kvm.service → /usr/lib/systemd/system/qemu-kvm.service.
+Setting up libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+Setting up libspice-server1:amd64 (0.15.1-1build2) ...
+Setting up qemu-system-arm (1:8.2.2+ds-0ubuntu1.18) ...
+Setting up libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+Setting up qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.18) ...
+Setting up qemu-system-gui (1:8.2.2+ds-0ubuntu1.18) ...
+Setting up qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.18) ...
+Processing triggers for hicolor-icon-theme (0.17-2) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+Processing triggers for man-db (2.12.0-4build2) ...
+Not building database; man-db/auto-update is not 'true'.
+Processing triggers for libglib2.0-0t64:amd64 (2.80.0-6ubuntu3.10) ...
+Setting up glib-networking:amd64 (2.80.0-1build1) ...
+Setting up libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.10) ...
+Setting up gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.8) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
++ bash tools/exp76-rt-compat-audit.sh
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  163k  100  163k    0     0  1058k      0 --:--:-- --:--:-- --:--:-- 1059k
+exp76-rt.patch.xz: OK
+Cloning into 'exp76-e404'...
+Updating files:   0% (1/73877)Updating files:   1% (739/73877)Updating files:   2% (1478/73877)Updating files:   3% (2217/73877)Updating files:   4% (2956/73877)Updating files:   5% (3694/73877)Updating files:   6% (4433/73877)Updating files:   7% (5172/73877)Updating files:   8% (5911/73877)Updating files:   9% (6649/73877)Updating files:  10% (7388/73877)Updating files:  11% (8127/73877)Updating files:  11% (8827/73877)Updating files:  12% (8866/73877)Updating files:  13% (9605/73877)Updating files:  14% (10343/73877)Updating files:  15% (11082/73877)Updating files:  16% (11821/73877)Updating files:  17% (12560/73877)Updating files:  18% (13298/73877)Updating files:  19% (14037/73877)Updating files:  20% (14776/73877)Updating files:  21% (15515/73877)Updating files:  22% (16253/73877)Updating files:  23% (16992/73877)Updating files:  24% (17731/73877)Updating files:  25% (18470/73877)Updating files:  26% (19209/73877)Updating files:  27% (19947/73877)Updating files:  28% (20686/73877)Updating files:  29% (21425/73877)Updating files:  30% (22164/73877)Updating files:  31% (22902/73877)Updating files:  32% (23641/73877)Updating files:  33% (24380/73877)Updating files:  34% (25119/73877)Updating files:  35% (25857/73877)Updating files:  36% (26596/73877)Updating files:  37% (27335/73877)Updating files:  37% (27340/73877)Updating files:  38% (28074/73877)Updating files:  39% (28813/73877)Updating files:  40% (29551/73877)Updating files:  41% (30290/73877)Updating files:  42% (31029/73877)Updating files:  43% (31768/73877)Updating files:  44% (32506/73877)Updating files:  45% (33245/73877)Updating files:  46% (33984/73877)Updating files:  47% (34723/73877)Updating files:  48% (35461/73877)Updating files:  49% (36200/73877)Updating files:  50% (36939/73877)Updating files:  51% (37678/73877)Updating files:  52% (38417/73877)Updating files:  53% (39155/73877)Updating files:  54% (39894/73877)Updating files:  54% (40078/73877)Updating files:  55% (40633/73877)Updating files:  56% (41372/73877)Updating files:  57% (42110/73877)Updating files:  58% (42849/73877)Updating files:  59% (43588/73877)Updating files:  60% (44327/73877)Updating files:  61% (45065/73877)Updating files:  62% (45804/73877)Updating files:  63% (46543/73877)Updating files:  64% (47282/73877)Updating files:  65% (48021/73877)Updating files:  66% (48759/73877)Updating files:  67% (49498/73877)Updating files:  68% (50237/73877)Updating files:  69% (50976/73877)Updating files:  70% (51714/73877)Updating files:  70% (51718/73877)Updating files:  71% (52453/73877)Updating files:  72% (53192/73877)Updating files:  73% (53931/73877)Updating files:  74% (54669/73877)Updating files:  75% (55408/73877)Updating files:  76% (56147/73877)Updating files:  77% (56886/73877)Updating files:  78% (57625/73877)Updating files:  79% (58363/73877)Updating files:  80% (59102/73877)Updating files:  81% (59841/73877)Updating files:  82% (60580/73877)Updating files:  83% (61318/73877)Updating files:  84% (62057/73877)Updating files:  85% (62796/73877)Updating files:  86% (63535/73877)Updating files:  87% (64273/73877)Updating files:  88% (65012/73877)Updating files:  89% (65751/73877)Updating files:  89% (66253/73877)Updating files:  90% (66490/73877)Updating files:  91% (67229/73877)Updating files:  92% (67967/73877)Updating files:  93% (68706/73877)Updating files:  94% (69445/73877)Updating files:  95% (70184/73877)Updating files:  96% (70922/73877)Updating files:  97% (71661/73877)Updating files:  98% (72400/73877)Updating files:  99% (73139/73877)Updating files: 100% (73877/73877)Updating files: 100% (73877/73877), done.
+HEAD is now at fed88a6024cd [SQUASH]: treewide: bpf changes for a16 qpr1-2 rom support
+Cloning into 'exp76-overlay'...
+done.
+Note: switching to 'fed88a6024cd4d46c52eda607a95d97d7371ba81'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updating files:  20% (14877/73955)Updating files:  21% (15531/73955)Updating files:  22% (16271/73955)Updating files:  23% (17010/73955)Updating files:  24% (17750/73955)Updating files:  25% (18489/73955)Updating files:  26% (19229/73955)Updating files:  27% (19968/73955)Updating files:  28% (20708/73955)Updating files:  29% (21447/73955)Updating files:  30% (22187/73955)Updating files:  31% (22927/73955)Updating files:  32% (23666/73955)Updating files:  33% (24406/73955)Updating files:  34% (25145/73955)Updating files:  35% (25885/73955)Updating files:  36% (26624/73955)Updating files:  36% (27283/73955)Updating files:  37% (27364/73955)Updating files:  38% (28103/73955)Updating files:  39% (28843/73955)Updating files:  40% (29582/73955)Updating files:  41% (30322/73955)Updating files:  42% (31062/73955)Updating files:  43% (31801/73955)Updating files:  44% (32541/73955)Updating files:  45% (33280/73955)Updating files:  46% (34020/73955)Updating files:  47% (34759/73955)Updating files:  48% (35499/73955)Updating files:  49% (36238/73955)Updating files:  49% (36793/73955)Updating files:  50% (36978/73955)Updating files:  51% (37718/73955)Updating files:  52% (38457/73955)Updating files:  53% (39197/73955)Updating files:  54% (39936/73955)Updating files:  55% (40676/73955)Updating files:  56% (41415/73955)Updating files:  57% (42155/73955)Updating files:  58% (42894/73955)Updating files:  59% (43634/73955)Updating files:  60% (44373/73955)Updating files:  61% (45113/73955)Updating files:  62% (45853/73955)Updating files:  63% (46592/73955)Updating files:  64% (47332/73955)Updating files:  64% (47516/73955)Updating files:  65% (48071/73955)Updating files:  66% (48811/73955)Updating files:  67% (49550/73955)Updating files:  68% (50290/73955)Updating files:  69% (51029/73955)Updating files:  70% (51769/73955)Updating files:  71% (52509/73955)Updating files:  72% (53248/73955)Updating files:  73% (53988/73955)Updating files:  74% (54727/73955)Updating files:  75% (55467/73955)Updating files:  76% (56206/73955)Updating files:  77% (56946/73955)Updating files:  78% (57685/73955)Updating files:  79% (58425/73955)Updating files:  79% (58963/73955)Updating files:  80% (59164/73955)Updating files:  81% (59904/73955)Updating files:  82% (60644/73955)Updating files:  83% (61383/73955)Updating files:  84% (62123/73955)Updating files:  85% (62862/73955)Updating files:  86% (63602/73955)Updating files:  87% (64341/73955)Updating files:  88% (65081/73955)Updating files:  89% (65820/73955)Updating files:  90% (66560/73955)Updating files:  91% (67300/73955)Updating files:  92% (68039/73955)Updating files:  93% (68779/73955)Updating files:  94% (69518/73955)Updating files:  95% (70258/73955)Updating files:  96% (70997/73955)Updating files:  97% (71737/73955)Updating files:  98% (72476/73955)Updating files:  98% (73159/73955)Updating files:  99% (73216/73955)Updating files: 100% (73955/73955)Updating files: 100% (73955/73955), done.
+PipaExperimental-EXP01-source.zip: OK
+EXP76_UNAME_UID_SPOOF_REMOVED=PASS; NETWORK_SERVICE_EXCEPTIONS=PRESERVED; MODE=apply; FLASH_READY=false
+EXP76_UNAME_UID_SPOOF_REMOVED=PASS; NETWORK_SERVICE_EXCEPTIONS=PRESERVED; MODE=verify; FLASH_READY=false
+Cloning into 'exp76-trial-e404'...
+done.
+Note: switching to 'fed88a6024cd4d46c52eda607a95d97d7371ba81'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updating files:  21% (15705/73955)Updating files:  22% (16271/73955)Updating files:  23% (17010/73955)Updating files:  24% (17750/73955)Updating files:  25% (18489/73955)Updating files:  26% (19229/73955)Updating files:  27% (19968/73955)Updating files:  28% (20708/73955)Updating files:  29% (21447/73955)Updating files:  30% (22187/73955)Updating files:  31% (22927/73955)Updating files:  32% (23666/73955)Updating files:  33% (24406/73955)Updating files:  34% (25145/73955)Updating files:  35% (25885/73955)Updating files:  36% (26624/73955)Updating files:  37% (27364/73955)Updating files:  37% (27859/73955)Updating files:  38% (28103/73955)Updating files:  39% (28843/73955)Updating files:  40% (29582/73955)Updating files:  41% (30322/73955)Updating files:  42% (31062/73955)Updating files:  43% (31801/73955)Updating files:  44% (32541/73955)Updating files:  45% (33280/73955)Updating files:  46% (34020/73955)Updating files:  47% (34759/73955)Updating files:  48% (35499/73955)Updating files:  49% (36238/73955)Updating files:  50% (36978/73955)Updating files:  51% (37718/73955)Updating files:  52% (38457/73955)Updating files:  52% (38905/73955)Updating files:  53% (39197/73955)Updating files:  54% (39936/73955)Updating files:  55% (40676/73955)Updating files:  56% (41415/73955)Updating files:  57% (42155/73955)Updating files:  58% (42894/73955)Updating files:  59% (43634/73955)Updating files:  60% (44373/73955)Updating files:  61% (45113/73955)Updating files:  62% (45853/73955)Updating files:  63% (46592/73955)Updating files:  63% (46958/73955)Updating files:  64% (47332/73955)Updating files:  65% (48071/73955)Updating files:  66% (48811/73955)Updating files:  67% (49550/73955)Updating files:  68% (50290/73955)Updating files:  69% (51029/73955)Updating files:  70% (51769/73955)Updating files:  71% (52509/73955)Updating files:  72% (53248/73955)Updating files:  73% (53988/73955)Updating files:  74% (54727/73955)Updating files:  75% (55467/73955)Updating files:  76% (56206/73955)Updating files:  77% (56946/73955)Updating files:  77% (57088/73955)Updating files:  78% (57685/73955)Updating files:  79% (58425/73955)Updating files:  80% (59164/73955)Updating files:  81% (59904/73955)Updating files:  82% (60644/73955)Updating files:  83% (61383/73955)Updating files:  84% (62123/73955)Updating files:  85% (62862/73955)Updating files:  86% (63602/73955)Updating files:  87% (64341/73955)Updating files:  88% (65081/73955)Updating files:  89% (65820/73955)Updating files:  90% (66560/73955)Updating files:  91% (67300/73955)Updating files:  92% (68039/73955)Updating files:  93% (68779/73955)Updating files:  94% (69518/73955)Updating files:  95% (70258/73955)Updating files:  96% (70997/73955)Updating files:  96% (71537/73955)Updating files:  97% (71737/73955)Updating files:  98% (72476/73955)Updating files:  99% (73216/73955)Updating files: 100% (73955/73955)Updating files: 100% (73955/73955), done.
+Cloning into 'exp76-trial-overlay'...
+done.
+Note: switching to 'fed88a6024cd4d46c52eda607a95d97d7371ba81'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updating files:  22% (16808/73955)Updating files:  23% (17010/73955)Updating files:  24% (17750/73955)Updating files:  25% (18489/73955)Updating files:  26% (19229/73955)Updating files:  27% (19968/73955)Updating files:  28% (20708/73955)Updating files:  29% (21447/73955)Updating files:  30% (22187/73955)Updating files:  31% (22927/73955)Updating files:  32% (23666/73955)Updating files:  33% (24406/73955)Updating files:  34% (25145/73955)Updating files:  35% (25885/73955)Updating files:  36% (26624/73955)Updating files:  37% (27364/73955)Updating files:  37% (27645/73955)Updating files:  38% (28103/73955)Updating files:  39% (28843/73955)Updating files:  40% (29582/73955)Updating files:  41% (30322/73955)Updating files:  42% (31062/73955)Updating files:  43% (31801/73955)Updating files:  44% (32541/73955)Updating files:  45% (33280/73955)Updating files:  46% (34020/73955)Updating files:  47% (34759/73955)Updating files:  48% (35499/73955)Updating files:  49% (36238/73955)Updating files:  50% (36978/73955)Updating files:  51% (37718/73955)Updating files:  52% (38457/73955)Updating files:  53% (39197/73955)Updating files:  53% (39935/73955)Updating files:  54% (39936/73955)Updating files:  55% (40676/73955)Updating files:  56% (41415/73955)Updating files:  57% (42155/73955)Updating files:  58% (42894/73955)Updating files:  59% (43634/73955)Updating files:  60% (44373/73955)Updating files:  61% (45113/73955)Updating files:  62% (45853/73955)Updating files:  63% (46592/73955)Updating files:  64% (47332/73955)Updating files:  65% (48071/73955)Updating files:  65% (48336/73955)Updating files:  66% (48811/73955)Updating files:  67% (49550/73955)Updating files:  68% (50290/73955)Updating files:  69% (51029/73955)Updating files:  70% (51769/73955)Updating files:  71% (52509/73955)Updating files:  72% (53248/73955)Updating files:  73% (53988/73955)Updating files:  74% (54727/73955)Updating files:  74% (54968/73955)Updating files:  75% (55467/73955)Updating files:  76% (56206/73955)Updating files:  77% (56946/73955)Updating files:  78% (57685/73955)Updating files:  79% (58425/73955)Updating files:  80% (59164/73955)Updating files:  81% (59904/73955)Updating files:  82% (60644/73955)Updating files:  83% (61383/73955)Updating files:  84% (62123/73955)Updating files:  85% (62862/73955)Updating files:  86% (63602/73955)Updating files:  87% (64341/73955)Updating files:  87% (64689/73955)Updating files:  88% (65081/73955)Updating files:  89% (65820/73955)Updating files:  90% (66560/73955)Updating files:  91% (67300/73955)Updating files:  92% (68039/73955)Updating files:  93% (68779/73955)Updating files:  94% (69518/73955)Updating files:  95% (70258/73955)Updating files:  96% (70997/73955)Updating files:  97% (71737/73955)Updating files:  98% (72476/73955)Updating files:  99% (73216/73955)Updating files: 100% (73955/73955)Updating files: 100% (73955/73955), done.
+{
+  "e404": {
+    "files": 82,
+    "hunks": 235,
+    "priorities": {
+      "P0": 9,
+      "P1": 40,
+      "P2": 33
+    }
+  },
+  "overlay": {
+    "files": 82,
+    "hunks": 235,
+    "priorities": {
+      "P0": 9,
+      "P1": 40,
+      "P2": 33
+    }
+  }
+}
+{
+  "stage": "EXP76_RT_STAGE1_PARTIAL_ONLY",
+  "ported_files": 2,
+  "ports": [
+    {
+      "file": "arch/arm64/Kconfig",
+      "sha256_rejected_hunk": "8e081848586c4a7ebdb72533cfb2f9f40fd720aa50d1a2ea29cb0f20acb51601",
+      "source_changed": true,
+      "reject_cleared": true
+    },
+    {
+      "file": "kernel/sched/Makefile",
+      "sha256_rejected_hunk": "01f2bb2ab434204e1f31a3280ee4c9ee754a21167a78ccb9cd2f77edcb25be52",
+      "source_changed": true,
+      "reject_cleared": true
+    }
+  ],
+  "remaining_rejected_files": 80,
+  "configuration_rt_enabled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE1=2_EXACT_HUNKS_PORTED; REMAINING_REJECTED_FILES=80; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE2_PARTIAL_ONLY",
+  "file": "arch/arm64/include/asm/thread_info.h",
+  "hunk_sha256": "363e0aa915ba38addedbc1d8423a0fb369fe2b4686bb1e89eeb4e71c738c981f",
+  "applied": true,
+  "remaining_rejected_files": 79,
+  "rt_config_enabled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE2=1_ARM64_FIELD_PORTED; REMAINING_REJECTED_FILES=79; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE3_SOURCE_ONLY",
+  "ported_file": "kernel/locking/rtmutex.c",
+  "source_patched": true,
+  "rtmutex_hunk_sha256": "e9e65a6d2aa9213e00f05859bc93df5a1d64e7b7100c369caa7aacdf0986f3c5",
+  "ww_ctx_api_checked": true,
+  "e404_deadlock_signature_preserved": true,
+  "remaining_rejected_files": 78,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE3=RTMUTEX_WW_CTX_PORTED; REMAINING_REJECTED_FILES=78; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE4_SOURCE_ONLY",
+  "file": "kernel/locking/spinlock.c",
+  "rejected_hunk_sha256": "024a58992bd98d88b635d2692e3be4f32daa7529e75e48faeeb47681feed03c1",
+  "ported": true,
+  "rwlock_non_rt_guard_balanced": true,
+  "spinlock_types_header_ported": false,
+  "remaining_rejected_files": 77,
+  "kernel_built": false,
+  "config_preempt_rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE4=SPINLOCK_LEGACY_GUARD_PORTED; REMAINING_REJECTED_FILES=77; SPINLOCK_TYPES_HEADER=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "vendor_spinlock_lockdep_inner_spin": true,
+  "vendor_spinlock_lockdep_config": true,
+  "vendor_raw_lockdep_initializer": true,
+  "split_raw_spinlock_type_present": true,
+  "split_nort_spinlock_type_present": true,
+  "split_rt_spinlock_type_present": true,
+  "vendor_header_reject_unresolved": true
+}
+EXP76_SPINLOCK_TYPES_ABI_AUDIT=PASS; HEADER_PORT=BLOCKED; FLASH_READY=false
+EXP76_SPINLOCK_HEADER=ABI_REVIEW_ONLY; HEADER_PORT=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE5_SOURCE_ONLY",
+  "rejected_hunk_sha256": "a15e8b5faf0abcdce61b99b1409a0359e94cf34eba098b3f22fdc34f03ff0599",
+  "modified_headers": [
+    "include/linux/spinlock_types.h",
+    "include/linux/spinlock_types_raw.h",
+    "include/linux/spinlock_types_nort.h"
+  ],
+  "vendor_raw_lockdep": "LD_WAIT_SPIN",
+  "vendor_normal_lockdep": "LD_WAIT_CONFIG",
+  "nonrt_initializer_vendor_equivalent_source": true,
+  "port_applied": true,
+  "remaining_rejected_files": 76,
+  "compile_verified": false,
+  "runtime_verified": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE5=SPINLOCK_TYPE_SPLIT_SOURCE_PORT; REMAINING_REJECTED_FILES=76; ABI_BUILD_UNVERIFIED=true; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE6_PARTIAL_SOURCE_ONLY",
+  "verified_vendor_equivalents": [
+    "include/linux/irq_work.h: IRQ_WORK_HARD_IRQ=BIT(3)",
+    "kernel/time/tick-sched.c: atomic_t ATOMIC_INIT(IRQ_WORK_HARD_IRQ)"
+  ],
+  "source_modified_only": [
+    "include/linux/cgroup-defs.h"
+  ],
+  "resolved_rejected_files": 3,
+  "remaining_rejected_files": 73,
+  "rt_enabled": false,
+  "kernel_compiled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE6=IRQ_WORK_VENDOR_EQUIVALENCE_AND_SWORK_INCLUDE; REMAINING_REJECTED_FILES=73; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE7_PARTIAL_SOURCE_ONLY",
+  "mode": "apply",
+  "locking_makefile_port": true,
+  "legacy_locking": "moved-vendor-rwsem.o-into-existing-non-RT-guard",
+  "generic_rwsem": "vendor-source-has-no-generic-algorithm-objects",
+  "rt_locking_objects": [
+    "mutex-rt.o",
+    "rwsem-rt.o",
+    "rwlock-rt.o"
+  ],
+  "percpu_rcuwait_3arg_already_in_vendor": true,
+  "remaining_rejected_files": 71,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE7=LOCKING_MAKEFILE_AND_PERCPU_RCUWAIT; REMAINING_REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE8_RCU_VENDOR_EQUIVALENCE",
+  "input_reject_sha256": "af6142fea7219367bfdcf13db46ab291558234dd3db486462371c95845012242",
+  "original_rcu_hunks": 20,
+  "resolved_equivalent_hunks": 2,
+  "remaining_rcu_hunks": 18,
+  "vendor_include_hunk_preexisting": true,
+  "vendor_rcu_irqwork_atomic_set_preexisting": true,
+  "rcu_source_modified": false,
+  "flash_ready": false,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "applied_to_reject_manifest": true,
+  "remaining_rejected_files": 71
+}
+EXP76_RT_STAGE8=2_RCU_HUNKS_ALREADY_VENDOR_EQUIVALENT; RCU_HUNKS_REMAINING=18; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE9_RCU_SOFTIRQ_GENERATION_GATE",
+  "rcu_reject_hunks_pending": 18,
+  "rcu_compatibility": {
+    "kernel/rcu/tree.c": {
+      "sha256": "215683e6726713b105ddacfdc10d93607cb7affd1dc71a00df238542ac8fd920",
+      "new_generation_symbols": {
+        "struct rcu_state rcu_state": 1,
+        "rcu_segcblist": 63,
+        "rcu_preempt_deferred_qs": 5,
+        "rcu_softirq_qs": 1,
+        "rcu_core": 15
+      },
+      "obsolete_rt140_symbols_absent": {
+        "rcu_bh_state": 0,
+        "rcu_sched_state": 0,
+        "for_each_rcu_flavor": 0
+      }
+    },
+    "kernel/softirq.c": {
+      "sha256": "ed850f0890178fcaa4b964864dad0f244fcaa0762b27841b201639192e4d0675",
+      "new_generation_symbols": {
+        "DEFINE_PER_CPU(__u32, active_softirqs)": 1
+      },
+      "obsolete_rt140_symbols_absent": {}
+    }
+  },
+  "post_patch_abi_probes": {
+    "include/linux/sched.h": {
+      "softirqs_raised": 1,
+      "sleeping_lock": 6,
+      "pi_blocked_on": 1,
+      "CONFIG_PREEMPT_RT_FULL": 7
+    },
+    "kernel/softirq.c": {
+      "ktimer_softirqd": 13,
+      "softirq_check_pending_idle": 0,
+      "run_ksoftirqd": 3,
+      "softirq_set_runner": 1,
+      "CONFIG_PREEMPT_RT_FULL": 6
+    },
+    "kernel/rcu/tree.c": {
+      "rcu_bh_qs": 0,
+      "rcu_softirq_qs": 1,
+      "rcu_cpu_kthread": 12,
+      "rcu_segcblist": 63,
+      "rcu_core": 15
+    }
+  },
+  "rt140_rcu_blind_port_permitted": false,
+  "softirq_port_pending": true,
+  "rcu_port_pending": true,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE9=RCU_SOFTIRQ_GENERATION_AUDITED; PORT_NOT_COMPLETE; FLASH_READY=false
+EXP76_RT_STAGE9=RCU_GENERATION_DIFFERENCE_DOCUMENTED; RCU_PORT_PENDING=true; SOFTIRQ_PORT_PENDING=true; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE10_RCUWAIT_PARTIAL",
+  "vendor_equivalent_hunks": 2,
+  "rcuwait_active_added": true,
+  "rcuwait_remaining_hunks": 2,
+  "wakeup_signature_changed": true,
+  "wakeup_return_type": "int",
+  "wait_lifecycle_changed": false,
+  "remaining_rejected_files": 71,
+  "kernel_built": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE10=RCUWAIT_ACTIVE_PORTED; RCUWAIT_HUNKS_REMAINING=2; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE11_RCUWAIT_LIFECYCLE",
+  "applied": true,
+  "prepare_to_rcuwait": true,
+  "finish_rcuwait_definition_already_in_rt_update_c": true,
+  "wakeup_return_type": "int",
+  "wait_signal_behavior_preserved": true,
+  "remaining_rcuwait_reject_hunks": 0,
+  "remaining_rejected_files": 70,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE11=RCUWAIT_LIFECYCLE_LINKED; REJECTED_FILES=70; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE12_RCUUPDATE_LOCKDEP",
+  "applied": true,
+  "vendor_call_rcu_bh_already_forwards": true,
+  "debug_lockdep_bh_inlined_on_rt": true,
+  "nonrt_bh_lockdep_declaration_preserved": true,
+  "rejected_hunks_resolved": 2,
+  "remaining_rejected_files": 69,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE12=RCUPDATE_BH_LOCKDEP_PORTED; REJECTED_FILES=69; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE13_CONSOLIDATED_RCU_EQUIVALENCE",
+  "synchronize_rcu_bh_already_forwards": true,
+  "rcu_barrier_bh_already_forwards": true,
+  "source_files_changed": 0,
+  "obsolete_hunks_accounted": 2,
+  "remaining_rejected_files": 68,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE13=UNIFIED_RCU_BH_WRAPPERS_ALREADY_PRESENT; REJECTED_FILES=68; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE14_WAKE_Q_ABI",
+  "applied": true,
+  "scheduler_core_uses_rt_internal_wake_queue": true,
+  "task_struct_wake_q_sleeper_verified": true,
+  "public_wrappers_match_core": true,
+  "remaining_rejected_files": 67,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE14=WAKE_QUEUE_ABI_LINKED; REJECTED_FILES=67; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE15_SCHED_FEATURE_ABI",
+  "applied": true,
+  "vendor_ttwu_queue_preserved": 0,
+  "preempt_lazy_feature_defined_only_under_rt_lazy_config": true,
+  "rt_scheduler_resched_curr_lazy_feature_reference_satisfied": true,
+  "remaining_rejected_files": 66,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE15=PREEMPT_LAZY_FEATURE_ABI_PORTED; REJECTED_FILES=66; KERNEL_BUILT=false; FLASH_READY=false
+EXP76_STAGE15_HOST_C_FEATURE_TESTS=3_PASS; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "classification": "COMPILE_BLOCKER_UNTIL_AFFINITY_ABI_RECONCILED",
+  "affected_files_count": 18,
+  "added_affinity_references": {
+    "->cpus_mask": 9,
+    "->cpus_ptr": 32
+  },
+  "remaining_rejected_files": 66
+}
+EXP76_RT_STAGE16=AFFINITY_ABI_BLOCKER_IDENTIFIED; KERNEL_BUILT=false; FLASH_READY=false
+EXP76_RT_STAGE16=AFFINITY_ABI_BLOCKER_DOCUMENTED; REJECTED_FILES=66; BUILD_BLOCKED=true; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE17_WAKE_FLAGS",
+  "applied": true,
+  "e404_wf_ttwu": "0x8",
+  "rt140_original_wf_lock_sleeper": "0x08 (collides with E404 WF_TTWU)",
+  "ported_wf_lock_sleeper": "0x100",
+  "wake_flag_collision": false,
+  "nr_pinned_hunk_retained": true,
+  "sched_h_rejected_hunks_remaining": 1,
+  "remaining_rejected_files": 66,
+  "scheduler_affinity_abi_blocked": true,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE17=COLLISION_FREE_WAKE_LOCK_FLAG_PORTED; REJECTED_FILES=66; NR_PINNED=PENDING; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE19_COMPILER_HEADER_FIXES",
+  "applied": true,
+  "rwsem_rt_header_branch_completed": true,
+  "interrupt_rt_softirq_branch_completed": true,
+  "sched_task_macro_collision_removed": true,
+  "task_sleeping_lock_field_added": true,
+  "rcu_assign_pointer_vendor_definition_preserved": true,
+  "irq_functional_reject_remaining": true,
+  "sched_affinity_reject_remaining": true,
+  "sleeping_lock_lifecycle_review_required": true,
+  "remaining_rejected_files": 65,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE19=COMPILER_HEADER_FIXES_PORTED; REJECTED_FILES=65; SCHED_AFFINITY_BLOCKED=true; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE20_SWAP_LOCALLOCK_AND_PERCPU_RWSEM_ABI",
+  "applied": true,
+  "swap_locallock_reject_sha256": "445ee7f190e53347b5d25fbbcc9e29ba37a946763323743de2b9044ec8261370",
+  "swap_locallock_include_ported": true,
+  "percpu_owner_access_non_rt_only": true,
+  "remaining_rejected_files": 64,
+  "rcu_assign_pointer_warning_pending": true,
+  "scheduler_affinity_abi_pending": true,
+  "sleeping_lock_lifecycle_review_required": true,
+  "objects_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE20=SWAP_LOCALLOCK_AND_RWSEM_OWNER_GUARDED; REJECTED_FILES=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED",
+  "applied": true,
+  "rbtree_vendor_rcupdate_import": true,
+  "rcu_assign_pointer_vendor_macro_preserved": true,
+  "upstream_rcu_helper_unreferenced_by_rbtree": true,
+  "rcu_redefinition_warning_clearance_unverified": true,
+  "remaining_rejected_files": 64,
+  "scheduler_affinity_abi_pending": true,
+  "sleeping_lock_lifecycle_review_required": true,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE21=E404_RCU_INCLUDE_RESTORED; REJECTED_FILES=64; RCU_RUNTIME_PORT=PENDING; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE26_E404_ARM64_FORK_VALUE_AFFINITY",
+  "applied": true,
+  "arm64_task_copy_by_value_verified": true,
+  "vendor_cpus_allowed_mask_preserved": true,
+  "rt_cpus_ptr_rebase_removed": true,
+  "remaining_rejected_files": 64,
+  "scheduler_core_migration_and_affinity_pending": true,
+  "kernel_fork_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE26=FORK_VALUE_AFFINITY_RECONCILED; REJECTED_FILES=64; SCHEDULER_CORE_PENDING=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION",
+  "applied": true,
+  "vendor_embedded_cpus_allowed_preserved": true,
+  "replaced_rt_affinity_sites": 8,
+  "remaining_rejected_files": 64,
+  "migrate_disable_runtime_semantics_pending": true,
+  "check_task_state_runtime_semantics_pending": true,
+  "scheduler_core_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE27=CORE_VENDOR_AFFINITY_RECONCILED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE28_RT_TASK_STATE_LOCKED_HELPER_RESTORED",
+  "applied": true,
+  "saved_state_verified": true,
+  "task_pi_lock_verified": true,
+  "check_task_state_uses_raw_spin_lock_irq": true,
+  "remaining_rejected_files": 64,
+  "migrate_disable_runtime_abi_pending": true,
+  "sleeping_lock_lifecycle_pending": true,
+  "scheduler_core_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE28=TASK_STATE_HELPER_RESTORED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE29_E404_RT_MIGRATION_TASK_ABI",
+  "applied": true,
+  "vendor_cpus_allowed_preserved": true,
+  "rt_task_migrate_disable_added": true,
+  "rt_task_migrate_disable_scheduled_added": true,
+  "task_fork_rt_fields_initialized": true,
+  "remaining_rejected_files": 64,
+  "migration_disable_enable_runtime_implemented": false,
+  "rq_nr_pinned_hotplug_lifecycle_implemented": false,
+  "sleeping_lock_lifecycle_audited": false,
+  "scheduler_core_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE29=RT_TASK_FIELDS_AND_FORK_INIT_ONLY; REJECTED_FILES=64; RT_MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
+  "applied": true,
+  "replaced_fragments": 12,
+  "stage32_fair_numa_affinity_reconciled": true,
+  "stage33_preexisting_vendor_fair_cpus_ptr_reconciled": true,
+  "updated_source_paths": [
+    "kernel/sched/deadline.c",
+    "kernel/sched/fair.c",
+    "kernel/sched/rt.c"
+  ],
+  "vendor_embedded_cpus_allowed_preserved": true,
+  "remaining_rejected_files": 64,
+  "migration_runtime_implemented": false,
+  "rt_locking_semantics_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE31=VENDOR_SCHED_CLASSES_AFFINITY; REJECTED_FILES=64; MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED",
+  "applied": true,
+  "rt_rejected_hunk_verified": true,
+  "swork_backend_and_makefile_verified": true,
+  "swork_queue_and_init_restored": true,
+  "remaining_rejected_files": 64,
+  "timer_object_compiled": false,
+  "timer_runtime_semantics_verified": false,
+  "complete_rt_migration_lifecycle": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE34=TIMER_SWORK_QUEUE_AND_INIT_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE35_RT_MIGHT_SLEEP_NO_STATE_CHECK",
+  "applied": true,
+  "debug_branch_uses_triple_underscore_might_sleep": true,
+  "nondebug_branch_preserves_might_resched": true,
+  "rtmutex_call_site_verified": true,
+  "remaining_rejected_files": 64,
+  "rtmutex_object_compiled": false,
+  "rt_mutex_runtime_semantics_verified": false,
+  "migration_runtime_implemented": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE35=KERNEL_SLEEP_CHECK_MACROS_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE36_RT_CPU_PINNING_CONTRACT_INVENTORY",
+  "read_only_kernel_tree": true,
+  "upstream_rt_core_rejected_hunk_verified": true,
+  "upstream_rt_runqueue_rejected_hunk_verified": true,
+  "vendor_embedded_cpus_allowed_verified": true,
+  "task_migrate_disable_fields_verified": true,
+  "cpu_hotplug_calls_cpu_nr_pinned": 2,
+  "core_migrate_disabled_sched_only_declared": true,
+  "core_migrate_disable_and_enable_implemented": false,
+  "core_cpu_nr_pinned_implemented": false,
+  "runqueue_nr_pinned_field_implemented": false,
+  "rt_upstream_pointer_mask_requires_vendor_port": true,
+  "cross_file_runtime_contract_complete": false,
+  "blockers": [
+    "kernel/sched/core.c: restore real nested migrate_disable and migrate_enable lifecycle",
+    "kernel/sched/core.c: restore migrate_disabled_sched with E404 cpus_allowed ABI",
+    "kernel/sched/sched.h: add nr_pinned counter in rq under RT+SMP",
+    "kernel/sched/core.c: maintain nr_pinned on disable/enable and handle hotplug wakeup",
+    "kernel/sched/core.c: implement cpu_nr_pinned only with functional tracked counter",
+    "kernel/cpu.c: preserve hotplug -EAGAIN and task wakeup behavior",
+    "include/linux/sched.h: preserve E404 embedded cpus_allowed/cpus_requested masks"
+  ],
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE36=RT_PINNING_LIFECYCLE_INVENTORIED; CPU_NR_PINNED_RUNTIME_MISSING=true; FLASH_READY=false
+{
+  "conditional_directives_checked": 54,
+  "preprocessor_branches_balanced": true,
+  "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS",
+  "applied": true,
+  "original_rejected_hunks_consumed": 4,
+  "stage39_invoke_softirq_guard_restored": true,
+  "rt_ktimer_worker_declaration_restored": true,
+  "rt_nohz_runner_tracking_restored": true,
+  "rt_vector_handler_restored": true,
+  "non_rt_softirq_dispatch_restored": true,
+  "paired_preempt_rt_branch_guard_restored": true,
+  "remaining_rejected_files": 64,
+  "softirq_object_compiled": false,
+  "full_softirq_semantics_verified": false,
+  "migration_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE39=SOFTIRQ_RT_DUAL_GUARDS_PORTED; SOFTIRQ_RUNTIME_VERIFIED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE40_RT_SLEEPING_LOCK_TASK_ABI",
+  "applied": true,
+  "original_rt_reject_sleeping_lock_verified": true,
+  "rt_softirq_runner_sleeping_lock_reference_verified": true,
+  "task_field_and_fork_initialization_ported": true,
+  "vendor_embedded_cpus_allowed_preserved": true,
+  "remaining_rejected_files": 64,
+  "sleeping_lock_runtime_lifecycle_verified": false,
+  "softirq_object_compiled": false,
+  "migration_runtime_implemented": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE40=RT_TASK_SLEEPING_LOCK_REJECT_PORTED; FULL_RT_RUNTIME_VERIFIED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE41_RT_MIGRATION_LIFECYCLE_E404",
+  "applied": true,
+  "original_rt_migration_hunk_ported": true,
+  "nested_migrate_disable_enable_present": true,
+  "runqueue_nr_pinned_counted": true,
+  "cpu_nr_pinned_reads_accounted_runqueue": true,
+  "saved_vendor_affinity_mask_and_setaffinity_deferral": true,
+  "upstream_async_stopper_safety_checks_preserved": true,
+  "cpu_hotplug_caller_unchanged": true,
+  "remaining_rejected_files": 64,
+  "migration_runtime_semantics_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE41=RT_MIGRATION_E404_PORT_APPLIED; MIGRATION_RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE42_RT_CPU_HOTPLUG_PIN_DRAIN_ARM64_TLB",
+  "applied": true,
+  "takedown_cpu_task_lifecycle_ported": true,
+  "preexisting_upstream_hotplug_reused": true,
+  "pinned_task_wait_and_eagain_retry_ported": true,
+  "bounded_takedown_function_scope_verified": true,
+  "pin_drain_wakeup_preserved": true,
+  "optional_arch_tlb_hook_preserved": true,
+  "arm64_tlb_hook_absent_in_pinned_e404": true,
+  "remaining_rejected_files": 64,
+  "cpu_object_compiled": false,
+  "scheduler_core_compiled": false,
+  "migration_hotplug_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE42=HOTPLUG_PIN_DRAIN_TLB_ARCH_GUARD; HOTPLUG_RUNTIME_VERIFIED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE47_RCU_PREPROCESSOR_AND_WORKQUEUE_RAW_LOCK",
+  "rcu_update_prepatch_unclosed": 1,
+  "rcu_plugin_prepatch_unclosed": 1,
+  "rcu_postpatch_preprocessor_balanced": true,
+  "workqueue_sleeping_pair_ported": true,
+  "unrelated_workqueue_spinlock_calls_unchanged": true,
+  "remaining_rejected_files": 64,
+  "rcu_runtime_verified": false,
+  "workqueue_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE47=RCU_PREPROCESSOR_AND_WORKER_RAW_LOCK_PORTED; RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE51_NEIGH_HH_RT_MUTABLE_POINTER_NONFLASH",
+  "source": "include/net/neighbour.h",
+  "original_sha256": "ed33eabbd4bec9e5300bf25f0a8375d1c8295677ee7ea38c8424a0525d042275",
+  "patched_sha256": "598f34d7c36af6fd833a557a3ddab654add23f5cf0ee72ac8a99614c5f7b2052",
+  "rt_neigh_hh_output_requires_mutable_pointer": true,
+  "e404_skip_cache_signature_preserved": true,
+  "changed_only_neigh_output_local_const_qualifier": true,
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE51=NEIGH_HH_MUTABLE_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE52_CGROUP_HEADER_CPUSET_RAW_LOCK_NONFLASH",
+  "original_sha256": {
+    "include/linux/blk-cgroup.h": "d49abd28cb02696fdf7444ad9b44ca34ded682c9c668b240adaa600ac92dd50e",
+    "kernel/cgroup/cpuset.c": "11baa684953b090f6ff9c13a02d014af50952e798883b9614d1d48b1eb505d22"
+  },
+  "patched_sha256": {
+    "include/linux/blk-cgroup.h": "0fb877e34f2e1a1ce238f6854102f9115504425960c9e5c82c8ca406fb293a7f",
+    "kernel/cgroup/cpuset.c": "a8dbf9e7f6c6e7a4a1cfc64dbb9f9cc9d5c3965fc8cf90bbb7e085d7b033f9fe"
+  },
+  "cgroup_header_restored": true,
+  "kthread_header_preserved": true,
+  "callback_lock_remains_raw": true,
+  "vendor_raw_lock_pairs_reconciled": 2,
+  "e404_task_cpus_allowed_abi_restored": true,
+  "remaining_rejected_files": 64,
+  "rt_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE52=CGROUP_CSS_AND_CPUSET_RAW_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE53_RT_LRU_DRAIN_E404_CPUDEADLINE_NONFLASH",
+  "original_sha256": {
+    "mm/swap.c": "4185b89849baa0ef7887b6290d328d4f52780d8a5da2ca5d87d788c5208c2c88",
+    "kernel/sched/cpudeadline.c": "af2cc743cedff208d406202f92e4e0fe9af09780de451ddea4413b3c5d16ee62"
+  },
+  "patched_sha256": {
+    "mm/swap.c": "94a0c4a978abb1d95784b5e94a15fea5a495c4179f48f1c4be53c716004c7fe8",
+    "kernel/sched/cpudeadline.c": "2125b2051adea45326b73ade312d0d42cd55c4249c7d3698dbfd64b01c956d95"
+  },
+  "rt_remote_lru_drain_helper_preserved": true,
+  "nonrt_percpu_work_and_flush_preserved": true,
+  "vendor_pagevec_conditions_preserved": true,
+  "deadline_cpus_allowed_abi_restored": true,
+  "remaining_rejected_files": 64,
+  "rt_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE53=RT_LRU_DRAIN_AND_E404_CPUDEADLINE_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE54_POSIX_RCU_CPU_TIMER_EXPIRY_NONFLASH",
+  "rt_rejected_hunks_sha256_verified": true,
+  "timer_rcu_head_out_of_union": true,
+  "per_cpu_expiry_lock_defined": true,
+  "posix_timer_lifetime_wait_helper_defined": true,
+  "rt_nonrt_worker_dispatch_preserved": true,
+  "e404_timer_tick_task_argument_linked": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "include/linux/posix-timers.h": "132eefd057db191379774ff6d512329fbd9c7f17cbb1e6d0db286a13134561dc",
+    "kernel/time/posix-cpu-timers.c": "86942cf284d1984829938a19834bede7e96f3ac9e37af4123f706ce84e6aff66",
+    "kernel/time/timer.c": "b1254a39cb229e3c8da3ed74baef53f0fc79c03180548559d53257db5c766427"
+  },
+  "applied": true
+}
+EXP76_STAGE54=POSIX_TIMER_RCU_EXPIRY_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE55_ATOMIC_IRQ_WORK_AND_VENDOR_RWSEM_NONFLASH",
+  "irq_work_flags_atomic_t_preserved": true,
+  "irq_work_hard_irq_atomic_or": true,
+  "vendor_nandswap_rom_type_guard_preserved": true,
+  "rt_and_nonrt_rwsem_is_contended_helper_verified": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "kernel/sched/topology.c": "e27e019bcd4d5fd091430baa14fabff3e64a816f2237c3b0958caa8b7a03f4c7",
+    "mm/madvise.c": "cd8de53e2306ad88bc759214d7d15665c798e3cfc3f11d9a4a8be171bc5d0bf5"
+  },
+  "patched_sha256": {
+    "kernel/sched/topology.c": "39753e125ad4a8f519063260ff9e59f54d95f3a665995b63088def4770a9a900",
+    "mm/madvise.c": "e3668daa8926b7837b50b4cabd4bf1296c99878f6326034d9e3a64e81452e957"
+  },
+  "applied": true
+}
+EXP76_STAGE55=ATOMIC_IRQ_WORK_VENDOR_RWSEM_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE56_SLUB_IRQ_POSIX_NONRT_WARN_NONFLASH",
+  "slub_irq_entry_exit_predicate_matched": true,
+  "slub_rt_boot_state_gate_preserved": true,
+  "posix_rt_nonrt_warning_macro_defined": true,
+  "posix_cpu_timer_warning_consumer_verified": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "source_sha256": {
+    "mm/slub.c": "670918ee77f064c9c824d9b36fbbedd454903d410951ca555f8b5e3918201ee2",
+    "include/asm-generic/bug.h": "d78ee454a79b76a468044591ef91378e8ad4b5fdfd57071a97707f829a0bc731",
+    "kernel/time/posix-cpu-timers.c": "acfc9d4fc456987a5008bf0b4980bb919a8599ff2a17782a772d7b7e9cb7181e"
+  },
+  "patched_sha256": {
+    "mm/slub.c": "baa1f45c05e82d925b1c5ba5b4e518e2491a64483551b1e0a7eb46319630cf39",
+    "include/asm-generic/bug.h": "46598cc524805d99ddc936275ce8a33862b856523b033681be107ae2084d8366"
+  },
+  "applied": true
+}
+EXP76_STAGE56=SLUB_IRQ_AND_POSIX_NONRT_WARNING_ABI; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE57_RT_RWLOCK_CONTENTION_NOHZ_SOFTIRQ_ABI_NONFLASH",
+  "rt_rwlock_waiters_checked_under_raw_spinlock": true,
+  "vendor_zsmalloc_compaction_condition_preserved": true,
+  "nonrt_rwlock_api_preserved": true,
+  "rt_and_nonrt_nohz_softirq_implementation_verified": true,
+  "nohz_softirq_public_prototype_guarded": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "include/linux/rwlock_rt.h": "b8de0e144375c54302574231cf635dd93a401a9f8a18eb06d5b5016529b45c98",
+    "include/linux/interrupt.h": "f56e72088238132e1ed61a91636363e87ba984ac621eaf37144fc0f935392cf9"
+  },
+  "patched_sha256": {
+    "include/linux/rwlock_rt.h": "3d88f1b6ff202226fcb1969de3baf602aba69a9f842d302debf9cfddc8cc5574",
+    "include/linux/interrupt.h": "c83b4e9de719e859faad785554ccdea8e9b7b794b8f995c5de25e3fad28f9098"
+  },
+  "applied": true
+}
+EXP76_STAGE57=RT_RWLOCK_NOHZ_SOFTIRQ_DECLARED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE58_OUT_OF_LINE_RT_RWLOCK_WAITER_QUERY_NONFLASH",
+  "rt_waiter_query_out_of_header": true,
+  "raw_spinlock_query_and_unlock_preserved": true,
+  "rt_mutex_waiter_tree_access_unchanged": true,
+  "rwlock_query_exported_for_modules": true,
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "runtime_verified": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "include/linux/rwlock_rt.h": "3d88f1b6ff202226fcb1969de3baf602aba69a9f842d302debf9cfddc8cc5574",
+    "kernel/locking/rwlock-rt.c": "7f24bae2e1e5868052c950c0dcf14b224833d44d8630bcc36c8b26c68bfb5966"
+  },
+  "patched_sha256": {
+    "include/linux/rwlock_rt.h": "870c8a90ebd1a51b79ad21ac3fa842ff3d8fd4b46d7df44d63ac24b37734032b",
+    "kernel/locking/rwlock-rt.c": "ecd0f7a03e0abb0506b413df20a3488926ef22bddf5cca508d7fea16a0406bbb"
+  },
+  "applied": true
+}
+EXP76_STAGE58=RT_RWLOCK_QUERY_OUT_OF_LINE; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE59_KTHREAD_RAW_SPIN_PROC_CPU_AFFINITY_NONFLASH",
+  "worker_raw_lock_type_verified": true,
+  "worker_raw_lock_pairs_restored": 2,
+  "worker_lock_ops_reconciled": 4,
+  "existing_rt_worker_lock_ops_preserved": true,
+  "e404_task_cpus_allowed_verified": true,
+  "proc_affinity_mask_references_restored": 2,
+  "proc_output_formats_preserved": true,
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "runtime_verified": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "kernel/kthread.c": "fb65f9bda7fcd70701eb2ce84a96aa69eb6817394972397c71e197f78a2a8d2a",
+    "fs/proc/array.c": "d5f7aa0357abdc01b9f03d89fa9184a61c78fa23f88483a7e5b49add740fa6c0"
+  },
+  "patched_sha256": {
+    "kernel/kthread.c": "8984b5978aa4324acfe26a81fd642cd04e422f0f6d0f3e1f4abd5eceaaedecd2",
+    "fs/proc/array.c": "a91cdcc1bf33a36c379925b8ef7625201e841b3b85ddab0e2bcf6baa4abe219d"
+  },
+  "applied": true
+}
+EXP76_STAGE59=KTHREAD_WORKER_RAW_AND_PROC_AFFINITY_E404_PORTED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE60_FUTEX_RT_SLEEPER_HB2_NONFLASH",
+  "rt_rejected_futex_hunk_sha256_verified": true,
+  "futex_timeout_clock_mode_and_task_preserved": true,
+  "on_stack_sleeper_4arg_abi_linked": true,
+  "hb2_only_declaration_restored": true,
+  "rt_pi_waiter_and_requeue_locking_unchanged": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "ec086a90ec663c03a1022896dc69fc71ed907a3363de1344c8ddec13feca294b",
+  "patched_sha256": "54c413e777b98288db27e66b854109d100093523345952d6c15e0e50924eedd0",
+  "applied": true
+}
+EXP76_STAGE60=FUTEX_RT_SLEEPER_HB2_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE61_SMP_IDLE_RT_SOFTIRQ_USERFAULTFD_SEQLOCK_NONFLASH",
+  "rt_idle_dispatch_uses_existing_softirq_threads": true,
+  "nonrt_direct_do_softirq_preserved": true,
+  "rt_timer_and_regular_softirq_workers_woken": true,
+  "userfaultfd_refile_seqlock_layout_reconciled": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "kernel/smp.c": "4d38f2a7e484fbb383390191811c0df0839c0db743334397d407365ad1209a4e",
+    "kernel/softirq.c": "07bdc28ccb54e30adfc1959be1480266461e9675662978d2571ea5c94fde46b1",
+    "include/linux/interrupt.h": "c83b4e9de719e859faad785554ccdea8e9b7b794b8f995c5de25e3fad28f9098",
+    "fs/userfaultfd.c": "3523c4b901873be8a6d0818fda75a83d22b51e44611e649e921483d33c0e4790"
+  },
+  "patched_sha256": {
+    "kernel/smp.c": "de7cb5698a29ccec0df8debba4c012fe8ca7f247eb8da230c9b31b8e401b6c87",
+    "kernel/softirq.c": "97c8a138c308d4589406b76ab5acaf8c396ec39361b5aa1660ede44b485c112c",
+    "include/linux/interrupt.h": "89c3c2160d3d5deeb89e22627bd059c9a6e2ee1e33b0571028f8f5fd4ef815f7",
+    "fs/userfaultfd.c": "c77da01985fda80e3c9d0aa7066d496c3fa54fe5064a449c8228e8aa9c1039c4"
+  },
+  "applied": true
+}
+EXP76_STAGE61=RT_SOFTIRQ_THREAD_WAKE_AND_USERFAULTFD_SEQLOCK; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE62_OF_PHANDLE_CACHE_DEFERRED_KFREE_NONFLASH",
+  "rt_shadow_assignment_type_reconciled": true,
+  "phandle_cache_detach_under_raw_lock": true,
+  "cache_node_references_released_as_before": true,
+  "retired_cache_kfree_after_unlock": true,
+  "rt_allocation_unlock_relock_preserved": true,
+  "outstanding_rt_rejects": 64,
+  "full_kernel_link_performed": false,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "8bd57b89cba751bfe9088b65a5388425371475ad64326fe28ed45d1e097dec34",
+  "patched_sha256": "47203a59999b1d129e6eea2f655a0aa86ed4bb119bbbce858f429b4c280309e8",
+  "applied": true
+}
+EXP76_STAGE62=OF_PHANDLE_CACHE_DEFERRED_KFREE_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE63_OPLUS_NANDSWAP_RT_SPINLOCK_INIT_NONFLASH",
+  "target": "drivers/oplus/nandswap_core.c",
+  "pinned_function": "ns_task_insert",
+  "old_assignment_removed": true,
+  "dynamic_spinlock_initialized_with_api": true,
+  "allocation_failure_guard_preserved": true,
+  "outstanding_rt_rejects": 64,
+  "full_kernel_link_performed": false,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "ccef1799c2677f85110814ad04bed8be2387cac3d94dad573b782727682b90c4",
+  "patched_sha256": "ece9b3ce84c767ce73faa67c801e6380dfff1f95e43d600fab6580c21b244e39",
+  "applied": true
+}
+EXP76_STAGE63=NANDSWAP_RT_SPINLOCK_INIT; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE64_ION_SECURE_HEAP_RT_SPINLOCK_INIT_NONFLASH",
+  "target": "drivers/staging/android/ion/ion_system_secure_heap.c",
+  "pinned_function": "ion_system_secure_heap_create",
+  "static_initializer_assignment_removed": true,
+  "dynamic_spinlock_initialized_with_api": true,
+  "allocation_failure_guard_preserved": true,
+  "delayed_work_setup_preserved": true,
+  "outstanding_rt_rejects": 64,
+  "full_kernel_link_performed": false,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "f94ea924fcc29a363d31d064337e46962c9c5fe018c72635be84a0745b1ad3e5",
+  "patched_sha256": "42fc45bd8a34cbe41cd5e9a2e2526df4fecf70c08feba2b2aabc0725b031be57",
+  "applied": true
+}
+EXP76_STAGE64=ION_SECURE_HEAP_RT_SPINLOCK_INIT; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_PARTIAL_SOURCE_EXPORT",
+  "e404_pinned_sha": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+  "nonflash_only": true,
+  "unresolved_rejected_files": 64,
+  "additional_new_source_files": 19,
+  "cumulative_patch_sha256": "84025e240ce112267f99baadc208c87a025c7389734bdbfecc1c36f4559ac66e",
+  "reapply_to_clean_e404": "PASS",
+  "kernel_compiled": false,
+  "preempt_rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_PARTIAL_SOURCE=REAPPLY_CHECKED; RT_NOT_BUILT=true; FLASH_READY=false
+EXP76_RT_STAGE=AUDIT_ONLY
+RT_SOURCE=4.19.325-rt140
+E404_SOURCE_COMMIT=fed88a6024cd4d46c52eda607a95d97d7371ba81
+EXACT_VERSION_MATCH=false
+e404.apply_check=FAIL
+e404.reject_count=82
+overlay.apply_check=FAIL
+overlay.reject_count=82
+EXP75_INLINE_OVERLAYS_REPRODUCED=false
+EXP76_UNAME_SOURCE_FIX=APPLIED_IN_AUDIT_TREE_ONLY
+CONFIG_PREEMPT_RT_FULL_ENABLED=false
+KERNEL_BUILT=false
+DEVICE_TESTED=false
+FLASH_READY=false
++ test -s exp76-trial-overlay/mm/page_alloc.c.rej
++ cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
++ cp exp76-trial-overlay/mm/page_alloc.c reports/page_alloc.before.c
++ cd exp76-trial-overlay
++ python3 -
++ patch --batch --forward --fuzz=0 --dry-run -p1
++ patch --batch --forward --fuzz=0 -p1
++ git diff -- mm/page_alloc.c
++ cp mm/page_alloc.c ../reports/page_alloc.after.c
++ cmp -s mm/page_alloc.c ../reports/page_alloc.after.c
++ test -s ../reports/applied.patch
++ make ARCH=arm64 LLVM=1 defconfig
++ echo DEFCONFIG_FAILED
++ exit 20
