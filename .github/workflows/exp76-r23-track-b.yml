@@ -1,5 +1,5 @@
 # YAML / GitHub Actions Ubuntu24 / EXP76 R23 B E404 minimal Kconfig RT Clang21 / NO FLASH
-name: EXP76 R23 B E404 RT minimal-config QEMU (NO FLASH)
+name: EXP76 R23 B fallback vendor-defconfig minus staging WLAN (NO FLASH)
 on:
   push:
     branches: [exp76-r23-b-minimal]
@@ -173,7 +173,7 @@ jobs:
           # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
           from pathlib import Path
           import json
-          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB','CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI','MHI_SATELLITE','KSU','BPF_SYSCALL','PROC_SYSCTL','SYSCTL']
+          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','STAGING','QCA_CLD_WLAN','WIRELESS','WLAN','QCOM_CLK_RPMH','QCOM_COMMAND_DB','CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI','MHI_SATELLITE','KSU','BPF_SYSCALL','PROC_SYSCTL','SYSCTL']
           Path('r23b/reports/disabled-requested.json').write_text(json.dumps(off,indent=2)+'\n')
           PY
           for iter in 1 2 3 4; do
@@ -208,6 +208,7 @@ jobs:
           if grep -qx 'CONFIG_PROC_SYSCTL=y' "$O/.config"; then echo 'R23_B_PROC_SYSCTL_RESELECTED'; exit 8; fi
           if grep -qx 'CONFIG_SYSCTL=y' "$O/.config"; then echo 'R23_B_SYSCTL_RESELECTED'; exit 8; fi
           if grep -qx 'CONFIG_MHI_BUS=y' "$O/.config"; then echo 'R23_B_MHI_BUS_RESELECTED'; exit 8; fi
+          grep -qx '# CONFIG_QCA_CLD_WLAN is not set' "$O/.config" || { echo 'R23_B_WLAN_NOT_DISABLED'; exit 8; }
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
       - name: Build minimal E404 RT ARM64 Image and boot QEMU
