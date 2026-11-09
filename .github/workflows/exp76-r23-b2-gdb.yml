@@ -1,0 +1,66 @@
+# YAML / Ubuntu 24.04 GitHub Actions / pinned E404 RT B2 QEMU GDB + TB trace / NO FLASH
+name: EXP76 R23 B2 first Image pinned QEMU GDB TB forensics (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-r23-b2-gdb.yml'
+      - 'tools/exp76-rt23-track-b2-gdb.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  b2-pinned-kernel-debug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain exact B2 Image, ELF, System.map and effective Kconfig from validated build run
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-r23-track-b2-allnoconfig-NOFLASH
+          run-id: 42629841386
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r23/b2-gdb/input
+      - name: Obtain exact original initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r23/b2-gdb/initramfs-source
+      - name: Install QEMU and GDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm gdb-multiarch
+          command -v qemu-system-aarch64
+          command -v gdb-multiarch
+          python3 -m py_compile tools/exp76-rt23-track-b2-gdb.py tools/exp76-rt23-track-c-gdb.py
+      - name: Capture two CPU stack snapshots and all QEMU translated-block execution
+        shell: bash
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt23-track-b2-gdb.py \
+            --artifact-root exp76-r23/b2-gdb/input \
+            --initramfs exp76-r23/b2-gdb/initramfs-source/smoke-initramfs.cpio.gz \
+            --out exp76-r23/b2-gdb/reports \
+            --interval 6
+          test -s exp76-r23/b2-gdb/reports/exp76-track-b2-gdb.json
+          test -s exp76-r23/b2-gdb/reports/gdb-snapshot-1.txt
+          test -s exp76-r23/b2-gdb/reports/gdb-snapshot-2.txt
+          test -s exp76-r23/b2-gdb/reports/qemu-tb-exec-int.log.gz
+          test -s exp76-r23/b2-gdb/reports/console-full.txt
+      - name: Preserve full QEMU console, compressed TB trace, GDB snapshots and SHA256 manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-b2-pinned-gdb-tb-NOFLASH
+          path: exp76-r23/b2-gdb/reports/
+          retention-days: 30
+          if-no-files-found: warn
