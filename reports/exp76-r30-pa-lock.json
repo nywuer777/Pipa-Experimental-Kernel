@@ -34,7 +34,7 @@
   "console_sha256": "852ba55a727b1cb9dae118b87d9b2463d4f4743b9bf570e6737c5f08b32c0e73",
   "sysrq_script": "tools/exp76-r30-qemu-pty-sysrq.py",
   "v3_only_if_guest_running": true,
-  "rt_semantics_verified": "V3_IN_PROGRESS_NOT_YET_MEASURED",
+  "rt_semantics_verified": "NOT_VERIFIED",
   "standalone_patch_commit": "2014bb8f01378b77c3f9c76cd65c8308418140a3",
   "standalone_patch_file": "patches/exp76-r30-mm-page-alloc-pa-lock.patch",
   "patch_offline_git_apply_check": "PASS",
@@ -73,6 +73,35 @@
     "latest_script_commit": "c9f3ab8347015a8257fbe517cbbfa875bd01485b",
     "latest_run_id": 42650528106,
     "purpose": "build actual exp76_rt_spin_sleep.ko, include gate.sh and full RT config in ARM64 initramfs, verify serial and host markers",
-    "status": "IN_PROGRESS_LAST_CHECK"
+    "status": "V3_FIRST_REAL_MODULE_BOOT_FAILED_DIAGNOSTIC_RETRIES_ACTIVE",
+    "initial_real_module_run_id": 42649956950,
+    "initial_v3_artifact_id": 13690700437,
+    "initial_v3_zip_sha256": "db2e3f9090901343155c46e5e3f20ddef96534357305e3dc080ee871f11d2fca",
+    "initial_v3_boot_reached_ms": 561.655,
+    "initial_v3_console_sha256": "3aea0e09767ce06f76b5823cc5b519c0d05d218cdd96e187269baf20279fb37e",
+    "initial_v3_module_sha256": "7b702cf58273361682886f90ac77e21bbec204ce5c0a5048d68db2bd4b5bbdee",
+    "initial_v3_verifier_exit_code": 2,
+    "initial_v3_guest_running": true,
+    "initial_v3_result": "FAIL_NO_FRESH_DMESG_AND_INSMOD_TIMEOUT",
+    "first_guest_config_defects": [
+      "CONFIG_MULTIUSER=n",
+      "CONFIG_PROC_FS=n",
+      "CONFIG_SYSFS=n"
+    ],
+    "secondary_kernel_bug": {
+      "pc": "0xffffff8010108448",
+      "symbol": "irq_work_tick_soft+0xa8",
+      "disassembly": "tbz w9,#0x7 -> brk #0x800 if DAIF.I clear",
+      "caller": "run_timer_softirq+0x2c",
+      "workers": "ktimersoftd/0,2,3",
+      "evidence_run_id": 42649956950,
+      "evidence_type": "real serial + pinned vmlinux disassembly",
+      "correction_status": "TEST_ONLY_NOT_VERIFIED"
+    },
+    "proc_sys_config_retry_id": 42652145626,
+    "timer_guard_experiment_run_id": 42653035294,
+    "timer_guard_experiment_commit": "72f35b41495d232d951335875b3234b129023425",
+    "v3_gate": "REQUIRE_GUEST_RUNNING_AND_CONTENTION_PASS_WAIT_US_GE_30000_AND_PASS_ELAPSED_US_AND_END_STATUS_PASS_AND_HOST_VERIFIER_EXIT_0",
+    "rt_semantics_verified": "NOT_VERIFIED"
   }
 }
