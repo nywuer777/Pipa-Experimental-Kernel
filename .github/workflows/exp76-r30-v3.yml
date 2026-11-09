@@ -7,6 +7,7 @@ on:
       - '.github/workflows/exp76-r30-v3.yml'
       - 'tools/exp76-r30-v3-initramfs.py'
       - 'tools/exp76-r30-v3-timer-irq-guard.py'
+      - 'tools/exp76-r30-v3-initramfs.py'
       - 'tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.c'
   workflow_dispatch:
 permissions:
@@ -265,6 +266,8 @@ jobs:
           echo R30_V3_MODULE_CONFIG_ALLOWED_CHANGE_FROM_BASELINE
           grep -qx 'CONFIG_MODULES=y' "$O/.config"
           grep -qx 'CONFIG_MODULE_UNLOAD=y' "$O/.config"
+          for x in MULTIUSER PROC_FS SYSFS; do grep -qx "CONFIG_${x}=y" "$O/.config" || exit 37; done
+          sha256sum "$O/.config"
       - name: Build minimal E404 RT ARM64 Image and boot QEMU
         shell: bash
         timeout-minutes: 25
