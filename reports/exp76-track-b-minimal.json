@@ -44,13 +44,40 @@
   ],
   "kconfig_reselections": [],
   "config_diff_vs_track_a": {
-    "source_comparison": "vanilla-v4.19.325-rt140 vs vendor-E404-v4.19.404R-rt140, distinct Kconfig vocabularies",
+    "source_comparison": "A vanilla v4.19.325-rt140 arm64 defconfig vs B2 E404+RT140 strict allnoconfig 42617620705; non-equivalent sources/profiles",
     "a_sha": "b38d91592a41d0d3df310ae6bb84b07ab01af1fcd934fac30e972af320d41885",
-    "b_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
-    "changed_or_only_one_side_symbols": 2801,
-    "absent_in_b": 1424,
-    "absent_in_a": 934,
-    "important": "diff counts do not isolate vendor root cause; source bases differ"
+    "b_sha": "37337330db8b09998d67f79ffe951c3ccb633a5648759953817d5e8a59dd02e2",
+    "symbols_only_in_a": 3293,
+    "symbols_only_in_b": 260,
+    "symbols_common_with_changed_value": 253,
+    "changed_or_only_one_side_symbols": 3806,
+    "observed_dependencies": {
+      "COMPAT": {
+        "a": "y",
+        "b": "n"
+      },
+      "CPU_FREQ": {
+        "a": "y",
+        "b": "n"
+      },
+      "CPU_FREQ_GOV_SCHEDUTIL": {
+        "a": "y",
+        "b": "absent"
+      },
+      "NR_CPUS": {
+        "a": 64,
+        "b": 64
+      },
+      "SMP": {
+        "a": "y",
+        "b": "y"
+      },
+      "PREEMPT_RT_FULL": {
+        "a": "y",
+        "b": "y"
+      }
+    },
+    "interpretation": "Cross-tree Kconfig vocabulary and non-equivalent baselines make diff counts noncausal. B2 config after run 42620902797 must be remeasured."
   },
   "not_a_kernel_runtime_failure": true,
   "rt_handoff_ready": false,
