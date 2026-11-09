@@ -51,7 +51,7 @@ def main():
       ("\tlocal_irq_save(flags);","\tlocal_lock_irqsave(pa_lock, flags);","rmqueue_pcplist acquire")
     ])
     modified=replace_section(modified,"struct page *rmqueue(struct zone *preferred_zone,",
-      "/*\n * A watermark",[
+      "\n#ifdef CONFIG_FAIL_PAGE_ALLOC",[
       ("\tlocal_irq_restore(flags);","\tlocal_unlock_irqrestore(pa_lock, flags);","rmqueue success restore"),
       ("\tlocal_irq_restore(flags);","\tlocal_unlock_irqrestore(pa_lock, flags);","rmqueue failed restore"),
     ])
@@ -60,7 +60,7 @@ def main():
     assert source.read_text()==modified
     diff="".join(difflib.unified_diff(src.splitlines(True),modified.splitlines(True),
              fromfile="a/mm/page_alloc.c",tofile="b/mm/page_alloc.c"))
-    assert diff.count("@@")==6,"expected exactly 3 unified diff hunks"
+    assert diff.count("@@")==8,"expected 4 source diff blocks covering 3 Stage82 rejected hunks"
     assert diff.count("+\tlocal_lock_irqsave(pa_lock, flags);")==2
     assert diff.count("+\tlocal_unlock_irqrestore(pa_lock, flags);")==3
     assert diff.count("-\tlocal_irq_save(flags);")==2
