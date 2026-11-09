@@ -1,0 +1,256 @@
+name: EXP76 manual QEMU R44 bridge (NO FLASH)
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exp76-rt-pa-lock-fix
+      - name: Run reconstruction, patch, build and QEMU
+        shell: bash
+        run: |
+          mkdir -p reports
+          echo "$GITHUB_RUN_ID" > reports/run-id.txt
+          printf 'branch=%s\ncommit=%s\nworkflow_branch=%s\nworkflow_commit=%s\nurl=%s\n' "exp76-rt-pa-lock-fix" "$(git rev-parse HEAD)" "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> reports/run-id.txt
+          set +e
+          bash -euxo pipefail <<'SCRIPT' > reports/execution.log 2>&1
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils
+          bash tools/exp76-rt-compat-audit.sh
+          test -s exp76-trial-overlay/mm/page_alloc.c.rej || { echo NO_REJ_FILE > reports/error.txt; exit 10; }
+          cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
+          cp exp76-trial-overlay/mm/page_alloc.c reports/page_alloc.before.c
+          cd exp76-trial-overlay
+          # R42: .rej is evidence, not an automatically applicable patch.
+          # All edits are scoped to parsed function bodies and generated against exact E404 text.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, difflib, sys
+          root=Path('../reports')
+          rej=(root/'page_alloc.c.rej').read_text()
+          n=len(re.findall(r'^@@ ',rej,re.M))
+          (root/'rej-hunk-count.txt').write_text(f'rej_hunks={n}\n')
+          if n!=3:
+              (root/'error.txt').write_text(f'UNEXPECTED_REJ_HUNK_COUNT:{n}\n')
+              sys.exit(11)
+          path=Path('mm/page_alloc.c')
+          before=path.read_text()
+          (root/'page_alloc.before.c').write_text(before)
+          def span(source,name):
+              # Find a function definition, not a call or declaration.
+              pattern=r'(?m)^[^\n;{}]*\b'+re.escape(name)+r'\s*\([^;{}]*\)\s*\{'
+              matches=list(re.finditer(pattern,source))
+              if len(matches)!=1: raise ValueError(f'{name}: definition count {len(matches)}')
+              m=matches[0]; depth=1; pos=m.end()
+              while depth and pos<len(source):
+                  depth+=(source[pos]=='{')-(source[pos]=='}')
+                  pos+=1
+              if depth: raise ValueError(f'{name}: unbalanced braces')
+              return m.start(),pos
+          def stats(body):
+              return tuple(len(re.findall(r'\b'+re.escape(x)+r'\s*\(',body)) for x in
+                  ('local_lock_irqsave','local_unlock_irqrestore','local_irq_save','local_irq_restore'))
+          names=['__free_pages_ok','rmqueue_pcplist','rmqueue']
+          pre=[]; fragments=[]
+          try:
+              for name in names:
+                  x,y=span(before,name); body=before[x:y]
+                  a,b,c,d=stats(body)
+                  pre.append(f'{name}: acq={a} rel={b} irq_save={c} irq_restore={d}')
+                  fragments.append(f'=== {name} ===\n'+body)
+              (root/'pre-pairing.txt').write_text('\n'.join(pre)+'\n')
+              (root/'rmqueue-source.txt').write_text(fragments[-1]+'\n')
+              (root/'function-source-before.txt').write_text('\n\n'.join(fragments))
+              after=before
+              for name in names:
+                  x,y=span(after,name); body=after[x:y]
+                  # Rejects describe exact substitutions, never fuzzy context.
+                  if name=='__free_pages_ok':
+                      if body.count('local_irq_save(flags);')!=1 or body.count('local_irq_restore(flags);')!=1:
+                          raise ValueError('FREE_PAGES_EXPECTED_IRQ_PAIR_MISSING')
+                      body=body.replace('local_irq_save(flags);','local_lock_irqsave(pa_lock, flags);')
+                      body=body.replace('local_irq_restore(flags);','local_unlock_irqrestore(pa_lock, flags);')
+                  elif name=='rmqueue_pcplist':
+                      if body.count('local_irq_save(flags);')!=1:
+                          raise ValueError('PCPLIST_EXPECTED_SAVE_MISSING')
+                      body=body.replace('local_irq_save(flags);','local_lock_irqsave(pa_lock, flags);')
+                      # Preserve existing unlock(s), but require a matching release below.
+                  else:
+                      if body.count('local_irq_restore(flags);')!=2:
+                          raise ValueError(f'RMQUEUE_EXPECTED_TWO_RESTORES_GOT_{body.count("local_irq_restore(flags);")}')
+                      body=body.replace('local_irq_restore(flags);','local_unlock_irqrestore(pa_lock, flags);')
+                      # No invented acquire; validate real function-local lock paths.
+                  after=after[:x]+body+after[y:]
+              post=[]
+              for name in names:
+                  x,y=span(after,name); a,b,c,d=stats(after[x:y])
+                  post.append(f'{name}: acq={a} rel={b} irq_save={c} irq_restore={d}')
+                  if c or d or (name=='__free_pages_ok' and (a<1 or b<1)) or (name=='rmqueue_pcplist' and (a<1 or b<1)) or (name=='rmqueue' and b<2):
+                      raise ValueError(f'FAIL_STRUCTURAL {name}: acq={a} rel={b} irq_save={c} irq_restore={d}')
+              (root/'post-pairing.txt').write_text('\n'.join(post)+'\n')
+              patch=''.join(difflib.unified_diff(before.splitlines(True),after.splitlines(True),
+                  fromfile='a/mm/page_alloc.c',tofile='b/mm/page_alloc.c',n=3))
+              if not patch: raise ValueError('ADAPTED_PATCH_EMPTY')
+              (root/'adapted.patch').write_text(patch)
+              (root/'adapted.patch.sha256').write_text(__import__('hashlib').sha256(patch.encode()).hexdigest()+'  adapted.patch\n')
+          except ValueError as exc:
+              (root/'error.txt').write_text(str(exc)+'\n')
+              print(exc,file=sys.stderr)
+              sys.exit(13)
+          PY
+          if ! patch --batch --forward --fuzz=0 --dry-run -p1 < ../reports/adapted.patch > ../reports/patch-dry-run.log 2>&1; then
+            echo FUZZ0_DRY_RUN_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          if ! patch --batch --forward --fuzz=0 -p1 < ../reports/adapted.patch > ../reports/patch-apply.log 2>&1; then
+            echo FUZZ0_APPLY_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          git diff -- mm/page_alloc.c > ../reports/applied.patch
+          cp mm/page_alloc.c ../reports/page_alloc.after.c
+          cmp -s mm/page_alloc.c ../reports/page_alloc.after.c
+          test -s ../reports/applied.patch || { echo PATCH_NO_OP > ../reports/error.txt; exit 13; }
+          # R44: the pinned E404 tree references an absent optional KernelSU
+          # Kconfig. Never stub the driver or enable it in the generic QEMU test.
+          # Restrict the source edit to the disposable exp76-trial-overlay tree.
+          if test ! -e drivers/kernelsu/Kconfig; then
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('drivers/Kconfig')
+          before=p.read_text()
+          needle='source "drivers/kernelsu/Kconfig"'
+          if before.count(needle)!=1:
+              raise SystemExit('R44_KSU_SOURCE_ANCHOR_NOT_UNIQUE')
+          p.write_text(before.replace(needle+'\n','',1))
+          Path('../reports/ksu-qemu-gate.txt').write_text(
+              'KSU_SOURCE=ABSENT; KCONFIG_SOURCE_DISABLED_FOR_GENERIC_QEMU_ONLY\n')
+          PY
+          else
+            echo 'KSU_SOURCE=PRESENT; KCONFIG_UNCHANGED' > ../reports/ksu-qemu-gate.txt
+          fi
+          # R43: the source audit intentionally does not reconstruct .config.
+          # Bootstrap a disposable generic ARM64 QEMU config, never a pipa flash config.
+          if ! make ARCH=arm64 LLVM=1 defconfig > ../reports/config-bootstrap.log 2>&1; then
+            echo DEFCONFIG_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          scripts/config --file .config \
+            -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT \
+            -e PREEMPT_RT_FULL -e MODULES -e MODULE_UNLOAD \
+            -e BLK_DEV_INITRD -e RD_GZIP -e DEVTMPFS \
+            -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
+            -e BINFMT_SCRIPT -e PRINTK -e MAGIC_SYSRQ
+          if ! make ARCH=arm64 LLVM=1 olddefconfig > ../reports/config-olddefconfig.log 2>&1; then
+            echo OLDDEFCONFIG_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          cp .config ../reports/qemu-rt.config
+          sha256sum .config > ../reports/qemu-rt-config.sha256
+          : > ../reports/config-gate.txt
+          for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT; do
+            if ! grep -qx "CONFIG_${required}=y" .config; then
+              echo "CONFIG_${required}=NOT_ENABLED" >> ../reports/config-gate.txt
+            fi
+          done
+          if test -s ../reports/config-gate.txt; then
+            echo CONFIG_GATE_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          echo CONFIG_GATE=PASS > ../reports/config-gate.txt
+          grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT|MODULES|MODULE_UNLOAD|SERIAL_AMBA_PL011_CONSOLE)=' .config > ../reports/config-check.txt || true
+          make -j2 ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1 || { echo BUILD_FAILED > ../reports/error.txt; exit 21; }
+          sha256sum arch/arm64/boot/Image vmlinux .config > ../reports/build-sha256.txt
+          cd ..
+          # V3: compile the actual external module against this patched Image.
+          sudo apt-get install -y cpio gcc-aarch64-linux-gnu
+          mkdir -p reports/v3-module
+          cp tests/exp76-rt-spin-sleep/{Makefile,exp76_rt_spin_sleep.c} reports/v3-module/
+          make -C exp76-trial-overlay ARCH=arm64 LLVM=1 \
+            CROSS_COMPILE=aarch64-linux-gnu- M="$GITHUB_WORKSPACE/reports/v3-module" modules \
+            > reports/v3-module-build.log 2>&1 || { echo V3_MODULE_BUILD_FAILED > reports/error.txt; exit 24; }
+          test -s reports/v3-module/exp76_rt_spin_sleep.ko
+          mkdir -p reports/v3-root/{bin,dev,proc,sys,tmp,probe,config}
+          curl -fL --retry 3 https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb -o reports/busybox-arm64.deb
+          mkdir -p reports/busybox-extract
+          dpkg-deb -x reports/busybox-arm64.deb reports/busybox-extract
+          BB="$(find reports/busybox-extract -type f -name busybox -print -quit)"
+          test -s "$BB"
+          cp "$BB" reports/v3-root/bin/busybox
+          for x in sh ash mount mkdir cat grep sed awk tr wc tail head insmod rmmod dmesg timeout mktemp rm ls echo sync reboot poweroff sleep uname sha256sum; do ln -s busybox "reports/v3-root/bin/$x"; done
+          cp reports/v3-module/exp76_rt_spin_sleep.ko reports/v3-root/probe/rt.ko
+          cp tests/exp76-rt-spin-sleep/run-in-guest.sh reports/v3-root/probe/gate.sh
+          cp exp76-trial-overlay/.config reports/v3-root/config/rt.config
+          cat > reports/v3-root/init <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          mount -t proc proc /proc
+          mount -t sysfs sysfs /sys
+          echo GUEST_RUNNING
+          /bin/sh /probe/gate.sh execute normal /probe/rt.ko /config/rt.config /tmp/probe
+          rc=$?
+          echo "EXP76_QEMU_GUEST_RESULT=$rc"
+          sync
+          poweroff -f
+          INIT
+          chmod 755 reports/v3-root/init reports/v3-root/probe/gate.sh
+          sudo mknod reports/v3-root/dev/console c 5 1
+          sudo mknod reports/v3-root/dev/null c 1 3
+          ( cd reports/v3-root && find . -print0 | cpio --null -o --format=newc 2>/dev/null | gzip -9 ) > reports/v3-initramfs.cpio.gz
+          sha256sum reports/v3-module/exp76_rt_spin_sleep.ko reports/v3-initramfs.cpio.gz > reports/v3-sha256.txt
+          set +e
+          timeout -k 5s 180s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd reports/v3-initramfs.cpio.gz -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > reports/qemu-exit.txt
+          sha256sum reports/console.txt > reports/console.sha256
+          grep -q GUEST_RUNNING reports/console.txt || { echo BOOT_NOT_GREEN > reports/error.txt; exit 23; }
+          grep -qx 'EXP76_QEMU_GUEST_RESULT=0' reports/console.txt && grep -qx 'QEMU_RT_SPINLOCK=PASS test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt || { echo V3_VERIFIER_NOT_PASS > reports/error.txt; exit 25; }
+          echo RT_SEMANTICS_VERIFIED=PASS > reports/v3-status.txt
+          SCRIPT
+          rc=$?
+          echo "$rc" > reports/step-exit-code.txt
+          sha256sum reports/* > reports/report-sha256.txt 2>/dev/null || true
+          exit "$rc"
+      - name: V3 guest validation and evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p reports
+          if test -f reports/console.txt && grep -q 'GUEST_RUNNING' reports/console.txt; then
+            if grep -qx 'EXP76_QEMU_GUEST_RESULT=0' reports/console.txt && grep -qx 'QEMU_RT_SPINLOCK=PASS test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt; then
+              echo 'RT_SEMANTICS_VERIFIED=PASS' > reports/v3-status.txt
+            else
+              echo 'RT_SEMANTICS_VERIFIED=UNVERIFIED; V3 module/gate not included in this initramfs' > reports/v3-status.txt
+            fi
+          else
+            echo 'RT_SEMANTICS_VERIFIED=UNVERIFIED; no guest boot evidence' > reports/v3-status.txt
+          fi
+      - name: Publish evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-pa-lock-fix-run-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
+      - name: Commit evidence to result branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          test -s reports/run-id.txt || echo "$GITHUB_RUN_ID" > reports/run-id.txt
+          git config user.email ci@exp76.invalid
+          git config user.name EXP76-CI
+          git checkout -B exp76-pa-lock-fix-result
+          mkdir -p exp76-results
+          cp -a reports/. exp76-results/
+          git add -f exp76-results/
+          git commit -m "result: pa_lock run $GITHUB_RUN_ID" || true
+          git push --force origin HEAD:refs/heads/exp76-pa-lock-fix-result
