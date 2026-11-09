@@ -69,6 +69,8 @@ def main():
     freelist_pc=symbol_pc(smap,"get_page_from_freelist")
     assert freelist_pc == 0xffffff801010dff0, "unexpected pinned freelist start"
     freelist_ret_pc = freelist_pc + 0x9bc
+    freelist_dec_pc = freelist_pc + 0x1dc
+    assert freelist_dec_pc == 0xffffff801010e1cc, 'unexpected pinned freelist depth decrement address'
     pa_lock_fn_pc=symbol_pc(smap,"rt_spin_lock")
     pa_unlock_fn_pc=symbol_pc(smap,"rt_spin_unlock")
     # CPU0 per-CPU base from pinned Image GDB evidence; checked again at target breakpoint.
@@ -105,6 +107,12 @@ def main():
         "commands 3",
         "silent",
         'printf "PA_LOCK_FREELIST_RETURN owner_raw=0x%lx retval=%p lr=%p depth=%u holder=%p\\n", *(unsigned long*)(0xffffffc01ffa2488+0x18), $x0, $x30, *(unsigned int*)(0xffffffc01ffa2488+0x38), *(unsigned long*)(0xffffffc01ffa2488+0x30)',
+        "continue",
+        "end",
+        f"hbreak *0x{freelist_dec_pc:x}",
+        "commands 4",
+        "silent",
+        'printf "PA_LOCK_DEPTH_DEC before=%u owner_raw=0x%lx caller=%p\\n", *(unsigned int*)(0xffffffc01ffa2488+0x38), *(unsigned long*)(0xffffffc01ffa2488+0x18), $x30',
         "continue",
         "end",
         f"hbreak *0x{lock_pc:x}",
@@ -177,6 +185,7 @@ def main():
         "pa_lock_cpu0_expected_address":hex(expected_pa_lock),
         "pa_lock_freelist_return_count":len(re.findall(r"PA_LOCK_FREELIST_RETURN",info)),
         "pa_lock_depth_dumped":True,
+        "pa_lock_depth_decrement_count":len(re.findall(r"PA_LOCK_DEPTH_DEC",info)),
         "pa_lock_enter_count":len(re.findall(r"PA_LOCK_ENTER",info)),
         "pa_lock_exit_count":len(re.findall(r"PA_LOCK_EXIT",info)),
         "pa_lock_event_lines":[line for line in info.splitlines() if line.startswith("PA_LOCK_")],
