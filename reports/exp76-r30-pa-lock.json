@@ -65,7 +65,15 @@
     "run_init_ms": 327.225,
     "last_console_line": "[    0.401716] reboot: Power down",
     "boot_result": "PASS",
-    "sysrq_needed": false
+    "sysrq_needed": false,
+    "early_boot_oops_count": 2,
+    "early_boot_oops_cpus": [
+      "ktimersoftd/0",
+      "ktimersoftd/1"
+    ],
+    "early_boot_oops_symbol": "irq_work_tick_soft (symbolized from same vmlinux)",
+    "interpretation": "GUEST_RUNNING and exit0 are proven despite early timer worker BUGs. Step4 is a guest boot smoke PASS, not a clean-kernel or RT semantics PASS.",
+    "rt_semantics_verified": "NOT_YET_VERIFIED"
   },
   "step5": {
     "workflow": ".github/workflows/exp76-r30-v3.yml",
@@ -102,6 +110,10 @@
     "timer_guard_experiment_run_id": 42653035294,
     "timer_guard_experiment_commit": "72f35b41495d232d951335875b3234b129023425",
     "v3_gate": "REQUIRE_GUEST_RUNNING_AND_CONTENTION_PASS_WAIT_US_GE_30000_AND_PASS_ELAPSED_US_AND_END_STATUS_PASS_AND_HOST_VERIFIER_EXIT_0",
-    "rt_semantics_verified": "NOT_VERIFIED"
+    "rt_semantics_verified": "NOT_VERIFIED",
+    "comparative_controls": {
+      "proc_sys_only_run_id": 42652145626,
+      "proc_sys_timer_guard_run_id": 42653035294
+    }
   }
 }
