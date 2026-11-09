@@ -40,7 +40,7 @@ def main():
     assert "CONFIG_PREEMPT_RT_FULL=y" in cfg.read_text()
     assert "CONFIG_MODULES=y" in cfg.read_text()
     assert "CONFIG_MODULE_UNLOAD=y" in cfg.read_text()
-    root=dest.parent/"v3-root"
+    root=Path("/tmp/exp76-r30-v3-root")
     if root.exists():shutil.rmtree(root)
     root.mkdir(parents=True)
     with src.open("rb") as f:
