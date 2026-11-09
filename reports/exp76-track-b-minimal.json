@@ -183,7 +183,7 @@
     }
   ],
   "boot_exit_code": 124,
-  "next_gate": "Determine held pa_lock acquisition caller and reason owner init_task cannot release; avoid applying speculative fixes or flash.",
+  "next_gate": "Trace why get_page_from_freelist's per-CPU pa_lock is not released after init_task acquisition; matched nonRT guest-running already proved.",
   "rt_semantics_verified": false,
   "latest_completed_artifact_id": 13685027067,
   "kconfig_validation": {
@@ -393,5 +393,22 @@
     "source_diff_sha256": "5f3ef24ea9dc31bb6198baa3851573931a66dde400b7eaa73115a2752c781c5e",
     "kconfig_changed_count": 19,
     "explanation": "same E404+RT source reconstruction diff; differences only RT vs nonRT config family and dependent symbols; nonRT reached /init and printed GUEST_RUNNING; RT stalled before init"
+  },
+  "latest_lock_forensics": {
+    "run_id": 42640782488,
+    "artifact_id": 13685900799,
+    "zip_sha256": "3861d1432b0b5d49eff7138677b5ea2caf08eca708f8944936443397ceb4c92e",
+    "lock": "pa_lock",
+    "owner": "init_task",
+    "acquisitions": 3,
+    "releases": 1,
+    "callers": [
+      "free_unref_page+0x8c",
+      "free_unref_page+0x188 (unlock)",
+      "get_page_from_freelist+0x2e8",
+      "get_page_from_freelist+0x2e8 (blocked)"
+    ],
+    "blocked_task": "0xffffffc01f850b80",
+    "causality_proven": false
   }
 }
