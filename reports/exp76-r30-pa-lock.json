@@ -22,7 +22,7 @@
     "source_diff": "r30/reports/step1/mm-effective-vs-base.diff"
   },
   "source_defect": "rmqueue_pcplist already local_unlock_irqrestore(pa_lock,flags) but only local_irq_save(flags) acquisition; rmqueue starts local_spin_lock_irqsave(pa_lock,&zone->lock,flags) but ends via local_irq_restore, with no paired local_unlock. Three Stage82 hunks restore paired APIs, including __free_pages_ok.",
-  "fix_commit": "ce162463cddf0a0c88f63adb697f9940364d9d53",
+  "fix_commit": "b8e576067b2e060479502963000813f2916c3f65",
   "fix_script": "tools/exp76-r30-pa-lock-fix.py",
   "build_workflow_commit": "b98a58b5545f22caf7484516dabe8f3bb3e85e61",
   "build_run_id": 42646761451,
@@ -34,5 +34,16 @@
   "console_sha256": null,
   "sysrq_script": "tools/exp76-r30-qemu-pty-sysrq.py",
   "v3_only_if_guest_running": true,
-  "rt_semantics_verified": "NOT_YET_MEASURED"
+  "rt_semantics_verified": "NOT_YET_MEASURED",
+  "standalone_patch_commit": "2014bb8f01378b77c3f9c76cd65c8308418140a3",
+  "standalone_patch_file": "patches/exp76-r30-mm-page-alloc-pa-lock.patch",
+  "patch_offline_git_apply_check": "PASS",
+  "patch_diff_sha256": "be03ee0207cec1021ef7297e027e5ebd7d1f190118b785997627992d3b1b0c83",
+  "expected_patched_mm_sha256": "60a67c4b493115f03484e295dbdc2f41088ce2988477aec1f832b8efe02faf0e",
+  "first_run_id": 42646761451,
+  "first_run_conclusion": "SCRIPT_ASSERTION_TWO_EXIT_PATHS_BEFORE_BUILD",
+  "first_run_artifact_id": 13687758343,
+  "first_run_artifact_zip_sha256": "fcc9a2e00edaecd7e1f5a1cf677b24c582a53c6bce29af9963e097b273da7ff0",
+  "retry_run_id": 42648042455,
+  "retry_status_last_check": "IN_PROGRESS_OBTAIN_CLANG21"
 }
