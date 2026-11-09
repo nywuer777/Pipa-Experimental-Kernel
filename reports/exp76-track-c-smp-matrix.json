@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "track": "C-SMP-MATRIX",
-  "status": "IN_PROGRESS",
+  "status": "COMPLETE_DATA_COLLECTION_NO_GUEST_RUNNING_AT_ANY_SMP",
   "source_run_id": 42250522391,
   "trace_run_id": 42368810699,
   "matrix_run_id": 42628823852,
@@ -18,15 +18,59 @@
   "memory_mib": 512,
   "timeout_seconds_per_variant": 18,
   "raw_console_artifact_name": "exp76-r23-c-pinned-smp-matrix-NOFLASH",
-  "result_available": false,
-  "per_smp_results": null,
+  "result_available": true,
+  "per_smp_results": [
+    {
+      "smp": 1,
+      "reached_ms": 22.451,
+      "guest_running": false,
+      "qemu_exit_code": 124,
+      "timed_out": true,
+      "console_bytes": 3212,
+      "console_lines": 45,
+      "console_sha256": "508e4eb9a6a8fa324bbda49d50c259e9c4baf5979f41d1354eb42de93f05edf6",
+      "last_console_line": "[    0.022451] /cpus/cpu-map: empty cluster"
+    },
+    {
+      "smp": 2,
+      "reached_ms": 22.633,
+      "guest_running": false,
+      "qemu_exit_code": 124,
+      "timed_out": true,
+      "console_bytes": 3218,
+      "console_lines": 45,
+      "console_sha256": "0f20c3317957514eff5e06ff2c580ab362fdb5a37dd7d372f5ed2971e95837b8",
+      "last_console_line": "[    0.022633] /cpus/cpu-map: empty cluster"
+    },
+    {
+      "smp": 4,
+      "reached_ms": 23.988,
+      "guest_running": false,
+      "qemu_exit_code": 124,
+      "timed_out": true,
+      "console_bytes": 3230,
+      "console_lines": 45,
+      "console_sha256": "c6932d1b3abee19bdb6996e5430dedd5b557fb258f08355f05bd144381263e63",
+      "last_console_line": "[    0.023988] /cpus/cpu-map: empty cluster"
+    }
+  ],
   "root_cause_identified": false,
   "existing_trace_evidence": {
     "last_console_ms": 113.691,
     "observed_last_pc": "do_idle+0xfc",
     "thread_wait_hypothesis": "workqueue_init waiting for kthread create completion; not conclusive"
   },
-  "required_followup": "inspect per-SMP full consoles, hashes, last kernel timestamps and GUEST_RUNNING before judging SMP sensitivity",
+  "required_followup": "Compare frozen C TB trace (run 42368810699) to thread scheduling; need blocked thread stack or scheduler wakeup state. Preserve original Image and vmlinux.",
   "build_performed": false,
-  "flash_ready": false
+  "flash_ready": false,
+  "matrix_run_conclusion": "success",
+  "matrix_artifact_id": 13680490584,
+  "matrix_artifact_zip_sha256": "d3dddb52ac0cce1375bb65b61bbf440dbc86d083119a01a961e2ed7ac8d164ef",
+  "qemu_version": "QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)",
+  "pinned_vmlinux_sha256": "933ad5ea6857e79a22f72914c08c3f12b97771728fd16a33609897c4fc3d77c6",
+  "pinned_config_sha256": "deffef75c19247e20dcf0f457ae7e6fb364d403b1f63c43e98422b86f6aaa5f6",
+  "pinned_initramfs_sha256": "b9c25fcc2934473c45458b68b2f65f682e55cc3648e803ba64ca410fe6f70e5e",
+  "verdict": "NO_GUEST_RUNNING_AT_1_2_4_CPUS",
+  "inference": "No observable SMP-count relief for pinned RT binary, narrowing exclusive secondary CPU bring-up hypothesis. No causal deadlock proof; last printk is not necessarily stall location.",
+  "artifact_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/42628823852"
 }
