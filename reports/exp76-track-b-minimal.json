@@ -2,7 +2,7 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "R23_B2_ENERGY_MODEL_OFF_GUARDED_RT_HELPER_RETRY_ACTIVE",
+  "status": "B2_E404_RT140_IMAGE_BUILT_QEMU_PREINIT_TIMEOUT_GDB_TB_TRACE_CAPTURED",
   "latest_run_id": 42629841386,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b2-allnoconfig.yml",
@@ -16,13 +16,16 @@
   "prior_run_failure": "CONFIG_BPF_SYSCALL/JIT/SYSCTL and vendor CONFIG_KSU dependency prevent building pipa_defconfig-derived netless config; no guest B evidence",
   "correction_branch": "exp76-r23-b-minimal",
   "source_base_branch": "exp76-rt-sched-h10",
-  "boots": null,
-  "reached_ms": null,
-  "advanced_from_032": null,
-  "image_sha": null,
-  "config_sha": "665748c056eef36d706a1dbf7554f2617635540b141c9fd230e0c62dacf19eac",
-  "console_sha256": null,
-  "last_lines": [],
+  "boots": false,
+  "reached_ms": 19.758,
+  "advanced_from_032": false,
+  "image_sha": "aeffed3f051eb3f1166763fb9fdfb3a6e8c521fe90a000c9ff48019897a64c2b",
+  "config_sha": "19294205006587189cbf79043ab81f83a0d2bfa4b4860a595f66a5df2398eac5",
+  "console_sha256": "d0c5daccea76108dfd35693a107be51f0a6d1bde61aa46b60133930563cd8ff2",
+  "last_lines": [
+    "[    0.019758] /cpus/cpu-map: empty cluster",
+    "qemu-system-aarch64: terminating on signal 15 from pid 12427 (python3)"
+  ],
   "disabled_list": [
     "QCOM_SCM",
     "QCOM_SMEM",
@@ -79,14 +82,14 @@
     },
     "interpretation": "Cross-tree Kconfig vocabulary and non-equivalent baselines make diff counts noncausal. B2 config after run 42620902797 must be remeasured."
   },
-  "not_a_kernel_runtime_failure": true,
+  "not_a_kernel_runtime_failure": false,
   "rt_handoff_ready": false,
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": null,
-  "latest_completed_run_id": 42628145214,
-  "latest_completed_conclusion": "LINK_FAILED_UNDEFINED_CPU_OVERUTILIZED",
-  "build_exit_code": 2,
+  "latest_completed_run_id": 42629841386,
+  "latest_completed_conclusion": "BUILD_SUCCESS_BOOT_TIMEOUT",
+  "build_exit_code": 0,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
   "bpf_sycall_broken_profile": "CONFIG_BPF_SYSCALL=y, CONFIG_CGROUP_BPF=y under NET=n",
@@ -99,8 +102,8 @@
   "previous_build_log_sha256": "c8a59248ca8671f8b1364e060581723f331541704184ae34b46e40d276bb5168",
   "previous_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "prior_image_generated": false,
-  "guest_running": null,
-  "failed_before_boot": true,
+  "guest_running": false,
+  "failed_before_boot": false,
   "safe_interpretation": "No comparison between A and B guest boot possible until B Image builds and QEMU runs.",
   "latest_run_branch": "exp76-r23-b-minimal",
   "prior_failure_runs": [
@@ -125,7 +128,7 @@
   "latest_previous_config_sha": "c3df446264b4c526ac5af5adcedaa867e2bdd0393eef7307cb2ea10b373e0fa9",
   "latest_previous_image_generated": false,
   "warning": "Track B uses vendor/pipa_defconfig plus selective disables; a minimal-like profile, not allnoconfig. The many effective config differences confound causality until a functional B boot exists.",
-  "build_status": "RUN_42629841386_IN_PROGRESS_NO_IMAGE_PROVEN",
+  "build_status": "BUILD_SUCCESS_GUEST_NOT_RUNNING",
   "last_kconfig_reselections": [
     "SYSCTL"
   ],
@@ -133,14 +136,14 @@
   "latest_failed_artifact_id": 13574269698,
   "latest_failed_config_sha": "f8888d550efd6625e74d20656801633e47616dcea850082f612a58f503820834",
   "track_b_variant": "E404+RT140 allnoconfig ARM64 QEMU with pinned Clang21",
-  "in_progress_run_id": 42629841386,
+  "in_progress_run_id": null,
   "in_progress_artifact_name": "exp76-r23-track-b2-allnoconfig-NOFLASH",
   "track_b_build_source_fixes_applied_to_kernel": false,
-  "latest_completed_image_sha": null,
-  "latest_completed_console_sha256": null,
-  "latest_completed_config_sha": "b0d3cfb6c2a99260ba46281a919940517b38e002d450f8acec42bb27316630f9",
-  "latest_completed_build_exit_code": 2,
-  "latest_completed_build_error": "ld.lld: error: undefined symbol: __cpu_overutilized referenced by kernel/sched/fair.c select_task_rq_fair (CONFIG_ENERGY_MODEL=y)",
+  "latest_completed_image_sha": "aeffed3f051eb3f1166763fb9fdfb3a6e8c521fe90a000c9ff48019897a64c2b",
+  "latest_completed_console_sha256": "d0c5daccea76108dfd35693a107be51f0a6d1bde61aa46b60133930563cd8ff2",
+  "latest_completed_config_sha": "19294205006587189cbf79043ab81f83a0d2bfa4b4860a595f66a5df2398eac5",
+  "latest_completed_build_exit_code": 0,
+  "latest_completed_build_error": null,
   "retry_runs": [
     {
       "run_id": 42610364810,
@@ -179,10 +182,10 @@
       ]
     }
   ],
-  "boot_exit_code": null,
-  "next_gate": "Require successful Image, exact .config and QEMU serial before classifying vendor/config root cause",
+  "boot_exit_code": 124,
+  "next_gate": "Use matching E404 RT built Image and exact System.map for targeted scheduler or non-RT control; never infer root cause from last printk or idle PC.",
   "rt_semantics_verified": false,
-  "latest_completed_artifact_id": 13669709051,
+  "latest_completed_artifact_id": 13680896439,
   "kconfig_validation": {
     "CONFIG_PREEMPT_RT_FULL": "y",
     "CONFIG_STAGING": "n",
@@ -219,8 +222,8 @@
     },
     {
       "run_id": 42629841386,
-      "profile": "allnoconfig_rt_energy_helper_guard_energy_model_n",
-      "state": "IN_PROGRESS_LAST_CHECK"
+      "profile": "strict_allnoconfig_rt_energy_helper_guard_energy_model_n",
+      "state": "BUILD_SUCCESS_QEMU_PREINIT_TIMEOUT"
     }
   ],
   "newer_evidence": {
@@ -313,5 +316,64 @@
     "new_fix": "On disposable E404 tree, use sched_energy_enabled() helper already present for ENERGY_MODEL=n and turn ENERGY_MODEL=n in minimal QEMU profile; assert exact source substitution and Kconfig value.",
     "fix_commit": "e13b732d741dcd163e34bbcc80816ca76242d899",
     "next_run_id": 42629841386
+  },
+  "latest_completed_artifact_zip_sha256": "a4327932eb08deb97ded88912ec10d874de197b033a2d8300c3393832ec0f9bb",
+  "vmlinux_sha": "e59f413d3b31c1e47298647303a3c1c23ba94178325c2626c233c44dd25acb0a",
+  "system_map_sha": "51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
+  "latest_runtime_evidence": {
+    "build_run_id": 42629841386,
+    "build_artifact_id": 13680896439,
+    "build_exit_code": 0,
+    "build_log_sha256": "4f513979fcde25721064de89469453bb9d5379b9df4b05e16a92599d42a0ab21",
+    "build_log_bytes": 24693,
+    "build_seconds": 44.840232,
+    "qemu_timeout_seconds": 45,
+    "qemu_exit_code": 124,
+    "qemu_console_sha256": "d0c5daccea76108dfd35693a107be51f0a6d1bde61aa46b60133930563cd8ff2",
+    "qemu_last_printk": "[    0.019758] /cpus/cpu-map: empty cluster",
+    "qemu_console_lines": 45,
+    "initramfs_exercised": false,
+    "guest_running": false,
+    "required_kconfig_all_y": true,
+    "requested_disabled_effective_n": 29,
+    "kconfig_reselections": [],
+    "source_code_hash_note": "Source reconstruction includes RT140 compatibility patches and one explicit rt.c sched_energy_enabled() substitution in ephemeral build tree.",
+    "gdb_diagnostic_run": 42636798967,
+    "gdb_artifact_id": 13683292187,
+    "trace_sha256": "da86fe40e5040a1007844c05020247ff59669203dc0cb7d82e76a917be73c19f",
+    "trace_bytes": 67383788,
+    "trace_tb_count": 928125,
+    "trace_gz_sha256": "81d69041655ca27d4f7a5cf63a0b651633a5d36da0636c165179ed02fd132a16",
+    "trace_reached_ms": 74.846,
+    "trace_observed_symbols": {
+      "rcu_init": 19,
+      "smp_prepare_cpus": 21,
+      "workqueue_init": 19,
+      "__kthread_create_on_node": 4,
+      "kthreadd": 11,
+      "kernel_init_freeable": 5,
+      "wait_for_common": 20,
+      "try_to_wake_up": 44,
+      "wake_up_new_task": 41,
+      "__schedule": 85,
+      "do_idle": 7752,
+      "cpu_do_idle": 2579
+    },
+    "gdb_first_cpu0": "pfn_valid+0x14",
+    "gdb_second_cpu0": "cpu_do_idle+0x8",
+    "cpu0_second_backtrace": [
+      "cpu_do_idle",
+      "arch_cpu_idle",
+      "do_idle",
+      "cpu_startup_entry",
+      "start_kernel"
+    ],
+    "other_cpu_pcs": [
+      "0x0",
+      "0x0",
+      "0x0"
+    ],
+    "gdb_independently_confirms_idle": true,
+    "root_cause_proven": false
   }
 }
