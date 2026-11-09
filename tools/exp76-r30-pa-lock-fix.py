@@ -52,8 +52,8 @@ def main():
     ])
     modified=replace_section(modified,"struct page *rmqueue(struct zone *preferred_zone,",
       "\n#ifdef CONFIG_FAIL_PAGE_ALLOC",[
-      ("\tlocal_irq_restore(flags);","\tlocal_unlock_irqrestore(pa_lock, flags);","rmqueue success restore"),
-      ("\tlocal_irq_restore(flags);","\tlocal_unlock_irqrestore(pa_lock, flags);","rmqueue failed restore"),
+      ("\tzone_statistics(preferred_zone, zone);\n\tlocal_irq_restore(flags);","\tzone_statistics(preferred_zone, zone);\n\tlocal_unlock_irqrestore(pa_lock, flags);","rmqueue success restore"),
+      ("failed:\n\tlocal_irq_restore(flags);","failed:\n\tlocal_unlock_irqrestore(pa_lock, flags);","rmqueue failed restore"),
     ])
     assert modified!=src
     source.write_text(modified)
