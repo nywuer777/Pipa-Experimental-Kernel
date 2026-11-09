@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "track": "B2-RTMUTEX-OWNER",
-  "status": "PA_LOCK_OWNER_CONFIRMED_FREELIST_RETURNS_WHILE_HELD_DEPTH_AUDIT_QUEUED",
+  "status": "PA_LOCK_RECURSION_COUNTER_UNDERFLOW_OBSERVED_BREAKPOINT_DEC_RUN_QUEUED",
   "source_build_run_id": 42629841386,
   "diagnostic_run_id": 42638802109,
   "diagnostic_artifact_id": 13685110062,
@@ -131,7 +131,7 @@
     }
   ],
   "callsite_symbolization_source": "r23b/output/System.map from Actions build 42629841386, SHA256 51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
-  "causality_status": "PRECISE_UNRELEASED_LOCK_OBSERVED_OTHER_LOCK_ORIGINAL_OWNER_STATE_NOT_YET_RESOLVED",
+  "causality_status": "UNDERFLOW_OBSERVED_NEED_DECREMENT_CALLSITE_AND_OWNER_RECONCILIATION",
   "next_gate": "Identify why get_page_from_freelist pa_lock acquired by init_task is not released before kthreadd acquisition; test only in QEMU with evidence.",
   "freelist_return_audit": {
     "run_id": 42642088852,
@@ -148,5 +148,54 @@
     "next_run_id": 42642373484,
     "next_commit": "ebb3395f7bbed4a90fddd4c181d99eee535b2cc7",
     "next_test": "collect pa_lock depth and holder pointer on acquire/release/freelist return"
+  },
+  "pa_lock_depth_evidence": {
+    "run_id": 42642373484,
+    "artifact_id": 13684843622,
+    "artifact_zip_sha256": "25326be36b320fdaa93b8e7afbd081a4e889f3b03bdfd3e7370be1cf855acce6",
+    "break_hit": true,
+    "gdb_exit_code": 0,
+    "acquisition_entries": 2,
+    "unlock_entries": 1,
+    "freelist_return_events": 26,
+    "initial_depth_values_as_unsigned": [
+      4294967295,
+      4294967294,
+      4294967293,
+      4294967292,
+      4294967291,
+      4294967290
+    ],
+    "initial_owner_raw": "0x0",
+    "interpretation_initial": "perCPU pa_lock recursion depth underflows while owner is null, before later acquire by init_task",
+    "subsequent_depth_values": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      8,
+      9,
+      10,
+      9,
+      10,
+      11,
+      12,
+      11,
+      12
+    ],
+    "subsequent_owner": "init_task",
+    "last_seen_depth": 12,
+    "blocked_lock_owner_raw": "0xffffffc01f850001",
+    "blocked_lock_owner_note": "run variance: another task (not init_task) became owner before contention in this execution; earlier run owner init_task. Do not assume identical owner for every run.",
+    "next_run_id": 42642811067,
+    "commit": "f496d5d5f5b489c740f88fcb569adc7223af34a1",
+    "next_gate": "Breakpoint at get_page_from_freelist+0x1dc, the compiled decrement of pa_lock nesting count, to identify zero-to-UINT_MAX transition."
   }
 }
