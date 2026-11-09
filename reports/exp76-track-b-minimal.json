@@ -2,8 +2,8 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "BUILD_BLOCKER_RESOLVED_DEPENDENCIES_RETRY_ACTIVE_NO_IMAGE_NO_BOOT",
-  "latest_run_id": 42620902797,
+  "status": "R23_B2_ENERGY_MODEL_DEPENDENCY_FIXED_RETRY_RUNNING",
+  "latest_run_id": 42624503568,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b2-allnoconfig.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + RT140 patch + EXP76 source ports",
@@ -84,8 +84,8 @@
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": null,
-  "latest_completed_run_id": 42617620705,
-  "latest_completed_conclusion": "BUILD_FAILED_MISSING_COMPAT_AND_SCHEDUTIL_DEFINITIONS",
+  "latest_completed_run_id": 42620902797,
+  "latest_completed_conclusion": "BUILD_FAILED_CONFIG_ENERGY_MODEL_N_SCHED_ENERGY_PRESENT_UNDECLARED",
   "build_exit_code": 2,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
@@ -125,7 +125,7 @@
   "latest_previous_config_sha": "c3df446264b4c526ac5af5adcedaa867e2bdd0393eef7307cb2ea10b373e0fa9",
   "latest_previous_image_generated": false,
   "warning": "Track B uses vendor/pipa_defconfig plus selective disables; a minimal-like profile, not allnoconfig. The many effective config differences confound causality until a functional B boot exists.",
-  "build_status": "RUN_42620902797_IN_PROGRESS_NO_IMAGE_PROVEN",
+  "build_status": "RUN_42624503568_IN_PROGRESS_NO_IMAGE_PROVEN",
   "last_kconfig_reselections": [
     "SYSCTL"
   ],
@@ -133,14 +133,14 @@
   "latest_failed_artifact_id": 13574269698,
   "latest_failed_config_sha": "f8888d550efd6625e74d20656801633e47616dcea850082f612a58f503820834",
   "track_b_variant": "E404+RT140 allnoconfig ARM64 QEMU with pinned Clang21",
-  "in_progress_run_id": 42620902797,
+  "in_progress_run_id": 42624503568,
   "in_progress_artifact_name": "exp76-r23-track-b2-allnoconfig-NOFLASH",
   "track_b_build_source_fixes_applied_to_kernel": false,
   "latest_completed_image_sha": null,
   "latest_completed_console_sha256": null,
-  "latest_completed_config_sha": "37337330db8b09998d67f79ffe951c3ccb633a5648759953817d5e8a59dd02e2",
+  "latest_completed_config_sha": "c4e7307045fa1916681a62e1f5fb52c80a5ee793ebb44b421c864ae054d4721a",
   "latest_completed_build_exit_code": 2,
-  "latest_completed_build_error": "include/linux/filter.h:551 unknown compat_uptr_t (COMPAT=n); kernel/sched/core.c:5560 effective_cpu_util redefinition; cpu_bw_dl and cpu_util_dl undeclared (CPU_FREQ_GOV_SCHEDUTIL=n)",
+  "latest_completed_build_error": "kernel/sched/rt.c:1555: sched_energy_present undeclared because CONFIG_ENERGY_MODEL=n; symbol declared in kernel/sched/sched.h and defined in kernel/sched/topology.c only when CONFIG_ENERGY_MODEL=y",
   "retry_runs": [
     {
       "run_id": 42610364810,
@@ -195,16 +195,21 @@
     {
       "run_id": 42610364810,
       "profile": "strict_allnoconfig",
-      "state": "COMPLETE_FAILURE_CPU_MASK_EMPTY_AND_MEMORYERROR"
+      "state": "COMPLETED_FAILURE_EMPTY_CPU_MASKS_KCONFIG_LOOP"
     },
     {
       "run_id": 42617620705,
       "profile": "strict_allnoconfig_cpu_masks0",
-      "state": "COMPLETE_BUILD_FAILURE_COMPAT_SCHEDUTIL"
+      "state": "COMPLETED_BUILD_FAILURE_COMPAT_SCHEDUTIL"
     },
     {
       "run_id": 42620902797,
-      "profile": "strict_allnoconfig_cpu_masks0_nr_cpus8_compat_schedutil",
+      "profile": "strict_allnoconfig_compat_schedutil",
+      "state": "COMPLETED_BUILD_FAILURE_ENERGY_MODEL_N"
+    },
+    {
+      "run_id": 42624503568,
+      "profile": "strict_allnoconfig_compat_schedutil_energy_model",
       "state": "IN_PROGRESS_LAST_CHECK"
     }
   ],
@@ -245,5 +250,24 @@
     "fix_commit": "1021584e23dec548d93c210e534371cd24a9c59d",
     "fix_run_id": 42620902797,
     "next_gate": "Assert Image and vmlinux exist, then QEMU serial output and GUEST_RUNNING before classifying runtime."
+  },
+  "latest_build_analysis": {
+    "failed_run_id": 42620902797,
+    "artifact_id": 13675379201,
+    "artifact_zip_sha256": "ec1ee9a9abf2363d338aa8eaea6315bc8895d1d882eec8df8ecdfa24eb41e2f9",
+    "exact_build_log_sha256": "028402931b9c921b29caf775856b9e444dbdd67b178abf3f52a4933d84d12dc0",
+    "exact_build_log_bytes": 34801,
+    "exact_config_sha256": "c4e7307045fa1916681a62e1f5fb52c80a5ee793ebb44b421c864ae054d4721a",
+    "config_kconfig_reselections": [],
+    "first_compiler_error": "kernel/sched/rt.c:1555 use of undeclared identifier sched_energy_present",
+    "source_gated_symbol": "CONFIG_ENERGY_MODEL",
+    "source_locations": [
+      "kernel/sched/sched.h:3066",
+      "kernel/sched/topology.c:198",
+      "kernel/sched/rt.c:1555"
+    ],
+    "correction_commit": "1dd932914aeb2230fb03f1816c9bac1ab61723cd",
+    "dispatched_run_id": 42624503568,
+    "next_gate": "Verify CONFIG_ENERGY_MODEL=y and compiler/link result, then Image + serial GUEST_RUNNING; never classify from preboot failure."
   }
 }
