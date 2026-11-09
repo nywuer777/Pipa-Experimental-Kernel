@@ -117,6 +117,24 @@ jobs:
           cp mm/page_alloc.c ../reports/page_alloc.after.c
           cmp -s mm/page_alloc.c ../reports/page_alloc.after.c
           test -s ../reports/applied.patch || { echo PATCH_NO_OP > ../reports/error.txt; exit 13; }
+          # R44: the pinned E404 tree references an absent optional KernelSU
+          # Kconfig. Never stub the driver or enable it in the generic QEMU test.
+          # Restrict the source edit to the disposable exp76-trial-overlay tree.
+          if test ! -e drivers/kernelsu/Kconfig; then
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('drivers/Kconfig')
+          before=p.read_text()
+          needle='source "drivers/kernelsu/Kconfig"'
+          if before.count(needle)!=1:
+              raise SystemExit('R44_KSU_SOURCE_ANCHOR_NOT_UNIQUE')
+          p.write_text(before.replace(needle+'\n','',1))
+          Path('../reports/ksu-qemu-gate.txt').write_text(
+              'KSU_SOURCE=ABSENT; KCONFIG_SOURCE_DISABLED_FOR_GENERIC_QEMU_ONLY\n')
+          PY
+          else
+            echo 'KSU_SOURCE=PRESENT; KCONFIG_UNCHANGED' > ../reports/ksu-qemu-gate.txt
+          fi
           # R43: the source audit intentionally does not reconstruct .config.
           # Bootstrap a disposable generic ARM64 QEMU config, never a pipa flash config.
           if ! make ARCH=arm64 LLVM=1 defconfig > ../reports/config-bootstrap.log 2>&1; then
