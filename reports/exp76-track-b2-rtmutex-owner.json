@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "track": "B2-RTMUTEX-OWNER",
-  "status": "PA_LOCK_OWNER_CONFIRMED_ACQUIRE_RELEASE_IMBALANCE_OBSERVED",
+  "status": "PA_LOCK_OWNER_INIT_TASK_AND_ALLOCATION_CALLERS_CONFIRMED",
   "source_build_run_id": 42629841386,
   "diagnostic_run_id": 42638802109,
   "diagnostic_artifact_id": 13685110062,
@@ -83,5 +83,54 @@
       "commit": "bd0111b85fa034d4cd778c01f7e115f263092c1b",
       "purpose": "GDB acquisition/unlock caller LR and SP_EL0"
     }
-  }
+  },
+  "last_diagnostic_run_id": 42640782488,
+  "last_diagnostic_artifact_id": 13685900799,
+  "last_diagnostic_zip_sha256": "3861d1432b0b5d49eff7138677b5ea2caf08eca708f8944936443397ceb4c92e",
+  "last_diagnostic_gdb_exit_code": 0,
+  "last_diagnostic_break_hit": true,
+  "last_diagnostic_lock_acquisitions": 3,
+  "last_diagnostic_lock_releases": 1,
+  "callsite_sequence": [
+    {
+      "index": 1,
+      "type": "rt_spin_lock",
+      "symbol": "free_unref_page+0x8c",
+      "lr": "0xffffff801010d29c",
+      "owner_before": "0x0"
+    },
+    {
+      "index": 2,
+      "type": "rt_spin_unlock",
+      "symbol": "free_unref_page+0x188",
+      "lr": "0xffffff801010d398",
+      "owner_before": "init_task"
+    },
+    {
+      "index": 3,
+      "type": "rt_spin_lock",
+      "symbol": "get_page_from_freelist+0x2e8",
+      "lr": "0xffffff801010e2d8",
+      "owner_before": "0x0"
+    },
+    {
+      "index": 4,
+      "type": "rt_spin_lock_attempt",
+      "symbol": "get_page_from_freelist+0x2e8",
+      "lr": "0xffffff801010e2d8",
+      "owner_before": "init_task"
+    },
+    {
+      "index": 5,
+      "type": "task_blocks_on_rt_mutex",
+      "symbol": "task_blocks_on_rt_mutex",
+      "pc": "0xffffff80100d1f50",
+      "lock": "0xffffffc01ffa2488",
+      "owner_raw": "0xffffff801032df41",
+      "blocked_task": "0xffffffc01f850b80"
+    }
+  ],
+  "callsite_symbolization_source": "r23b/output/System.map from Actions build 42629841386, SHA256 51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
+  "causality_status": "PRECISE_UNRELEASED_LOCK_OBSERVED_OTHER_LOCK_ORIGINAL_OWNER_STATE_NOT_YET_RESOLVED",
+  "next_gate": "Identify why get_page_from_freelist pa_lock acquired by init_task is not released before kthreadd acquisition; test only in QEMU with evidence."
 }
