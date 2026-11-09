@@ -72,5 +72,16 @@
   "pinned_initramfs_sha256": "b9c25fcc2934473c45458b68b2f65f682e55cc3648e803ba64ca410fe6f70e5e",
   "verdict": "NO_GUEST_RUNNING_AT_1_2_4_CPUS",
   "inference": "No observable SMP-count relief for pinned RT binary, narrowing exclusive secondary CPU bring-up hypothesis. No causal deadlock proof; last printk is not necessarily stall location.",
-  "artifact_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/42628823852"
+  "artifact_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/42628823852",
+  "next_experiment": {
+    "workflow": ".github/workflows/exp76-r23-track-c-gdb.yml",
+    "script": "tools/exp76-rt23-track-c-gdb.py",
+    "source_run_id": 42250522391,
+    "commit": "740521ed57c5b3e03938cee008424ee9846e74b0",
+    "run_id": 42630130999,
+    "status_at_last_check": "QUEUED",
+    "procedure": "GDB -batch remote attach twice to QEMU CPU threads and preserve full CPU registers/backtraces and console",
+    "build_performed": false,
+    "flash_ready": false
+  }
 }
