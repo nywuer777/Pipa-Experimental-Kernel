@@ -1,0 +1,54 @@
+name: EXP76 R44 actionlint audit (NO FLASH)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/exp76-yaml-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch immutable R43 and R44 workflows
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p reports
+          git fetch --no-tags --depth=1 origin 3a7a944471426037ffe30d90cadc3eaaad2b8935
+          git show 3a7a944471426037ffe30d90cadc3eaaad2b8935:.github/workflows/exp76-pa-lock-fix.yml > reports/wf_r43.yml
+          git fetch --no-tags --depth=1 origin 001bd1e2789825ad09ddc2ed9cbe197be0956f2d
+          git show 001bd1e2789825ad09ddc2ed9cbe197be0956f2d:.github/workflows/exp76-pa-lock-fix.yml > reports/wf_r44.yml
+          rc=0
+          diff -u reports/wf_r43.yml reports/wf_r44.yml > reports/r43-r44.diff || rc=$?
+          test "$rc" -le 1
+          grep -nP '\t' reports/wf_r44.yml > reports/tabs.txt || test "$?" -eq 1
+      - name: Install pinned actionlint
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl --fail --location --show-error --silent --retry 3 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            -o /tmp/actionlint.tar.gz
+          tar -xzf /tmp/actionlint.tar.gz actionlint
+          chmod +x actionlint
+          ./actionlint -version > reports/actionlint-version.txt 2>&1
+      - name: Audit R44 syntax and semantics
+        shell: bash
+        run: |
+          set +e
+          ./actionlint reports/wf_r44.yml > reports/actionlint.txt 2>&1
+          rc=$?
+          echo "$rc" > reports/actionlint-exit-code.txt
+          cat reports/actionlint.txt
+          exit "$rc"
+      - name: Publish R44 audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r44-actionlint-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: error
+          retention-days: 30

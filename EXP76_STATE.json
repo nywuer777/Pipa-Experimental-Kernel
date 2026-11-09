@@ -1,6 +1,6 @@
 {
-  "round": 47,
-  "updated_at": "2026-11-09T18:28:32.863Z",
+  "round": 48,
+  "updated_at": "2026-11-09T18:33:06.589Z",
   "kernel": {
     "compiles": false,
     "boots_qemu": false,
@@ -11,10 +11,13 @@
     "patch_verified_build": false
   },
   "infra": {
-    "workflow": "R44 pre-job failure; cause not established (jobs=0, artifacts=0)",
+    "workflow": "R44 run 42671648709 pre-job failure; R48 immutable-SHA actionlint audit introduced on main",
     "last_run": "42671648709",
     "last_run_result": "completed/failure; jobs total_count=0; artifacts total_count=0; runner exit code unavailable",
-    "proxy_fetch": "exp76-pa-lock-fix-result still carries R43 run 42670520190; no R44 report artifacts"
+    "proxy_fetch": "exp76-pa-lock-fix-result still carries R43 run 42670520190; no R44 report artifacts",
+    "actionlint": "NOT_EXECUTED_AT_COMMIT",
+    "yaml_duplicate_keys": 0,
+    "yaml_tabs": 0
   },
   "hypotheses": [
     {
@@ -31,18 +34,24 @@
       "hyp": "The reconstructed E404 QEMU source needs optional KernelSU Kconfig reference reconciliation before defconfig",
       "evidence": "R43 run 42670520190 error DEFCONFIG_FAILED; config-bootstrap.log: drivers/Kconfig:240 can't open drivers/kernelsu/Kconfig",
       "confidence": 1
+    },
+    {
+      "hyp": "Duplicate YAML keys or tab indentation cause R44 rejection",
+      "evidence": "R44 exact workflow checked offline: zero duplicate mapping keys; zero tab characters; R43 had the same action uses and workflow permissions",
+      "confidence": 0.03
     }
   ],
   "next_action": {
-    "step": "Obtain the literal GitHub Actions pre-job error from the UI of run 42671648709; do not modify workflow until identified",
-    "exit_criteria": "Validator or runner initialization diagnostic with source, line/context and failure class captured; then one targeted correction and one run",
-    "fallback": "Validate the exact R44 YAML with actionlint offline; if clean, isolate GitHub Actions registration/runner infrastructure via a minimal workflow on a separate branch"
+    "step": "Read exp76-r44-actionlint-<run_id> artifact only after Kai reports the audit workflow finished",
+    "exit_criteria": "actionlint-exit-code.txt and literal actionlint.txt captured, or explicit GitHub pre-job error identified",
+    "fallback": "If actionlint is clean and UI shows no validation error, separate GitHub Actions platform/runner issues from workflow syntax; obtain GitHub UI diagnostics"
   },
   "lessons": [
     "Do not treat jobs=0 as proof of a YAML semantic error: the cause is unknown without a validator or infrastructure diagnostic.",
     "The R43->R44 diff changes only 18 lines of shell/Python in an existing run block; no trigger, permissions, matrix or if expression changed.",
     "R43 reached defconfig and failed on an absent KernelSU Kconfig file; R44 execution never reached the KernelSU gate.",
     "A fuzz-zero patch application and structural lock count are not evidence of an ARM64 build, QEMU boot or V3 RT semantics.",
-    "Keep FLASH_READY=false and RT_SEMANTICS_VERIFIED=UNVERIFIED until build and guest evidence exist."
+    "Keep FLASH_READY=false and RT_SEMANTICS_VERIFIED=UNVERIFIED until build and guest evidence exist.",
+    "R48 duplicate-key and tab checks on R44 are clean; pinned third-party actionlint v1.7.12 audit is queued for CI execution, not the official GitHub Actions validator."
   ]
 }
