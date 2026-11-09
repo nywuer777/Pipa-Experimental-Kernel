@@ -79,9 +79,9 @@
     "workflow": ".github/workflows/exp76-r30-v3.yml",
     "workflow_commit": "04a8b00d42c00399871c3ada852c575f871d3986",
     "latest_script_commit": "c9f3ab8347015a8257fbe517cbbfa875bd01485b",
-    "latest_run_id": 42664778040,
+    "latest_run_id": 42665904703,
     "purpose": "build actual exp76_rt_spin_sleep.ko, include gate.sh and full RT config in ARM64 initramfs, verify serial and host markers",
-    "status": "RETRY_42664778040_RUNNING_CONFIG_GATES_AND_GUEST_SYSRQ",
+    "status": "V3_PROC_SYSCTL_N_BUILD_RETRY_ACTIVE",
     "initial_real_module_run_id": 42649956950,
     "initial_v3_artifact_id": 13690700437,
     "initial_v3_zip_sha256": "db2e3f9090901343155c46e5e3f20ddef96534357305e3dc080ee871f11d2fca",
@@ -114,7 +114,19 @@
     "comparative_controls": {
       "proc_sys_only_run_id": 42652145626,
       "proc_sys_timer_guard_run_id": 42653035294
-    }
+    },
+    "previous_config_failed_run_id": 42664355208,
+    "previous_config_build_failure": "PROC_FS=y => PROC_SYSCTL=y selects SYSCTL=y, vendor kernel/sysctl.c undefined sched_lib_name LIB_PATH_LENGTH sched_lib_mask_force bpf_stats_handler",
+    "previous_config_sha256": "d03c15414fc3dd8b1a49443b804797351b45a767ea4a540fef30f2b71aee4d4b",
+    "previous_config_build_log_sha256": "c7efc915484ebfaff289896d92967661e90610f86c334220a36a0c864fb328c0",
+    "new_config_request": [
+      "CONFIG_MULTIUSER=y",
+      "CONFIG_PROC_FS=y",
+      "CONFIG_SYSFS=y",
+      "CONFIG_PROC_SYSCTL=n",
+      "CONFIG_SYSCTL=n"
+    ],
+    "new_retry_commit": "293caec2bbf1e892c567df518dc6d96820f5c9f2"
   },
   "r30_current_verified": {
     "source_branch": "exp76-rt-pa-lock-fix",
@@ -153,6 +165,28 @@
     "latest_v3_retry_status_at_last_check": "IN_PROGRESS",
     "v3_retry_changes": "explicit MULTIUSER PROC_FS SYSFS post-olddefconfig checks; guest SysRq-t on gate failure; raw logs, images, module and SHA in workflow artifact",
     "rt_semantics_verified": "NOT_VERIFIED",
+    "flash_ready": false
+  },
+  "step4_latest": {
+    "run_id": 42656174446,
+    "conclusion": "success",
+    "artifact_id": 13693635248,
+    "artifact_zip_sha256": "436e63032e5b0e669843912c58b499cc5da9e9bd1f038baa16431edc5dcbb6b2",
+    "image_sha256": "fe5c21b6dcbd7e6b3d343737a20cb1e320a47db18494963f7ed54a342eb7bebd",
+    "vmlinux_sha256": "101acf432a26889aa05b1daa05c0b2154bc72d58f366262e21f862839eba02e7",
+    "config_sha256": "5eb766d1eb22fdbcb9d27b1ff4874d9e9eb73a419d7f3a47de6224de000b93a8",
+    "console_sha256": "438b669236924819ac9211e0b2c5f67bf260152c9a6ae103656c716c47278bd8",
+    "reached_ms": 418.376,
+    "guest_running": true,
+    "build_exit_code": 0,
+    "qemu_exit_code": 0,
+    "early_boot_oops_count": 4,
+    "early_boot_oops_processes": [
+      "ktimersoftd/0",
+      "ktimersoftd/1",
+      "ktimersoftd/2",
+      "ktimersoftd/3"
+    ],
     "flash_ready": false
   }
 }
