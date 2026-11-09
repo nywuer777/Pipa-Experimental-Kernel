@@ -2,8 +2,8 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "B2_E404_RT140_IMAGE_BUILT_QEMU_PREINIT_TIMEOUT_GDB_TB_TRACE_CAPTURED",
-  "latest_run_id": 42629841386,
+  "status": "B2_RT140_BUILD_SUCCESS_GUEST_BLOCKED_NONRT_MATCHED_CONTROL_GUEST_RUNNING",
+  "latest_run_id": 42639042351,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b2-allnoconfig.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + RT140 patch + EXP76 source ports",
@@ -17,14 +17,14 @@
   "correction_branch": "exp76-r23-b-minimal",
   "source_base_branch": "exp76-rt-sched-h10",
   "boots": false,
-  "reached_ms": 19.758,
+  "reached_ms": 19.452,
   "advanced_from_032": false,
-  "image_sha": "aeffed3f051eb3f1166763fb9fdfb3a6e8c521fe90a000c9ff48019897a64c2b",
-  "config_sha": "19294205006587189cbf79043ab81f83a0d2bfa4b4860a595f66a5df2398eac5",
-  "console_sha256": "d0c5daccea76108dfd35693a107be51f0a6d1bde61aa46b60133930563cd8ff2",
+  "image_sha": "63200ec73954f11aea35a3b940e544c79ee389aecbb1eb5e19e091f43f4ab137",
+  "config_sha": "5eb766d1eb22fdbcb9d27b1ff4874d9e9eb73a419d7f3a47de6224de000b93a8",
+  "console_sha256": "9e44bf0c4d30efd418a5519efe8c633180a7bc90ff6f90ad4f95893888f0b900",
   "last_lines": [
-    "[    0.019758] /cpus/cpu-map: empty cluster",
-    "qemu-system-aarch64: terminating on signal 15 from pid 12427 (python3)"
+    "[    0.019452] /cpus/cpu-map: empty cluster",
+    "qemu-system-aarch64: terminating on signal 15 from pid 12395 (python3)"
   ],
   "disabled_list": [
     "QCOM_SCM",
@@ -87,8 +87,8 @@
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": null,
-  "latest_completed_run_id": 42629841386,
-  "latest_completed_conclusion": "BUILD_SUCCESS_BOOT_TIMEOUT",
+  "latest_completed_run_id": 42639042351,
+  "latest_completed_conclusion": "BUILD_SUCCESS_QEMU_TIMEOUT_PREINIT",
   "build_exit_code": 0,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
@@ -139,9 +139,9 @@
   "in_progress_run_id": null,
   "in_progress_artifact_name": "exp76-r23-track-b2-allnoconfig-NOFLASH",
   "track_b_build_source_fixes_applied_to_kernel": false,
-  "latest_completed_image_sha": "aeffed3f051eb3f1166763fb9fdfb3a6e8c521fe90a000c9ff48019897a64c2b",
-  "latest_completed_console_sha256": "d0c5daccea76108dfd35693a107be51f0a6d1bde61aa46b60133930563cd8ff2",
-  "latest_completed_config_sha": "19294205006587189cbf79043ab81f83a0d2bfa4b4860a595f66a5df2398eac5",
+  "latest_completed_image_sha": "63200ec73954f11aea35a3b940e544c79ee389aecbb1eb5e19e091f43f4ab137",
+  "latest_completed_console_sha256": "9e44bf0c4d30efd418a5519efe8c633180a7bc90ff6f90ad4f95893888f0b900",
+  "latest_completed_config_sha": "5eb766d1eb22fdbcb9d27b1ff4874d9e9eb73a419d7f3a47de6224de000b93a8",
   "latest_completed_build_exit_code": 0,
   "latest_completed_build_error": null,
   "retry_runs": [
@@ -183,9 +183,9 @@
     }
   ],
   "boot_exit_code": 124,
-  "next_gate": "Use matching E404 RT built Image and exact System.map for targeted scheduler or non-RT control; never infer root cause from last printk or idle PC.",
+  "next_gate": "Determine held pa_lock acquisition caller and reason owner init_task cannot release; avoid applying speculative fixes or flash.",
   "rt_semantics_verified": false,
-  "latest_completed_artifact_id": 13680896439,
+  "latest_completed_artifact_id": 13685027067,
   "kconfig_validation": {
     "CONFIG_PREEMPT_RT_FULL": "y",
     "CONFIG_STAGING": "n",
@@ -224,6 +224,11 @@
       "run_id": 42629841386,
       "profile": "strict_allnoconfig_rt_energy_helper_guard_energy_model_n",
       "state": "BUILD_SUCCESS_QEMU_PREINIT_TIMEOUT"
+    },
+    {
+      "run_id": 42639042351,
+      "profile": "rt140_minimal_binfmt_script_y",
+      "state": "COMPLETED_IMAGE_BUILD_SUCCESS_QEMU_PREINIT_TIMEOUT"
     }
   ],
   "newer_evidence": {
@@ -317,9 +322,9 @@
     "fix_commit": "e13b732d741dcd163e34bbcc80816ca76242d899",
     "next_run_id": 42629841386
   },
-  "latest_completed_artifact_zip_sha256": "a4327932eb08deb97ded88912ec10d874de197b033a2d8300c3393832ec0f9bb",
-  "vmlinux_sha": "e59f413d3b31c1e47298647303a3c1c23ba94178325c2626c233c44dd25acb0a",
-  "system_map_sha": "51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
+  "latest_completed_artifact_zip_sha256": "0832c23a5a9fdd7c21c738c1067dc0df3c154082da497480a9d8ed5954c96f0d",
+  "vmlinux_sha": "f5032e55419648afe9bfc5e386aba01c6b234550ed268a1a5dfa3bfef895ef39",
+  "system_map_sha": "13159c2b95aed36035072979e49b59c97bbe74f33ddd9ada03a9b4df8e4a9d64",
   "latest_runtime_evidence": {
     "build_run_id": 42629841386,
     "build_artifact_id": 13680896439,
@@ -375,5 +380,18 @@
     ],
     "gdb_independently_confirms_idle": true,
     "root_cause_proven": false
+  },
+  "matched_nonrt_control": {
+    "run_id": 42639049555,
+    "artifact_id": 13684821764,
+    "guest_running": true,
+    "boot_exit_code": 0,
+    "reached_ms": 267.868,
+    "nonrt_config_sha256": "4a8f0803ab21bbdb7c0a299428679f7a6bb5bbd096c884a45ea69f0b0d0bd811",
+    "nonrt_image_sha256": "87c9ba84dc4359515a216aa7251693c56e65430e8948219c3aec5fb641ed38b1",
+    "nonrt_console_sha256": "cf17a942ce8f2864ff180bf3f51dba87ac7b586b615bb545a4ff9a32c8abd9f5",
+    "source_diff_sha256": "5f3ef24ea9dc31bb6198baa3851573931a66dde400b7eaa73115a2752c781c5e",
+    "kconfig_changed_count": 19,
+    "explanation": "same E404+RT source reconstruction diff; differences only RT vs nonRT config family and dependent symbols; nonRT reached /init and printed GUEST_RUNNING; RT stalled before init"
   }
 }
