@@ -1,6 +1,6 @@
 # Python 3 / Ubuntu 24.04 GitHub Actions / E404 RT140 QEMU virt PL011 PTY BREAK + sysrq-t / NO FLASH
 """Capture raw kernel serial and try BREAK then 't' to dump blocked tasks on timeout."""
-import argparse,fcntl,hashlib,json,os,re,select,shlex,signal,subprocess,termios,time,tty
+import argparse,fcntl,hashlib,json,os,pty,re,select,shlex,signal,subprocess,termios,time,tty
 from pathlib import Path
 
 APPEND=("earlycon=pl011,0x09000000 console=ttyAMA0,115200 "
@@ -22,26 +22,25 @@ def main():
     a=ap.parse_args();out=a.out.resolve();out.mkdir(parents=True,exist_ok=True)
     kernel=a.kernel.resolve();initrd=a.initrd.resolve()
     for x in [kernel,initrd]:assert x.is_file() and x.stat().st_size>1000,x
+    # Explicitly own both ends of a POSIX PTY. QEMU's -serial pty prints
+    # its assigned slave on stdout in some builds, which was discarded before.
+    # -serial stdio connected to the PTY slave is stable and permits BREAK.
+    fd, slave = pty.openpty()
+    pty_path=os.ttyname(slave)
+    tty.setraw(slave)
+    os.set_blocking(fd, False)
     cmd=["qemu-system-aarch64","-M","virt","-cpu","cortex-a72","-smp","4","-m","512",
-         "-nodefaults","-serial","pty","-monitor","none","-display","none",
+         "-nodefaults","-serial","stdio","-monitor","none","-display","none",
          "-nic","none","-no-reboot","-kernel",str(kernel),"-initrd",str(initrd),
          "-append",APPEND]
     (out/"qemu-command.txt").write_text(shlex.join(cmd)+"\n")
-    proc=subprocess.Popen(cmd,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,
-                          stdin=subprocess.DEVNULL,bufsize=0)
+    proc=subprocess.Popen(cmd,stdout=slave,stderr=subprocess.PIPE,
+                          stdin=slave,bufsize=0)
+    os.close(slave)
     assert proc.stderr is not None
     os.set_blocking(proc.stderr.fileno(),False)
-    err=b"";pty_path=None;fd=None
+    err=b""
     start=time.monotonic()
-    while time.monotonic()-start<8 and proc.poll() is None:
-        if select.select([proc.stderr],[],[],0.2)[0]:
-            try:err+=os.read(proc.stderr.fileno(),4096)
-            except BlockingIOError:pass
-            m=re.search(rb"/dev/pts/\d+",err)
-            if m:pty_path=m.group().decode();break
-    if pty_path:
-        fd=os.open(pty_path,os.O_RDWR|os.O_NOCTTY|os.O_NONBLOCK)
-        tty.setraw(fd)
     raw=bytearray();ioctl_status=[];break_sent=False
     try:
         deadline=time.monotonic()+a.before_break+a.after_break
