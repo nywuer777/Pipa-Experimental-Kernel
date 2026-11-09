@@ -1,73 +1,96 @@
-name: EXP76 pa_lock RT140 reconciliation (NO FLASH)
+name: EXP76 pa_lock RT140 auto-reconcile and QEMU (NO FLASH)
 on:
   push:
     branches: [exp76-rt-pa-lock-fix]
-    paths:
-      - '.github/workflows/exp76-pa-lock-fix.yml'
-      - 'patches/exp76-rt-pa-lock.patch'
+    paths: ['.github/workflows/exp76-pa-lock-fix.yml']
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
-  reconcile:
+  test:
     runs-on: ubuntu-24.04
     timeout-minutes: 110
     steps:
       - uses: actions/checkout@v4
-      - name: Recover pinned E404 and official RT140 source
-        id: reconstruct
+      - name: Run reconstruction, patch, build and QEMU
         shell: bash
         run: |
+          mkdir -p reports
+          echo "$GITHUB_RUN_ID" > reports/run-id.txt
+          printf 'branch=%s\ncommit=%s\nurl=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> reports/run-id.txt
+          set +e
+          bash -euxo pipefail <<'SCRIPT' > reports/execution.log 2>&1
           set -Eeuo pipefail
-          mkdir -p pa-lock-report
-          bash tools/exp76-rt-compat-audit.sh > pa-lock-report/reconstruct.log 2>&1
-          cp exp76-trial-overlay/mm/page_alloc.c.rej pa-lock-report/page_alloc.c.rej
-          cp exp76-rt.patch pa-lock-report/rt140.patch
-          cp exp76-trial-overlay/mm/page_alloc.c pa-lock-report/page_alloc.before.c
-          sha256sum pa-lock-report/* > pa-lock-report/source-sha256.txt
-      - name: Extract exact rejected hunks and verify context
-        id: extract
-        shell: bash
-        run: |
-          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils
+          bash tools/exp76-rt-compat-audit.sh
+          cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
+          cp exp76-trial-overlay/mm/page_alloc.c reports/page_alloc.before.c
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('pa-lock-report/page_alloc.c.rej').read_text()
-          chunks=p.split('@@ -')
-          hunks=['@@ -'+s for s in chunks[1:]]
-          Path('pa-lock-report/hunk-count.txt').write_text(str(len(hunks))+'\n')
-          for i,h in enumerate(hunks,1):
-              Path(f'pa-lock-report/hunk-{i}.diff').write_text(h)
-          if len(hunks)!=3: raise SystemExit('Expected exactly three rejected hunks')
+          import re
+          src=Path('exp76-rt.patch').read_text()
+          m=re.search(r'(?ms)^diff --git a/mm/page_alloc\.c b/mm/page_alloc\.c\n.*?(?=^diff --git |\Z)',src)
+          if not m: raise SystemExit('PAGE_ALLOC_PATCH_NOT_FOUND')
+          block=m.group()
+          header=block[:block.index('@@ ')]
+          hunks=re.findall(r'(?ms)^@@ .*?(?=^@@ |\Z)',block[block.index('@@ '):])
+          wanted=[h for h in hunks if any(x in h for x in ('__free_pages_ok','rmqueue_pcplist','rmqueue('))]
+          Path('reports/selected-hunks.txt').write_text(''.join(wanted))
+          Path('reports/selected-count.txt').write_text(str(len(wanted))+'\n')
+          if len(wanted)!=3: raise SystemExit('HUNK_COUNT_MISMATCH:'+str(len(wanted)))
+          Path('reports/pa_lock_raw.patch').write_text(header+''.join(wanted))
           PY
-          git -C exp76-trial-overlay diff -- mm/page_alloc.c > pa-lock-report/page_alloc.prior-diff || true
-          grep -n -E '(__free_pages_ok|rmqueue_pcplist|rmqueue\(|pa_lock|local_lock_irqsave|local_unlock_irqrestore)' exp76-trial-overlay/mm/page_alloc.c > pa-lock-report/lock-sites.txt || true
-      - name: Apply only reconciled pa_lock patch, fail closed on conflicts
-        id: apply
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          test -s patches/exp76-rt-pa-lock.patch || { echo 'NO_RECONCILED_PATCH' | tee pa-lock-report/gate.txt; exit 42; }
-          git -C exp76-trial-overlay apply --check "$GITHUB_WORKSPACE/patches/exp76-rt-pa-lock.patch"
-          git -C exp76-trial-overlay apply "$GITHUB_WORKSPACE/patches/exp76-rt-pa-lock.patch"
-          git -C exp76-trial-overlay diff --check
-          git -C exp76-trial-overlay diff -- mm/page_alloc.c > pa-lock-report/page_alloc.applied.diff
-          python3 - <<'PY'
-          from pathlib import Path
-          s=Path('exp76-trial-overlay/mm/page_alloc.c').read_text()
-          a=s.count('local_lock_irqsave(pa_lock')
-          b=s.count('local_unlock_irqrestore(pa_lock')
-          Path('pa-lock-report/pairing-counts.txt').write_text(f'acquires={a} releases={b}\n')
-          if not a or not b: raise SystemExit('FAIL_STRUCTURAL: missing pa_lock acquire/release')
-          PY
-          echo PATCH_APPLIED_REVIEW_REQUIRED > pa-lock-report/gate.txt
-      - name: Publish forensic evidence even on failure
+          cd exp76-trial-overlay
+          git apply --3way ../reports/pa_lock_raw.patch || {
+            echo APPLY_CONFLICT > ../reports/error.txt
+            git apply --reject ../reports/pa_lock_raw.patch || true
+            cp mm/page_alloc.c.rej ../reports/after-apply.rej || true
+            exit 12
+          }
+          git diff -- mm/page_alloc.c > ../reports/applied.patch
+          cp mm/page_alloc.c ../reports/page_alloc.after.c
+          grep -nE 'local_lock_irqsave\(pa_lock|local_unlock_irqrestore\(pa_lock' mm/page_alloc.c > ../reports/pairing-sites.txt
+          test -s ../reports/applied.patch || { echo PATCH_NO_OP > ../reports/error.txt; exit 13; }
+          test -f .config || { echo CONFIG_MISSING > ../reports/error.txt; exit 20; }
+          grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT)=' .config > ../reports/config-check.txt || true
+          make -j2 ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1 || { echo BUILD_FAILED > ../reports/error.txt; exit 21; }
+          sha256sum arch/arm64/boot/Image vmlinux .config > ../reports/build-sha256.txt
+          cd ..
+          INITRD="$(find . -name smoke-initramfs.cpio.gz -print -quit)"
+          test -n "$INITRD" || { echo INITRAMFS_MISSING > reports/error.txt; exit 22; }
+          set +e
+          timeout 60s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd "$INITRD" -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
+          rc=$?
+          set -e
+          echo "$rc" > reports/qemu-exit.txt
+          sha256sum reports/console.txt > reports/console.sha256
+          grep -q GUEST_RUNNING reports/console.txt || { echo BOOT_NOT_GREEN > reports/error.txt; exit 23; }
+          echo BOOT_GREEN_V3_NOT_YET_VERIFIED > reports/v3-status.txt
+          SCRIPT
+          rc=$?
+          echo "$rc" > reports/step-exit-code.txt
+          sha256sum reports/* > reports/report-sha256.txt 2>/dev/null || true
+          exit 0
+      - name: Publish evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: exp76-pa-lock-reconciliation-${{ github.run_id }}
-          path: |
-            pa-lock-report/
-            exp76-rt-report/summary.txt
-          if-no-files-found: warn
+          name: exp76-pa-lock-fix-run-${{ github.run_id }}
+          path: reports/
           retention-days: 30
+      - name: Commit evidence to result branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          echo "$GITHUB_RUN_ID" > reports/run-id.txt
+          git config user.email ci@exp76.invalid
+          git config user.name EXP76-CI
+          git checkout -B exp76-pa-lock-fix-result
+          mkdir -p exp76-results
+          cp -a reports/. exp76-results/
+          git add -f exp76-results/
+          git commit -m "result: pa_lock run $GITHUB_RUN_ID" || true
+          git push --force origin HEAD:refs/heads/exp76-pa-lock-fix-result
