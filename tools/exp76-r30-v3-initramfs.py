@@ -20,6 +20,12 @@ if [ "$rc" -eq 0 ]; then
   echo 'RT_SEMANTICS_VERIFIED=PASS'
 else
   echo 'RT_SEMANTICS_VERIFIED=FAIL'
+  if [ -w /proc/sysrq-trigger ]; then
+    echo t > /proc/sysrq-trigger
+    echo 'EXP76_V3_GUEST_SYSRQ_T=TRIGGERED'
+  else
+    echo 'EXP76_V3_GUEST_SYSRQ_T=UNAVAILABLE'
+  fi
 fi
 sync
 poweroff -f
