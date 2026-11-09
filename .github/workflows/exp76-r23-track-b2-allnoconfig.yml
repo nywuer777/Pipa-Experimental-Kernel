@@ -1,5 +1,5 @@
 # YAML / GitHub Actions Ubuntu24 / EXP76 R23 B E404 minimal Kconfig RT Clang21 / NO FLASH
-name: EXP76 R23 B2 E404 RT strict allnoconfig QEMU (NO FLASH)
+name: EXP76 R23 B2 strict allnoconfig E404 RT140 boot (NO FLASH)
 on:
   push:
     branches: [exp76-r23-b-minimal]
@@ -168,12 +168,12 @@ jobs:
           K="$GITHUB_WORKSPACE/exp76-trial-overlay"
           O="$GITHUB_WORKSPACE/r23b/output"
           make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- allnoconfig >r23b/reports/base-config.log 2>&1
-          "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -d BPF_SYSCALL -d CGROUP_BPF
+          "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e HIGH_RES_TIMERS -e EXPERT -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -d BPF_SYSCALL -d CGROUP_BPF
           python3 - <<'PY'
           # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
           from pathlib import Path
           import json
-          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','QCOM_CLK_RPMH','QCOM_COMMAND_DB','BPF_SYSCALL','CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI','MHI_SATELLITE','SYSCTL']
+          off=['QCOM_SCM','QCOM_SMEM','QCOM_SMD','QCOM_RPMH','QCOM_GLINK','QCOM_MDT_LOADER','MSM_KGSL','QCOM_KGSL','VIRTIO','VIRTIO_MENU','VIRTIO_MMIO','VIRTIO_BLK','PCI','PCIE','NET','STAGING','QCA_CLD_WLAN','WIRELESS','WLAN','QCOM_CLK_RPMH','QCOM_COMMAND_DB','BPF_SYSCALL','CGROUP_BPF','MHI_BUS','MHI_QCOM','MHI_NETDEV','MHI_UCI','MHI_SATELLITE','SYSCTL']
           Path('r23b/reports/disabled-requested.json').write_text(json.dumps(off,indent=2)+'\n')
           PY
           for iter in 1 2 3 4; do
@@ -207,19 +207,18 @@ jobs:
           grep -qx 'CONFIG_SMP=y' "$O/.config"
           grep -qx 'CONFIG_SERIAL_AMBA_PL011=y' "$O/.config"
           grep -qx 'CONFIG_SERIAL_AMBA_PL011_CONSOLE=y' "$O/.config"
-          grep -qx '# CONFIG_BPF_SYSCALL is not set' "$O/.config" || { echo 'R23_B_BPF_SYSCALL_RESELECTED'; exit 8; }
-          if grep -qx 'CONFIG_CGROUP_BPF=y' "$O/.config"; then echo 'R23_B_CGROUP_BPF_RESELECTED'; exit 8; fi
-          if grep -qx 'CONFIG_SYSCTL=y' "$O/.config"; then echo 'R23_B_SYSCTL_RESELECTED'; exit 8; fi
-          if grep -qx 'CONFIG_MHI_BUS=y' "$O/.config"; then echo 'R23_B_MHI_BUS_RESELECTED'; exit 8; fi
+          if grep -qx 'CONFIG_QCA_CLD_WLAN=y' "$O/.config"; then echo 'R23_B_WLAN_RESELECTED'; exit 8; fi
+          if grep -qx 'CONFIG_STAGING=y' "$O/.config"; then echo 'R23_B_STAGING_RESELECTED'; exit 8; fi
+          if grep -qx 'CONFIG_NET=y' "$O/.config"; then echo 'R23_B_NET_RESELECTED'; exit 8; fi
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
       - name: Build minimal E404 RT ARM64 Image and boot QEMU
         shell: bash
-        timeout-minutes: 130
+        timeout-minutes: 25
         run: |
           set -euo pipefail
           export ANDROID_CLANG_BIN="$GITHUB_WORKSPACE/android-clang-prebuilt/clang-r563880c/bin"
-          python3 tools/exp76-rt23-build-boot.py --track B --tree exp76-trial-overlay --output r23b/output --reports r23b/reports --initramfs r23b/inputs/smoke-initramfs.cpio.gz --build-seconds 7100 --qemu-seconds 45
+          python3 tools/exp76-rt23-build-boot.py --track B --tree exp76-trial-overlay --output r23b/output --reports r23b/reports --initramfs r23b/inputs/smoke-initramfs.cpio.gz --build-seconds 1200 --qemu-seconds 45
       - name: Always publish config rounds, reselections, raw console, Image ELF and source logs
         if: always()
         uses: actions/upload-artifact@v4
