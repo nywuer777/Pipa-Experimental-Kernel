@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "round": "EXP76_R30",
+  "track": "RT140_PA_LOCK",
+  "flash_ready": false,
+  "source_basis": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + official patch-4.19.325-rt140 + pinned EXP76 source ports",
+  "stage82": {
+    "run_id": 42645406275,
+    "artifact_id": 13688315101,
+    "artifact_zip_sha256": "f600823a52951b19310a3b80c2b3cc9c20ebccc6700d8def7512f76ec1843331",
+    "total_rejected_hunks": 209,
+    "remaining_rejected_files": 64,
+    "mm_page_alloc_rejected_hunks": 3,
+    "reject_sha256": "bc50f79ee420962007d789a6d8f652e550e2cf324b6956f49f881b03f833c4c6",
+    "exact_reject_headers": [
+      "@@ -1280,10 +1315,10 @@ static void __free_pages_ok(struct page *page, unsigned int order)",
+      "@@ -2986,7 +3071,7 @@ static struct page *rmqueue_pcplist(struct zone *preferred_zone,",
+      "@@ -3041,14 +3126,14 @@ struct page *rmqueue(struct zone *preferred_zone,"
+    ],
+    "official_uncompressed_patch_sha256": "294cd38386daad4bb95fbce8e02d2d24542358a13a10ad3799b1867e11f7b3a6",
+    "current_reconstructed_mm_sha256": "d416b26c1068bf4c305890bea1a04e5db4c4a90faa6982a21353baf1b14307df",
+    "source_diff": "r30/reports/step1/mm-effective-vs-base.diff"
+  },
+  "source_defect": "rmqueue_pcplist already local_unlock_irqrestore(pa_lock,flags) but only local_irq_save(flags) acquisition; rmqueue starts local_spin_lock_irqsave(pa_lock,&zone->lock,flags) but ends via local_irq_restore, with no paired local_unlock. Three Stage82 hunks restore paired APIs, including __free_pages_ok.",
+  "fix_commit": "ce162463cddf0a0c88f63adb697f9940364d9d53",
+  "fix_script": "tools/exp76-r30-pa-lock-fix.py",
+  "build_workflow_commit": "b98a58b5545f22caf7484516dabe8f3bb3e85e61",
+  "build_run_id": 42646761451,
+  "config_baseline_sha256": "5eb766d1eb22fdbcb9d27b1ff4874d9e9eb73a419d7f3a47de6224de000b93a8",
+  "config_expected_unchanged": true,
+  "build_completed": null,
+  "guest_running": null,
+  "boot_reached_ms": null,
+  "console_sha256": null,
+  "sysrq_script": "tools/exp76-r30-qemu-pty-sysrq.py",
+  "v3_only_if_guest_running": true,
+  "rt_semantics_verified": "NOT_YET_MEASURED"
+}
