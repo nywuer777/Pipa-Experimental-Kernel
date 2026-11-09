@@ -282,13 +282,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 tools/exp76-r30-v3-initramfs.py \
+          # Root is needed to preserve original /dev/console and /dev/null device nodes.
+          sudo python3 tools/exp76-r30-v3-initramfs.py \
             --original r23b/inputs/smoke-initramfs.cpio.gz \
             --module tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.ko \
             --config r23b/output/.config \
             --gate tests/exp76-rt-spin-sleep/run-in-guest.sh \
             --output r30/reports/v3/v3-initramfs.cpio.gz \
             --report r30/reports/v3/step5-initramfs.json
+          sudo chown -R "$(id -u):$(id -g)" r30/reports/v3
           test -s r30/reports/v3/v3-initramfs.cpio.gz
       - name: Boot corrected RT with real spinlock V3 module and verify guest timings
         shell: bash
