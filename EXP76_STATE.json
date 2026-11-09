@@ -1,0 +1,48 @@
+{
+  "round": 47,
+  "updated_at": "2026-11-09T18:28:32.863Z",
+  "kernel": {
+    "compiles": false,
+    "boots_qemu": false,
+    "last_boot_ms": null,
+    "known_break": "R44 GitHub Actions run 42671648709 completed/failure before any job; R43 configuration stopped at drivers/Kconfig:240: missing drivers/kernelsu/Kconfig",
+    "patched": true,
+    "patch_round": 42,
+    "patch_verified_build": false
+  },
+  "infra": {
+    "workflow": "R44 pre-job failure; cause not established (jobs=0, artifacts=0)",
+    "last_run": "42671648709",
+    "last_run_result": "completed/failure; jobs total_count=0; artifacts total_count=0; runner exit code unavailable",
+    "proxy_fetch": "exp76-pa-lock-fix-result still carries R43 run 42670520190; no R44 report artifacts"
+  },
+  "hypotheses": [
+    {
+      "hyp": "R44 failure occurred during GitHub Actions validation or job initialization, not during kernel execution",
+      "evidence": "Run 42671648709 concluded failure; GET /actions/runs/42671648709/jobs?per_page=100 returned total_count=0; /artifacts returned total_count=0",
+      "confidence": 0.85
+    },
+    {
+      "hyp": "R44 workflow diff adds only KernelSU gate inside existing run block, with no new Actions expressions, job keys, trigger or permission changes",
+      "evidence": "Full R43(3a7a944) -> R44(001bd1e) unified diff: one hunk, +18/-0 lines at workflow 117-140",
+      "confidence": 1
+    },
+    {
+      "hyp": "The reconstructed E404 QEMU source needs optional KernelSU Kconfig reference reconciliation before defconfig",
+      "evidence": "R43 run 42670520190 error DEFCONFIG_FAILED; config-bootstrap.log: drivers/Kconfig:240 can't open drivers/kernelsu/Kconfig",
+      "confidence": 1
+    }
+  ],
+  "next_action": {
+    "step": "Obtain the literal GitHub Actions pre-job error from the UI of run 42671648709; do not modify workflow until identified",
+    "exit_criteria": "Validator or runner initialization diagnostic with source, line/context and failure class captured; then one targeted correction and one run",
+    "fallback": "Validate the exact R44 YAML with actionlint offline; if clean, isolate GitHub Actions registration/runner infrastructure via a minimal workflow on a separate branch"
+  },
+  "lessons": [
+    "Do not treat jobs=0 as proof of a YAML semantic error: the cause is unknown without a validator or infrastructure diagnostic.",
+    "The R43->R44 diff changes only 18 lines of shell/Python in an existing run block; no trigger, permissions, matrix or if expression changed.",
+    "R43 reached defconfig and failed on an absent KernelSU Kconfig file; R44 execution never reached the KernelSU gate.",
+    "A fuzz-zero patch application and structural lock count are not evidence of an ARM64 build, QEMU boot or V3 RT semantics.",
+    "Keep FLASH_READY=false and RT_SEMANTICS_VERIFIED=UNVERIFIED until build and guest evidence exist."
+  ]
+}
