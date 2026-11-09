@@ -66,6 +66,9 @@ def main():
         assert actual==EXPECTED[name],f"{name} hash mismatch: {actual}"
     lock_pc=symbol_pc(smap,"task_blocks_on_rt_mutex")
     pa_lock_pc=symbol_pc(smap,"pa_lock")
+    freelist_pc=symbol_pc(smap,"get_page_from_freelist")
+    assert freelist_pc == 0xffffff801010dff0, "unexpected pinned freelist start"
+    freelist_ret_pc = freelist_pc + 0x9bc
     pa_lock_fn_pc=symbol_pc(smap,"rt_spin_lock")
     pa_unlock_fn_pc=symbol_pc(smap,"rt_spin_unlock")
     # CPU0 per-CPU base from pinned Image GDB evidence; checked again at target breakpoint.
@@ -96,6 +99,12 @@ def main():
         "commands 2",
         "silent",
         'printf "PA_LOCK_EXIT lock=%p owner_raw=0x%lx caller=%p\\n", $x0, *(unsigned long*)($x0+0x18), $x30',
+        "continue",
+        "end",
+        f"hbreak *0x{freelist_ret_pc:x}",
+        "commands 3",
+        "silent",
+        'printf "PA_LOCK_FREELIST_RETURN owner_raw=0x%lx retval=%p lr=%p\\n", *(unsigned long*)(0xffffffc01ffa2488+0x18), $x0, $x30',
         "continue",
         "end",
         f"hbreak *0x{lock_pc:x}",
@@ -166,6 +175,7 @@ def main():
         "break_hit": "EXP76_LOCK_BREAK_HIT" in info,
         "pa_lock_symbol_address":hex(pa_lock_pc),
         "pa_lock_cpu0_expected_address":hex(expected_pa_lock),
+        "pa_lock_freelist_return_count":len(re.findall(r"PA_LOCK_FREELIST_RETURN",info)),
         "pa_lock_enter_count":len(re.findall(r"PA_LOCK_ENTER",info)),
         "pa_lock_exit_count":len(re.findall(r"PA_LOCK_EXIT",info)),
         "pa_lock_event_lines":[line for line in info.splitlines() if line.startswith("PA_LOCK_")],
