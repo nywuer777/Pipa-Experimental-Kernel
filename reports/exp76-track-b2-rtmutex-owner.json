@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "track": "B2-RTMUTEX-OWNER",
+  "status": "BREAKPOINT_SUCCESS_OWNER_INIT_TASK_PA_LOCK",
+  "source_build_run_id": 42629841386,
+  "diagnostic_run_id": 42638802109,
+  "diagnostic_artifact_id": 13685110062,
+  "diagnostic_zip_sha256": "a6e7b220ce8c8471689143b77e5846ca7050a0031463c9573cd64d210160406a",
+  "image_sha256": "aeffed3f051eb3f1166763fb9fdfb3a6e8c521fe90a000c9ff48019897a64c2b",
+  "config_sha256": "19294205006587189cbf79043ab81f83a0d2bfa4b4860a595f66a5df2398eac5",
+  "vmlinux_sha256": "e59f413d3b31c1e47298647303a3c1c23ba94178325c2626c233c44dd25acb0a",
+  "system_map_sha256": "51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
+  "raw_gdb_sha256": "fd3bd4a9a5a432ef1c12178b6d364842ed18c5b007bd0c31830ab37c7b50cbc3",
+  "hardware_breakpoint": {
+    "symbol": "task_blocks_on_rt_mutex",
+    "pc": "0xffffff80100d1f50",
+    "hit": true
+  },
+  "lock": {
+    "virtual_address": "0xffffffc01ffa2488",
+    "per_cpu_symbol": "pa_lock",
+    "base_address": "0xffffff801030c488",
+    "cpu0_percpu_offset": "0x400fc96000",
+    "struct_rt_mutex_owner_offset": "0x18",
+    "owner_raw": "0xffffff801032df41",
+    "owner_pointer_masked": "0xffffff801032df40",
+    "owner_symbol": "init_task",
+    "owner_flag_bits": "0x1"
+  },
+  "blocked_task_address": "0xffffffc01f850b80",
+  "gdb_backtrace": [
+    "task_blocks_on_rt_mutex",
+    "rt_spin_lock_slowlock_locked",
+    "rt_spin_lock_slowlock",
+    "get_page_from_freelist"
+  ],
+  "upstream_struct_basis": [
+    "include/linux/rtmutex.h struct rt_mutex",
+    "kernel/locking/rtmutex_common.h rt_mutex_owner"
+  ],
+  "owner_identity_supported_by_gdb_symbol": true,
+  "blocked_task_identity_unverified": true,
+  "inferential_note": "rt_mutex pa_lock still owned by init_task while a new kthread allocates pages. A lock ownership leak or early-boot handoff error is plausible but original acquisition/release chain must be traced.",
+  "acquisition_release_trace_run_id": 42639712485,
+  "flash_ready": false,
+  "build_performed": false
+}
