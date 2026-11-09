@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "track": "B2-RTMUTEX-OWNER",
-  "status": "PA_LOCK_RECURSION_COUNTER_UNDERFLOW_OBSERVED_BREAKPOINT_DEC_RUN_QUEUED",
+  "status": "PA_LOCK_DEPTH_UNDERFLOW_IN_GET_PAGE_FROM_FREELIST_CONFIRMED",
   "source_build_run_id": 42629841386,
   "diagnostic_run_id": 42638802109,
   "diagnostic_artifact_id": 13685110062,
@@ -131,8 +131,8 @@
     }
   ],
   "callsite_symbolization_source": "r23b/output/System.map from Actions build 42629841386, SHA256 51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
-  "causality_status": "UNDERFLOW_OBSERVED_NEED_DECREMENT_CALLSITE_AND_OWNER_RECONCILIATION",
-  "next_gate": "Identify why get_page_from_freelist pa_lock acquired by init_task is not released before kthreadd acquisition; test only in QEMU with evidence.",
+  "causality_status": "UNDERFLOW_INSTRUCTION_VERIFIED_EXPECTED_FIX_NOT_TESTED",
+  "next_gate": "Inspect reconstructed mm/page_alloc.c RT local_lock calls around get_page_from_freelist and generate validated QEMU-only fix with paired acquire/release; avoid device flash.",
   "freelist_return_audit": {
     "run_id": 42642088852,
     "artifact_id": 13686680651,
@@ -197,5 +197,41 @@
     "next_run_id": 42642811067,
     "commit": "f496d5d5f5b489c740f88fcb569adc7223af34a1",
     "next_gate": "Breakpoint at get_page_from_freelist+0x1dc, the compiled decrement of pa_lock nesting count, to identify zero-to-UINT_MAX transition."
+  },
+  "underflow_pc_audit": {
+    "run_id": 42642811067,
+    "artifact_id": 13684953698,
+    "artifact_zip_sha256": "744cbdc4b5ba29fca6952dc5a1fcf84fb9a46708dea9fca0653b2d519bf7369c",
+    "gdb_exit_code": 0,
+    "break_hit": true,
+    "exact_compiled_instruction_address": "0xffffff801010e1cc",
+    "instruction": "subs w8, w8, #0x1",
+    "function": "get_page_from_freelist+0x1dc",
+    "depth_before_dec": [
+      0,
+      4294967295,
+      4294967294,
+      4294967293,
+      4294967292,
+      4294967291,
+      5,
+      9,
+      10,
+      12
+    ],
+    "owner_raw_at_first_six_dec": "0x0",
+    "first_underflow_to": "0xffffffff",
+    "caller_lr": "0xffffff801010e178",
+    "pa_lock_lock_address": "0xffffffc01ffa2488",
+    "first_callers": [
+      "free_unref_page+0x8c",
+      "free_unref_page+0x188 unlock",
+      "get_page_from_freelist+0x2e8 lock",
+      "get_page_from_freelist+0x2e8 lock blocked"
+    ],
+    "last_relevant_owner_raw": "0xffffff801032df41",
+    "last_relevant_depth": 12,
+    "interpretation": "Compiled get_page_from_freelist decreases pa_lock nesting depth from zero while owner is null, six consecutive times; later another get_page_from_freelist acquire by init_task sets ownership, depth rises to 12 and competing kthreadd acquisition blocks. Root cause now narrowed to mismatched lock/unlock accounting in RT page allocator path; exact source-level guard and minimal patch not yet measured.",
+    "flash_ready": false
   }
 }
