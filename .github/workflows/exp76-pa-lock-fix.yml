@@ -72,6 +72,20 @@ jobs:
           echo "$rc" > reports/step-exit-code.txt
           sha256sum reports/* > reports/report-sha256.txt 2>/dev/null || true
           exit 0
+      - name: V3 guest validation and evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p reports
+          if test -f reports/console.txt && grep -q 'GUEST_RUNNING' reports/console.txt; then
+            if grep -Eq 'EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=' reports/console.txt && grep -Eq 'EXP76_RT_SPIN_SLEEP PASS elapsed_us=' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt; then
+              echo 'RT_SEMANTICS_VERIFIED=PASS' > reports/v3-status.txt
+            else
+              echo 'RT_SEMANTICS_VERIFIED=UNVERIFIED; V3 module/gate not included in this initramfs' > reports/v3-status.txt
+            fi
+          else
+            echo 'RT_SEMANTICS_VERIFIED=UNVERIFIED; no guest boot evidence' > reports/v3-status.txt
+          fi
       - name: Publish evidence
         if: always()
         uses: actions/upload-artifact@v4
