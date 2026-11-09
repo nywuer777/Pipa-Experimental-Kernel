@@ -57,16 +57,51 @@ jobs:
           make -j2 ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1 || { echo BUILD_FAILED > ../reports/error.txt; exit 21; }
           sha256sum arch/arm64/boot/Image vmlinux .config > ../reports/build-sha256.txt
           cd ..
-          INITRD="$(find . -name smoke-initramfs.cpio.gz -print -quit)"
-          test -n "$INITRD" || { echo INITRAMFS_MISSING > reports/error.txt; exit 22; }
+          # V3: compile the actual external module against this patched Image.
+          sudo apt-get install -y cpio gcc-aarch64-linux-gnu
+          mkdir -p reports/v3-module
+          cp tests/exp76-rt-spin-sleep/{Makefile,exp76_rt_spin_sleep.c} reports/v3-module/
+          make -C exp76-trial-overlay ARCH=arm64 LLVM=1 \
+            CROSS_COMPILE=aarch64-linux-gnu- M="$GITHUB_WORKSPACE/reports/v3-module" modules \
+            > reports/v3-module-build.log 2>&1 || { echo V3_MODULE_BUILD_FAILED > reports/error.txt; exit 24; }
+          test -s reports/v3-module/exp76_rt_spin_sleep.ko
+          mkdir -p reports/v3-root/{bin,dev,proc,sys,tmp,probe,config}
+          curl -fL --retry 3 https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb -o reports/busybox-arm64.deb
+          mkdir -p reports/busybox-extract
+          dpkg-deb -x reports/busybox-arm64.deb reports/busybox-extract
+          BB="$(find reports/busybox-extract -type f -name busybox -print -quit)"
+          test -s "$BB"
+          cp "$BB" reports/v3-root/bin/busybox
+          for x in sh ash mount mkdir cat grep sed awk tr wc tail head insmod rmmod dmesg timeout mktemp rm ls echo sync reboot poweroff sleep uname sha256sum; do ln -s busybox "reports/v3-root/bin/$x"; done
+          cp reports/v3-module/exp76_rt_spin_sleep.ko reports/v3-root/probe/rt.ko
+          cp tests/exp76-rt-spin-sleep/run-in-guest.sh reports/v3-root/probe/gate.sh
+          cp exp76-trial-overlay/.config reports/v3-root/config/rt.config
+          cat > reports/v3-root/init <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          mount -t proc proc /proc
+          mount -t sysfs sysfs /sys
+          echo GUEST_RUNNING
+          /bin/sh /probe/gate.sh guest normal /config/rt.config
+          rc=$?
+          echo "EXP76_QEMU_GUEST_RESULT=$rc"
+          sync
+          poweroff -f
+          INIT
+          chmod 755 reports/v3-root/init reports/v3-root/probe/gate.sh
+          sudo mknod reports/v3-root/dev/console c 5 1
+          sudo mknod reports/v3-root/dev/null c 1 3
+          ( cd reports/v3-root && find . -print0 | cpio --null -o --format=newc 2>/dev/null | gzip -9 ) > reports/v3-initramfs.cpio.gz
+          sha256sum reports/v3-module/exp76_rt_spin_sleep.ko reports/v3-initramfs.cpio.gz > reports/v3-sha256.txt
           set +e
-          timeout 60s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd "$INITRD" -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
+          timeout -k 5s 180s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd reports/v3-initramfs.cpio.gz -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
           rc=$?
           set -e
           echo "$rc" > reports/qemu-exit.txt
           sha256sum reports/console.txt > reports/console.sha256
           grep -q GUEST_RUNNING reports/console.txt || { echo BOOT_NOT_GREEN > reports/error.txt; exit 23; }
-          echo BOOT_GREEN_V3_NOT_YET_VERIFIED > reports/v3-status.txt
+          grep -q 'EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP PASS elapsed_us=' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt || { echo V3_MARKERS_MISSING > reports/error.txt; exit 25; }
+          echo RT_SEMANTICS_VERIFIED=PASS > reports/v3-status.txt
           SCRIPT
           rc=$?
           echo "$rc" > reports/step-exit-code.txt
