@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "track": "C-GDB",
+  "status": "COLLECTION_SUCCESS_GUEST_NOT_RUNNING",
+  "source_image_run_id": 42250522391,
+  "run_id": 42630130999,
+  "artifact_id": 13680033844,
+  "artifact_zip_sha256": "ac21634684c4a4a34470420b6d9d25885dbc56e73182fa01a23417cb379d6496",
+  "image_sha256": "812d46e04131cc1ded7dd26b13728f3d8834ff240d533cac80172dd070e6e907",
+  "vmlinux_sha256": "933ad5ea6857e79a22f72914c08c3f12b97771728fd16a33609897c4fc3d77c6",
+  "system_map_sha256": "89610a52cb25c2572170a765b8ec75a0646f8e5d8e35ae509bab528b043e3356",
+  "config_sha256": "deffef75c19247e20dcf0f457ae7e6fb364d403b1f63c43e98422b86f6aaa5f6",
+  "initramfs_sha256": "b9c25fcc2934473c45458b68b2f65f682e55cc3648e803ba64ca410fe6f70e5e",
+  "qemu_smp": 4,
+  "boot_completed": false,
+  "guest_running": false,
+  "last_serial_ms": 30.961,
+  "console_sha256": "80c6fdaa6751d84f33714cc39698a99d321695aed44c7302547df2bfdd7b0fdd",
+  "console_last_line": "[    0.030961] /cpus/cpu-map: empty cluster",
+  "snapshots": [
+    {
+      "number": 1,
+      "gdb_sha256": "3c25248b01afb0979e0ee1c2e5b0cab7abb07db20dbc15cc1199e7ef3a551bf3",
+      "cpu0": "rcu_init+0x100",
+      "callers": [
+        "start_kernel"
+      ],
+      "secondary_cpu_pcs": [
+        "0x0",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "number": 2,
+      "gdb_sha256": "cea3f0a88633c79127ed7bef193fc74ea77283f753aff57cbc054630e79a2a68",
+      "cpu0": "cpu_do_idle+0x8",
+      "callers": [
+        "arch_cpu_idle",
+        "do_idle"
+      ],
+      "secondary_cpu_pcs": [
+        "0x0",
+        "0x0",
+        "0x0"
+      ]
+    }
+  ],
+  "inference": "CPU0 transitions from initialization to idle without user init output. Waiting kernel tasks not directly observable from GDB vCPU registers, cause not proven.",
+  "build_performed": false,
+  "flash_ready": false
+}
