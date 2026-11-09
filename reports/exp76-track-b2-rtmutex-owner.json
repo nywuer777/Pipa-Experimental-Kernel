@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "track": "B2-RTMUTEX-OWNER",
-  "status": "PA_LOCK_OWNER_INIT_TASK_AND_ALLOCATION_CALLERS_CONFIRMED",
+  "status": "PA_LOCK_OWNER_CONFIRMED_FREELIST_RETURNS_WHILE_HELD_DEPTH_AUDIT_QUEUED",
   "source_build_run_id": 42629841386,
   "diagnostic_run_id": 42638802109,
   "diagnostic_artifact_id": 13685110062,
@@ -132,5 +132,21 @@
   ],
   "callsite_symbolization_source": "r23b/output/System.map from Actions build 42629841386, SHA256 51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
   "causality_status": "PRECISE_UNRELEASED_LOCK_OBSERVED_OTHER_LOCK_ORIGINAL_OWNER_STATE_NOT_YET_RESOLVED",
-  "next_gate": "Identify why get_page_from_freelist pa_lock acquired by init_task is not released before kthreadd acquisition; test only in QEMU with evidence."
+  "next_gate": "Identify why get_page_from_freelist pa_lock acquired by init_task is not released before kthreadd acquisition; test only in QEMU with evidence.",
+  "freelist_return_audit": {
+    "run_id": 42642088852,
+    "artifact_id": 13686680651,
+    "artifact_zip_sha256": "76db0ae0b6a1a16edff6740f017db4137429ae3efc80ea69554bb8690c7c7965",
+    "gdb_break_hit": true,
+    "gdb_exit_code": 0,
+    "freelist_return_count": 26,
+    "freelist_returns_owner_raw_init_task": 20,
+    "first_nonzero_owner_after": "get_page_from_freelist+0x2e8 pa_lock acquire",
+    "return_lr": "0xffffff8010262840",
+    "lock_return_raw": "0xffffff801032df40",
+    "interpretation": "26 freelist returns sampled; 20 occurred while perCPU pa_lock.owner still pointed to init_task. Could reflect nested call context; depth/holder state not yet captured.",
+    "next_run_id": 42642373484,
+    "next_commit": "ebb3395f7bbed4a90fddd4c181d99eee535b2cc7",
+    "next_test": "collect pa_lock depth and holder pointer on acquire/release/freelist return"
+  }
 }
