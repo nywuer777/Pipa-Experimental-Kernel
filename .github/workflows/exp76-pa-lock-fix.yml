@@ -117,8 +117,36 @@ jobs:
           cp mm/page_alloc.c ../reports/page_alloc.after.c
           cmp -s mm/page_alloc.c ../reports/page_alloc.after.c
           test -s ../reports/applied.patch || { echo PATCH_NO_OP > ../reports/error.txt; exit 13; }
-          test -f .config || { echo CONFIG_MISSING > ../reports/error.txt; exit 20; }
-          grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT)=' .config > ../reports/config-check.txt || true
+          # R43: the source audit intentionally does not reconstruct .config.
+          # Bootstrap a disposable generic ARM64 QEMU config, never a pipa flash config.
+          if ! make ARCH=arm64 LLVM=1 defconfig > ../reports/config-bootstrap.log 2>&1; then
+            echo DEFCONFIG_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          scripts/config --file .config \
+            -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT \
+            -e PREEMPT_RT_FULL -e MODULES -e MODULE_UNLOAD \
+            -e BLK_DEV_INITRD -e RD_GZIP -e DEVTMPFS \
+            -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
+            -e BINFMT_SCRIPT -e PRINTK -e MAGIC_SYSRQ
+          if ! make ARCH=arm64 LLVM=1 olddefconfig > ../reports/config-olddefconfig.log 2>&1; then
+            echo OLDDEFCONFIG_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          cp .config ../reports/qemu-rt.config
+          sha256sum .config > ../reports/qemu-rt-config.sha256
+          : > ../reports/config-gate.txt
+          for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT; do
+            if ! grep -qx "CONFIG_${required}=y" .config; then
+              echo "CONFIG_${required}=NOT_ENABLED" >> ../reports/config-gate.txt
+            fi
+          done
+          if test -s ../reports/config-gate.txt; then
+            echo CONFIG_GATE_FAILED > ../reports/error.txt
+            exit 20
+          fi
+          echo CONFIG_GATE=PASS > ../reports/config-gate.txt
+          grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT|MODULES|MODULE_UNLOAD|SERIAL_AMBA_PL011_CONSOLE)=' .config > ../reports/config-check.txt || true
           make -j2 ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1 || { echo BUILD_FAILED > ../reports/error.txt; exit 21; }
           sha256sum arch/arm64/boot/Image vmlinux .config > ../reports/build-sha256.txt
           cd ..
@@ -147,7 +175,7 @@ jobs:
           mount -t proc proc /proc
           mount -t sysfs sysfs /sys
           echo GUEST_RUNNING
-          /bin/sh /probe/gate.sh guest normal /config/rt.config
+          /bin/sh /probe/gate.sh execute normal /probe/rt.ko /config/rt.config /tmp/probe
           rc=$?
           echo "EXP76_QEMU_GUEST_RESULT=$rc"
           sync
@@ -165,7 +193,7 @@ jobs:
           echo "$rc" > reports/qemu-exit.txt
           sha256sum reports/console.txt > reports/console.sha256
           grep -q GUEST_RUNNING reports/console.txt || { echo BOOT_NOT_GREEN > reports/error.txt; exit 23; }
-          grep -q 'EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP PASS elapsed_us=' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt || { echo V3_MARKERS_MISSING > reports/error.txt; exit 25; }
+          grep -qx 'EXP76_QEMU_GUEST_RESULT=0' reports/console.txt && grep -qx 'QEMU_RT_SPINLOCK=PASS test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt || { echo V3_VERIFIER_NOT_PASS > reports/error.txt; exit 25; }
           echo RT_SEMANTICS_VERIFIED=PASS > reports/v3-status.txt
           SCRIPT
           rc=$?
@@ -178,7 +206,7 @@ jobs:
         run: |
           mkdir -p reports
           if test -f reports/console.txt && grep -q 'GUEST_RUNNING' reports/console.txt; then
-            if grep -Eq 'EXP76_RT_SPIN_SLEEP CONTENTION_PASS wait_us=' reports/console.txt && grep -Eq 'EXP76_RT_SPIN_SLEEP PASS elapsed_us=' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt; then
+            if grep -qx 'EXP76_QEMU_GUEST_RESULT=0' reports/console.txt && grep -qx 'QEMU_RT_SPINLOCK=PASS test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt; then
               echo 'RT_SEMANTICS_VERIFIED=PASS' > reports/v3-status.txt
             else
               echo 'RT_SEMANTICS_VERIFIED=UNVERIFIED; V3 module/gate not included in this initramfs' > reports/v3-status.txt
@@ -199,7 +227,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p reports
-          echo "$GITHUB_RUN_ID" > reports/run-id.txt
+          test -s reports/run-id.txt || echo "$GITHUB_RUN_ID" > reports/run-id.txt
           git config user.email ci@exp76.invalid
           git config user.name EXP76-CI
           git checkout -B exp76-pa-lock-fix-result
