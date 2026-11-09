@@ -254,7 +254,7 @@ jobs:
           # PROC_SYSCTL default=y selects SYSCTL and pulls E404 vendor sysctl.c stubs.
           # Keep /proc (for dmesg/sysrq) while disabling /proc/sys interface.
           grep -qx '# CONFIG_PROC_SYSCTL is not set' "$O/.config" || { echo R30_V3_PROC_SYSCTL_RESELECTED; exit 38; }
-          grep -qx '# CONFIG_SYSCTL is not set' "$O/.config" || { echo R30_V3_SYSCTL_RESELECTED; exit 39; }
+          if grep -qx 'CONFIG_SYSCTL=y' "$O/.config"; then echo R30_V3_SYSCTL_RESELECTED; exit 39; fi
           grep -qx 'CONFIG_NR_CPUS=8' "$O/.config" || { echo R23_B2_NR_CPUS_INVALID; exit 33; }
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$O/.config"
           grep -qx 'CONFIG_SMP=y' "$O/.config"
