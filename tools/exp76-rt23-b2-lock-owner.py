@@ -65,6 +65,12 @@ def main():
         actual=sha(path)
         assert actual==EXPECTED[name],f"{name} hash mismatch: {actual}"
     lock_pc=symbol_pc(smap,"task_blocks_on_rt_mutex")
+    pa_lock_pc=symbol_pc(smap,"pa_lock")
+    pa_lock_fn_pc=symbol_pc(smap,"rt_spin_lock")
+    pa_unlock_fn_pc=symbol_pc(smap,"rt_spin_unlock")
+    # CPU0 per-CPU base from pinned Image GDB evidence; checked again at target breakpoint.
+    expected_pa_lock=0xffffffc01ffa2488
+    assert pa_lock_pc==0xffffff801030c488, "unexpected pinned pa_lock symbol"
     dump=out/"console-full.txt"
     cmd=["qemu-system-aarch64","-M","virt","-cpu","cortex-a72","-smp","4","-m","512",
          "-nodefaults","-serial","file:"+str(dump),"-monitor","none","-display","none",
@@ -80,6 +86,18 @@ def main():
         "set architecture aarch64",
         "file "+str(elf),
         f"target remote 127.0.0.1:{a.port}",
+        f"hbreak *0x{pa_lock_fn_pc:x} if $x0 == 0x{expected_pa_lock:x}",
+        "commands 1",
+        "silent",
+        'printf "PA_LOCK_ENTER lock=%p owner_raw=0x%lx\\n", $x0, *(unsigned long*)($x0+0x18)',
+        "continue",
+        "end",
+        f"hbreak *0x{pa_unlock_fn_pc:x} if $x0 == 0x{expected_pa_lock:x}",
+        "commands 2",
+        "silent",
+        'printf "PA_LOCK_EXIT lock=%p owner_raw=0x%lx\\n", $x0, *(unsigned long*)($x0+0x18)',
+        "continue",
+        "end",
         f"hbreak *0x{lock_pc:x}",
         "continue",
         'printf "EXP76_LOCK_BREAK_HIT PC=%p\\n", $pc',
@@ -146,6 +164,11 @@ def main():
         "gdb_exit_code":gdb_exit,"gdb_timed_out":gdb_timedout,
         "gdb_raw_sha256":sha(gdb_path),"gdb_raw_bytes":len(gdb_output),
         "break_hit": "EXP76_LOCK_BREAK_HIT" in info,
+        "pa_lock_symbol_address":hex(pa_lock_pc),
+        "pa_lock_cpu0_expected_address":hex(expected_pa_lock),
+        "pa_lock_enter_count":len(re.findall(r"PA_LOCK_ENTER",info)),
+        "pa_lock_exit_count":len(re.findall(r"PA_LOCK_EXIT",info)),
+        "pa_lock_event_lines":[line for line in info.splitlines() if line.startswith("PA_LOCK_")],
         "lock_address":extract(r"EXP76_LOCK_ARGS lock=(0x[0-9a-fA-F]+)"),
         "owner_candidate_raw":extract(r"EXP76_LOCK_OWNER_CANDIDATE raw=(0x[0-9a-fA-F]+)"),
         "task_identity_proven":False,
