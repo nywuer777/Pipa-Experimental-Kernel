@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "track": "B2-GDB",
+  "status": "COLLECTION_SUCCESS_GUEST_NOT_RUNNING",
+  "source_build_run_id": 42629841386,
+  "forensics_run_id": 42636798967,
+  "build_artifact_id": 13680896439,
+  "forensics_artifact_id": 13683292187,
+  "forensics_zip_sha256": "e05541f33e3e4378411b9ffd37245269cfbb8f773d235fbac8d386b0a517e613",
+  "image_sha256": "aeffed3f051eb3f1166763fb9fdfb3a6e8c521fe90a000c9ff48019897a64c2b",
+  "vmlinux_sha256": "e59f413d3b31c1e47298647303a3c1c23ba94178325c2626c233c44dd25acb0a",
+  "system_map_sha256": "51125b8e92c922b7267794f77c38c97a1cabc392468a0bb6010a21b672502476",
+  "config_sha256": "19294205006587189cbf79043ab81f83a0d2bfa4b4860a595f66a5df2398eac5",
+  "initramfs_sha256": "b9c25fcc2934473c45458b68b2f65f682e55cc3648e803ba64ca410fe6f70e5e",
+  "qemu_smp": 4,
+  "boot_completed": false,
+  "guest_running": false,
+  "last_serial_ms": 74.846,
+  "console_sha256": "15bfd99c9617c07664d50092da6ac3f7af0e01ce5bb0f630f5b1e4116ce71e97",
+  "console_last_line": "[    0.074846] /cpus/cpu-map: empty cluster",
+  "snapshots": [
+    {
+      "number": 1,
+      "gdb_sha256": "105d281b54bc37b53ba87e303bf67433fd0f7d703fca07e46dcbd0795260ed33",
+      "cpu0": "pfn_valid+0x14",
+      "secondary_cpu_pcs": [
+        "0x0",
+        "0x0",
+        "0x0"
+      ]
+    },
+    {
+      "number": 2,
+      "gdb_sha256": "1e3874e6149f568affc933cf775ba96f22b69623a377e7e5d95e160fce02ab42",
+      "cpu0": "cpu_do_idle+0x8",
+      "callers": [
+        "arch_cpu_idle",
+        "do_idle",
+        "cpu_startup_entry",
+        "start_kernel"
+      ],
+      "secondary_cpu_pcs": [
+        "0x0",
+        "0x0",
+        "0x0"
+      ]
+    }
+  ],
+  "translated_block_trace": {
+    "tb_count": 928125,
+    "raw_bytes": 67383788,
+    "raw_sha256": "da86fe40e5040a1007844c05020247ff59669203dc0cb7d82e76a917be73c19f",
+    "gz_bytes": 705968,
+    "gz_sha256": "81d69041655ca27d4f7a5cf63a0b651633a5d36da0636c165179ed02fd132a16",
+    "observed_symbol_tb_hits": {
+      "rcu_init": 19,
+      "smp_prepare_cpus": 21,
+      "workqueue_init": 19,
+      "kthread_create_on_node": 1,
+      "__kthread_create_on_node": 4,
+      "kthreadd": 11,
+      "kernel_init_freeable": 5,
+      "wait_for_completion_killable": 1,
+      "wait_for_common": 20,
+      "try_to_wake_up": 44,
+      "wake_up_new_task": 41,
+      "__schedule": 85,
+      "do_idle": 7752,
+      "cpu_do_idle": 2579
+    },
+    "last_tb": "cpu_do_idle+0x0"
+  },
+  "next_test": {
+    "name": "B2 nonRT E404 contrast",
+    "run_id": 42637471238,
+    "branch": "exp76-r23-b-minimal",
+    "state_at_launch": "in_progress"
+  },
+  "inference": "Trace and GDB show scheduler/kthread init calls followed by CPU0 idle. This is evidence of pre-init stall but does not prove a specific RT root cause.",
+  "build_performed": false,
+  "flash_ready": false
+}
