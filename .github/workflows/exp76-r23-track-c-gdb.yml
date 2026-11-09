@@ -1,0 +1,55 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 R23 C pinned RT GDB stack forensics / NO FLASH
+name: EXP76 R23 C pinned RT QEMU GDB CPU stacks (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-r23-track-c-gdb.yml'
+      - 'tools/exp76-rt23-track-c-gdb.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  pinned-rt-gdb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact original RT Image vmlinux System.map and initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r23/track-c-gdb/input
+      - name: Install QEMU and ARM64-capable GDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm gdb-multiarch
+          command -v qemu-system-aarch64
+          command -v gdb-multiarch
+          python3 -m py_compile tools/exp76-rt23-track-c-gdb.py
+      - name: Capture two 4-CPU kernel PC and backtrace snapshots; preserve raw logs
+        shell: bash
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt23-track-c-gdb.py \
+            --root exp76-r23/track-c-gdb/input \
+            --out exp76-r23/track-c-gdb/reports \
+            --interval 5
+          test -s exp76-r23/track-c-gdb/reports/exp76-track-c-gdb.json
+          test -s exp76-r23/track-c-gdb/reports/gdb-snapshot-1.txt
+          test -s exp76-r23/track-c-gdb/reports/console-rt.txt
+      - name: Preserve exact console and gdb snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-c-gdb-stacks-NOFLASH
+          path: exp76-r23/track-c-gdb/reports/
+          if-no-files-found: warn
+          retention-days: 30
