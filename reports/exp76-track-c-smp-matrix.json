@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "track": "C-SMP-MATRIX",
+  "status": "IN_PROGRESS",
+  "source_run_id": 42250522391,
+  "trace_run_id": 42368810699,
+  "matrix_run_id": 42628823852,
+  "matrix_workflow": ".github/workflows/exp76-r23-track-c-smp-matrix.yml",
+  "workflow_commit": "0b37ac9b04bc61085dcaf657556bb3a28b3d6482",
+  "pinned_image_sha256": "812d46e04131cc1ded7dd26b13728f3d8834ff240d533cac80172dd070e6e907",
+  "cpu_variants": [
+    1,
+    2,
+    4
+  ],
+  "qemu_machine": "virt",
+  "cpu_model": "cortex-a72",
+  "memory_mib": 512,
+  "timeout_seconds_per_variant": 18,
+  "raw_console_artifact_name": "exp76-r23-c-pinned-smp-matrix-NOFLASH",
+  "result_available": false,
+  "per_smp_results": null,
+  "root_cause_identified": false,
+  "existing_trace_evidence": {
+    "last_console_ms": 113.691,
+    "observed_last_pc": "do_idle+0xfc",
+    "thread_wait_hypothesis": "workqueue_init waiting for kthread create completion; not conclusive"
+  },
+  "required_followup": "inspect per-SMP full consoles, hashes, last kernel timestamps and GUEST_RUNNING before judging SMP sensitivity",
+  "build_performed": false,
+  "flash_ready": false
+}
