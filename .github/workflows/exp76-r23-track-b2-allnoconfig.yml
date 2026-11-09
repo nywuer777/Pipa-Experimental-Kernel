@@ -169,6 +169,9 @@ jobs:
           O="$GITHUB_WORKSPACE/r23b/output"
           make -C "$K" O="$O" ARCH=arm64 CC=clang LD=ld.lld CROSS_COMPILE=aarch64-linux-gnu- CLANG_TRIPLE=aarch64-linux-gnu- allnoconfig >r23b/reports/base-config.log 2>&1
           "$K/scripts/config" --file "$O/.config" -d LTO_CLANG -d LTO_CLANG_THIN -d LTO_CLANG_FULL -e LTO_NONE -d PREEMPT -e PREEMPT_RT_FULL -e SMP -e HIGH_RES_TIMERS -e EXPERT -e TTY -e OF -e ARM_AMBA -e SERIAL_CORE -e SERIAL_CORE_CONSOLE -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BLK_DEV_INITRD -e DEVTMPFS -e DEVTMPFS_MOUNT -e MAGIC_SYSRQ -e MAGIC_SYSRQ_SERIAL -e PRINTK -e BINFMT_ELF -e ARM_PSCI_FW -e ARM_GIC -d BPF_SYSCALL -d CGROUP_BPF
+          # E404 ARM64 Kconfig declares these as int without defaults.
+          # allnoconfig emits empty values; syncconfig otherwise loops without stdin.
+          "$K/scripts/config" --file "$O/.config" --set-val LITTLE_CPU_MASK 0 --set-val BIG_CPU_MASK 0 --set-val PRIME_CPU_MASK 0
           python3 - <<'PY'
           # Python 3 / Ubuntu 24.04 / collect exact requested disabled configs
           from pathlib import Path
@@ -203,6 +206,9 @@ jobs:
           Path('r23b/reports/kconfig-reselections.json').write_text(json.dumps(result,indent=2)+'\n')
           print('EXP76_R23_B_RESELECTED',result['kconfig_reselections'])
           PY
+          for key in LITTLE_CPU_MASK BIG_CPU_MASK PRIME_CPU_MASK; do
+            grep -qx "CONFIG_${key}=0" "$O/.config" || { echo "R23_B2_INVALID_CPU_MASK_${key}"; exit 31; }
+          done
           grep -qx 'CONFIG_PREEMPT_RT_FULL=y' "$O/.config"
           grep -qx 'CONFIG_SMP=y' "$O/.config"
           grep -qx 'CONFIG_SERIAL_AMBA_PL011=y' "$O/.config"
