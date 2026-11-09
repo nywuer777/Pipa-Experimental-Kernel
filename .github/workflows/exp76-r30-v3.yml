@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/exp76-r30-v3.yml'
       - 'tools/exp76-r30-v3-initramfs.py'
+      - 'tools/exp76-r30-v3-timer-irq-guard.py'
       - 'tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.c'
   workflow_dispatch:
 permissions:
@@ -186,6 +187,16 @@ jobs:
           git -C exp76-trial-overlay diff -- mm/page_alloc.c >r30/reports/step3/combined-upstream-and-r30-mm.diff
           sha256sum r30/reports/step3/* >r30/reports/step3/files.sha256
           sha256sum exp76-trial-overlay/mm/page_alloc.c
+      - name: V3-only guard for observed ktimersoftd irq_work_tick_soft BRK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r30/reports/v3
+          python3 tools/exp76-r30-v3-timer-irq-guard.py \
+            --tree exp76-trial-overlay \
+            --out r30/reports/v3
+          test -s r30/reports/v3/timer-v3-irq-guard.patch
+          git -C exp76-trial-overlay diff --check
       - name: Generate minimal effective QEMU_RT config and measure Kconfig reselections
         shell: bash
         run: |
