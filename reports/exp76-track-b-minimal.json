@@ -2,7 +2,7 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "B_BUILD_FAILED_PRIOR_QCA_CLD_WLAN_WITH_NET_N; STRICT_AND_FALLBACK_RETRIES_RUNNING",
+  "status": "TRACK_B_LAST_CONFIG_VALID_NEW_IMAGE_PENDING",
   "latest_run_id": 42373714351,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b2-allnoconfig.yml",
@@ -57,8 +57,8 @@
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": null,
-  "latest_completed_run_id": 42374645920,
-  "latest_completed_conclusion": "BUILD_FAILED_NO_IMAGE_NO_BOOT",
+  "latest_completed_run_id": 42610605978,
+  "latest_completed_conclusion": "CONFIG_GUARD_FALSE_NEGATIVE_QCA_CLD_WLAN_ABSENT_WHEN_STAGING_N",
   "build_exit_code": 2,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
@@ -111,9 +111,9 @@
   "track_b_build_source_fixes_applied_to_kernel": false,
   "latest_completed_image_sha": null,
   "latest_completed_console_sha256": null,
-  "latest_completed_config_sha": "f2409d853f14c138e96c976cf24d4a9327e9fad99b467161b69cff39673fde86",
-  "latest_completed_build_exit_code": 2,
-  "latest_completed_build_error": "drivers/staging/qcacld-3.0/core/hdd/src/wlan_hdd_main.c: CONFIG_QCA_CLD_WLAN=y compiled with CONFIG_NET=n; struct net_device has no wireless_handlers",
+  "latest_completed_config_sha": "4f8a345165caae41117d82bf87a5a34f1677d4eaacb96080591e436dfef8270d",
+  "latest_completed_build_exit_code": null,
+  "latest_completed_build_error": "Wrong strict grep expected # CONFIG_QCA_CLD_WLAN is not set, but symbol is absent under STAGING=n; no compiler invoked",
   "retry_runs": [
     {
       "run_id": 42610364810,
@@ -154,5 +154,26 @@
   ],
   "boot_exit_code": null,
   "next_gate": "Require successful Image, exact .config and QEMU serial before classifying vendor/config root cause",
-  "rt_semantics_verified": false
+  "rt_semantics_verified": false,
+  "latest_completed_artifact_id": 13669709051,
+  "kconfig_validation": {
+    "CONFIG_PREEMPT_RT_FULL": "y",
+    "CONFIG_STAGING": "n",
+    "CONFIG_NET": "n",
+    "CONFIG_QCA_CLD_WLAN": "absent (Kconfig disabled by parent)",
+    "reselected_symbols": [],
+    "round4_config_sha256": "4f8a345165caae41117d82bf87a5a34f1677d4eaacb96080591e436dfef8270d"
+  },
+  "current_retries": [
+    {
+      "run_id": 42610364810,
+      "profile": "strict_allnoconfig",
+      "state": "IN_PROGRESS_LAST_CHECK"
+    },
+    {
+      "run_id": 42611704481,
+      "profile": "vendor_defconfig_wlan_staging_n",
+      "state": "IN_PROGRESS_LAST_CHECK"
+    }
+  ]
 }
