@@ -1,0 +1,177 @@
+# YAML / GitHub Actions Ubuntu24 / EXP76 R23 B E404 minimal Kconfig RT Clang21 / NO FLASH
+name: EXP76 R30 Stage82 pa_lock hunk/source audit (NO FLASH)
+on:
+  push:
+    branches: [exp76-rt-pa-lock-fix]
+    paths:
+      - '.github/workflows/exp76-r30-mm-audit.yml'
+      - 'tools/exp76-r30-mm-audit.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  e404-minimal-rt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 230
+    env:
+      E404_BASE: fed88a6024cd4d46c52eda607a95d97d7371ba81
+      ANDROID_LLVM_COMMIT: b54cd2c8e9e0bb057aef3804d42d39c5ac4674c7
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+      CLANG_TRIPLE: aarch64-linux-gnu-
+      LLVM_IAS: "1"
+      HOSTCC: gcc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact EXP76 ARM64 smoke initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: r23b/inputs
+      - name: Install build tools, QEMU and source dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r23b/reports r23b/logs r23b/output exp76-qemu/reports exp76-qemu/logs
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates make bc bison flex libssl-dev libelf-dev libncurses-dev python3 gcc-aarch64-linux-gnu rsync device-tree-compiler qemu-system-arm busybox-static cpio gzip xz-utils e2fsprogs
+      - name: Reconstruct exact E404 RT140 with previous EXP76 compatibility source ports
+        shell: bash
+        timeout-minutes: 48
+        run: |
+          set -euo pipefail
+          bash tools/exp76-rt-compat-audit.sh > exp76-qemu/logs/source-reconstruction.log 2>&1 || {
+            tail -n 120 exp76-qemu/logs/source-reconstruction.log
+            exit 1
+          }
+          test "$(git -C exp76-trial-overlay rev-parse HEAD)" = "$E404_BASE"
+          # Restore the pinned KernelSU gitlink; drivers/kernelsu is a
+          # symlink to ../KernelSU/kernel. Do not delete a required source.
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-missing-sources.json
+          git -C exp76-trial-overlay submodule update --init --recursive KernelSU \
+            > exp76-qemu/logs/ksu-submodule-init.log 2>&1 || {
+              cat exp76-qemu/logs/ksu-submodule-init.log
+              echo 'BLOCKED_SUBMODULE_KERNELSU'; exit 2;
+            }
+          git -C exp76-trial-overlay submodule status \
+            > exp76-qemu/reports/ksu-gitlink-status.txt
+          test -f exp76-trial-overlay/drivers/kernelsu/Kconfig || {
+            echo 'BLOCKED_KCONFIG_KERNELSU_UNRESOLVED'; exit 2;
+          }
+          python3 tools/exp76-kconfig-source-audit.py \
+            --tree exp76-trial-overlay --arch arm64 \
+            --output exp76-qemu/reports/e404-kconfig-after-submodule.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/e404-kconfig-after-submodule.json').read_text())
+          print('KCONFIG_MISSING_AFTER_SUBMODULE=', d['missing_source_paths_count'])
+          assert 'drivers/kernelsu/Kconfig' not in d['missing_source_paths']
+          PY
+          python3 tools/exp76-stage82-rt-reject-inventory.py \
+            --tree exp76-trial-overlay \
+            --manifest exp76-rt-report/overlay/rejected-paths.txt \
+            --report exp76-qemu/reports/stage82
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json').read_text())
+          assert d['remaining_rejected_files']==64
+          assert d['total_rejected_hunks']==209
+          assert d['source_modified'] is False and d['rejects_deleted'] is False
+          PY
+          python3 tools/exp76-rt-stage83-arm64-neon-crypto.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage83 --mode apply
+          python3 tools/exp76-stage88-rt-kconfig-guards.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage88 --mode apply
+          python3 tools/exp76-stage89-proc-swait.py \
+            --tree exp76-trial-overlay \
+            --inventory exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage89 --mode apply
+          python3 tools/exp76-stage90-rt-uts-version.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage90 --mode apply
+          python3 tools/exp76-stage91-pid-atomic-header.py \
+            --tree exp76-trial-overlay \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --report exp76-qemu/reports/stage91 --mode apply
+          python3 tools/exp76-rt-stage74-radix-locallock.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage74 --mode apply
+          python3 tools/exp76-rt-stage79-functionfs-swait.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage79 --mode apply
+          python3 tools/exp76-rt-stage85-rwsem-idr-link.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/stage85 --mode apply
+          # Fix the exact Clang21 VirtIO declaration in the disposable E404 tree.
+          # Keep QEMU VirtIO enabled; the fix is included in source-diff.sha256.
+          python3 tools/exp76-qemu-virtio-clang21.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/virtio-clang21-compat.json \
+            --mode apply
+          # E404 rt.c references the energy static key without a Kconfig guard.
+          # sched_energy_enabled() has an intentional false fallback with ENERGY_MODEL=n.
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 / patch exactly one E404 RT scheduler reference in disposable QEMU tree
+          from pathlib import Path
+          p=Path('exp76-trial-overlay/kernel/sched/rt.c')
+          s=p.read_text()
+          old='static_branch_unlikely(&sched_energy_present)'
+          assert s.count(old)==1, f'unexpected rt.c static key occurrences: {s.count(old)}'
+          assert 'static inline bool sched_energy_enabled(void) { return false; }' in Path('exp76-trial-overlay/kernel/sched/sched.h').read_text(), 'unconditional helper missing'
+          p.write_text(s.replace(old, 'sched_energy_enabled()'))
+          PY
+          # Retain RT RCU quiescent-state API; use E404 vendor API in nonRT.
+          python3 tools/exp76-qemu-nonrt-rcu-qs.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/nonrt-softirq-rcu-qs.json
+          python3 tools/exp76-rt19-timer-swork-order.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r19-timer-swork-order.json \
+            --mode apply
+          python3 tools/exp76-rt22-h10-verify.py \
+            --tree exp76-trial-overlay \
+            --report exp76-qemu/reports/r22-h10-source-gate.json
+          test "$(find exp76-trial-overlay -name '*.rej' -type f | wc -l)" -eq 64
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff --binary | sha256sum \
+            > exp76-qemu/reports/source-diff.sha256
+      - name: Stage82 mm/page_alloc.c reject and upstream RT140 comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r30/reports/step1 r30/reports/step2
+          python3 tools/exp76-r30-mm-audit.py \
+            --tree exp76-trial-overlay \
+            --patch exp76-rt.patch \
+            --index exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json \
+            --out r30/reports/step1
+          cp r30/reports/step1/mm-effective-vs-base.diff r30/reports/step2/current-vs-base.diff
+          cp r30/reports/step1/mm-upstream-rt140.patch r30/reports/step2/upstream-rt140-mm.patch
+          cp r30/reports/step1/mm-current-context.txt r30/reports/step2/current-context.txt
+          find r30/reports -type f -print0 | sort -z | xargs -0 sha256sum >r30/reports/manifest.sha256
+          sha256sum r30/reports/manifest.sha256
+      - name: Publish exact Stage82 reject hunks and RT140 mm/page_alloc source comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r30-pa-lock-audit-NOFLASH
+          path: |
+            r30/reports/
+            exp76-qemu/reports/stage82/RT_REJECT_HUNK_INVENTORY.json
+            exp76-qemu/reports/source-diff.sha256
+            exp76-qemu/logs/source-reconstruction.log
+          retention-days: 30
+          if-no-files-found: warn
