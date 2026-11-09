@@ -1,0 +1,81 @@
+name: EXP76 A1 CPU mismatch test (NO FLASH)
+on:
+  workflow_dispatch:
+    inputs:
+      smp:
+        description: QEMU virtual CPUs
+        required: true
+        default: '4'
+        type: choice
+        options: ['4', '8']
+      maxcpus:
+        description: Optional Linux maxcpus boot argument
+        required: false
+        default: ''
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  qemu-a1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install QEMU
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-arm unzip
+      - name: Retrieve verified E404 kernel and initramfs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p a1/input a1/output
+          curl --fail --location --retry 3 --silent --show-error \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/13521880186/zip" \
+            -o a1/artifact.zip
+          unzip -q a1/artifact.zip -d a1/input
+          find a1/input -type f | sort > a1/output/input-files.txt
+          IMAGE="$(find a1/input -type f -path '*/arch/arm64/boot/Image' -print -quit)"
+          INITRD="$(find a1/input -type f -name 'smoke-initramfs.cpio.gz' -print -quit)"
+          test -n "$IMAGE" && test -n "$INITRD"
+          echo "812d46e04131cc1ded7dd26b13728f3d8834ff240d533cac80172dd070e6e907  $IMAGE" | sha256sum -c -
+          cp "$IMAGE" a1/Image
+          cp "$INITRD" a1/smoke-initramfs.cpio.gz
+          sha256sum a1/Image a1/smoke-initramfs.cpio.gz > a1/output/input-sha256.txt
+      - name: Boot QEMU and capture console
+        shell: bash
+        env:
+          SMP: ${{ inputs.smp }}
+          MAXCPUS: ${{ inputs.maxcpus }}
+        run: |
+          set -uo pipefail
+          mkdir -p a1/output
+          EXTRA=""
+          if [[ -n "$MAXCPUS" ]]; then EXTRA=" maxcpus=$MAXCPUS"; fi
+          CMDLINE="earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 ftrace=function_graph ftrace_graph_filter=do_pre_smp_initcalls,smp_init,workqueue_init,rcu_init init=/init${EXTRA}"
+          printf 'smp=%s\nmaxcpus=%s\ncmdline=%s\n' "$SMP" "$MAXCPUS" "$CMDLINE" > a1/output/parameters.txt
+          set +e
+          timeout --signal=TERM --kill-after=5s 60s qemu-system-aarch64 \
+            -M virt -cpu cortex-a72 -smp "$SMP" -m 512 \
+            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \
+            -kernel a1/Image -initrd a1/smoke-initramfs.cpio.gz \
+            -append "$CMDLINE" > a1/output/console.txt 2>&1
+          RC=$?
+          set -e
+          echo "$RC" > a1/output/exit-code.txt
+          sha256sum a1/output/console.txt > a1/output/console-sha256.txt
+          wc -l a1/output/console.txt > a1/output/console-lines.txt
+          grep -E 'SLUB:|smp: Brought up|SMP: Total of|GUEST_RUNNING' a1/output/console.txt > a1/output/milestones.txt || true
+          tail -n 10 a1/output/console.txt > a1/output/last-lines.txt
+      - name: Upload diagnostics (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a1-smp${{ inputs.smp }}-maxcpu${{ inputs.maxcpus }}
+          path: a1/output/
+          if-no-files-found: warn
+          retention-days: 30
