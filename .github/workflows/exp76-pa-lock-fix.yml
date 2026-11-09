@@ -1,0 +1,73 @@
+name: EXP76 pa_lock RT140 reconciliation (NO FLASH)
+on:
+  push:
+    branches: [exp76-rt-pa-lock-fix]
+    paths:
+      - '.github/workflows/exp76-pa-lock-fix.yml'
+      - 'patches/exp76-rt-pa-lock.patch'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover pinned E404 and official RT140 source
+        id: reconstruct
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p pa-lock-report
+          bash tools/exp76-rt-compat-audit.sh > pa-lock-report/reconstruct.log 2>&1
+          cp exp76-trial-overlay/mm/page_alloc.c.rej pa-lock-report/page_alloc.c.rej
+          cp exp76-rt.patch pa-lock-report/rt140.patch
+          cp exp76-trial-overlay/mm/page_alloc.c pa-lock-report/page_alloc.before.c
+          sha256sum pa-lock-report/* > pa-lock-report/source-sha256.txt
+      - name: Extract exact rejected hunks and verify context
+        id: extract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('pa-lock-report/page_alloc.c.rej').read_text()
+          chunks=p.split('@@ -')
+          hunks=['@@ -'+s for s in chunks[1:]]
+          Path('pa-lock-report/hunk-count.txt').write_text(str(len(hunks))+'\n')
+          for i,h in enumerate(hunks,1):
+              Path(f'pa-lock-report/hunk-{i}.diff').write_text(h)
+          if len(hunks)!=3: raise SystemExit('Expected exactly three rejected hunks')
+          PY
+          git -C exp76-trial-overlay diff -- mm/page_alloc.c > pa-lock-report/page_alloc.prior-diff || true
+          grep -n -E '(__free_pages_ok|rmqueue_pcplist|rmqueue\(|pa_lock|local_lock_irqsave|local_unlock_irqrestore)' exp76-trial-overlay/mm/page_alloc.c > pa-lock-report/lock-sites.txt || true
+      - name: Apply only reconciled pa_lock patch, fail closed on conflicts
+        id: apply
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -s patches/exp76-rt-pa-lock.patch || { echo 'NO_RECONCILED_PATCH' | tee pa-lock-report/gate.txt; exit 42; }
+          git -C exp76-trial-overlay apply --check "$GITHUB_WORKSPACE/patches/exp76-rt-pa-lock.patch"
+          git -C exp76-trial-overlay apply "$GITHUB_WORKSPACE/patches/exp76-rt-pa-lock.patch"
+          git -C exp76-trial-overlay diff --check
+          git -C exp76-trial-overlay diff -- mm/page_alloc.c > pa-lock-report/page_alloc.applied.diff
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('exp76-trial-overlay/mm/page_alloc.c').read_text()
+          a=s.count('local_lock_irqsave(pa_lock')
+          b=s.count('local_unlock_irqrestore(pa_lock')
+          Path('pa-lock-report/pairing-counts.txt').write_text(f'acquires={a} releases={b}\n')
+          if not a or not b: raise SystemExit('FAIL_STRUCTURAL: missing pa_lock acquire/release')
+          PY
+          echo PATCH_APPLIED_REVIEW_REQUIRED > pa-lock-report/gate.txt
+      - name: Publish forensic evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-pa-lock-reconciliation-${{ github.run_id }}
+          path: |
+            pa-lock-report/
+            exp76-rt-report/summary.txt
+          if-no-files-found: warn
+          retention-days: 30
