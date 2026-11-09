@@ -2,8 +2,8 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "B2_LINK_MISSING_RT_MUTEXES_AND_DMA_BUF_DEPENDENCIES_RETRY_RUNNING",
-  "latest_run_id": 42628145214,
+  "status": "R23_B2_ENERGY_MODEL_OFF_GUARDED_RT_HELPER_RETRY_ACTIVE",
+  "latest_run_id": 42629841386,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b2-allnoconfig.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + RT140 patch + EXP76 source ports",
@@ -84,8 +84,8 @@
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": null,
-  "latest_completed_run_id": 42624503568,
-  "latest_completed_conclusion": "LINK_FAILED_RT_MUTEXES_SYNC_FILE_DMA_SHARED_BUFFER_N",
+  "latest_completed_run_id": 42628145214,
+  "latest_completed_conclusion": "LINK_FAILED_UNDEFINED_CPU_OVERUTILIZED",
   "build_exit_code": 2,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
@@ -125,7 +125,7 @@
   "latest_previous_config_sha": "c3df446264b4c526ac5af5adcedaa867e2bdd0393eef7307cb2ea10b373e0fa9",
   "latest_previous_image_generated": false,
   "warning": "Track B uses vendor/pipa_defconfig plus selective disables; a minimal-like profile, not allnoconfig. The many effective config differences confound causality until a functional B boot exists.",
-  "build_status": "RUN_42628145214_IN_PROGRESS_NO_IMAGE_PROVEN",
+  "build_status": "RUN_42629841386_IN_PROGRESS_NO_IMAGE_PROVEN",
   "last_kconfig_reselections": [
     "SYSCTL"
   ],
@@ -133,14 +133,14 @@
   "latest_failed_artifact_id": 13574269698,
   "latest_failed_config_sha": "f8888d550efd6625e74d20656801633e47616dcea850082f612a58f503820834",
   "track_b_variant": "E404+RT140 allnoconfig ARM64 QEMU with pinned Clang21",
-  "in_progress_run_id": 42628145214,
+  "in_progress_run_id": 42629841386,
   "in_progress_artifact_name": "exp76-r23-track-b2-allnoconfig-NOFLASH",
   "track_b_build_source_fixes_applied_to_kernel": false,
   "latest_completed_image_sha": null,
   "latest_completed_console_sha256": null,
-  "latest_completed_config_sha": "665748c056eef36d706a1dbf7554f2617635540b141c9fd230e0c62dacf19eac",
+  "latest_completed_config_sha": "b0d3cfb6c2a99260ba46281a919940517b38e002d450f8acec42bb27316630f9",
   "latest_completed_build_exit_code": 2,
-  "latest_completed_build_error": "ld.lld undefined symbols init_sync_kmem_pool, init_dma_buf_kmem_pool, __rt_mutex_init and rt_spin_* at vmlinux link; effective FUTEX=n SYNC_FILE=n, CONFIG_RT_MUTEXES absent. Missing dependencies selected in subsequent workflow.",
+  "latest_completed_build_error": "ld.lld: error: undefined symbol: __cpu_overutilized referenced by kernel/sched/fair.c select_task_rq_fair (CONFIG_ENERGY_MODEL=y)",
   "retry_runs": [
     {
       "run_id": 42610364810,
@@ -214,7 +214,12 @@
     },
     {
       "run_id": 42628145214,
-      "profile": "strict_allnoconfig_futex_rtmutex_syncfile_dma_buf",
+      "profile": "allnoconfig_futex_rtmutex_dma_shared_buffer_energy_model_y",
+      "state": "COMPLETED_LINK_FAILED_CPU_OVERUTILIZED"
+    },
+    {
+      "run_id": 42629841386,
+      "profile": "allnoconfig_rt_energy_helper_guard_energy_model_n",
       "state": "IN_PROGRESS_LAST_CHECK"
     }
   ],
@@ -295,5 +300,18 @@
       "DMA_SHARED_BUFFER=y"
     ],
     "next_gate": "Check all required Kconfig probes, then actual vmlinux and Image build, then QEMU raw console GUEST_RUNNING."
+  },
+  "recent_build_fixes": {
+    "last_failed_run_id": 42628145214,
+    "last_failed_artifact_id": 13680386563,
+    "last_failed_artifact_zip_sha256": "f31176225eaa2789ecb8d3d9e37e44d90501ae295e4ac3bd1e8502df523209da",
+    "last_failed_build_log_sha256": "7eef55d796959618b80d18f6251f3a66cc28bd84bc4dfe8bb4dd7f1fbb18ed8f",
+    "last_failed_build_log_bytes": 24876,
+    "last_failed_effective_config_sha256": "b0d3cfb6c2a99260ba46281a919940517b38e002d450f8acec42bb27316630f9",
+    "first_linker_error": "undefined symbol: __cpu_overutilized referenced by fair.c select_task_rq_fair",
+    "risk": "Unconditional vendor rt.c sched_energy_present reference forced CONFIG_ENERGY_MODEL=y, enabling EAS code with unresolved vendor __cpu_overutilized symbol",
+    "new_fix": "On disposable E404 tree, use sched_energy_enabled() helper already present for ENERGY_MODEL=n and turn ENERGY_MODEL=n in minimal QEMU profile; assert exact source substitution and Kconfig value.",
+    "fix_commit": "e13b732d741dcd163e34bbcc80816ca76242d899",
+    "next_run_id": 42629841386
   }
 }
