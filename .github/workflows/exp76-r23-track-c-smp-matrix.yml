@@ -1,0 +1,131 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 R23 C pinned preinit SMP sensitivity matrix / NO FLASH
+name: EXP76 R23 C pinned binary SMP 1-2-4 QEMU matrix (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-r23-track-c-smp-matrix.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  track-c-smp-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact RT Image vmlinux config and smoke initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r23/c-matrix/input
+      - name: Install QEMU ARM64 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm
+          command -v qemu-system-aarch64
+      - name: Run same SHA-pinned kernel at 1 2 4 CPUs; capture all serial and JSON
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # Python 3 / Ubuntu 24.04 / QEMU ARM64 cortex-a72 / pinned RT Image, no build, no flash
+          import hashlib,json,os,re,shlex,subprocess,time
+          from pathlib import Path
+          root=Path("exp76-r23/c-matrix/input")
+          out=Path("exp76-r23/c-matrix/reports")
+          out.mkdir(parents=True,exist_ok=True)
+          image=root/"outputs/qemu-rt/arch/arm64/boot/Image"
+          vmlinux=root/"outputs/qemu-rt/vmlinux"
+          config=root/"outputs/qemu-rt/.config"
+          initrd=root/"smoke-initramfs.cpio.gz"
+          expected="812d46e04131cc1ded7dd26b13728f3d8834ff240d533cac80172dd070e6e907"
+          def sha(p):
+              d=hashlib.sha256()
+              with p.open("rb") as f:
+                  for block in iter(lambda:f.read(1<<20),b""):
+                      d.update(block)
+              return d.hexdigest()
+          for p in (image,vmlinux,config,initrd):
+              if not p.is_file() or p.stat().st_size==0:
+                  raise RuntimeError("missing required pinned artifact: "+str(p))
+          if sha(image)!=expected:
+              raise RuntimeError("pinned Image SHA256 changed")
+          cmdline=("earlycon=pl011,0x09000000 console=ttyAMA0,115200 "
+                   "loglevel=8 ignore_loglevel printk.time=1 nokaslr "
+                   "panic=5 initcall_debug=1 init=/init")
+          common={"schema_version":1,"track":"C-SMP-MATRIX",
+                  "source_run_id":42250522391,"image_sha256":sha(image),
+                  "vmlinux_sha256":sha(vmlinux),"config_sha256":sha(config),
+                  "initramfs_sha256":sha(initrd),"qemu_version":subprocess.run(
+                    ["qemu-system-aarch64","--version"],capture_output=True,text=True,
+                    check=True).stdout.splitlines()[0],"boot_cmdline":cmdline,
+                  "build_performed":False,"flash_ready":False}
+          results=[]
+          for n in (1,2,4):
+              cmd=["qemu-system-aarch64","-M","virt","-cpu","cortex-a72",
+                   "-smp",str(n),"-m","512","-nodefaults","-serial","stdio",
+                   "-monitor","none","-display","none","-nic","none",
+                   "-no-reboot","-kernel",str(image),"-initrd",str(initrd),
+                   "-append",cmdline]
+              start=time.monotonic()
+              try:
+                  proc=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=18)
+                  serial=proc.stdout
+                  code=proc.returncode
+                  timed_out=False
+              except subprocess.TimeoutExpired as e:
+                  serial=e.stdout or b""
+                  code=124
+                  timed_out=True
+              sec=round(time.monotonic()-start,6)
+              serial_path=out/f"console-smp{n}.txt"
+              serial_path.write_bytes(serial)
+              text=serial.decode("utf-8","replace").replace("\r","")
+              times=[float(v) for v in re.findall(r"(?m)^\[\s*(\d+\.\d+)\]",text)]
+              record={**common,"smp":n,"timeout_seconds":18,
+                      "duration_seconds":sec,"qemu_exit_code":code,
+                      "timed_out":timed_out,
+                      "console_file":serial_path.name,
+                      "console_sha256":sha(serial_path),
+                      "console_bytes":len(serial),
+                      "console_lines":len(text.splitlines()),
+                      "reached_ms":round(1000*max(times),3) if times else None,
+                      "guest_running":"EXP76_QEMU_RT_SMOKE=GUEST_RUNNING" in text,
+                      "last_30_lines":text.splitlines()[-30:]}
+              (out/f"exp76-track-c-smp{n}.json").write_text(json.dumps(record,indent=2)+"\n")
+              print("EXP76_C_SMP",json.dumps({k:record[k] for k in
+                    ("smp","reached_ms","guest_running","qemu_exit_code",
+                     "timed_out","console_sha256","console_bytes")}),flush=True)
+              results.append(record)
+          known={v["smp"]:v["guest_running"] for v in results}
+          if known[1] and not known[4]:
+              verdict="SMP_SENSITIVITY_OBSERVED_ONE_CPU_ONLY"
+          elif all(not x for x in known.values()):
+              verdict="NO_GUEST_RUNNING_AT_1_2_4_CPUS"
+          elif all(known.values()):
+              verdict="ALL_SMP_VARIANTS_GUEST_RUNNING"
+          else:
+              verdict="MIXED_RESULT_REQUIRES_FOLLOWUP"
+          summary={"schema_version":1,"track":"C-SMP-MATRIX",
+                   "source_run_id":42250522391,"image_sha256":expected,
+                   "smp_statuses":known,"verdict":verdict,
+                   "causality_proven":False,"flash_ready":False}
+          (out/"exp76-track-c-smp-matrix.json").write_text(json.dumps(summary,indent=2)+"\n")
+          print("EXP76_C_SMP_MATRIX",json.dumps(summary),flush=True)
+          PY
+      - name: Preserve all consoles and JSON, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-c-pinned-smp-matrix-NOFLASH
+          path: exp76-r23/c-matrix/reports/
+          retention-days: 30
+          if-no-files-found: warn
