@@ -1,0 +1,63 @@
+# YAML / Ubuntu 24.04 GitHub Actions / pinned E404 RT140 lock-owner GDB breakpoint / NO FLASH
+name: EXP76 R23 B2 pinned RT mutex owner breakpoint (NO FLASH)
+on:
+  push:
+    branches: [exp76-preempt-rt-uname]
+    paths:
+      - '.github/workflows/exp76-r23-b2-lock-owner.yml'
+      - 'tools/exp76-rt23-b2-lock-owner.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  e404-rtmutex-owner:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve exact first E404 RT140 Image ELF and System.map
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-r23-track-b2-allnoconfig-NOFLASH
+          run-id: 42629841386
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r23/b2-lock/input
+      - name: Retrieve original smoke initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-qemu-rt-functional-NOFLASH
+          run-id: 42250522391
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: exp76-r23/b2-lock/ram
+      - name: Install QEMU and GDB, validate script
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm gdb-multiarch
+          command -v qemu-system-aarch64
+          command -v gdb-multiarch
+          python3 -m py_compile tools/exp76-rt23-b2-lock-owner.py
+      - name: Break at task_blocks_on_rt_mutex and capture lock address candidate owner and backtrace
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-rt23-b2-lock-owner.py \
+            --artifact-root exp76-r23/b2-lock/input \
+            --initramfs exp76-r23/b2-lock/ram/smoke-initramfs.cpio.gz \
+            --out exp76-r23/b2-lock/reports \
+            --gdb-timeout 30
+          test -s exp76-r23/b2-lock/reports/exp76-track-b2-rtmutex-owner.json
+          test -s exp76-r23/b2-lock/reports/gdb-lock-owner.txt
+      - name: Archive full GDB breakpoint log console and structured owner report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r23-b2-rtmutex-owner-NOFLASH
+          path: exp76-r23/b2-lock/reports/
+          if-no-files-found: warn
+          retention-days: 30
