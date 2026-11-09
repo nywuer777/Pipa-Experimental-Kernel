@@ -61,7 +61,6 @@
     ],
     "last_pc": "0xffffff80100db1fc",
     "last_symbol": "do_idle+0xfc",
-    "last_nonidle_thermal": "rcu_dynticks_eqs_enter+0x20 (does not prove RCU fault)",
     "traced_functions": {
       "kernel_init_freeable": 12,
       "smp_prepare_cpus": 18,
@@ -76,7 +75,8 @@
     "qemu_trace_sha256": "1548cb577f98e5b33f95c15ca1dcd69ed1434e17ebe55d83f03671af37b8ce82",
     "ftrace_sha256": null,
     "ftrace_status": "UNAVAILABLE_CONFIG_FTRACE_N",
-    "qualification": "QEMU TB symbol occurrences are not a per-PID kernel stack; workqueue/kthread completion blockage remains a hypothesis, not established root cause."
+    "qualification": "QEMU TB symbol occurrences are not a per-PID kernel stack; workqueue/kthread completion blockage remains a hypothesis, not established root cause.",
+    "last_non_idle_tb_symbol": "rcu_dynticks_eqs_enter+0x20 (does not prove RCU fault)"
   },
   "decisions": {
     "vanilla_419_rt140_qemu_supported": true,
