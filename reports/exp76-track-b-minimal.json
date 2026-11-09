@@ -2,8 +2,8 @@
   "schema_version": 1,
   "track": "B",
   "scope": "RT_ONLY",
-  "status": "R23_B2_ENERGY_MODEL_DEPENDENCY_FIXED_RETRY_RUNNING",
-  "latest_run_id": 42624503568,
+  "status": "B2_LINK_MISSING_RT_MUTEXES_AND_DMA_BUF_DEPENDENCIES_RETRY_RUNNING",
+  "latest_run_id": 42628145214,
   "branch": "exp76-r23-b-minimal",
   "latest_workflow": "exp76-r23-track-b2-allnoconfig.yml",
   "source_ref": "E404 fed88a6024cd4d46c52eda607a95d97d7371ba81 + RT140 patch + EXP76 source ports",
@@ -20,7 +20,7 @@
   "reached_ms": null,
   "advanced_from_032": null,
   "image_sha": null,
-  "config_sha": "37337330db8b09998d67f79ffe951c3ccb633a5648759953817d5e8a59dd02e2",
+  "config_sha": "665748c056eef36d706a1dbf7554f2617635540b141c9fd230e0c62dacf19eac",
   "console_sha256": null,
   "last_lines": [],
   "disabled_list": [
@@ -84,8 +84,8 @@
   "flash_ready": false,
   "effective_prebuild_config_sha": "5e70c8e758b5ff920ca2721757ef748d6938598eaa98fa9b1e756b35bd7bf884",
   "all_17_requested_disabled_effective_n": null,
-  "latest_completed_run_id": 42620902797,
-  "latest_completed_conclusion": "BUILD_FAILED_CONFIG_ENERGY_MODEL_N_SCHED_ENERGY_PRESENT_UNDECLARED",
+  "latest_completed_run_id": 42624503568,
+  "latest_completed_conclusion": "LINK_FAILED_RT_MUTEXES_SYNC_FILE_DMA_SHARED_BUFFER_N",
   "build_exit_code": 2,
   "error_source": "kernel/bpf/verifier.c:11624",
   "error_message": "implicit declaration of function 'bpf_jit_blinding_enabled'",
@@ -125,7 +125,7 @@
   "latest_previous_config_sha": "c3df446264b4c526ac5af5adcedaa867e2bdd0393eef7307cb2ea10b373e0fa9",
   "latest_previous_image_generated": false,
   "warning": "Track B uses vendor/pipa_defconfig plus selective disables; a minimal-like profile, not allnoconfig. The many effective config differences confound causality until a functional B boot exists.",
-  "build_status": "RUN_42624503568_IN_PROGRESS_NO_IMAGE_PROVEN",
+  "build_status": "RUN_42628145214_IN_PROGRESS_NO_IMAGE_PROVEN",
   "last_kconfig_reselections": [
     "SYSCTL"
   ],
@@ -133,14 +133,14 @@
   "latest_failed_artifact_id": 13574269698,
   "latest_failed_config_sha": "f8888d550efd6625e74d20656801633e47616dcea850082f612a58f503820834",
   "track_b_variant": "E404+RT140 allnoconfig ARM64 QEMU with pinned Clang21",
-  "in_progress_run_id": 42624503568,
+  "in_progress_run_id": 42628145214,
   "in_progress_artifact_name": "exp76-r23-track-b2-allnoconfig-NOFLASH",
   "track_b_build_source_fixes_applied_to_kernel": false,
   "latest_completed_image_sha": null,
   "latest_completed_console_sha256": null,
-  "latest_completed_config_sha": "c4e7307045fa1916681a62e1f5fb52c80a5ee793ebb44b421c864ae054d4721a",
+  "latest_completed_config_sha": "665748c056eef36d706a1dbf7554f2617635540b141c9fd230e0c62dacf19eac",
   "latest_completed_build_exit_code": 2,
-  "latest_completed_build_error": "kernel/sched/rt.c:1555: sched_energy_present undeclared because CONFIG_ENERGY_MODEL=n; symbol declared in kernel/sched/sched.h and defined in kernel/sched/topology.c only when CONFIG_ENERGY_MODEL=y",
+  "latest_completed_build_error": "ld.lld undefined symbols init_sync_kmem_pool, init_dma_buf_kmem_pool, __rt_mutex_init and rt_spin_* at vmlinux link; effective FUTEX=n SYNC_FILE=n, CONFIG_RT_MUTEXES absent. Missing dependencies selected in subsequent workflow.",
   "retry_runs": [
     {
       "run_id": 42610364810,
@@ -210,6 +210,11 @@
     {
       "run_id": 42624503568,
       "profile": "strict_allnoconfig_compat_schedutil_energy_model",
+      "state": "COMPLETED_LINK_FAILURE_RT_MUTEXES_AND_DMA_BUF_INIT"
+    },
+    {
+      "run_id": 42628145214,
+      "profile": "strict_allnoconfig_futex_rtmutex_syncfile_dma_buf",
       "state": "IN_PROGRESS_LAST_CHECK"
     }
   ],
@@ -252,22 +257,43 @@
     "next_gate": "Assert Image and vmlinux exist, then QEMU serial output and GUEST_RUNNING before classifying runtime."
   },
   "latest_build_analysis": {
-    "failed_run_id": 42620902797,
-    "artifact_id": 13675379201,
-    "artifact_zip_sha256": "ec1ee9a9abf2363d338aa8eaea6315bc8895d1d882eec8df8ecdfa24eb41e2f9",
-    "exact_build_log_sha256": "028402931b9c921b29caf775856b9e444dbdd67b178abf3f52a4933d84d12dc0",
-    "exact_build_log_bytes": 34801,
-    "exact_config_sha256": "c4e7307045fa1916681a62e1f5fb52c80a5ee793ebb44b421c864ae054d4721a",
+    "failed_run_id": 42624503568,
+    "artifact_id": 13677348712,
+    "artifact_zip_sha256": "016c34ca4febe34b2f76af77233dc0150f8a095db3469f1b383ef8b77b0a47db",
+    "exact_build_log_sha256": "742c29332dd43b61b61dc5097239b56a5ee1150124c0128f32550af53f82fc90",
+    "exact_build_log_bytes": 30963,
+    "exact_config_sha256": "665748c056eef36d706a1dbf7554f2617635540b141c9fd230e0c62dacf19eac",
     "config_kconfig_reselections": [],
-    "first_compiler_error": "kernel/sched/rt.c:1555 use of undeclared identifier sched_energy_present",
-    "source_gated_symbol": "CONFIG_ENERGY_MODEL",
-    "source_locations": [
-      "kernel/sched/sched.h:3066",
-      "kernel/sched/topology.c:198",
-      "kernel/sched/rt.c:1555"
+    "first_linker_error": "ld.lld: error: undefined symbol: init_sync_kmem_pool",
+    "secondary_linker_errors": [
+      "init_dma_buf_kmem_pool",
+      "__rt_mutex_init",
+      "rt_spin_lock",
+      "rt_spin_unlock",
+      "rt_mutex_lock"
     ],
-    "correction_commit": "1dd932914aeb2230fb03f1816c9bac1ab61723cd",
-    "dispatched_run_id": 42624503568,
-    "next_gate": "Verify CONFIG_ENERGY_MODEL=y and compiler/link result, then Image + serial GUEST_RUNNING; never classify from preboot failure."
+    "source_locations": [
+      "init/main.c:559-560,764-765 unconditionally call init_*_kmem_pool",
+      "drivers/dma-buf/sync_file.c:35 defines init_sync_kmem_pool; built with CONFIG_SYNC_FILE=y",
+      "drivers/dma-buf/dma-buf.c:57 defines init_dma_buf_kmem_pool; enabled by CONFIG_DMA_SHARED_BUFFER=y",
+      "kernel/locking/Makefile:26 builds rtmutex.o only with CONFIG_RT_MUTEXES=y",
+      "init/Kconfig:1738 FUTEX implies RT_MUTEXES"
+    ],
+    "observed_config_symbols": {
+      "PREEMPT_RT_FULL": "y",
+      "FUTEX": "n",
+      "RT_MUTEXES": "absent",
+      "SYNC_FILE": "n",
+      "DMA_SHARED_BUFFER": "absent"
+    },
+    "correction_commit": "1741843f5f0b87bbcb25d49f4566e3d9f916cbb3",
+    "dispatched_run_id": 42628145214,
+    "required_config_probes": [
+      "FUTEX=y",
+      "RT_MUTEXES=y",
+      "SYNC_FILE=y",
+      "DMA_SHARED_BUFFER=y"
+    ],
+    "next_gate": "Check all required Kconfig probes, then actual vmlinux and Image build, then QEMU raw console GUEST_RUNNING."
   }
 }
