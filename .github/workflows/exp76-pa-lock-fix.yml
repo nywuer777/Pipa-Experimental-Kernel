@@ -24,33 +24,61 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils
           bash tools/exp76-rt-compat-audit.sh
+          test -s exp76-trial-overlay/mm/page_alloc.c.rej || { echo NO_REJ_FILE > reports/error.txt; exit 10; }
           cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
           cp exp76-trial-overlay/mm/page_alloc.c reports/page_alloc.before.c
           python3 - <<'PY'
           from pathlib import Path
           import re
-          src=Path('exp76-rt.patch').read_text()
-          m=re.search(r'(?ms)^diff --git a/mm/page_alloc\.c b/mm/page_alloc\.c\n.*?(?=^diff --git |\Z)',src)
-          if not m: raise SystemExit('PAGE_ALLOC_PATCH_NOT_FOUND')
-          block=m.group()
-          header=block[:block.index('@@ ')]
-          hunks=re.findall(r'(?ms)^@@ .*?(?=^@@ |\Z)',block[block.index('@@ '):])
-          wanted=[h for h in hunks if any(x in h for x in ('__free_pages_ok','rmqueue_pcplist','rmqueue('))]
-          Path('reports/selected-hunks.txt').write_text(''.join(wanted))
-          Path('reports/selected-count.txt').write_text(str(len(wanted))+'\n')
-          if len(wanted)!=3: raise SystemExit('HUNK_COUNT_MISMATCH:'+str(len(wanted)))
-          Path('reports/pa_lock_raw.patch').write_text(header+''.join(wanted))
+          raw=Path('reports/page_alloc.c.rej').read_text()
+          n=len(re.findall(r'^@@ ',raw,re.M))
+          Path('reports/rej-hunk-count.txt').write_text(f'rej_hunks={n}\n')
+          if n!=3:
+              Path('reports/error.txt').write_text(f'UNEXPECTED_REJ_HUNK_COUNT:{n}\n')
+              raise SystemExit(11)
+          # Reject headers are patch-generated; normalize filenames to kernel-relative paths.
+          lines=raw.splitlines(keepends=True)
+          hdr=[i for i,line in enumerate(lines) if line.startswith('@@ ')]
+          if not hdr: raise SystemExit(11)
+          prefix='--- a/mm/page_alloc.c\n+++ b/mm/page_alloc.c\n'
+          Path('reports/pa_lock_raw.patch').write_text(prefix+''.join(lines[hdr[0]:]))
           PY
           cd exp76-trial-overlay
-          git apply --3way ../reports/pa_lock_raw.patch || {
-            echo APPLY_CONFLICT > ../reports/error.txt
-            git apply --reject ../reports/pa_lock_raw.patch || true
-            cp mm/page_alloc.c.rej ../reports/after-apply.rej || true
+          if ! patch --batch --forward --dry-run -p1 < ../reports/pa_lock_raw.patch > ../reports/patch-dry-run.log 2>&1; then
+            echo REJ_DRY_RUN_FAILED > ../reports/error.txt
             exit 12
-          }
+          fi
+          if ! patch --batch --forward -p1 < ../reports/pa_lock_raw.patch > ../reports/patch-apply.log 2>&1; then
+            echo REJ_APPLY_FAILED > ../reports/error.txt
+            exit 12
+          fi
           git diff -- mm/page_alloc.c > ../reports/applied.patch
           cp mm/page_alloc.c ../reports/page_alloc.after.c
-          grep -nE 'local_lock_irqsave\(pa_lock|local_unlock_irqrestore\(pa_lock' mm/page_alloc.c > ../reports/pairing-sites.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src=Path('mm/page_alloc.c').read_text()
+          funcs=['__free_pages_ok','rmqueue_pcplist','rmqueue']
+          results=[]
+          for name in funcs:
+              m=re.search(r'(?m)^.*\b'+re.escape(name)+r'\s*\([^;]*\)\s*\{',src)
+              if not m:
+                  results.append(f'{name}: FUNCTION_NOT_FOUND')
+                  continue
+              depth=1
+              pos=m.end()
+              start=pos
+              while depth and pos<len(src):
+                  depth+=(src[pos]=='{')-(src[pos]=='}')
+                  pos+=1
+              body=src[start:pos]
+              count=len(re.findall(r'local_(?:lock_irqsave|unlock_irqrestore)\s*\(',body))
+              results.append(f'{name}: lock_ops={count}')
+          Path('../reports/function-lock-counts.txt').write_text('\n'.join(results)+'\n')
+          if any('lock_ops=0' in x or 'FUNCTION_NOT_FOUND' in x for x in results):
+              Path('../reports/error.txt').write_text('FN_UNCHANGED\n')
+              raise SystemExit(13)
+          PY
           test -s ../reports/applied.patch || { echo PATCH_NO_OP > ../reports/error.txt; exit 13; }
           test -f .config || { echo CONFIG_MISSING > ../reports/error.txt; exit 20; }
           grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT)=' .config > ../reports/config-check.txt || true
@@ -106,7 +134,7 @@ jobs:
           rc=$?
           echo "$rc" > reports/step-exit-code.txt
           sha256sum reports/* > reports/report-sha256.txt 2>/dev/null || true
-          exit 0
+          exit "$rc"
       - name: V3 guest validation and evidence
         if: always()
         shell: bash
