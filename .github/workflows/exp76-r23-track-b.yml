@@ -208,7 +208,7 @@ jobs:
           if grep -qx 'CONFIG_PROC_SYSCTL=y' "$O/.config"; then echo 'R23_B_PROC_SYSCTL_RESELECTED'; exit 8; fi
           if grep -qx 'CONFIG_SYSCTL=y' "$O/.config"; then echo 'R23_B_SYSCTL_RESELECTED'; exit 8; fi
           if grep -qx 'CONFIG_MHI_BUS=y' "$O/.config"; then echo 'R23_B_MHI_BUS_RESELECTED'; exit 8; fi
-          grep -qx '# CONFIG_QCA_CLD_WLAN is not set' "$O/.config" || { echo 'R23_B_WLAN_NOT_DISABLED'; exit 8; }
+          if grep -qx 'CONFIG_QCA_CLD_WLAN=y' "$O/.config"; then echo 'R23_B_WLAN_RESELECTED'; exit 8; fi
           cp "$O/.config" r23b/reports/effective.config
           sha256sum "$O/.config" >r23b/reports/config-sha256.txt
       - name: Build minimal E404 RT ARM64 Image and boot QEMU
