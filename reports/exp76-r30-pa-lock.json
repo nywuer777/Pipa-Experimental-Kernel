@@ -79,9 +79,9 @@
     "workflow": ".github/workflows/exp76-r30-v3.yml",
     "workflow_commit": "04a8b00d42c00399871c3ada852c575f871d3986",
     "latest_script_commit": "c9f3ab8347015a8257fbe517cbbfa875bd01485b",
-    "latest_run_id": 42665904703,
+    "latest_run_id": 42667484946,
     "purpose": "build actual exp76_rt_spin_sleep.ko, include gate.sh and full RT config in ARM64 initramfs, verify serial and host markers",
-    "status": "V3_PROC_SYSCTL_N_BUILD_RETRY_ACTIVE",
+    "status": "V3_PROC_SYSCTL_AND_SYSCTL_N_CONFIG_CONFIRMED_RETRY_IN_PROGRESS",
     "initial_real_module_run_id": 42649956950,
     "initial_v3_artifact_id": 13690700437,
     "initial_v3_zip_sha256": "db2e3f9090901343155c46e5e3f20ddef96534357305e3dc080ee871f11d2fca",
@@ -126,7 +126,13 @@
       "CONFIG_PROC_SYSCTL=n",
       "CONFIG_SYSCTL=n"
     ],
-    "new_retry_commit": "293caec2bbf1e892c567df518dc6d96820f5c9f2"
+    "new_retry_commit": "18455414a41f8b5a44b0ad24de3701358bdf36b4",
+    "last_failed_run_id": 42665904703,
+    "last_failed_exit_step": "Kconfig validation required literal # CONFIG_SYSCTL is not set although unprompted SYSCTL symbol is absent",
+    "last_failed_config_sha256": "0dfb1b876487a55938e5fdaba9bcb9473e161e30ddef744a1db2a1d0827a622d",
+    "last_failed_reselections": [],
+    "last_failed_artifact_id": 13697815861,
+    "last_failed_artifact_zip_sha256": "18d85762b7c91b5ac42c4f39c587851ec9e6a80381c976187ceb06f005197466"
   },
   "r30_current_verified": {
     "source_branch": "exp76-rt-pa-lock-fix",
