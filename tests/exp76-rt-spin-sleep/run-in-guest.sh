@@ -112,18 +112,39 @@ execute() {
     dmesg > "$output/before" || blocked_env "dmesg before unreadable"
     noop=0
     [ "$mode" = noop ] && noop=1
+    printf 'EXP76_PROBE_INSMOD_START mode=%s\\n' "$mode"
+    if [ -r /proc/uptime ]; then
+        printf 'EXP76_PROBE_UPTIME_BEFORE='
+        cat /proc/uptime
+    fi
     set +e
-    timeout -k 3 15 insmod "$ko" "noop_mode=$noop"
+    timeout -k 3 15 insmod "$ko" "noop_mode=$noop" > "$output/insmod.stdout" 2> "$output/insmod.stderr"
     result=$?
     set -e
+    printf 'EXP76_PROBE_INSMOD_RETURN=%s\\n' "$result"
+    if [ -s "$output/insmod.stdout" ]; then
+        echo 'EXP76_PROBE_INSMOD_STDOUT_BEGIN'
+        cat "$output/insmod.stdout"
+        echo 'EXP76_PROBE_INSMOD_STDOUT_END'
+    fi
+    if [ -s "$output/insmod.stderr" ]; then
+        echo 'EXP76_PROBE_INSMOD_STDERR_BEGIN'
+        cat "$output/insmod.stderr"
+        echo 'EXP76_PROBE_INSMOD_STDERR_END'
+    fi
+    if [ -r /proc/uptime ]; then
+        printf 'EXP76_PROBE_UPTIME_AFTER='
+        cat /proc/uptime
+    fi
     [ "$result" -ne 124 ] && [ "$result" -ne 137 ] ||
-        blocked_env "insmod timed out"
+        blocked_env "insmod timed out (rc=$result)"
     dmesg > "$output/after" || blocked_env "dmesg after unreadable"
     old="$(wc -l < "$output/before")"
     new="$(wc -l < "$output/after")"
     [ "$new" -ge "$old" ] || blocked_env "kernel ring wrapped"
     added="$((new-old))"
-    [ "$added" -gt 0 ] || blocked_env "no fresh dmesg"
+    printf 'EXP76_PROBE_DMESG_LINES before=%s after=%s added=%s\\n' "$old" "$new" "$added"
+    [ "$added" -gt 0 ] || blocked_env "no fresh dmesg (insmod rc=$result)"
     {
         echo "EXP76_PROBE_LOG_BEGIN mode=$mode"
         echo "EXP76_PROBE_INSMOD_RC=$result"

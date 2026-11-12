@@ -10,6 +10,7 @@ on:
       - 'tools/exp76-r30-v3-slub-raw-lock.py'
       - 'tools/exp76-r30-v3-initramfs.py'
       - 'tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.c'
+      - 'tests/exp76-rt-spin-sleep/run-in-guest.sh'
   workflow_dispatch:
 permissions:
   contents: read
