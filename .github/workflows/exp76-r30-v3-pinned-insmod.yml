@@ -1,0 +1,52 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 R30 pinned V3 module insmod reproduction / NO FLASH
+name: EXP76 R30 V3 pinned insmod diagnostic QEMU (NO FLASH)
+on:
+  push:
+    branches: [exp76-rt-pa-lock-fix]
+    paths:
+      - '.github/workflows/exp76-r30-v3-pinned-insmod.yml'
+      - 'tools/exp76-r30-v3-pinned-insmod.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  v3-pinned-insmod:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download verified built V3 kernel and module from run 43257368054
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-r30-spinlock-v3-qemu-NOFLASH
+          run-id: 43257368054
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: r30-pinned/input
+      - name: Install ARM64 emulator and cpio only
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm cpio gzip
+          python3 -m py_compile tools/exp76-r30-v3-pinned-insmod.py
+      - name: Boot exact pinned Image and ko with direct insmod plus guest SysRq-t
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-r30-v3-pinned-insmod.py \
+            --input r30-pinned/input \
+            --out r30-pinned/reports
+          test -s r30-pinned/reports/console-full.txt
+          test -s r30-pinned/reports/pinned-v3-insmod-diagnostic.json
+          test -s r30-pinned/reports/sha256sum.txt
+      - name: Preserve raw QEMU serial, diagnostic initramfs and SHA hashes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r30-v3-pinned-insmod-NOFLASH
+          path: r30-pinned/reports/
+          if-no-files-found: warn
+          retention-days: 30
