@@ -90,7 +90,7 @@ def main():
     inputs = {
         "image": base / "r23b/output/arch/arm64/boot/Image",
         "vmlinux": base / "r23b/output/vmlinux",
-        "config": base / "r23b/output/.config",
+        "config": base / "r23b/reports/effective.config",
         "module": base / "tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.ko",
         "initramfs": base / "r30/reports/v3/v3-initramfs.cpio.gz",
     }
