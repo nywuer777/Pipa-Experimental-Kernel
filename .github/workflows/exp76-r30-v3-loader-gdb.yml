@@ -1,0 +1,60 @@
+# YAML / GitHub Actions Ubuntu 24.04 / EXP76 R30 pinned V3 module loader GDB ENOEXEC diagnostic / NO FLASH
+name: EXP76 R30 V3 pinned module loader GDB ENOEXEC (NO FLASH)
+on:
+  push:
+    branches: [exp76-rt-pa-lock-fix]
+    paths:
+      - '.github/workflows/exp76-r30-v3-loader-gdb.yml'
+      - 'tools/exp76-r30-v3-loader-gdb.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  v3-pinned-loader:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get exact built RT kernel ELF and module
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-r30-spinlock-v3-qemu-NOFLASH
+          run-id: 43257368054
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: r30-gdb/build
+      - name: Get frozen direct-insmod diagnostic initramfs
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-r30-v3-pinned-insmod-NOFLASH
+          run-id: 43259987170
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: r30-gdb/diag
+      - name: Install QEMU and ARM64 GDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm gdb-multiarch
+          python3 -m py_compile tools/exp76-r30-v3-loader-gdb.py
+      - name: Break and return from load_module to locate ENOEXEC path
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-r30-v3-loader-gdb.py \
+            --build r30-gdb/build \
+            --diag r30-gdb/diag \
+            --out r30-gdb/reports
+          test -s r30-gdb/reports/module-loader-gdb.json
+          test -s r30-gdb/reports/gdb-raw.txt
+      - name: Preserve exact GDB commands, raw registers and serial
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-r30-v3-loader-gdb-NOFLASH
+          path: r30-gdb/reports/
+          if-no-files-found: warn
+          retention-days: 30
