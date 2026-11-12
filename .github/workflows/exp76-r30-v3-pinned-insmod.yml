@@ -36,9 +36,10 @@ jobs:
         timeout-minutes: 3
         run: |
           set -euo pipefail
-          python3 tools/exp76-r30-v3-pinned-insmod.py \
+          sudo python3 tools/exp76-r30-v3-pinned-insmod.py \
             --input r30-pinned/input \
             --out r30-pinned/reports
+          sudo chown -R "$(id -u):$(id -g)" r30-pinned/reports
           test -s r30-pinned/reports/console-full.txt
           test -s r30-pinned/reports/pinned-v3-insmod-diagnostic.json
           test -s r30-pinned/reports/sha256sum.txt
