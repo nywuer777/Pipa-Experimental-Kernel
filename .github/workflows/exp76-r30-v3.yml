@@ -8,6 +8,7 @@ on:
       - 'tools/exp76-r30-v3-initramfs.py'
       - 'tools/exp76-r30-v3-timer-irq-guard.py'
       - 'tools/exp76-r30-v3-slub-raw-lock.py'
+      - 'tools/exp76-r30-v3-module-load-flags.py'
       - 'tools/exp76-r30-v3-initramfs.py'
       - 'tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.c'
       - 'tests/exp76-rt-spin-sleep/run-in-guest.sh'
@@ -210,6 +211,16 @@ jobs:
           test -s r30/reports/v3-slub/slub-rt-raw-list-lock.json
           test -s r30/reports/v3-slub/slub-rt-raw-list-lock.patch
           git -C exp76-trial-overlay diff --check
+      - name: Restore normal module loader version checks in disposable V3 RT tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/exp76-r30-v3-module-load-flags.py \
+            --tree exp76-trial-overlay \
+            --out r30/reports/v3-module-flags
+          test -s r30/reports/v3-module-flags/normal-module-flags.patch
+          test -s r30/reports/v3-module-flags/normal-module-flags.json
+          git -C exp76-trial-overlay diff --check
       - name: Generate minimal effective QEMU_RT config and measure Kconfig reselections
         shell: bash
         run: |
@@ -386,7 +397,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p r30/reports/v3
-          for f in r23b/output/arch/arm64/boot/Image r23b/output/vmlinux r23b/output/System.map r23b/output/.config tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.ko r30/reports/v3/v3-initramfs.cpio.gz r30/reports/v3/console-full.txt r30/reports/step3/mm-page-alloc-stage82-fix.patch r30/reports/v3-slub/slub-rt-raw-list-lock.patch; do
+          for f in r23b/output/arch/arm64/boot/Image r23b/output/vmlinux r23b/output/System.map r23b/output/.config tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.ko r30/reports/v3/v3-initramfs.cpio.gz r30/reports/v3/console-full.txt r30/reports/step3/mm-page-alloc-stage82-fix.patch r30/reports/v3-slub/slub-rt-raw-list-lock.patch r30/reports/v3-module-flags/normal-module-flags.patch; do
             if test -f "$f"; then sha256sum "$f"; fi
           done >r30/reports/v3/manifest.sha256
           cat r30/reports/v3/manifest.sha256
