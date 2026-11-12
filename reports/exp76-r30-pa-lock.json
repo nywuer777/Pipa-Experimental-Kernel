@@ -194,5 +194,24 @@
       "ktimersoftd/3"
     ],
     "flash_ready": false
+  },
+  "step5_latest_attempt": {
+    "workflow": ".github/workflows/exp76-r30-v3.yml",
+    "run_id": 43257368054,
+    "workflow_commit": "07301a1e675c4709231710922d775f76d6012fdd",
+    "patch_script_commit": "5eeea3ee2a4834ce202cd7a94ac3563cf38d9260",
+    "reason": "R30 V3 run 42667484946 failed Clang21 build in mm/slub.c: uninitialized_var(flags) invalid and raw_spinlock_t kmem_cache_node.list_lock called with spin_lock_irqsave/spin_unlock_irqrestore",
+    "observed_compile_failure": {
+      "run_id": 42667484946,
+      "artifact_id": 13697737274,
+      "artifact_zip_sha256": "9f41976c72a51115c87f11397019b6096cfcf16fbdaa402007ac4673cab6b40b",
+      "build_log_sha256": "42a730f97ebfab4c9c7236ef1e65d027ac3bffc70c57b0097a26304fe95a3ee4"
+    },
+    "fix": "V3-only source patch changes exactly two n->list_lock spin_lock_irqsave and one spin_unlock_irqrestore to raw_spin equivalents, and declares unsigned long flags in free_debug_processing. Requires struct kmem_cache_node.list_lock raw_spinlock_t; assertions abort if unexpected state.",
+    "expected_patch_artifact": "r30/reports/v3-slub/slub-rt-raw-list-lock.patch",
+    "no_changes_to_pinned_step3_page_alloc_fix": true,
+    "status_last_check": "IN_PROGRESS_CLANG21_FETCH",
+    "rt_semantics_verified": "NOT_VERIFIED",
+    "flash_ready": false
   }
 }
