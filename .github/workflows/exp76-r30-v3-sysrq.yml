@@ -41,13 +41,26 @@ jobs:
           test -s "$I/r23b/output/arch/arm64/boot/Image"
           test -s "$I/r30/reports/v3/v3-initramfs.cpio.gz"
           sha256sum "$I/r23b/output/arch/arm64/boot/Image" "$I/r30/reports/v3/v3-initramfs.cpio.gz"
-          # Fire serial BREAK as soon as the V3 gate starts, before insmod exits.\n          python3 - <<'PY'\n          # Python 3 / GH Actions / adapt the frozen-image SysRq harness to the observed guest marker\n          from pathlib import Path\n          p=Path('tools/exp76-r30-qemu-pty-sysrq.py')\n          s=p.read_text()\n          old='if not break_sent and time.monotonic()>=break_time:'\n          new='if not break_sent and (b"EXP76_RT_SPIN_SLEEP_V3=BEGIN" in raw or time.monotonic()>=break_time):'\n          assert s.count(old)==1\n          p.write_text(s.replace(old,new,1))\n          PY\n          python3 -m py_compile tools/exp76-r30-qemu-pty-sysrq.py\n          python3 tools/exp76-r30-qemu-pty-sysrq.py \
+          # Fire serial BREAK as soon as the V3 gate starts, before insmod exits.
+          python3 - <<'PY'
+          # Python 3 / GH Actions / adapt the frozen-image SysRq harness to the observed guest marker
+          from pathlib import Path
+          p=Path('tools/exp76-r30-qemu-pty-sysrq.py')
+          s=p.read_text()
+          old='if not break_sent and time.monotonic()>=break_time:'
+          new='if not break_sent and (b"EXP76_RT_SPIN_SLEEP_V3=BEGIN" in raw or time.monotonic()>=break_time):'
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new,1))
+          PY
+          python3 -m py_compile tools/exp76-r30-qemu-pty-sysrq.py
+          python3 tools/exp76-r30-qemu-pty-sysrq.py \
             --kernel "$I/r23b/output/arch/arm64/boot/Image" \
             --initrd "$I/r30/reports/v3/v3-initramfs.cpio.gz" \
             --out r30-pinned/sysrq \
             --before-break 12 --after-break 4
           test -s r30-pinned/sysrq/sysrq-audit.json
-          test -s r30-pinned/sysrq/console-full.txt\n          sha256sum r30-pinned/sysrq/{sysrq-audit.json,console-full.txt} > r30-pinned/sysrq/files.sha256
+          test -s r30-pinned/sysrq/console-full.txt
+          sha256sum r30-pinned/sysrq/{sysrq-audit.json,console-full.txt} > r30-pinned/sysrq/files.sha256
       - name: Archive serial source and sysrq forensic SHA
         if: always()
         uses: actions/upload-artifact@v4
