@@ -16,38 +16,104 @@ jobs:
     timeout-minutes: 13
     steps:
       - uses: actions/checkout@v4
-      - name: Download verified built V3 kernel and module from run 43257368054
+      - name: Download corrected Image and module from run 43262844850
         uses: actions/download-artifact@v4
         with:
           name: exp76-r30-spinlock-v3-qemu-NOFLASH
-          run-id: 43257368054
+          run-id: 43262844850
           repository: nywuer777/Pipa-Experimental-Kernel
           github-token: ${{ github.token }}
-          path: r30-pinned/input
-      - name: Install ARM64 emulator and cpio only
+          path: input
+      - name: Run direct insmod on the frozen pair
         shell: bash
+        timeout-minutes: 8
         run: |
           set -euo pipefail
+          mkdir -p reports root
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-arm cpio gzip
-          python3 -m py_compile tools/exp76-r30-v3-pinned-insmod.py
-      - name: Boot exact pinned Image and ko with direct insmod plus guest SysRq-t
-        shell: bash
-        timeout-minutes: 3
-        run: |
-          set -euo pipefail
-          sudo python3 tools/exp76-r30-v3-pinned-insmod.py \
-            --input r30-pinned/input \
-            --out r30-pinned/reports
-          sudo chown -R "$(id -u):$(id -g)" r30-pinned/reports
-          test -s r30-pinned/reports/console-full.txt
-          test -s r30-pinned/reports/pinned-v3-insmod-diagnostic.json
-          test -s r30-pinned/reports/sha256sum.txt
-      - name: Preserve raw QEMU serial, diagnostic initramfs and SHA hashes
+          sudo apt-get install -y --no-install-recommends qemu-system-arm cpio gdb-multiarch
+          image=input/r23b/output/arch/arm64/boot/Image
+          module=input/tests/exp76-rt-spin-sleep/exp76_rt_spin_sleep.ko
+          vmlinux=input/r23b/output/vmlinux
+          printf '%s  %s\n' \
+            0b9b6d787bdefb667b13579e4d819bac893af7babc49dab00ce1c7d2d8ca9e5a "$image" \
+            0526972e841a0da8980270a82018bf4ab1d90078f65cba4ce6f1134e34e842d8 "$module" \
+            47e887b66a362e0fcd27cff5ccda630d74fb994063a99d28db8c295fcfbf45b5 "$vmlinux" \
+            6939bae31dc9a14b585020ef89654add4cba809c7104c02baaedd4261405be30 input/r30/reports/v3/v3-initramfs.cpio.gz \
+            > reports/inputs.sha256
+          sha256sum -c reports/inputs.sha256
+          gzip -dc input/r30/reports/v3/v3-initramfs.cpio.gz |
+            (cd root && sudo cpio -id --quiet --no-absolute-filenames 'bin/busybox' 'dev/console' 'dev/null')
+          test -x root/bin/busybox
+          mkdir -p root/{proc,sys,dev,probe}
+          cp "$module" root/probe/rt.ko
+          for app in sh mount dmesg insmod tail poweroff; do
+            ln -s busybox "root/bin/$app"
+          done
+          cat > root/init <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          mount -t proc proc /proc
+          mount -t sysfs sysfs /sys
+          mount -t devtmpfs devtmpfs /dev
+          dmesg -c > /dev/null
+          echo EXP76_DMESG_CLEAR_RC=$?
+          echo EXP76_DIRECT_BEGIN
+          insmod /probe/rt.ko
+          echo EXP76_INSMOD_RC=$?
+          echo EXP76_DMESG_AFTER_BEGIN
+          dmesg | tail -60
+          echo EXP76_DMESG_AFTER_END
+          echo EXP76_DIRECT_END
+          poweroff -f
+          INIT
+          chmod 755 root/init
+          (cd root && find . -print0 | cpio --null -o --format=newc --quiet) |
+            gzip -n > reports/direct-initramfs.cpio.gz
+          sha256sum reports/direct-initramfs.cpio.gz > reports/initramfs.sha256
+          python3 - "$image" "$vmlinux" <<'PY'
+          import shlex
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          out = Path("reports")
+          cmd = [
+              "qemu-system-aarch64", "-M", "virt", "-cpu", "cortex-a72",
+              "-smp", "4", "-m", "512", "-nodefaults", "-serial", "stdio",
+              "-monitor", "none", "-display", "none", "-nic", "none",
+              "-no-reboot", "-gdb", "tcp:127.0.0.1:12379",
+              "-kernel", sys.argv[1], "-initrd", str(out / "direct-initramfs.cpio.gz"),
+              "-append", "earlycon=pl011,0x09000000 console=ttyAMA0,115200 "
+              "loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init",
+          ]
+          (out / "qemu-command.txt").write_text(shlex.join(cmd) + "\n")
+          with (out / "console.txt").open("wb") as console, (out / "qemu-stderr.txt").open("wb") as stderr:
+              with subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=console, stderr=stderr) as qemu:
+                  try:
+                      status = qemu.wait(timeout=90)
+                  except subprocess.TimeoutExpired:
+                      with (out / "timeout-gdb.txt").open("wb") as trace:
+                          subprocess.run([
+                              "timeout", "-k", "1s", "5s", "gdb-multiarch", "-batch", sys.argv[2],
+                              "-ex", "target remote 127.0.0.1:12379",
+                              "-ex", "thread apply all info registers pc sp x29 x30",
+                              "-ex", "thread apply all bt 20",
+                          ], stdout=trace, stderr=subprocess.STDOUT, check=False)
+                      qemu.terminate()
+                      try:
+                          qemu.wait(timeout=5)
+                      except subprocess.TimeoutExpired:
+                          qemu.kill()
+                      status = 124
+          (out / "qemu-exit.txt").write_text(f"{status}\n")
+          PY
+          sha256sum reports/console.txt > reports/console.sha256
+          cat reports/console.txt
+      - name: Archive direct-insmod evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: exp76-r30-v3-pinned-insmod-NOFLASH
-          path: r30-pinned/reports/
-          if-no-files-found: warn
+          name: exp76-r58-direct-insmod-NOFLASH
+          path: reports/
           retention-days: 30
