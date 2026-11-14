@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/workflows/exp76-idle-test.yml'
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
   idle:
@@ -34,10 +34,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends qemu-system-arm cpio
           image=input/r23b/output/arch/arm64/boot/Image
           source_initrd=input/r30/reports/v3/v3-initramfs.cpio.gz
-          printf '%s  %s\\n' \\
-            0b9b6d787bdefb667b13579e4d819bac893af7babc49dab00ce1c7d2d8ca9e5a "$image" \\
-            6939bae31dc9a14b585020ef89654add4cba809c7104c02baaedd4261405be30 "$source_initrd" \\
-            > reports/inputs.sha256
+          cat > reports/inputs.sha256 <<'HASHES'
+          0b9b6d787bdefb667b13579e4d819bac893af7babc49dab00ce1c7d2d8ca9e5a  input/r23b/output/arch/arm64/boot/Image
+          6939bae31dc9a14b585020ef89654add4cba809c7104c02baaedd4261405be30  input/r30/reports/v3/v3-initramfs.cpio.gz
+          HASHES
           sha256sum -c reports/inputs.sha256
           gzip -dc "$source_initrd" | (cd root && cpio -id --quiet --no-absolute-filenames --no-preserve-owner 'bin/busybox')
           test -x root/bin/busybox
@@ -68,18 +68,26 @@ jobs:
         timeout-minutes: 2
         run: |
           set -uo pipefail
-          timeout -k 5s 30s qemu-system-aarch64 \\
-            -M virt -cpu cortex-a72 -smp 4 -m 512 \\
-            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \\
-            -kernel input/r23b/output/arch/arm64/boot/Image \\
-            -initrd reports/idle-initramfs.cpio.gz \\
-            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init' \\
-            > reports/console.txt 2>&1
+          timeout -k 5s 30s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel input/r23b/output/arch/arm64/boot/Image -initrd reports/idle-initramfs.cpio.gz -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init' > reports/console.txt 2>&1
           rc=$?
           echo "QEMU_EXIT=$rc" >> reports/console.txt
           echo "$rc" > reports/qemu-exit.txt
           sha256sum reports/console.txt > reports/console.sha256
           cat reports/console.txt
+
+      - name: Ensure console evidence exists
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          if [ ! -s reports/console.txt ]; then
+            echo 'IDLE_TEST_FAILED_BEFORE_QEMU' > reports/console.txt
+            echo 'QEMU_EXIT=not-run' >> reports/console.txt
+          fi
+          if [ ! -s reports/console.sha256 ]; then
+            sha256sum reports/console.txt > reports/console.sha256
+          fi
 
       - name: Archive idle discriminator evidence
         if: always()
@@ -89,3 +97,18 @@ jobs:
           path: reports/
           retention-days: 30
           if-no-files-found: warn
+
+      - name: Publish console on exp76-idle-result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.email "ci@exp76"
+          git config user.name "ci"
+          git checkout --orphan exp76-idle-result
+          git rm -rf .
+          cp reports/console.txt ./console.txt
+          cp reports/console.sha256 ./console.sha256
+          git add console.txt console.sha256
+          git commit -m "ci(exp76 r62): idle discriminator console"
+          git push origin exp76-idle-result
