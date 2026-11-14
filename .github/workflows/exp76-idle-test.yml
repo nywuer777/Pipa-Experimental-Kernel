@@ -1,4 +1,4 @@
-name: EXP76 A-B timer pressure diagnostics (NO FLASH)
+name: EXP76 A/B timer pressure diagnostics (NO FLASH)
 on:
   push:
     branches: [exp76-rt-pa-lock-fix]
