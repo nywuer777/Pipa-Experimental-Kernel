@@ -42,11 +42,11 @@ jobs:
           sudo apt-get install -y --no-install-recommends qemu-system-arm gdb-multiarch
           image=input/r23b/output/arch/arm64/boot/Image
           vmlinux=input/r23b/output/vmlinux
-          initrd=v3/reports/direct-initramfs.cpio.gz
+          initrd=v3/direct-initramfs.cpio.gz
           cat > reports/inputs.sha256 <<'HASHES'
           0b9b6d787bdefb667b13579e4d819bac893af7babc49dab00ce1c7d2d8ca9e5a  input/r23b/output/arch/arm64/boot/Image
           47e887b66a362e0fcd27cff5ccda630d74fb994063a99d28db8c295fcfbf45b5  input/r23b/output/vmlinux
-          c7248a227ae4d0624769644ed066b56eee3ef9b1fd9cdf29116994c4936d68bd  v3/reports/direct-initramfs.cpio.gz
+          c7248a227ae4d0624769644ed066b56eee3ef9b1fd9cdf29116994c4936d68bd  v3/direct-initramfs.cpio.gz
           HASHES
           sha256sum -c reports/inputs.sha256
           grep -E '^(# CONFIG_FTRACE is not set|# CONFIG_DEBUG_FS is not set)' input/r23b/reports/effective.config > reports/tracing-config.txt
@@ -105,6 +105,7 @@ jobs:
           if-no-files-found: warn
 
   path-b-no-module-stress:
+    if: \${{ !contains(github.event.head_commit.message, '[retry-a-only]') }}
     name: B - idle kernel under userspace timer load
     runs-on: ubuntu-24.04
     timeout-minutes: 8
