@@ -59,20 +59,18 @@ jobs:
           condition 1 *(unsigned long *)($x0 + 40) == 0
           commands 1
           silent
-          printf "ARM_NULL_CALLBACK timer=%p function=%p\\n", $x0, *(unsigned long *)($x0 + 40)
+          printf "ARM_NULL_CALLBACK timer=%p function=%p\n", $x0, *(unsigned long *)($x0 + 40)
           bt 16
           continue
           end
           break *0xffffff80100faefc
+          condition 2 *(unsigned long *)($x0 + 40) == 0
           commands 2
           silent
-          printf "HR_CALL timer=%p callback_x19=%p callback_field=%p\\n", $x0, $x19, *(unsigned long *)($x0 + 40)
-          if $x19 == 0
-          printf "NULL_CALLBACK_CALL timer=%p\\n", $x0
+          printf "NULL_CALLSITE timer=%p function=%p\n", $x0, *(unsigned long *)($x0 + 40)
           x/8gx $x0
           bt 24
-          info registers x0 x19 pc sp x29 x30
-          end
+          info registers x0 x1 x2 x19 pc sp x29 x30
           continue
           end
           continue
@@ -93,7 +91,7 @@ jobs:
           sha256sum reports/console.txt > reports/console.sha256
           sha256sum reports/trace.txt > reports/trace.sha256
           cat reports/run-status.txt
-          grep -E 'ARM_NULL_CALLBACK|HR_CALL|NULL_CALLBACK_CALL|Breakpoint|Remote connection|Program received signal' reports/trace.txt | tail -100 || true
+          grep -E 'ARM_NULL_CALLBACK|NULL_CALLSITE|Breakpoint|Remote connection|Program received signal' reports/trace.txt | tail -100 || true
           cat reports/console.txt
       - name: Archive Path A evidence
         if: always()
@@ -105,7 +103,7 @@ jobs:
           if-no-files-found: warn
 
   path-b-no-module-stress:
-    if: \${{ !contains(github.event.head_commit.message, '[retry-a-only]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[retry-a-only]') }}
     name: B - idle kernel under userspace timer load
     runs-on: ubuntu-24.04
     timeout-minutes: 8
