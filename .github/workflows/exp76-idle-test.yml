@@ -1,0 +1,91 @@
+name: EXP76 idle discriminator (NO FLASH)
+on:
+  push:
+    branches: [exp76-rt-pa-lock-fix]
+    paths:
+      - '.github/workflows/exp76-idle-test.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  idle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: exp76-rt-pa-lock-fix
+
+      - name: Download frozen R59 kernel pair
+        uses: actions/download-artifact@v4
+        with:
+          name: exp76-r30-spinlock-v3-qemu-NOFLASH
+          run-id: 43262844850
+          repository: nywuer777/Pipa-Experimental-Kernel
+          github-token: ${{ github.token }}
+          path: input
+
+      - name: Build module-free idle initramfs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports root/{bin,dev,proc,sys}
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-arm cpio
+          image=input/r23b/output/arch/arm64/boot/Image
+          source_initrd=input/r30/reports/v3/v3-initramfs.cpio.gz
+          printf '%s  %s\\n' \\
+            0b9b6d787bdefb667b13579e4d819bac893af7babc49dab00ce1c7d2d8ca9e5a "$image" \\
+            6939bae31dc9a14b585020ef89654add4cba809c7104c02baaedd4261405be30 "$source_initrd" \\
+            > reports/inputs.sha256
+          sha256sum -c reports/inputs.sha256
+          gzip -dc "$source_initrd" | (cd root && cpio -id --quiet --no-absolute-filenames --no-preserve-owner 'bin/busybox')
+          test -x root/bin/busybox
+          for app in sh mount dmesg tail poweroff sleep; do
+            ln -sf busybox "root/bin/$app"
+          done
+          sudo mknod -m 600 root/dev/console c 5 1
+          sudo mknod -m 666 root/dev/null c 1 3
+          cat > root/init <<'INIT'
+          #!/bin/sh
+          export PATH=/bin
+          mount -t proc proc /proc
+          mount -t sysfs sysfs /sys
+          mount -t devtmpfs devtmpfs /dev
+          echo 'EXP76_IDLE_BEGIN'
+          sleep 8
+          echo 'EXP76_IDLE_8S_OK'
+          dmesg | tail -60
+          echo 'EXP76_IDLE_END'
+          poweroff -f
+          INIT
+          chmod 755 root/init
+          (cd root && find . -print0 | cpio --null -o --format=newc --quiet) | gzip -n > reports/idle-initramfs.cpio.gz
+          sha256sum reports/idle-initramfs.cpio.gz > reports/idle-initramfs.sha256
+
+      - name: Run QEMU idle discriminator
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -uo pipefail
+          timeout -k 5s 30s qemu-system-aarch64 \\
+            -M virt -cpu cortex-a72 -smp 4 -m 512 \\
+            -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot \\
+            -kernel input/r23b/output/arch/arm64/boot/Image \\
+            -initrd reports/idle-initramfs.cpio.gz \\
+            -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init' \\
+            > reports/console.txt 2>&1
+          rc=$?
+          echo "QEMU_EXIT=$rc" >> reports/console.txt
+          echo "$rc" > reports/qemu-exit.txt
+          sha256sum reports/console.txt > reports/console.sha256
+          cat reports/console.txt
+
+      - name: Archive idle discriminator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp76-idle-console
+          path: reports/
+          retention-days: 30
+          if-no-files-found: warn
