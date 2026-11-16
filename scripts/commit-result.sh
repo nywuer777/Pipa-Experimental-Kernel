@@ -2,7 +2,8 @@
 # Bash / GitHub Actions runner / EXP76 incremental evidence publisher
 set -euo pipefail
 
-repo_root="$(git rev-parse --show-toplevel)"
+repo_root="${GITHUB_WORKSPACE:?GITHUB_WORKSPACE is required}"
+mkdir -p "$repo_root/reports"
 run_id="${GITHUB_RUN_ID:?GITHUB_RUN_ID is required}"
 result_branch="exp76-rt-h2-result"
 result_worktree="${RUNNER_TEMP:?RUNNER_TEMP is required}/exp76-rt-h2-result"

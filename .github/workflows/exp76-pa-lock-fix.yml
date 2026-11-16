@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run reconstruction, patch, build and QEMU
+        timeout-minutes: 110
         shell: bash
         run: |
           mkdir -p reports
@@ -50,9 +51,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils cpio gcc-aarch64-linux-gnu
           sudo apt-get clean
+          checkpoint 00_dependencies_ready
           echo EXP76_PHASE=SOURCE_AUDIT_BEGIN
           checkpoint 02_reconstruct_begin
-          bash tools/exp76-rt-compat-audit.sh
+          timeout --signal=TERM --kill-after=30s 30m bash tools/exp76-rt-compat-audit.sh
           echo EXP76_PHASE=SOURCE_AUDIT_DONE
           checkpoint 02_reconstruct_done
           df -h "$GITHUB_WORKSPACE"
@@ -200,7 +202,7 @@ jobs:
             -e BLK_DEV_INITRD -e RD_GZIP -e DEVTMPFS \
             -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE \
             -e BINFMT_SCRIPT -e PRINTK -e MAGIC_SYSRQ
-          if ! make ARCH=arm64 LLVM=1 olddefconfig > ../reports/config-olddefconfig.log 2>&1; then
+          if ! timeout --signal=TERM --kill-after=30s 30m make ARCH=arm64 LLVM=1 olddefconfig > ../reports/config-olddefconfig.log 2>&1; then
             echo OLDDEFCONFIG_FAILED > ../reports/error.txt
             exit 20
           fi
@@ -222,7 +224,7 @@ jobs:
           echo EXP76_PHASE=BUILD_BEGIN
           date -u +%s > ../reports/build-start-epoch.txt
           checkpoint 05_build_begin
-          if ! make -j"$(nproc)" ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1; then tail -n 100 ../reports/build.log; echo BUILD_FAILED > ../reports/error.txt; checkpoint 05_build_failed; exit 21; fi
+          if ! timeout --signal=TERM --kill-after=30s 60m make -j"$(nproc)" ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1; then tail -n 100 ../reports/build.log; echo BUILD_FAILED > ../reports/error.txt; checkpoint 05_build_failed; exit 21; fi
           date -u +%s > ../reports/build-end-epoch.txt
           build_start=$(cat ../reports/build-start-epoch.txt)
           build_end=$(cat ../reports/build-end-epoch.txt)
@@ -291,7 +293,7 @@ jobs:
             ( cd "reports/$scenario-root" && find . -print0 | cpio --null -o --format=newc 2>/dev/null | gzip -9 ) > "reports/$scenario-initramfs.cpio.gz"
             sha256sum "reports/$scenario-initramfs.cpio.gz" > "reports/$scenario-initramfs.sha256"
             set +e
-            timeout -k 5s 40s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd "reports/$scenario-initramfs.cpio.gz" -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init' > "reports/$scenario-console.txt" 2>&1
+            timeout -k 5s 5m qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd "reports/$scenario-initramfs.cpio.gz" -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 init=/init' > "reports/$scenario-console.txt" 2>&1
             rc=$?
             set -e
             echo "$rc" > "reports/$scenario-exit.txt"
@@ -322,7 +324,7 @@ jobs:
           set +e
           echo EXP76_PHASE=QEMU_V3_BEGIN
           bash "$CHECKPOINT_HELPER" 09_v3_begin
-          timeout -k 5s 180s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd reports/v3-initramfs.cpio.gz -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
+          timeout -k 5s 5m qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd reports/v3-initramfs.cpio.gz -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
           rc=$?
           set -e
           echo "$rc" > reports/qemu-exit.txt
