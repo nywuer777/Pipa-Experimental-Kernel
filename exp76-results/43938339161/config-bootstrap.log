@@ -1,0 +1,10 @@
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  scripts/kconfig/conf.o
+  YACC    scripts/kconfig/zconf.tab.c
+  LEX     scripts/kconfig/zconf.lex.c
+  HOSTCC  scripts/kconfig/zconf.tab.o
+  HOSTLD  scripts/kconfig/conf
+*** Default configuration is based on 'defconfig'
+#
+# configuration written to .config
+#
