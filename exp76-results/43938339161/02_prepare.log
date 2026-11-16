@@ -1085,3 +1085,5 @@ To https://github.com/nywuer777/Pipa-Experimental-Kernel
 + df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
 + test -r /sys/fs/cgroup/memory.current
 + bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 04_config_ready
+To https://github.com/nywuer777/Pipa-Experimental-Kernel
+   4744752..de2c6d9  HEAD -> exp76-rt-h2-result
