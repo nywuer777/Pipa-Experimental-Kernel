@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "project": "EXP76",
+  "round": 22,
+  "scope": "RT_ONLY",
+  "source_branch": "exp76-rt-sched-h10",
+  "source_commit_build": "54629e37f2daa2179c46e0bcb69168c684caec0f",
+  "last_source_fix_commit": "cf04b3b1a0421261a887919d43e684bdee0defb0",
+  "source_base_branch": "exp76-rt19-timer-swork-order",
+  "hunk_inventory_reject_sha256": "4c3caaa61d2556dc1185d00b199c961494a62dadebd6ed8544b26d2ed7fa4799",
+  "hunks": [
+    {
+      "hunk_id": "4c3caaa61d2556dc1185d00b199c961494a62dadebd6ed8544b26d2ed7fa4799:10",
+      "path": "kernel/sched/core.c.rej",
+      "hunk_ordinal": 10,
+      "hunk_sha256": "42ce24c7b87a8cbd9c5740be8a29e17ceea89e617a1f5df2db24a88f74276893",
+      "upstream_target": "ttwu_activate",
+      "e404_equivalent": "ttwu_do_activate",
+      "upstream_change": "REMOVE worker-wakeup notification wq_worker_waking_up(p, cpu_of(rq)); from ttwu_activate",
+      "status": "ALREADY_SATISFIED_SOURCE_NOOP",
+      "applied": false,
+      "source_change_applied": false,
+      "reason": "The reconstructed E404+RT140 equivalent does not invoke wq_worker_waking_up. A second removal would be a semantic no-op.",
+      "build_sha": "812d46e04131cc1ded7dd26b13728f3d8834ff240d533cac80172dd070e6e907",
+      "build_vmlinux_sha256": "933ad5ea6857e79a22f72914c08c3f12b97771728fd16a33609897c4fc3d77c6",
+      "build_system_map_sha256": "89610a52cb25c2572170a765b8ec75a0646f8e5d8e35ae509bab528b043e3356",
+      "build_run_id": 42250522391,
+      "build_result": "PASS_ARM64_RT_IMAGE",
+      "boot_reached_ms": 32.024,
+      "new_failure_or_success": "FAIL_PRE_INITCALL_NO_GUEST_RUNNING",
+      "boot_result": "FAIL_PRE_INITCALL_TIMEOUT_WITH_SYSRQ_CONFIG_ENABLED",
+      "boot_console_sha256": "9a3b6b939bdc587659e638227d6b967107247e4dc0940fb14f8810d2eb25e01b",
+      "boot_console_bytes": 3298,
+      "boot_console_lines": 46,
+      "boot_last_printk": "[    0.032024] /cpus/cpu-map: empty cluster",
+      "test_id": "EXP76_R22_H10_RT140_SOURCE_GATE_AND_QEMU_SYSRQ",
+      "test_conclusion": "H10_EQUIVALENT_ALREADY_ABSENT; BUILD_PASS; BOOT_FAIL",
+      "port_verified": false,
+      "runtime_verified": false,
+      "source_gate_artifact_id": 13521880186,
+      "pipa_rt_config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5",
+      "pipa_rt_build_sha256": "a305e09c2b6da3322b251e354b94ed92d10e08359eb15b7afbbe20faf8972405"
+    }
+  ],
+  "config": {
+    "qemu_rt": [
+      "CONFIG_PREEMPT_RT_FULL=y",
+      "CONFIG_MAGIC_SYSRQ=y",
+      "CONFIG_MAGIC_SYSRQ_SERIAL=y",
+      "# CONFIG_QCOM_SCM is not set"
+    ],
+    "pipa_rt": [
+      "CONFIG_PREEMPT_RT_FULL=y",
+      "# CONFIG_MAGIC_SYSRQ is not set",
+      "CONFIG_QCOM_SCM=y"
+    ],
+    "qemu_rt_pipa_critical_differences": 0,
+    "physical_hardware_tested": false
+  },
+  "sysrq": {
+    "pty": {
+      "run_id": 42250522391,
+      "artifact_id": 13521880186,
+      "method": "termios.tcsendbreak + t at T+5.06s, NUL+t at T+18.13s",
+      "duration_sec": 38.171213,
+      "console_sha256": "9a3b6b939bdc587659e638227d6b967107247e4dc0940fb14f8810d2eb25e01b",
+      "console_bytes": 3298,
+      "console_lines": 46,
+      "command_sent": true,
+      "sysrq_task_dump_observed": false,
+      "pid1_stack_captured": false,
+      "raw_report_bug": "Original artifact reports sysrq_observed=true because of overly broad regex matching the boot message 'sysrq: sysrq always enabled.'; ignore that boolean and use absence of the guest response."
+    },
+    "qmp": {
+      "run_id": 42254208966,
+      "artifact_id": 13521259193,
+      "image_sha256": "cd9865449c3949465140ecfdf46791834e321b8c575d578360c19b0383877ce6",
+      "console_sha256": "96976d008f5d5d466f548032a8603288f7d1cd33fac390d551a8a8b8d35c01b5",
+      "console_bytes": 3298,
+      "console_lines": 46,
+      "method": "QMP chardev-send-break then ASCII t",
+      "qmp_break_ack": true,
+      "sysrq_task_dump_observed": false,
+      "pid1_stack_captured": false
+    },
+    "why_not_proven": "No 'SysRq : Show State' or task listing; only the boot-time 'sysrq always enabled' confirmation. Early boot serial BREAK handling may not be installed yet, but this cause remains unverified."
+  },
+  "next_hunks_in_priority_order": [
+    "H11",
+    "H12",
+    "H14",
+    "H16",
+    "H17"
+  ],
+  "next_round_instruction": "Reconcile H11 and H12 only after inspecting their full rejects and matching the E404 equivalent; do not count H10 as ported.",
+  "new_port_verified": 0,
+  "qemu_rt_functional": false,
+  "rt_semantics_verified": false,
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}

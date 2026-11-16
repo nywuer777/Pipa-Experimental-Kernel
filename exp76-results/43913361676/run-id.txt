@@ -1,0 +1,4 @@
+43913361676
+branch=exp76-rt-h2-fix
+commit=e3434375a52587e6682aab19f8296a95fc16ba1b
+url=https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/43913361676
