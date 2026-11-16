@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "scope": "RT_ONLY",
+  "stage": "EXP76_QEMU_ONLY_QUALCOMM_SCM_EXCLUSION_POLICY",
+  "decision": "QEMU_ONLY_SCM_DISABLED_PERMANENT_PLATFORM_SCOPE",
+  "source_run": 42060860315,
+  "effective_baseline_qemu_config_sha256": "f762cdd8798074777bad5db2a765252bd5356b88fe0dabb061f69b31556fbcfc",
+  "effective_baseline_pipa_config_sha256": "c558e047dbe6229e853212be6e8e44a51f4d6cfe8b8c809b045e585a88161aa5",
+  "source_symptom": {
+    "original_fault": "is_scm_armv8.cold.1+0x38",
+    "asm_instruction": "smc #0",
+    "run_id": 42050248789,
+    "guest_panic": "EARLY_PID0_PANIC"
+  },
+  "vendor_inventory": {
+    "enabled_symbols": 112,
+    "boot_path_critical_risks": 26,
+    "runtime_optional_heuristic": 37,
+    "unknown": 49,
+    "observed_early_firmware_smc_calls": 1,
+    "early_call_count_unreviewed": 111
+  },
+  "qemu_expected": {
+    "CONFIG_QCOM_SCM": "n",
+    "CONFIG_QCOM_KGSL": "n",
+    "CONFIG_QCOM_MDT_LOADER": "n",
+    "CONFIG_PREEMPT_RT_FULL": "y",
+    "boot_validation_domains": [
+      "scheduler",
+      "RCU",
+      "locking",
+      "time",
+      "IRQ",
+      "mm",
+      "arch/arm64",
+      "init"
+    ],
+    "not_validating": [
+      "QCOM_SCM_TrustZone",
+      "physical_PIPA_firmware",
+      "PIPA_device_boot",
+      "vendor_ABI"
+    ]
+  },
+  "pipa_expected": {
+    "CONFIG_QCOM_SCM": "y",
+    "CONFIG_PREEMPT_RT_FULL": "y",
+    "physical_SCM_validation": "NO_HARDWARE"
+  },
+  "kconfig_provenance": [
+    "drivers/gpu/msm/Kconfig: QCOM_KGSL selects QCOM_SCM",
+    "drivers/soc/qcom/Kconfig: QCOM_MDT_LOADER selects QCOM_SCM"
+  ],
+  "ci_run_id": 42065541890,
+  "effective_generated_config_verified": false,
+  "rt_image_qemu_verified": false,
+  "rt_image_pipa_verified": false,
+  "qemu_kernel_boot_verified": false,
+  "spin_sleep_v3_verified": false,
+  "runtime_gate": "GUEST_RUNNING_AND_NO_PANIC_REQUIRED_BEFORE_V3_SPIN_SLEEP",
+  "rt_handoff_ready": false,
+  "flash_ready": false
+}
