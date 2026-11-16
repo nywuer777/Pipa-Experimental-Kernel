@@ -45,16 +45,7 @@ jobs:
           PY
           echo EXP76_PHASE=H2_APPLIED
           df -h "$GITHUB_WORKSPACE"
-          for source_tree in exp76-e404 exp76-overlay exp76-trial-e404; do
-            git -C "$source_tree" clean -fdx
-          done
-          echo EXP76_PHASE=REPACK_BEGIN
-          git -C exp76-trial-overlay repack -a -d --no-local
-          rm -f exp76-trial-overlay/.git/objects/info/alternates
-          git -C exp76-trial-overlay fsck --full --no-reflogs --connectivity-only
-          rm -rf exp76-e404 exp76-overlay exp76-trial-e404 exp76-overlay-out
-          rm -f exp76-rt.patch exp76-rt.patch.xz
-          echo EXP76_PHASE=SOURCE_COPIES_REMOVED
+          echo EXP76_PHASE=SHARED_ALTERNATES_PRESERVED
           df -h "$GITHUB_WORKSPACE"
           test -s exp76-trial-overlay/mm/page_alloc.c.rej || { echo NO_REJ_FILE > reports/error.txt; exit 10; }
           cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
