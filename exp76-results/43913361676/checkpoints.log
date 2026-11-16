@@ -1,0 +1,6 @@
+2026-11-16T16:58:45Z stage=01_start sha=e3434375a52587e6682aab19f8296a95fc16ba1b
+nproc=4
+MemTotal:       16078416 kB
+MemAvailable:   15162980 kB
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/cow-root  145G   56G   89G  39% /
