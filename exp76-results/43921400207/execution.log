@@ -1635,3 +1635,21 @@ EXP76_PHASE=SOURCE_AUDIT_DONE
 + df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
 + test -r /sys/fs/cgroup/memory.current
 + bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 02_reconstruct_done
+To https://github.com/nywuer777/Pipa-Experimental-Kernel
+   424ce31..2f5ee9f  HEAD -> exp76-rt-h2-result
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/cow-root  145G   63G   82G  44% /
++ python3 -
++ echo EXP76_PHASE=H2_APPLIED
+EXP76_PHASE=H2_APPLIED
++ checkpoint 03_h2_applied
++ local label=03_h2_applied
+++ date -u +%FT%TZ
++ printf '%s stage=%s sha=%s\n' 2026-11-16T17:47:18Z 03_h2_applied 01f88e95ff0daab670c2643cd8e23c92a34ba30f
+++ nproc
++ printf 'nproc=%s\n' 4
++ grep -E 'MemTotal|MemAvailable' /proc/meminfo
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
++ test -r /sys/fs/cgroup/memory.current
++ bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 03_h2_applied
