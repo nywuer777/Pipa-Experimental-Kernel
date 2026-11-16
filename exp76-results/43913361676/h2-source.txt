@@ -1,0 +1,1 @@
+kernel/time/hrtimer.c: hrtimers_prepare_cpu(): spin_lock_init(&cpu_base->softirq_expiry_lock); type=spinlock_t
