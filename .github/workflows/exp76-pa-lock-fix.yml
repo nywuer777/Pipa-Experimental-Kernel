@@ -19,11 +19,15 @@ jobs:
           echo "$GITHUB_RUN_ID" > reports/run-id.txt
           printf 'branch=%s\ncommit=%s\nurl=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> reports/run-id.txt
           set +e
-          bash -euxo pipefail <<'SCRIPT' > reports/execution.log 2>&1
+          bash -euxo pipefail <<'SCRIPT' |& tee reports/execution.log
           set -Eeuo pipefail
           sudo apt-get update
-          sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils
+          sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils cpio gcc-aarch64-linux-gnu
+          sudo apt-get clean
+          echo EXP76_PHASE=SOURCE_AUDIT_BEGIN
           bash tools/exp76-rt-compat-audit.sh
+          echo EXP76_PHASE=SOURCE_AUDIT_DONE
+          df -h "$GITHUB_WORKSPACE"
           python3 - <<'PY'
           from pathlib import Path
           p = Path('exp76-trial-overlay/kernel/time/hrtimer.c')
@@ -39,6 +43,19 @@ jobs:
               'kernel/time/hrtimer.c: hrtimers_prepare_cpu(): '
               'spin_lock_init(&cpu_base->softirq_expiry_lock); type=spinlock_t\n')
           PY
+          echo EXP76_PHASE=H2_APPLIED
+          df -h "$GITHUB_WORKSPACE"
+          for source_tree in exp76-e404 exp76-overlay exp76-trial-e404; do
+            git -C "$source_tree" clean -fdx
+          done
+          echo EXP76_PHASE=REPACK_BEGIN
+          git -C exp76-trial-overlay repack -a -d --no-local
+          rm -f exp76-trial-overlay/.git/objects/info/alternates
+          git -C exp76-trial-overlay fsck --full --no-reflogs --connectivity-only
+          rm -rf exp76-e404 exp76-overlay exp76-trial-e404 exp76-overlay-out
+          rm -f exp76-rt.patch exp76-rt.patch.xz
+          echo EXP76_PHASE=SOURCE_COPIES_REMOVED
+          df -h "$GITHUB_WORKSPACE"
           test -s exp76-trial-overlay/mm/page_alloc.c.rej || { echo NO_REJ_FILE > reports/error.txt; exit 10; }
           cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
           cp exp76-trial-overlay/mm/page_alloc.c reports/page_alloc.before.c
@@ -180,11 +197,15 @@ jobs:
           fi
           echo CONFIG_GATE=PASS > ../reports/config-gate.txt
           grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT|MODULES|MODULE_UNLOAD|SERIAL_AMBA_PL011_CONSOLE)=' .config > ../reports/config-check.txt || true
-          make -j2 ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1 || { echo BUILD_FAILED > ../reports/error.txt; exit 21; }
+          echo EXP76_PHASE=BUILD_BEGIN
+          if ! make -j2 ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1; then tail -n 100 ../reports/build.log; echo BUILD_FAILED > ../reports/error.txt; exit 21; fi
+          tail -n 30 ../reports/build.log
+          echo EXP76_PHASE=BUILD_DONE
+          df -h "$GITHUB_WORKSPACE"
           sha256sum arch/arm64/boot/Image vmlinux .config > ../reports/build-sha256.txt
           cd ..
           # V3: compile the actual external module against this patched Image.
-          sudo apt-get install -y cpio gcc-aarch64-linux-gnu
+          sudo rm -rf /var/lib/apt/lists/*
           mkdir -p reports/v3-module
           cp tests/exp76-rt-spin-sleep/{Makefile,exp76_rt_spin_sleep.c} reports/v3-module/
           make -C exp76-trial-overlay ARCH=arm64 LLVM=1 \
@@ -233,6 +254,7 @@ jobs:
           INIT
           chmod 755 reports/idle-root/init reports/stress-root/init
           for scenario in idle stress; do
+            echo "EXP76_PHASE=QEMU_${scenario^^}_BEGIN"
             sudo mknod "reports/$scenario-root/dev/console" c 5 1
             sudo mknod "reports/$scenario-root/dev/null" c 1 3
             ( cd "reports/$scenario-root" && find . -print0 | cpio --null -o --format=newc 2>/dev/null | gzip -9 ) > "reports/$scenario-initramfs.cpio.gz"
@@ -266,6 +288,7 @@ jobs:
           ( cd reports/v3-root && find . -print0 | cpio --null -o --format=newc 2>/dev/null | gzip -9 ) > reports/v3-initramfs.cpio.gz
           sha256sum reports/v3-module/exp76_rt_spin_sleep.ko reports/v3-initramfs.cpio.gz > reports/v3-sha256.txt
           set +e
+          echo EXP76_PHASE=QEMU_V3_BEGIN
           timeout -k 5s 180s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd reports/v3-initramfs.cpio.gz -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
           rc=$?
           set -e
