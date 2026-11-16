@@ -1641,3 +1641,35 @@ EXP76_PHASE=H2_APPLIED
 + df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
 + test -r /sys/fs/cgroup/memory.current
 + bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 03_h2_applied
+To https://github.com/nywuer777/Pipa-Experimental-Kernel
+   6b306f2..e6d8e68  HEAD -> exp76-rt-h2-result
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/cow-root  145G   63G   82G  44% /
++ echo EXP76_PHASE=SHARED_ALTERNATES_PRESERVED
+EXP76_PHASE=SHARED_ALTERNATES_PRESERVED
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/cow-root  145G   63G   82G  44% /
++ test -s exp76-trial-overlay/mm/page_alloc.c.rej
++ cp exp76-trial-overlay/mm/page_alloc.c.rej reports/page_alloc.c.rej
++ cp exp76-trial-overlay/mm/page_alloc.c reports/page_alloc.before.c
++ cd exp76-trial-overlay
++ python3 -
++ patch --batch --forward --fuzz=0 --dry-run -p1
++ patch --batch --forward --fuzz=0 -p1
++ git diff -- mm/page_alloc.c
++ cp mm/page_alloc.c ../reports/page_alloc.after.c
++ cmp -s mm/page_alloc.c ../reports/page_alloc.after.c
++ test -s ../reports/applied.patch
++ checkpoint 03_page_alloc_patch_applied
++ local label=03_page_alloc_patch_applied
+++ date -u +%FT%TZ
++ printf '%s stage=%s sha=%s\n' 2026-11-16T17:01:21Z 03_page_alloc_patch_applied e3434375a52587e6682aab19f8296a95fc16ba1b
+++ nproc
++ printf 'nproc=%s\n' 4
++ grep -E 'MemTotal|MemAvailable' /proc/meminfo
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
++ test -r /sys/fs/cgroup/memory.current
++ bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 03_page_alloc_patch_applied
+cp: cannot stat '/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/exp76-trial-overlay/reports/.': No such file or directory
