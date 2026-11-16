@@ -1,0 +1,12 @@
++ set -Eeuo pipefail
++ CHECKPOINT_HELPER=/home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh
++ checkpoint 01_start
++ local label=01_start
+++ date -u +%FT%TZ
++ printf '%s stage=%s sha=%s\n' 2026-11-16T19:21:36Z 01_start ea629f79fced441eedb19b95c61d69df66b63966
+++ nproc
++ printf 'nproc=%s\n' 4
++ grep -E 'MemTotal|MemAvailable' /proc/meminfo
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
++ test -r /sys/fs/cgroup/memory.current
++ bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 01_start
