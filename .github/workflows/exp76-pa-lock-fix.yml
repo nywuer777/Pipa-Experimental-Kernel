@@ -9,7 +9,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 110
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - name: Run reconstruction, patch, build and QEMU
@@ -18,15 +18,43 @@ jobs:
           mkdir -p reports
           echo "$GITHUB_RUN_ID" > reports/run-id.txt
           printf 'branch=%s\ncommit=%s\nurl=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> reports/run-id.txt
+          {
+            echo "checkpoint=00_env"
+            echo "sha=$GITHUB_SHA"
+            echo "nproc=$(nproc)"
+            grep -E 'MemTotal|MemAvailable' /proc/meminfo
+            df -h "$GITHUB_WORKSPACE"
+            date -u +%FT%TZ
+          } > reports/00_checkpoint_env.txt
+          bash scripts/commit-result.sh 00_env
           set +e
-          bash -euxo pipefail <<'SCRIPT' |& tee reports/execution.log
+          bash -euxo pipefail <<'SCRIPT' |& tee reports/execution.log &
           set -Eeuo pipefail
+          CHECKPOINT_HELPER="$GITHUB_WORKSPACE/scripts/commit-result.sh"
+          checkpoint() {
+            local label="$1"
+            {
+              printf '%s stage=%s sha=%s\n' "$(date -u +%FT%TZ)" "$label" "$GITHUB_SHA"
+              printf 'nproc=%s\n' "$(nproc)"
+              grep -E 'MemTotal|MemAvailable' /proc/meminfo
+              df -h "$GITHUB_WORKSPACE"
+              if test -r /sys/fs/cgroup/memory.current; then
+                printf 'cgroup_memory_current='; cat /sys/fs/cgroup/memory.current
+                printf 'cgroup_memory_max='; cat /sys/fs/cgroup/memory.max
+                cat /sys/fs/cgroup/memory.events
+              fi
+            } >> "$GITHUB_WORKSPACE/reports/checkpoints.log"
+            bash "$CHECKPOINT_HELPER" "$label"
+          }
+          checkpoint 01_start
           sudo apt-get update
           sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils cpio gcc-aarch64-linux-gnu
           sudo apt-get clean
           echo EXP76_PHASE=SOURCE_AUDIT_BEGIN
+          checkpoint 02_reconstruct_begin
           bash tools/exp76-rt-compat-audit.sh
           echo EXP76_PHASE=SOURCE_AUDIT_DONE
+          checkpoint 02_reconstruct_done
           df -h "$GITHUB_WORKSPACE"
           python3 - <<'PY'
           from pathlib import Path
@@ -44,6 +72,7 @@ jobs:
               'spin_lock_init(&cpu_base->softirq_expiry_lock); type=spinlock_t\n')
           PY
           echo EXP76_PHASE=H2_APPLIED
+          checkpoint 03_h2_applied
           df -h "$GITHUB_WORKSPACE"
           echo EXP76_PHASE=SHARED_ALTERNATES_PRESERVED
           df -h "$GITHUB_WORKSPACE"
@@ -140,6 +169,7 @@ jobs:
           cp mm/page_alloc.c ../reports/page_alloc.after.c
           cmp -s mm/page_alloc.c ../reports/page_alloc.after.c
           test -s ../reports/applied.patch || { echo PATCH_NO_OP > ../reports/error.txt; exit 13; }
+          checkpoint 03_page_alloc_patch_applied
           # R44: the pinned E404 tree references an absent optional KernelSU
           # Kconfig. Never stub the driver or enable it in the generic QEMU test.
           # Restrict the source edit to the disposable exp76-trial-overlay tree.
@@ -187,11 +217,19 @@ jobs:
             exit 20
           fi
           echo CONFIG_GATE=PASS > ../reports/config-gate.txt
+          checkpoint 04_config_ready
           grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT|MODULES|MODULE_UNLOAD|SERIAL_AMBA_PL011_CONSOLE)=' .config > ../reports/config-check.txt || true
           echo EXP76_PHASE=BUILD_BEGIN
-          if ! make -j2 ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1; then tail -n 100 ../reports/build.log; echo BUILD_FAILED > ../reports/error.txt; exit 21; fi
+          date -u +%s > ../reports/build-start-epoch.txt
+          checkpoint 05_build_begin
+          if ! make -j"$(nproc)" ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1; then tail -n 100 ../reports/build.log; echo BUILD_FAILED > ../reports/error.txt; checkpoint 05_build_failed; exit 21; fi
+          date -u +%s > ../reports/build-end-epoch.txt
+          build_start=$(cat ../reports/build-start-epoch.txt)
+          build_end=$(cat ../reports/build-end-epoch.txt)
+          echo "build_sec=$((build_end-build_start))" > ../reports/build-duration.txt
           tail -n 30 ../reports/build.log
           echo EXP76_PHASE=BUILD_DONE
+          checkpoint 05_build_done
           df -h "$GITHUB_WORKSPACE"
           sha256sum arch/arm64/boot/Image vmlinux .config > ../reports/build-sha256.txt
           cd ..
@@ -199,10 +237,11 @@ jobs:
           sudo rm -rf /var/lib/apt/lists/*
           mkdir -p reports/v3-module
           cp tests/exp76-rt-spin-sleep/{Makefile,exp76_rt_spin_sleep.c} reports/v3-module/
-          make -C exp76-trial-overlay ARCH=arm64 LLVM=1 \
+          make -j"$(nproc)" -C exp76-trial-overlay ARCH=arm64 LLVM=1 \
             CROSS_COMPILE=aarch64-linux-gnu- M="$GITHUB_WORKSPACE/reports/v3-module" modules \
-            > reports/v3-module-build.log 2>&1 || { echo V3_MODULE_BUILD_FAILED > reports/error.txt; exit 24; }
+            > reports/v3-module-build.log 2>&1 || { echo V3_MODULE_BUILD_FAILED > reports/error.txt; bash "$CHECKPOINT_HELPER" 06_modules_failed; exit 24; }
           test -s reports/v3-module/exp76_rt_spin_sleep.ko
+          bash "$CHECKPOINT_HELPER" 06_modules_done
           mkdir -p reports/v3-root/{bin,dev,proc,sys,tmp,probe,config}
           curl -fL --retry 3 https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb -o reports/busybox-arm64.deb
           mkdir -p reports/busybox-extract
@@ -246,6 +285,7 @@ jobs:
           chmod 755 reports/idle-root/init reports/stress-root/init
           for scenario in idle stress; do
             echo "EXP76_PHASE=QEMU_${scenario^^}_BEGIN"
+            bash "$CHECKPOINT_HELPER" "07_${scenario}_begin"
             sudo mknod "reports/$scenario-root/dev/console" c 5 1
             sudo mknod "reports/$scenario-root/dev/null" c 1 3
             ( cd "reports/$scenario-root" && find . -print0 | cpio --null -o --format=newc 2>/dev/null | gzip -9 ) > "reports/$scenario-initramfs.cpio.gz"
@@ -256,6 +296,7 @@ jobs:
             set -e
             echo "$rc" > "reports/$scenario-exit.txt"
             sha256sum "reports/$scenario-console.txt" > "reports/$scenario-console.sha256"
+            bash "$CHECKPOINT_HELPER" "07_${scenario}_done"
           done
           for x in sh ash mount mkdir cat grep sed awk tr wc tail head insmod rmmod dmesg timeout mktemp rm ls echo sync reboot poweroff sleep uname sha256sum; do ln -s busybox "reports/v3-root/bin/$x"; done
           cp reports/v3-module/exp76_rt_spin_sleep.ko reports/v3-root/probe/rt.ko
@@ -280,11 +321,13 @@ jobs:
           sha256sum reports/v3-module/exp76_rt_spin_sleep.ko reports/v3-initramfs.cpio.gz > reports/v3-sha256.txt
           set +e
           echo EXP76_PHASE=QEMU_V3_BEGIN
+          bash "$CHECKPOINT_HELPER" 09_v3_begin
           timeout -k 5s 180s qemu-system-aarch64 -M virt -cpu cortex-a72 -smp 4 -m 512 -nodefaults -serial stdio -monitor none -display none -nic none -no-reboot -kernel exp76-trial-overlay/arch/arm64/boot/Image -initrd reports/v3-initramfs.cpio.gz -append 'earlycon=pl011,0x09000000 console=ttyAMA0,115200 loglevel=8 ignore_loglevel printk.time=1 nokaslr panic=5 initcall_debug=1 init=/init' > reports/console.txt 2>&1
           rc=$?
           set -e
           echo "$rc" > reports/qemu-exit.txt
           sha256sum reports/console.txt > reports/console.sha256
+          bash "$CHECKPOINT_HELPER" 09_v3_done
           grep -q GUEST_RUNNING reports/console.txt && grep -qx 'EXP76_QEMU_GUEST_RESULT=0' reports/console.txt && grep -qx 'QEMU_RT_SPINLOCK=PASS test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt && ! grep -q 'Internal error: Oops' reports/console.txt && test "$(cat reports/qemu-exit.txt)" = 0 && echo T3_V3=PASS > reports/t3-status.txt || echo T3_V3=FAIL > reports/t3-status.txt
 
           grep -q EXP76_IDLE_8S_OK reports/idle-console.txt && ! grep -q 'Internal error: Oops' reports/idle-console.txt && test "$(cat reports/idle-exit.txt)" = 0 && echo T1_IDLE=PASS > reports/t1-status.txt || echo T1_IDLE=FAIL > reports/t1-status.txt
@@ -298,8 +341,33 @@ jobs:
             exit 29
           fi
           SCRIPT
+          work_pid=$!
+          (
+            while kill -0 "$work_pid" 2>/dev/null; do
+              sleep 300
+              kill -0 "$work_pid" 2>/dev/null || break
+              {
+                printf '%s stage=periodic\n' "$(date -u +%FT%TZ)"
+                printf 'nproc=%s\n' "$(nproc)"
+                grep -E 'MemTotal|MemAvailable' /proc/meminfo
+                df -h "$GITHUB_WORKSPACE"
+                ps -eo pid,ppid,rss,stat,comm --sort=-rss | head -20
+                if test -r /sys/fs/cgroup/memory.current; then
+                  printf 'cgroup_memory_current='; cat /sys/fs/cgroup/memory.current
+                  printf 'cgroup_memory_max='; cat /sys/fs/cgroup/memory.max
+                  cat /sys/fs/cgroup/memory.events
+                fi
+              } > reports/periodic-resource.txt
+              bash scripts/commit-result.sh periodic || true
+            done
+          ) &
+          monitor_pid=$!
+          wait "$work_pid"
           rc=$?
+          kill "$monitor_pid" 2>/dev/null || true
+          wait "$monitor_pid" 2>/dev/null || true
           echo "$rc" > reports/step-exit-code.txt
+          bash scripts/commit-result.sh final_step || true
           sha256sum reports/* > reports/report-sha256.txt 2>/dev/null || true
           exit "$rc"
       - name: V3 guest validation and evidence
@@ -323,18 +391,11 @@ jobs:
           name: exp76-pa-lock-fix-run-${{ github.run_id }}
           path: reports/
           retention-days: 30
-      - name: Commit evidence to result branch
+      - name: Final checkpoint to exp76-rt-h2-result
         if: always()
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p reports
           test -s reports/run-id.txt || echo "$GITHUB_RUN_ID" > reports/run-id.txt
-          git config user.email ci@exp76.invalid
-          git config user.name EXP76-CI
-          git checkout -B exp76-pa-lock-fix-result
-          mkdir -p exp76-results
-          cp -a reports/. exp76-results/
-          git add -f exp76-results/
-          git commit -m "result: pa_lock run $GITHUB_RUN_ID" || true
-          git push --force origin HEAD:refs/heads/exp76-pa-lock-fix-result
+          bash scripts/commit-result.sh final
