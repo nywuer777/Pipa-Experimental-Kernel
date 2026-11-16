@@ -1684,3 +1684,41 @@ Filesystem            Size  Used Avail Use% Mounted on
 + df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
 + test -r /sys/fs/cgroup/memory.current
 + bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 03_page_alloc_patch_applied
+To https://github.com/nywuer777/Pipa-Experimental-Kernel
+   b4b70c4..446de13  HEAD -> exp76-rt-h2-result
++ test '!' -e drivers/kernelsu/Kconfig
++ python3 -
++ make ARCH=arm64 LLVM=1 defconfig
++ scripts/config --file .config -d PREEMPT_NONE -d PREEMPT_VOLUNTARY -d PREEMPT -e PREEMPT_RT_FULL -e MODULES -e MODULE_UNLOAD -e BLK_DEV_INITRD -e RD_GZIP -e DEVTMPFS -e SERIAL_AMBA_PL011 -e SERIAL_AMBA_PL011_CONSOLE -e BINFMT_SCRIPT -e PRINTK -e MAGIC_SYSRQ
++ timeout --signal=TERM --kill-after=30s 30m make ARCH=arm64 LLVM=1 olddefconfig
++ cp .config ../reports/qemu-rt.config
++ sha256sum .config
++ :
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_PREEMPT_RT_FULL=y .config
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_MODULES=y .config
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_MODULE_UNLOAD=y .config
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_BLK_DEV_INITRD=y .config
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_RD_GZIP=y .config
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_SERIAL_AMBA_PL011=y .config
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_SERIAL_AMBA_PL011_CONSOLE=y .config
++ for required in PREEMPT_RT_FULL MODULES MODULE_UNLOAD BLK_DEV_INITRD RD_GZIP SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE BINFMT_SCRIPT
++ grep -qx CONFIG_BINFMT_SCRIPT=y .config
++ test -s ../reports/config-gate.txt
++ echo CONFIG_GATE=PASS
++ checkpoint 04_config_ready
++ local label=04_config_ready
+++ date -u +%FT%TZ
++ printf '%s stage=%s sha=%s\n' 2026-11-16T17:47:37Z 04_config_ready 01f88e95ff0daab670c2643cd8e23c92a34ba30f
+++ nproc
++ printf 'nproc=%s\n' 4
++ grep -E 'MemTotal|MemAvailable' /proc/meminfo
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
++ test -r /sys/fs/cgroup/memory.current
++ bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 04_config_ready
