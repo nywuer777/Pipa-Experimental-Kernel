@@ -647,3 +647,17 @@ No VM guests are running outdated hypervisor (qemu) binaries on this host.
 + df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
 + test -r /sys/fs/cgroup/memory.current
 + bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 00_dependencies_ready
+To https://github.com/nywuer777/Pipa-Experimental-Kernel
+   67a7e77..ef4c215  HEAD -> exp76-rt-h2-result
++ echo EXP76_PHASE=SOURCE_AUDIT_BEGIN
+EXP76_PHASE=SOURCE_AUDIT_BEGIN
++ checkpoint 02_reconstruct_begin
++ local label=02_reconstruct_begin
+++ date -u +%FT%TZ
++ printf '%s stage=%s sha=%s\n' 2026-11-16T17:45:05Z 02_reconstruct_begin 01f88e95ff0daab670c2643cd8e23c92a34ba30f
+++ nproc
++ printf 'nproc=%s\n' 4
++ grep -E 'MemTotal|MemAvailable' /proc/meminfo
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
++ test -r /sys/fs/cgroup/memory.current
++ bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 02_reconstruct_begin
