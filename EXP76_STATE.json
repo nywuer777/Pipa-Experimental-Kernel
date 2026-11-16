@@ -1,23 +1,27 @@
 {
-  "round": 48,
-  "updated_at": "2026-11-09T18:33:06.589Z",
+  "round": 75,
+  "updated_at": "2026-11-16T17:44:05Z",
   "kernel": {
     "compiles": false,
-    "boots_qemu": false,
+    "boots_qemu": true,
     "last_boot_ms": null,
-    "known_break": "R44 GitHub Actions run 42671648709 completed/failure before any job; R43 configuration stopped at drivers/Kconfig:240: missing drivers/kernelsu/Kconfig",
+    "known_break": "Oops em ktimersoftd sob carga; stress sem módulo reproduziu a falha (R59/R60-R64).",
     "patched": true,
     "patch_round": 42,
-    "patch_verified_build": false
+    "patch_verified_build": false,
+    "v3_pass": true,
+    "break": "Oops ktimersoftd sob carga (R59/R60)",
+    "h2_status": "not_validated: workflow falhou antes do build"
   },
   "infra": {
-    "workflow": "R44 run 42671648709 pre-job failure; R48 immutable-SHA actionlint audit introduced on main",
-    "last_run": "42671648709",
-    "last_run_result": "completed/failure; jobs total_count=0; artifacts total_count=0; runner exit code unavailable",
+    "workflow": "exp76-pa-lock-fix.yml com checkpoints em exp76-rt-h2-fix; ausente em main",
+    "last_run": "43913361676",
+    "last_run_result": "completed/failure no checkpoint 03_page_alloc_patch_applied; helper buscou exp76-trial-overlay/reports ausente antes do build",
     "proxy_fetch": "exp76-pa-lock-fix-result still carries R43 run 42670520190; no R44 report artifacts",
     "actionlint": "NOT_EXECUTED_AT_COMMIT",
     "yaml_duplicate_keys": 0,
-    "yaml_tabs": 0
+    "yaml_tabs": 0,
+    "h2_run": "43591196307 cancelled após 95min; logs HTTP 403"
   },
   "hypotheses": [
     {
@@ -42,9 +46,9 @@
     }
   ],
   "next_action": {
-    "step": "Read exp76-r44-actionlint-<run_id> artifact only after Kai reports the audit workflow finished",
-    "exit_criteria": "actionlint-exit-code.txt and literal actionlint.txt captured, or explicit GitHub pre-job error identified",
-    "fallback": "If actionlint is clean and UI shows no validation error, separate GitHub Actions platform/runner issues from workflow syntax; obtain GitHub UI diagnostics"
+    "step": "corrigir publicação de checkpoints e limites por fase; depois rerodar o workflow H2",
+    "exit_criteria": "build, T1 idle, T2 stress e T3 V3 registrados com a mesma Image",
+    "fallback": "se build falhar, reportar erro e checkpoint; sem classificar como kernel até haver saída do build"
   },
   "lessons": [
     "Do not treat jobs=0 as proof of a YAML semantic error: the cause is unknown without a validator or infrastructure diagnostic.",
@@ -52,6 +56,21 @@
     "R43 reached defconfig and failed on an absent KernelSU Kconfig file; R44 execution never reached the KernelSU gate.",
     "A fuzz-zero patch application and structural lock count are not evidence of an ARM64 build, QEMU boot or V3 RT semantics.",
     "Keep FLASH_READY=false and RT_SEMANTICS_VERIFIED=UNVERIFIED until build and guest evidence exist.",
-    "R48 duplicate-key and tab checks on R44 are clean; pinned third-party actionlint v1.7.12 audit is queued for CI execution, not the official GitHub Actions validator."
-  ]
+    "R48 duplicate-key and tab checks on R44 are clean; pinned third-party actionlint v1.7.12 audit is queued for CI execution, not the official GitHub Actions validator.",
+    "R74: o helper de checkpoint deve usar GITHUB_WORKSPACE, pois git rev-parse dentro do overlay pode resolver para uma raiz aninhada."
+  ],
+  "ultimo_run": {
+    "run_id": 43913361676,
+    "status": "failure",
+    "checkpoint": "03_page_alloc_patch_applied",
+    "reason": "commit-result.sh procurou exp76-trial-overlay/reports ausente"
+  },
+  "h2_run": {
+    "run_id": 43591196307,
+    "status": "cancelled",
+    "duration_minutes": 95,
+    "logs": "HTTP 403; step monolítico sem causa localizada"
+  },
+  "gate_status": "FIXED (R73)",
+  "next": "fix workflow checkpoint + rerun"
 }
