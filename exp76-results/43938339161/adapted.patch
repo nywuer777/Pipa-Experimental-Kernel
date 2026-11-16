@@ -1,0 +1,42 @@
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -1472,10 +1472,10 @@
+ 		return;
+ 
+ 	migratetype = get_pfnblock_migratetype(page, pfn);
+-	local_irq_save(flags);
++	local_lock_irqsave(pa_lock, flags);
+ 	__count_vm_events(PGFREE, 1 << order);
+ 	free_one_page(page_zone(page), page, pfn, order, migratetype);
+-	local_irq_restore(flags);
++	local_unlock_irqrestore(pa_lock, flags);
+ }
+ 
+ static void __free_pages_boot_core(struct page *page, unsigned int order)
+@@ -3387,7 +3387,7 @@
+ 	struct page *page;
+ 	unsigned long flags;
+ 
+-	local_irq_save(flags);
++	local_lock_irqsave(pa_lock, flags);
+ 	pcp = &this_cpu_ptr(zone->pageset)->pcp;
+ 	page = __rmqueue_pcplist(zone,  migratetype, alloc_flags, pcp,
+ 				 gfp_flags);
+@@ -3449,7 +3449,7 @@
+ 
+ 	__count_zid_vm_events(PGALLOC, page_zonenum(page), 1 << order);
+ 	zone_statistics(preferred_zone, zone);
+-	local_irq_restore(flags);
++	local_unlock_irqrestore(pa_lock, flags);
+ 
+ out:
+ 	/* Separate test+clear to avoid unnecessary atomics */
+@@ -3462,7 +3462,7 @@
+ 	return page;
+ 
+ failed:
+-	local_irq_restore(flags);
++	local_unlock_irqrestore(pa_lock, flags);
+ 	return NULL;
+ }
+ 
