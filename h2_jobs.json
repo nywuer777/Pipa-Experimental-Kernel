@@ -1,0 +1,97 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 132436076191,
+      "run_id": 43591196307,
+      "workflow_name": "EXP76 pa_lock RT140 auto-reconcile and QEMU (NO FLASH)",
+      "head_branch": "exp76-rt-h2-fix",
+      "run_url": "https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/runs/43591196307",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVOLMtc8AAAAe1c4mnw",
+      "head_sha": "4dd3c93d203d41e60c07abecd1b007dd92c994af",
+      "url": "https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/actions/jobs/132436076191",
+      "html_url": "https://github.com/nywuer777/Pipa-Experimental-Kernel/actions/runs/43591196307/job/132436076191",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-14T11:41:09Z",
+      "started_at": "2026-11-14T11:41:11Z",
+      "completed_at": "2026-11-14T13:16:15Z",
+      "name": "test",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-14T11:41:12Z",
+          "completed_at": "2026-11-14T11:41:12Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-14T11:41:12Z",
+          "completed_at": "2026-11-14T11:41:13Z"
+        },
+        {
+          "name": "Run reconstruction, patch, build and QEMU",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "number": 3,
+          "started_at": "2026-11-14T11:41:13Z",
+          "completed_at": "2026-11-14T13:16:23Z"
+        },
+        {
+          "name": "V3 guest validation and evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 4,
+          "started_at": "2026-11-14T13:16:23Z",
+          "completed_at": "2026-11-14T13:16:23Z"
+        },
+        {
+          "name": "Publish evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-11-14T13:16:23Z",
+          "completed_at": "2026-11-14T13:16:23Z"
+        },
+        {
+          "name": "Commit evidence to result branch",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-14T13:16:23Z",
+          "completed_at": "2026-11-14T13:16:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-11-14T13:16:23Z",
+          "completed_at": "2026-11-14T13:16:23Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-14T13:16:23Z",
+          "completed_at": "2026-11-14T13:16:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/nywuer777/Pipa-Experimental-Kernel/check-runs/132436076191",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000001381,
+      "runner_name": "GitHub Actions 1000001381",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
