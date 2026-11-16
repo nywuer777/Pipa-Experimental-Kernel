@@ -649,3 +649,977 @@ EXP76_PHASE=SOURCE_AUDIT_BEGIN
 + df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
 + test -r /sys/fs/cgroup/memory.current
 + bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 02_reconstruct_begin
+To https://github.com/nywuer777/Pipa-Experimental-Kernel
+   3bc805f..745012b  HEAD -> exp76-rt-h2-result
++ bash tools/exp76-rt-compat-audit.sh
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  163k  100  163k    0     0  4196k      0 --:--:-- --:--:-- --:--:-- 4295k
+exp76-rt.patch.xz: OK
+Cloning into 'exp76-e404'...
+Updating files:   0% (1/73877)Updating files:   1% (739/73877)Updating files:   2% (1478/73877)Updating files:   3% (2217/73877)Updating files:   4% (2956/73877)Updating files:   5% (3694/73877)Updating files:   6% (4433/73877)Updating files:   7% (5172/73877)Updating files:   8% (5911/73877)Updating files:   9% (6649/73877)Updating files:  10% (7388/73877)Updating files:  11% (8127/73877)Updating files:  12% (8866/73877)Updating files:  13% (9605/73877)Updating files:  14% (10343/73877)Updating files:  15% (11082/73877)Updating files:  16% (11821/73877)Updating files:  17% (12560/73877)Updating files:  17% (12952/73877)Updating files:  18% (13298/73877)Updating files:  19% (14037/73877)Updating files:  20% (14776/73877)Updating files:  21% (15515/73877)Updating files:  22% (16253/73877)Updating files:  23% (16992/73877)Updating files:  24% (17731/73877)Updating files:  25% (18470/73877)Updating files:  26% (19209/73877)Updating files:  27% (19947/73877)Updating files:  28% (20686/73877)Updating files:  29% (21425/73877)Updating files:  30% (22164/73877)Updating files:  31% (22902/73877)Updating files:  32% (23641/73877)Updating files:  33% (24380/73877)Updating files:  34% (25119/73877)Updating files:  35% (25857/73877)Updating files:  36% (26596/73877)Updating files:  37% (27335/73877)Updating files:  38% (28074/73877)Updating files:  39% (28813/73877)Updating files:  40% (29551/73877)Updating files:  41% (30290/73877)Updating files:  42% (31029/73877)Updating files:  43% (31768/73877)Updating files:  43% (32304/73877)Updating files:  44% (32506/73877)Updating files:  45% (33245/73877)Updating files:  46% (33984/73877)Updating files:  47% (34723/73877)Updating files:  48% (35461/73877)Updating files:  49% (36200/73877)Updating files:  50% (36939/73877)Updating files:  51% (37678/73877)Updating files:  52% (38417/73877)Updating files:  53% (39155/73877)Updating files:  54% (39894/73877)Updating files:  55% (40633/73877)Updating files:  56% (41372/73877)Updating files:  57% (42110/73877)Updating files:  58% (42849/73877)Updating files:  59% (43588/73877)Updating files:  60% (44327/73877)Updating files:  61% (45065/73877)Updating files:  62% (45804/73877)Updating files:  62% (46290/73877)Updating files:  63% (46543/73877)Updating files:  64% (47282/73877)Updating files:  65% (48021/73877)Updating files:  66% (48759/73877)Updating files:  67% (49498/73877)Updating files:  68% (50237/73877)Updating files:  69% (50976/73877)Updating files:  70% (51714/73877)Updating files:  71% (52453/73877)Updating files:  72% (53192/73877)Updating files:  73% (53931/73877)Updating files:  74% (54669/73877)Updating files:  75% (55408/73877)Updating files:  76% (56147/73877)Updating files:  77% (56886/73877)Updating files:  78% (57625/73877)Updating files:  79% (58363/73877)Updating files:  80% (59102/73877)Updating files:  81% (59841/73877)Updating files:  82% (60580/73877)Updating files:  83% (61318/73877)Updating files:  84% (62057/73877)Updating files:  84% (62590/73877)Updating files:  85% (62796/73877)Updating files:  86% (63535/73877)Updating files:  87% (64273/73877)Updating files:  88% (65012/73877)Updating files:  89% (65751/73877)Updating files:  90% (66490/73877)Updating files:  91% (67229/73877)Updating files:  92% (67967/73877)Updating files:  93% (68706/73877)Updating files:  94% (69445/73877)Updating files:  95% (70184/73877)Updating files:  96% (70922/73877)Updating files:  97% (71661/73877)Updating files:  98% (72400/73877)Updating files:  99% (73139/73877)Updating files: 100% (73877/73877)Updating files: 100% (73877/73877), done.
+HEAD is now at fed88a6024cd [SQUASH]: treewide: bpf changes for a16 qpr1-2 rom support
+Cloning into 'exp76-overlay'...
+done.
+Note: switching to 'fed88a6024cd4d46c52eda607a95d97d7371ba81'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updating files:  35% (26418/73955)Updating files:  36% (26624/73955)Updating files:  37% (27364/73955)Updating files:  38% (28103/73955)Updating files:  39% (28843/73955)Updating files:  40% (29582/73955)Updating files:  41% (30322/73955)Updating files:  42% (31062/73955)Updating files:  43% (31801/73955)Updating files:  44% (32541/73955)Updating files:  45% (33280/73955)Updating files:  46% (34020/73955)Updating files:  47% (34759/73955)Updating files:  48% (35499/73955)Updating files:  49% (36238/73955)Updating files:  50% (36978/73955)Updating files:  51% (37718/73955)Updating files:  52% (38457/73955)Updating files:  53% (39197/73955)Updating files:  53% (39348/73955)Updating files:  54% (39936/73955)Updating files:  55% (40676/73955)Updating files:  56% (41415/73955)Updating files:  57% (42155/73955)Updating files:  58% (42894/73955)Updating files:  59% (43634/73955)Updating files:  60% (44373/73955)Updating files:  61% (45113/73955)Updating files:  62% (45853/73955)Updating files:  63% (46592/73955)Updating files:  64% (47332/73955)Updating files:  65% (48071/73955)Updating files:  66% (48811/73955)Updating files:  67% (49550/73955)Updating files:  68% (50290/73955)Updating files:  69% (51029/73955)Updating files:  69% (51672/73955)Updating files:  70% (51769/73955)Updating files:  71% (52509/73955)Updating files:  72% (53248/73955)Updating files:  73% (53988/73955)Updating files:  74% (54727/73955)Updating files:  75% (55467/73955)Updating files:  76% (56206/73955)Updating files:  77% (56946/73955)Updating files:  78% (57685/73955)Updating files:  79% (58425/73955)Updating files:  80% (59164/73955)Updating files:  81% (59904/73955)Updating files:  82% (60644/73955)Updating files:  83% (61383/73955)Updating files:  84% (62123/73955)Updating files:  85% (62862/73955)Updating files:  86% (63602/73955)Updating files:  87% (64341/73955)Updating files:  88% (65081/73955)Updating files:  89% (65820/73955)Updating files:  89% (65830/73955)Updating files:  90% (66560/73955)Updating files:  91% (67300/73955)Updating files:  92% (68039/73955)Updating files:  93% (68779/73955)Updating files:  94% (69518/73955)Updating files:  95% (70258/73955)Updating files:  96% (70997/73955)Updating files:  97% (71737/73955)Updating files:  98% (72476/73955)Updating files:  99% (73216/73955)Updating files: 100% (73955/73955)Updating files: 100% (73955/73955), done.
+PipaExperimental-EXP01-source.zip: OK
+EXP76_UNAME_UID_SPOOF_REMOVED=PASS; NETWORK_SERVICE_EXCEPTIONS=PRESERVED; MODE=apply; FLASH_READY=false
+EXP76_UNAME_UID_SPOOF_REMOVED=PASS; NETWORK_SERVICE_EXCEPTIONS=PRESERVED; MODE=verify; FLASH_READY=false
+Cloning into 'exp76-trial-e404'...
+done.
+Note: switching to 'fed88a6024cd4d46c52eda607a95d97d7371ba81'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updating files:  33% (24866/73955)Updating files:  34% (25145/73955)Updating files:  35% (25885/73955)Updating files:  36% (26624/73955)Updating files:  37% (27364/73955)Updating files:  38% (28103/73955)Updating files:  39% (28843/73955)Updating files:  40% (29582/73955)Updating files:  41% (30322/73955)Updating files:  42% (31062/73955)Updating files:  43% (31801/73955)Updating files:  44% (32541/73955)Updating files:  45% (33280/73955)Updating files:  46% (34020/73955)Updating files:  47% (34759/73955)Updating files:  48% (35499/73955)Updating files:  49% (36238/73955)Updating files:  50% (36978/73955)Updating files:  51% (37718/73955)Updating files:  51% (38301/73955)Updating files:  52% (38457/73955)Updating files:  53% (39197/73955)Updating files:  54% (39936/73955)Updating files:  55% (40676/73955)Updating files:  56% (41415/73955)Updating files:  57% (42155/73955)Updating files:  58% (42894/73955)Updating files:  59% (43634/73955)Updating files:  60% (44373/73955)Updating files:  61% (45113/73955)Updating files:  62% (45853/73955)Updating files:  63% (46592/73955)Updating files:  64% (47332/73955)Updating files:  65% (48071/73955)Updating files:  66% (48811/73955)Updating files:  66% (49464/73955)Updating files:  67% (49550/73955)Updating files:  68% (50290/73955)Updating files:  69% (51029/73955)Updating files:  70% (51769/73955)Updating files:  71% (52509/73955)Updating files:  72% (53248/73955)Updating files:  73% (53988/73955)Updating files:  74% (54727/73955)Updating files:  75% (55467/73955)Updating files:  76% (56206/73955)Updating files:  77% (56946/73955)Updating files:  78% (57685/73955)Updating files:  79% (58425/73955)Updating files:  80% (59164/73955)Updating files:  81% (59904/73955)Updating files:  82% (60644/73955)Updating files:  83% (61383/73955)Updating files:  84% (62123/73955)Updating files:  85% (62862/73955)Updating files:  86% (63602/73955)Updating files:  86% (64133/73955)Updating files:  87% (64341/73955)Updating files:  88% (65081/73955)Updating files:  89% (65820/73955)Updating files:  90% (66560/73955)Updating files:  91% (67300/73955)Updating files:  92% (68039/73955)Updating files:  93% (68779/73955)Updating files:  94% (69518/73955)Updating files:  95% (70258/73955)Updating files:  96% (70997/73955)Updating files:  97% (71737/73955)Updating files:  98% (72476/73955)Updating files:  99% (73216/73955)Updating files: 100% (73955/73955)Updating files: 100% (73955/73955), done.
+Cloning into 'exp76-trial-overlay'...
+done.
+Note: switching to 'fed88a6024cd4d46c52eda607a95d97d7371ba81'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updating files:  32% (24028/73955)Updating files:  33% (24406/73955)Updating files:  34% (25145/73955)Updating files:  35% (25885/73955)Updating files:  36% (26624/73955)Updating files:  37% (27364/73955)Updating files:  38% (28103/73955)Updating files:  39% (28843/73955)Updating files:  40% (29582/73955)Updating files:  41% (30322/73955)Updating files:  42% (31062/73955)Updating files:  43% (31801/73955)Updating files:  44% (32541/73955)Updating files:  45% (33280/73955)Updating files:  46% (34020/73955)Updating files:  47% (34759/73955)Updating files:  48% (35499/73955)Updating files:  49% (36238/73955)Updating files:  49% (36806/73955)Updating files:  50% (36978/73955)Updating files:  51% (37718/73955)Updating files:  52% (38457/73955)Updating files:  53% (39197/73955)Updating files:  54% (39936/73955)Updating files:  55% (40676/73955)Updating files:  56% (41415/73955)Updating files:  57% (42155/73955)Updating files:  58% (42894/73955)Updating files:  59% (43634/73955)Updating files:  60% (44373/73955)Updating files:  61% (45113/73955)Updating files:  62% (45853/73955)Updating files:  63% (46592/73955)Updating files:  64% (47332/73955)Updating files:  65% (48071/73955)Updating files:  65% (48103/73955)Updating files:  66% (48811/73955)Updating files:  67% (49550/73955)Updating files:  68% (50290/73955)Updating files:  69% (51029/73955)Updating files:  70% (51769/73955)Updating files:  71% (52509/73955)Updating files:  72% (53248/73955)Updating files:  73% (53988/73955)Updating files:  74% (54727/73955)Updating files:  75% (55467/73955)Updating files:  76% (56206/73955)Updating files:  77% (56946/73955)Updating files:  78% (57685/73955)Updating files:  79% (58425/73955)Updating files:  80% (59164/73955)Updating files:  81% (59904/73955)Updating files:  82% (60644/73955)Updating files:  83% (61383/73955)Updating files:  84% (62123/73955)Updating files:  85% (62862/73955)Updating files:  85% (63013/73955)Updating files:  86% (63602/73955)Updating files:  87% (64341/73955)Updating files:  88% (65081/73955)Updating files:  89% (65820/73955)Updating files:  90% (66560/73955)Updating files:  91% (67300/73955)Updating files:  92% (68039/73955)Updating files:  93% (68779/73955)Updating files:  94% (69518/73955)Updating files:  95% (70258/73955)Updating files:  96% (70997/73955)Updating files:  97% (71737/73955)Updating files:  98% (72476/73955)Updating files:  99% (73216/73955)Updating files: 100% (73955/73955)Updating files: 100% (73955/73955), done.
+{
+  "e404": {
+    "files": 82,
+    "hunks": 235,
+    "priorities": {
+      "P0": 9,
+      "P1": 40,
+      "P2": 33
+    }
+  },
+  "overlay": {
+    "files": 82,
+    "hunks": 235,
+    "priorities": {
+      "P0": 9,
+      "P1": 40,
+      "P2": 33
+    }
+  }
+}
+{
+  "stage": "EXP76_RT_STAGE1_PARTIAL_ONLY",
+  "ported_files": 2,
+  "ports": [
+    {
+      "file": "arch/arm64/Kconfig",
+      "sha256_rejected_hunk": "8e081848586c4a7ebdb72533cfb2f9f40fd720aa50d1a2ea29cb0f20acb51601",
+      "source_changed": true,
+      "reject_cleared": true
+    },
+    {
+      "file": "kernel/sched/Makefile",
+      "sha256_rejected_hunk": "01f2bb2ab434204e1f31a3280ee4c9ee754a21167a78ccb9cd2f77edcb25be52",
+      "source_changed": true,
+      "reject_cleared": true
+    }
+  ],
+  "remaining_rejected_files": 80,
+  "configuration_rt_enabled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE1=2_EXACT_HUNKS_PORTED; REMAINING_REJECTED_FILES=80; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE2_PARTIAL_ONLY",
+  "file": "arch/arm64/include/asm/thread_info.h",
+  "hunk_sha256": "363e0aa915ba38addedbc1d8423a0fb369fe2b4686bb1e89eeb4e71c738c981f",
+  "applied": true,
+  "remaining_rejected_files": 79,
+  "rt_config_enabled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE2=1_ARM64_FIELD_PORTED; REMAINING_REJECTED_FILES=79; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE3_SOURCE_ONLY",
+  "ported_file": "kernel/locking/rtmutex.c",
+  "source_patched": true,
+  "rtmutex_hunk_sha256": "e9e65a6d2aa9213e00f05859bc93df5a1d64e7b7100c369caa7aacdf0986f3c5",
+  "ww_ctx_api_checked": true,
+  "e404_deadlock_signature_preserved": true,
+  "remaining_rejected_files": 78,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE3=RTMUTEX_WW_CTX_PORTED; REMAINING_REJECTED_FILES=78; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE4_SOURCE_ONLY",
+  "file": "kernel/locking/spinlock.c",
+  "rejected_hunk_sha256": "024a58992bd98d88b635d2692e3be4f32daa7529e75e48faeeb47681feed03c1",
+  "ported": true,
+  "rwlock_non_rt_guard_balanced": true,
+  "spinlock_types_header_ported": false,
+  "remaining_rejected_files": 77,
+  "kernel_built": false,
+  "config_preempt_rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE4=SPINLOCK_LEGACY_GUARD_PORTED; REMAINING_REJECTED_FILES=77; SPINLOCK_TYPES_HEADER=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "vendor_spinlock_lockdep_inner_spin": true,
+  "vendor_spinlock_lockdep_config": true,
+  "vendor_raw_lockdep_initializer": true,
+  "split_raw_spinlock_type_present": true,
+  "split_nort_spinlock_type_present": true,
+  "split_rt_spinlock_type_present": true,
+  "vendor_header_reject_unresolved": true
+}
+EXP76_SPINLOCK_TYPES_ABI_AUDIT=PASS; HEADER_PORT=BLOCKED; FLASH_READY=false
+EXP76_SPINLOCK_HEADER=ABI_REVIEW_ONLY; HEADER_PORT=BLOCKED; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE5_SOURCE_ONLY",
+  "rejected_hunk_sha256": "a15e8b5faf0abcdce61b99b1409a0359e94cf34eba098b3f22fdc34f03ff0599",
+  "modified_headers": [
+    "include/linux/spinlock_types.h",
+    "include/linux/spinlock_types_raw.h",
+    "include/linux/spinlock_types_nort.h"
+  ],
+  "vendor_raw_lockdep": "LD_WAIT_SPIN",
+  "vendor_normal_lockdep": "LD_WAIT_CONFIG",
+  "nonrt_initializer_vendor_equivalent_source": true,
+  "port_applied": true,
+  "remaining_rejected_files": 76,
+  "compile_verified": false,
+  "runtime_verified": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE5=SPINLOCK_TYPE_SPLIT_SOURCE_PORT; REMAINING_REJECTED_FILES=76; ABI_BUILD_UNVERIFIED=true; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE6_PARTIAL_SOURCE_ONLY",
+  "verified_vendor_equivalents": [
+    "include/linux/irq_work.h: IRQ_WORK_HARD_IRQ=BIT(3)",
+    "kernel/time/tick-sched.c: atomic_t ATOMIC_INIT(IRQ_WORK_HARD_IRQ)"
+  ],
+  "source_modified_only": [
+    "include/linux/cgroup-defs.h"
+  ],
+  "resolved_rejected_files": 3,
+  "remaining_rejected_files": 73,
+  "rt_enabled": false,
+  "kernel_compiled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE6=IRQ_WORK_VENDOR_EQUIVALENCE_AND_SWORK_INCLUDE; REMAINING_REJECTED_FILES=73; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE7_PARTIAL_SOURCE_ONLY",
+  "mode": "apply",
+  "locking_makefile_port": true,
+  "legacy_locking": "moved-vendor-rwsem.o-into-existing-non-RT-guard",
+  "generic_rwsem": "vendor-source-has-no-generic-algorithm-objects",
+  "rt_locking_objects": [
+    "mutex-rt.o",
+    "rwsem-rt.o",
+    "rwlock-rt.o"
+  ],
+  "percpu_rcuwait_3arg_already_in_vendor": true,
+  "remaining_rejected_files": 71,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE7=LOCKING_MAKEFILE_AND_PERCPU_RCUWAIT; REMAINING_REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE8_RCU_VENDOR_EQUIVALENCE",
+  "input_reject_sha256": "af6142fea7219367bfdcf13db46ab291558234dd3db486462371c95845012242",
+  "original_rcu_hunks": 20,
+  "resolved_equivalent_hunks": 2,
+  "remaining_rcu_hunks": 18,
+  "vendor_include_hunk_preexisting": true,
+  "vendor_rcu_irqwork_atomic_set_preexisting": true,
+  "rcu_source_modified": false,
+  "flash_ready": false,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "applied_to_reject_manifest": true,
+  "remaining_rejected_files": 71
+}
+EXP76_RT_STAGE8=2_RCU_HUNKS_ALREADY_VENDOR_EQUIVALENT; RCU_HUNKS_REMAINING=18; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE9_RCU_SOFTIRQ_GENERATION_GATE",
+  "rcu_reject_hunks_pending": 18,
+  "rcu_compatibility": {
+    "kernel/rcu/tree.c": {
+      "sha256": "215683e6726713b105ddacfdc10d93607cb7affd1dc71a00df238542ac8fd920",
+      "new_generation_symbols": {
+        "struct rcu_state rcu_state": 1,
+        "rcu_segcblist": 63,
+        "rcu_preempt_deferred_qs": 5,
+        "rcu_softirq_qs": 1,
+        "rcu_core": 15
+      },
+      "obsolete_rt140_symbols_absent": {
+        "rcu_bh_state": 0,
+        "rcu_sched_state": 0,
+        "for_each_rcu_flavor": 0
+      }
+    },
+    "kernel/softirq.c": {
+      "sha256": "ed850f0890178fcaa4b964864dad0f244fcaa0762b27841b201639192e4d0675",
+      "new_generation_symbols": {
+        "DEFINE_PER_CPU(__u32, active_softirqs)": 1
+      },
+      "obsolete_rt140_symbols_absent": {}
+    }
+  },
+  "post_patch_abi_probes": {
+    "include/linux/sched.h": {
+      "softirqs_raised": 1,
+      "sleeping_lock": 6,
+      "pi_blocked_on": 1,
+      "CONFIG_PREEMPT_RT_FULL": 7
+    },
+    "kernel/softirq.c": {
+      "ktimer_softirqd": 13,
+      "softirq_check_pending_idle": 0,
+      "run_ksoftirqd": 3,
+      "softirq_set_runner": 1,
+      "CONFIG_PREEMPT_RT_FULL": 6
+    },
+    "kernel/rcu/tree.c": {
+      "rcu_bh_qs": 0,
+      "rcu_softirq_qs": 1,
+      "rcu_cpu_kthread": 12,
+      "rcu_segcblist": 63,
+      "rcu_core": 15
+    }
+  },
+  "rt140_rcu_blind_port_permitted": false,
+  "softirq_port_pending": true,
+  "rcu_port_pending": true,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE9=RCU_SOFTIRQ_GENERATION_AUDITED; PORT_NOT_COMPLETE; FLASH_READY=false
+EXP76_RT_STAGE9=RCU_GENERATION_DIFFERENCE_DOCUMENTED; RCU_PORT_PENDING=true; SOFTIRQ_PORT_PENDING=true; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE10_RCUWAIT_PARTIAL",
+  "vendor_equivalent_hunks": 2,
+  "rcuwait_active_added": true,
+  "rcuwait_remaining_hunks": 2,
+  "wakeup_signature_changed": true,
+  "wakeup_return_type": "int",
+  "wait_lifecycle_changed": false,
+  "remaining_rejected_files": 71,
+  "kernel_built": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE10=RCUWAIT_ACTIVE_PORTED; RCUWAIT_HUNKS_REMAINING=2; REJECTED_FILES=71; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE11_RCUWAIT_LIFECYCLE",
+  "applied": true,
+  "prepare_to_rcuwait": true,
+  "finish_rcuwait_definition_already_in_rt_update_c": true,
+  "wakeup_return_type": "int",
+  "wait_signal_behavior_preserved": true,
+  "remaining_rcuwait_reject_hunks": 0,
+  "remaining_rejected_files": 70,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE11=RCUWAIT_LIFECYCLE_LINKED; REJECTED_FILES=70; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE12_RCUUPDATE_LOCKDEP",
+  "applied": true,
+  "vendor_call_rcu_bh_already_forwards": true,
+  "debug_lockdep_bh_inlined_on_rt": true,
+  "nonrt_bh_lockdep_declaration_preserved": true,
+  "rejected_hunks_resolved": 2,
+  "remaining_rejected_files": 69,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE12=RCUPDATE_BH_LOCKDEP_PORTED; REJECTED_FILES=69; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE13_CONSOLIDATED_RCU_EQUIVALENCE",
+  "synchronize_rcu_bh_already_forwards": true,
+  "rcu_barrier_bh_already_forwards": true,
+  "source_files_changed": 0,
+  "obsolete_hunks_accounted": 2,
+  "remaining_rejected_files": 68,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE13=UNIFIED_RCU_BH_WRAPPERS_ALREADY_PRESENT; REJECTED_FILES=68; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE14_WAKE_Q_ABI",
+  "applied": true,
+  "scheduler_core_uses_rt_internal_wake_queue": true,
+  "task_struct_wake_q_sleeper_verified": true,
+  "public_wrappers_match_core": true,
+  "remaining_rejected_files": 67,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE14=WAKE_QUEUE_ABI_LINKED; REJECTED_FILES=67; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE15_SCHED_FEATURE_ABI",
+  "applied": true,
+  "vendor_ttwu_queue_preserved": 0,
+  "preempt_lazy_feature_defined_only_under_rt_lazy_config": true,
+  "rt_scheduler_resched_curr_lazy_feature_reference_satisfied": true,
+  "remaining_rejected_files": 66,
+  "kernel_compiled": false,
+  "rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE15=PREEMPT_LAZY_FEATURE_ABI_PORTED; REJECTED_FILES=66; KERNEL_BUILT=false; FLASH_READY=false
+EXP76_STAGE15_HOST_C_FEATURE_TESTS=3_PASS; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "classification": "COMPILE_BLOCKER_UNTIL_AFFINITY_ABI_RECONCILED",
+  "affected_files_count": 18,
+  "added_affinity_references": {
+    "->cpus_mask": 9,
+    "->cpus_ptr": 32
+  },
+  "remaining_rejected_files": 66
+}
+EXP76_RT_STAGE16=AFFINITY_ABI_BLOCKER_IDENTIFIED; KERNEL_BUILT=false; FLASH_READY=false
+EXP76_RT_STAGE16=AFFINITY_ABI_BLOCKER_DOCUMENTED; REJECTED_FILES=66; BUILD_BLOCKED=true; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE17_WAKE_FLAGS",
+  "applied": true,
+  "e404_wf_ttwu": "0x8",
+  "rt140_original_wf_lock_sleeper": "0x08 (collides with E404 WF_TTWU)",
+  "ported_wf_lock_sleeper": "0x100",
+  "wake_flag_collision": false,
+  "nr_pinned_hunk_retained": true,
+  "sched_h_rejected_hunks_remaining": 1,
+  "remaining_rejected_files": 66,
+  "scheduler_affinity_abi_blocked": true,
+  "kernel_compiled": false,
+  "rt_enabled": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE17=COLLISION_FREE_WAKE_LOCK_FLAG_PORTED; REJECTED_FILES=66; NR_PINNED=PENDING; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE19_COMPILER_HEADER_FIXES",
+  "applied": true,
+  "rwsem_rt_header_branch_completed": true,
+  "interrupt_rt_softirq_branch_completed": true,
+  "sched_task_macro_collision_removed": true,
+  "task_sleeping_lock_field_added": true,
+  "rcu_assign_pointer_vendor_definition_preserved": true,
+  "irq_functional_reject_remaining": true,
+  "sched_affinity_reject_remaining": true,
+  "sleeping_lock_lifecycle_review_required": true,
+  "remaining_rejected_files": 65,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE19=COMPILER_HEADER_FIXES_PORTED; REJECTED_FILES=65; SCHED_AFFINITY_BLOCKED=true; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE20_SWAP_LOCALLOCK_AND_PERCPU_RWSEM_ABI",
+  "applied": true,
+  "swap_locallock_reject_sha256": "445ee7f190e53347b5d25fbbcc9e29ba37a946763323743de2b9044ec8261370",
+  "swap_locallock_include_ported": true,
+  "percpu_owner_access_non_rt_only": true,
+  "remaining_rejected_files": 64,
+  "rcu_assign_pointer_warning_pending": true,
+  "scheduler_affinity_abi_pending": true,
+  "sleeping_lock_lifecycle_review_required": true,
+  "objects_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE20=SWAP_LOCALLOCK_AND_RWSEM_OWNER_GUARDED; REJECTED_FILES=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_RT_STAGE21_E404_RCU_INCLUDE_RESTORED",
+  "applied": true,
+  "rbtree_vendor_rcupdate_import": true,
+  "rcu_assign_pointer_vendor_macro_preserved": true,
+  "upstream_rcu_helper_unreferenced_by_rbtree": true,
+  "rcu_redefinition_warning_clearance_unverified": true,
+  "remaining_rejected_files": 64,
+  "scheduler_affinity_abi_pending": true,
+  "sleeping_lock_lifecycle_review_required": true,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE21=E404_RCU_INCLUDE_RESTORED; REJECTED_FILES=64; RCU_RUNTIME_PORT=PENDING; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE26_E404_ARM64_FORK_VALUE_AFFINITY",
+  "applied": true,
+  "arm64_task_copy_by_value_verified": true,
+  "vendor_cpus_allowed_mask_preserved": true,
+  "rt_cpus_ptr_rebase_removed": true,
+  "remaining_rejected_files": 64,
+  "scheduler_core_migration_and_affinity_pending": true,
+  "kernel_fork_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE26=FORK_VALUE_AFFINITY_RECONCILED; REJECTED_FILES=64; SCHEDULER_CORE_PENDING=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE27_E404_CORE_AFFINITY_MASK_RECONCILIATION",
+  "applied": true,
+  "vendor_embedded_cpus_allowed_preserved": true,
+  "replaced_rt_affinity_sites": 8,
+  "remaining_rejected_files": 64,
+  "migrate_disable_runtime_semantics_pending": true,
+  "check_task_state_runtime_semantics_pending": true,
+  "scheduler_core_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE27=CORE_VENDOR_AFFINITY_RECONCILED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE28_RT_TASK_STATE_LOCKED_HELPER_RESTORED",
+  "applied": true,
+  "saved_state_verified": true,
+  "task_pi_lock_verified": true,
+  "check_task_state_uses_raw_spin_lock_irq": true,
+  "remaining_rejected_files": 64,
+  "migrate_disable_runtime_abi_pending": true,
+  "sleeping_lock_lifecycle_pending": true,
+  "scheduler_core_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE28=TASK_STATE_HELPER_RESTORED; REJECTED_FILES=64; MIGRATE_DISABLE_PENDING=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE29_E404_RT_MIGRATION_TASK_ABI",
+  "applied": true,
+  "vendor_cpus_allowed_preserved": true,
+  "rt_task_migrate_disable_added": true,
+  "rt_task_migrate_disable_scheduled_added": true,
+  "task_fork_rt_fields_initialized": true,
+  "remaining_rejected_files": 64,
+  "migration_disable_enable_runtime_implemented": false,
+  "rq_nr_pinned_hotplug_lifecycle_implemented": false,
+  "sleeping_lock_lifecycle_audited": false,
+  "scheduler_core_object_compiled": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE29=RT_TASK_FIELDS_AND_FORK_INIT_ONLY; REJECTED_FILES=64; RT_MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE31_E404_RT_FAIR_DL_CLASS_AFFINITY",
+  "applied": true,
+  "replaced_fragments": 12,
+  "stage32_fair_numa_affinity_reconciled": true,
+  "stage33_preexisting_vendor_fair_cpus_ptr_reconciled": true,
+  "updated_source_paths": [
+    "kernel/sched/deadline.c",
+    "kernel/sched/fair.c",
+    "kernel/sched/rt.c"
+  ],
+  "vendor_embedded_cpus_allowed_preserved": true,
+  "remaining_rejected_files": 64,
+  "migration_runtime_implemented": false,
+  "rt_locking_semantics_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE31=VENDOR_SCHED_CLASSES_AFFINITY; REJECTED_FILES=64; MIGRATION_RUNTIME_PORTED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE34_RT_TIMER_SWORK_REJECTED_HUNK_RESTORED",
+  "applied": true,
+  "rt_rejected_hunk_verified": true,
+  "swork_backend_and_makefile_verified": true,
+  "swork_queue_and_init_restored": true,
+  "remaining_rejected_files": 64,
+  "timer_object_compiled": false,
+  "timer_runtime_semantics_verified": false,
+  "complete_rt_migration_lifecycle": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE34=TIMER_SWORK_QUEUE_AND_INIT_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE35_RT_MIGHT_SLEEP_NO_STATE_CHECK",
+  "applied": true,
+  "debug_branch_uses_triple_underscore_might_sleep": true,
+  "nondebug_branch_preserves_might_resched": true,
+  "rtmutex_call_site_verified": true,
+  "remaining_rejected_files": 64,
+  "rtmutex_object_compiled": false,
+  "rt_mutex_runtime_semantics_verified": false,
+  "migration_runtime_implemented": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_RT_STAGE35=KERNEL_SLEEP_CHECK_MACROS_RESTORED; REJECTED_FILES=64; RT_RUNTIME_UNVERIFIED=true; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE36_RT_CPU_PINNING_CONTRACT_INVENTORY",
+  "read_only_kernel_tree": true,
+  "upstream_rt_core_rejected_hunk_verified": true,
+  "upstream_rt_runqueue_rejected_hunk_verified": true,
+  "vendor_embedded_cpus_allowed_verified": true,
+  "task_migrate_disable_fields_verified": true,
+  "cpu_hotplug_calls_cpu_nr_pinned": 2,
+  "core_migrate_disabled_sched_only_declared": true,
+  "core_migrate_disable_and_enable_implemented": false,
+  "core_cpu_nr_pinned_implemented": false,
+  "runqueue_nr_pinned_field_implemented": false,
+  "rt_upstream_pointer_mask_requires_vendor_port": true,
+  "cross_file_runtime_contract_complete": false,
+  "blockers": [
+    "kernel/sched/core.c: restore real nested migrate_disable and migrate_enable lifecycle",
+    "kernel/sched/core.c: restore migrate_disabled_sched with E404 cpus_allowed ABI",
+    "kernel/sched/sched.h: add nr_pinned counter in rq under RT+SMP",
+    "kernel/sched/core.c: maintain nr_pinned on disable/enable and handle hotplug wakeup",
+    "kernel/sched/core.c: implement cpu_nr_pinned only with functional tracked counter",
+    "kernel/cpu.c: preserve hotplug -EAGAIN and task wakeup behavior",
+    "include/linux/sched.h: preserve E404 embedded cpus_allowed/cpus_requested masks"
+  ],
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE36=RT_PINNING_LIFECYCLE_INVENTORIED; CPU_NR_PINNED_RUNTIME_MISSING=true; FLASH_READY=false
+{
+  "conditional_directives_checked": 54,
+  "preprocessor_branches_balanced": true,
+  "stage": "EXP76_STAGE38_RT_SOFTIRQ_REJECTED_ENTRY_AND_GUARDS",
+  "applied": true,
+  "original_rejected_hunks_consumed": 4,
+  "stage39_invoke_softirq_guard_restored": true,
+  "rt_ktimer_worker_declaration_restored": true,
+  "rt_nohz_runner_tracking_restored": true,
+  "rt_vector_handler_restored": true,
+  "non_rt_softirq_dispatch_restored": true,
+  "paired_preempt_rt_branch_guard_restored": true,
+  "remaining_rejected_files": 64,
+  "softirq_object_compiled": false,
+  "full_softirq_semantics_verified": false,
+  "migration_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE39=SOFTIRQ_RT_DUAL_GUARDS_PORTED; SOFTIRQ_RUNTIME_VERIFIED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE40_RT_SLEEPING_LOCK_TASK_ABI",
+  "applied": true,
+  "original_rt_reject_sleeping_lock_verified": true,
+  "rt_softirq_runner_sleeping_lock_reference_verified": true,
+  "task_field_and_fork_initialization_ported": true,
+  "vendor_embedded_cpus_allowed_preserved": true,
+  "remaining_rejected_files": 64,
+  "sleeping_lock_runtime_lifecycle_verified": false,
+  "softirq_object_compiled": false,
+  "migration_runtime_implemented": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE40=RT_TASK_SLEEPING_LOCK_REJECT_PORTED; FULL_RT_RUNTIME_VERIFIED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE41_RT_MIGRATION_LIFECYCLE_E404",
+  "applied": true,
+  "original_rt_migration_hunk_ported": true,
+  "nested_migrate_disable_enable_present": true,
+  "runqueue_nr_pinned_counted": true,
+  "cpu_nr_pinned_reads_accounted_runqueue": true,
+  "saved_vendor_affinity_mask_and_setaffinity_deferral": true,
+  "upstream_async_stopper_safety_checks_preserved": true,
+  "cpu_hotplug_caller_unchanged": true,
+  "remaining_rejected_files": 64,
+  "migration_runtime_semantics_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE41=RT_MIGRATION_E404_PORT_APPLIED; MIGRATION_RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE42_RT_CPU_HOTPLUG_PIN_DRAIN_ARM64_TLB",
+  "applied": true,
+  "takedown_cpu_task_lifecycle_ported": true,
+  "preexisting_upstream_hotplug_reused": true,
+  "pinned_task_wait_and_eagain_retry_ported": true,
+  "bounded_takedown_function_scope_verified": true,
+  "pin_drain_wakeup_preserved": true,
+  "optional_arch_tlb_hook_preserved": true,
+  "arm64_tlb_hook_absent_in_pinned_e404": true,
+  "remaining_rejected_files": 64,
+  "cpu_object_compiled": false,
+  "scheduler_core_compiled": false,
+  "migration_hotplug_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false
+}
+EXP76_STAGE42=HOTPLUG_PIN_DRAIN_TLB_ARCH_GUARD; HOTPLUG_RUNTIME_VERIFIED=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE47_RCU_PREPROCESSOR_AND_WORKQUEUE_RAW_LOCK",
+  "rcu_update_prepatch_unclosed": 1,
+  "rcu_plugin_prepatch_unclosed": 1,
+  "rcu_postpatch_preprocessor_balanced": true,
+  "workqueue_sleeping_pair_ported": true,
+  "unrelated_workqueue_spinlock_calls_unchanged": true,
+  "remaining_rejected_files": 64,
+  "rcu_runtime_verified": false,
+  "workqueue_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE47=RCU_PREPROCESSOR_AND_WORKER_RAW_LOCK_PORTED; RUNTIME_VERIFIED=false; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE51_NEIGH_HH_RT_MUTABLE_POINTER_NONFLASH",
+  "source": "include/net/neighbour.h",
+  "original_sha256": "ed33eabbd4bec9e5300bf25f0a8375d1c8295677ee7ea38c8424a0525d042275",
+  "patched_sha256": "598f34d7c36af6fd833a557a3ddab654add23f5cf0ee72ac8a99614c5f7b2052",
+  "rt_neigh_hh_output_requires_mutable_pointer": true,
+  "e404_skip_cache_signature_preserved": true,
+  "changed_only_neigh_output_local_const_qualifier": true,
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE51=NEIGH_HH_MUTABLE_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE52_CGROUP_HEADER_CPUSET_RAW_LOCK_NONFLASH",
+  "original_sha256": {
+    "include/linux/blk-cgroup.h": "d49abd28cb02696fdf7444ad9b44ca34ded682c9c668b240adaa600ac92dd50e",
+    "kernel/cgroup/cpuset.c": "11baa684953b090f6ff9c13a02d014af50952e798883b9614d1d48b1eb505d22"
+  },
+  "patched_sha256": {
+    "include/linux/blk-cgroup.h": "0fb877e34f2e1a1ce238f6854102f9115504425960c9e5c82c8ca406fb293a7f",
+    "kernel/cgroup/cpuset.c": "a8dbf9e7f6c6e7a4a1cfc64dbb9f9cc9d5c3965fc8cf90bbb7e085d7b033f9fe"
+  },
+  "cgroup_header_restored": true,
+  "kthread_header_preserved": true,
+  "callback_lock_remains_raw": true,
+  "vendor_raw_lock_pairs_reconciled": 2,
+  "e404_task_cpus_allowed_abi_restored": true,
+  "remaining_rejected_files": 64,
+  "rt_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE52=CGROUP_CSS_AND_CPUSET_RAW_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE53_RT_LRU_DRAIN_E404_CPUDEADLINE_NONFLASH",
+  "original_sha256": {
+    "mm/swap.c": "4185b89849baa0ef7887b6290d328d4f52780d8a5da2ca5d87d788c5208c2c88",
+    "kernel/sched/cpudeadline.c": "af2cc743cedff208d406202f92e4e0fe9af09780de451ddea4413b3c5d16ee62"
+  },
+  "patched_sha256": {
+    "mm/swap.c": "94a0c4a978abb1d95784b5e94a15fea5a495c4179f48f1c4be53c716004c7fe8",
+    "kernel/sched/cpudeadline.c": "2125b2051adea45326b73ade312d0d42cd55c4249c7d3698dbfd64b01c956d95"
+  },
+  "rt_remote_lru_drain_helper_preserved": true,
+  "nonrt_percpu_work_and_flush_preserved": true,
+  "vendor_pagevec_conditions_preserved": true,
+  "deadline_cpus_allowed_abi_restored": true,
+  "remaining_rejected_files": 64,
+  "rt_runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "applied": true
+}
+EXP76_STAGE53=RT_LRU_DRAIN_AND_E404_CPUDEADLINE_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE54_POSIX_RCU_CPU_TIMER_EXPIRY_NONFLASH",
+  "rt_rejected_hunks_sha256_verified": true,
+  "timer_rcu_head_out_of_union": true,
+  "per_cpu_expiry_lock_defined": true,
+  "posix_timer_lifetime_wait_helper_defined": true,
+  "rt_nonrt_worker_dispatch_preserved": true,
+  "e404_timer_tick_task_argument_linked": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "include/linux/posix-timers.h": "132eefd057db191379774ff6d512329fbd9c7f17cbb1e6d0db286a13134561dc",
+    "kernel/time/posix-cpu-timers.c": "86942cf284d1984829938a19834bede7e96f3ac9e37af4123f706ce84e6aff66",
+    "kernel/time/timer.c": "b1254a39cb229e3c8da3ed74baef53f0fc79c03180548559d53257db5c766427"
+  },
+  "applied": true
+}
+EXP76_STAGE54=POSIX_TIMER_RCU_EXPIRY_RT_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE55_ATOMIC_IRQ_WORK_AND_VENDOR_RWSEM_NONFLASH",
+  "irq_work_flags_atomic_t_preserved": true,
+  "irq_work_hard_irq_atomic_or": true,
+  "vendor_nandswap_rom_type_guard_preserved": true,
+  "rt_and_nonrt_rwsem_is_contended_helper_verified": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "kernel/sched/topology.c": "e27e019bcd4d5fd091430baa14fabff3e64a816f2237c3b0958caa8b7a03f4c7",
+    "mm/madvise.c": "cd8de53e2306ad88bc759214d7d15665c798e3cfc3f11d9a4a8be171bc5d0bf5"
+  },
+  "patched_sha256": {
+    "kernel/sched/topology.c": "39753e125ad4a8f519063260ff9e59f54d95f3a665995b63088def4770a9a900",
+    "mm/madvise.c": "e3668daa8926b7837b50b4cabd4bf1296c99878f6326034d9e3a64e81452e957"
+  },
+  "applied": true
+}
+EXP76_STAGE55=ATOMIC_IRQ_WORK_VENDOR_RWSEM_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE56_SLUB_IRQ_POSIX_NONRT_WARN_NONFLASH",
+  "slub_irq_entry_exit_predicate_matched": true,
+  "slub_rt_boot_state_gate_preserved": true,
+  "posix_rt_nonrt_warning_macro_defined": true,
+  "posix_cpu_timer_warning_consumer_verified": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "source_sha256": {
+    "mm/slub.c": "670918ee77f064c9c824d9b36fbbedd454903d410951ca555f8b5e3918201ee2",
+    "include/asm-generic/bug.h": "d78ee454a79b76a468044591ef91378e8ad4b5fdfd57071a97707f829a0bc731",
+    "kernel/time/posix-cpu-timers.c": "acfc9d4fc456987a5008bf0b4980bb919a8599ff2a17782a772d7b7e9cb7181e"
+  },
+  "patched_sha256": {
+    "mm/slub.c": "baa1f45c05e82d925b1c5ba5b4e518e2491a64483551b1e0a7eb46319630cf39",
+    "include/asm-generic/bug.h": "46598cc524805d99ddc936275ce8a33862b856523b033681be107ae2084d8366"
+  },
+  "applied": true
+}
+EXP76_STAGE56=SLUB_IRQ_AND_POSIX_NONRT_WARNING_ABI; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE57_RT_RWLOCK_CONTENTION_NOHZ_SOFTIRQ_ABI_NONFLASH",
+  "rt_rwlock_waiters_checked_under_raw_spinlock": true,
+  "vendor_zsmalloc_compaction_condition_preserved": true,
+  "nonrt_rwlock_api_preserved": true,
+  "rt_and_nonrt_nohz_softirq_implementation_verified": true,
+  "nohz_softirq_public_prototype_guarded": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "include/linux/rwlock_rt.h": "b8de0e144375c54302574231cf635dd93a401a9f8a18eb06d5b5016529b45c98",
+    "include/linux/interrupt.h": "f56e72088238132e1ed61a91636363e87ba984ac621eaf37144fc0f935392cf9"
+  },
+  "patched_sha256": {
+    "include/linux/rwlock_rt.h": "3d88f1b6ff202226fcb1969de3baf602aba69a9f842d302debf9cfddc8cc5574",
+    "include/linux/interrupt.h": "c83b4e9de719e859faad785554ccdea8e9b7b794b8f995c5de25e3fad28f9098"
+  },
+  "applied": true
+}
+EXP76_STAGE57=RT_RWLOCK_NOHZ_SOFTIRQ_DECLARED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE58_OUT_OF_LINE_RT_RWLOCK_WAITER_QUERY_NONFLASH",
+  "rt_waiter_query_out_of_header": true,
+  "raw_spinlock_query_and_unlock_preserved": true,
+  "rt_mutex_waiter_tree_access_unchanged": true,
+  "rwlock_query_exported_for_modules": true,
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "runtime_verified": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "include/linux/rwlock_rt.h": "3d88f1b6ff202226fcb1969de3baf602aba69a9f842d302debf9cfddc8cc5574",
+    "kernel/locking/rwlock-rt.c": "7f24bae2e1e5868052c950c0dcf14b224833d44d8630bcc36c8b26c68bfb5966"
+  },
+  "patched_sha256": {
+    "include/linux/rwlock_rt.h": "870c8a90ebd1a51b79ad21ac3fa842ff3d8fd4b46d7df44d63ac24b37734032b",
+    "kernel/locking/rwlock-rt.c": "ecd0f7a03e0abb0506b413df20a3488926ef22bddf5cca508d7fea16a0406bbb"
+  },
+  "applied": true
+}
+EXP76_STAGE58=RT_RWLOCK_QUERY_OUT_OF_LINE; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE59_KTHREAD_RAW_SPIN_PROC_CPU_AFFINITY_NONFLASH",
+  "worker_raw_lock_type_verified": true,
+  "worker_raw_lock_pairs_restored": 2,
+  "worker_lock_ops_reconciled": 4,
+  "existing_rt_worker_lock_ops_preserved": true,
+  "e404_task_cpus_allowed_verified": true,
+  "proc_affinity_mask_references_restored": 2,
+  "proc_output_formats_preserved": true,
+  "remaining_rejected_files": 64,
+  "kernel_built": false,
+  "runtime_verified": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "kernel/kthread.c": "fb65f9bda7fcd70701eb2ce84a96aa69eb6817394972397c71e197f78a2a8d2a",
+    "fs/proc/array.c": "d5f7aa0357abdc01b9f03d89fa9184a61c78fa23f88483a7e5b49add740fa6c0"
+  },
+  "patched_sha256": {
+    "kernel/kthread.c": "8984b5978aa4324acfe26a81fd642cd04e422f0f6d0f3e1f4abd5eceaaedecd2",
+    "fs/proc/array.c": "a91cdcc1bf33a36c379925b8ef7625201e841b3b85ddab0e2bcf6baa4abe219d"
+  },
+  "applied": true
+}
+EXP76_STAGE59=KTHREAD_WORKER_RAW_AND_PROC_AFFINITY_E404_PORTED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE60_FUTEX_RT_SLEEPER_HB2_NONFLASH",
+  "rt_rejected_futex_hunk_sha256_verified": true,
+  "futex_timeout_clock_mode_and_task_preserved": true,
+  "on_stack_sleeper_4arg_abi_linked": true,
+  "hb2_only_declaration_restored": true,
+  "rt_pi_waiter_and_requeue_locking_unchanged": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "ec086a90ec663c03a1022896dc69fc71ed907a3363de1344c8ddec13feca294b",
+  "patched_sha256": "54c413e777b98288db27e66b854109d100093523345952d6c15e0e50924eedd0",
+  "applied": true
+}
+EXP76_STAGE60=FUTEX_RT_SLEEPER_HB2_ABI_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE61_SMP_IDLE_RT_SOFTIRQ_USERFAULTFD_SEQLOCK_NONFLASH",
+  "rt_idle_dispatch_uses_existing_softirq_threads": true,
+  "nonrt_direct_do_softirq_preserved": true,
+  "rt_timer_and_regular_softirq_workers_woken": true,
+  "userfaultfd_refile_seqlock_layout_reconciled": true,
+  "remaining_rejected_files": 64,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": {
+    "kernel/smp.c": "4d38f2a7e484fbb383390191811c0df0839c0db743334397d407365ad1209a4e",
+    "kernel/softirq.c": "07bdc28ccb54e30adfc1959be1480266461e9675662978d2571ea5c94fde46b1",
+    "include/linux/interrupt.h": "c83b4e9de719e859faad785554ccdea8e9b7b794b8f995c5de25e3fad28f9098",
+    "fs/userfaultfd.c": "3523c4b901873be8a6d0818fda75a83d22b51e44611e649e921483d33c0e4790"
+  },
+  "patched_sha256": {
+    "kernel/smp.c": "de7cb5698a29ccec0df8debba4c012fe8ca7f247eb8da230c9b31b8e401b6c87",
+    "kernel/softirq.c": "97c8a138c308d4589406b76ab5acaf8c396ec39361b5aa1660ede44b485c112c",
+    "include/linux/interrupt.h": "89c3c2160d3d5deeb89e22627bd059c9a6e2ee1e33b0571028f8f5fd4ef815f7",
+    "fs/userfaultfd.c": "c77da01985fda80e3c9d0aa7066d496c3fa54fe5064a449c8228e8aa9c1039c4"
+  },
+  "applied": true
+}
+EXP76_STAGE61=RT_SOFTIRQ_THREAD_WAKE_AND_USERFAULTFD_SEQLOCK; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE62_OF_PHANDLE_CACHE_DEFERRED_KFREE_NONFLASH",
+  "rt_shadow_assignment_type_reconciled": true,
+  "phandle_cache_detach_under_raw_lock": true,
+  "cache_node_references_released_as_before": true,
+  "retired_cache_kfree_after_unlock": true,
+  "rt_allocation_unlock_relock_preserved": true,
+  "outstanding_rt_rejects": 64,
+  "full_kernel_link_performed": false,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "8bd57b89cba751bfe9088b65a5388425371475ad64326fe28ed45d1e097dec34",
+  "patched_sha256": "47203a59999b1d129e6eea2f655a0aa86ed4bb119bbbce858f429b4c280309e8",
+  "applied": true
+}
+EXP76_STAGE62=OF_PHANDLE_CACHE_DEFERRED_KFREE_RECONCILED; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE63_OPLUS_NANDSWAP_RT_SPINLOCK_INIT_NONFLASH",
+  "target": "drivers/oplus/nandswap_core.c",
+  "pinned_function": "ns_task_insert",
+  "old_assignment_removed": true,
+  "dynamic_spinlock_initialized_with_api": true,
+  "allocation_failure_guard_preserved": true,
+  "outstanding_rt_rejects": 64,
+  "full_kernel_link_performed": false,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "ccef1799c2677f85110814ad04bed8be2387cac3d94dad573b782727682b90c4",
+  "patched_sha256": "ece9b3ce84c767ce73faa67c801e6380dfff1f95e43d600fab6580c21b244e39",
+  "applied": true
+}
+EXP76_STAGE63=NANDSWAP_RT_SPINLOCK_INIT; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_STAGE64_ION_SECURE_HEAP_RT_SPINLOCK_INIT_NONFLASH",
+  "target": "drivers/staging/android/ion/ion_system_secure_heap.c",
+  "pinned_function": "ion_system_secure_heap_create",
+  "static_initializer_assignment_removed": true,
+  "dynamic_spinlock_initialized_with_api": true,
+  "allocation_failure_guard_preserved": true,
+  "delayed_work_setup_preserved": true,
+  "outstanding_rt_rejects": 64,
+  "full_kernel_link_performed": false,
+  "runtime_verified": false,
+  "kernel_built": false,
+  "flash_ready": false,
+  "original_sha256": "f94ea924fcc29a363d31d064337e46962c9c5fe018c72635be84a0745b1ad3e5",
+  "patched_sha256": "42fc45bd8a34cbe41cd5e9a2e2526df4fecf70c08feba2b2aabc0725b031be57",
+  "applied": true
+}
+EXP76_STAGE64=ION_SECURE_HEAP_RT_SPINLOCK_INIT; REJECTS=64; KERNEL_BUILT=false; FLASH_READY=false
+{
+  "stage": "EXP76_PARTIAL_SOURCE_EXPORT",
+  "e404_pinned_sha": "fed88a6024cd4d46c52eda607a95d97d7371ba81",
+  "nonflash_only": true,
+  "unresolved_rejected_files": 64,
+  "additional_new_source_files": 19,
+  "cumulative_patch_sha256": "84025e240ce112267f99baadc208c87a025c7389734bdbfecc1c36f4559ac66e",
+  "reapply_to_clean_e404": "PASS",
+  "kernel_compiled": false,
+  "preempt_rt_config_enabled": false,
+  "flash_ready": false
+}
+EXP76_PARTIAL_SOURCE=REAPPLY_CHECKED; RT_NOT_BUILT=true; FLASH_READY=false
+EXP76_RT_STAGE=AUDIT_ONLY
+RT_SOURCE=4.19.325-rt140
+E404_SOURCE_COMMIT=fed88a6024cd4d46c52eda607a95d97d7371ba81
+EXACT_VERSION_MATCH=false
+e404.apply_check=FAIL
+e404.reject_count=82
+overlay.apply_check=FAIL
+overlay.reject_count=82
+EXP75_INLINE_OVERLAYS_REPRODUCED=false
+EXP76_UNAME_SOURCE_FIX=APPLIED_IN_AUDIT_TREE_ONLY
+CONFIG_PREEMPT_RT_FULL_ENABLED=false
+KERNEL_BUILT=false
+DEVICE_TESTED=false
+FLASH_READY=false
++ echo EXP76_PHASE=SOURCE_AUDIT_DONE
+EXP76_PHASE=SOURCE_AUDIT_DONE
++ checkpoint 02_reconstruct_done
++ local label=02_reconstruct_done
+++ date -u +%FT%TZ
++ printf '%s stage=%s sha=%s\n' 2026-11-16T17:01:19Z 02_reconstruct_done e3434375a52587e6682aab19f8296a95fc16ba1b
+++ nproc
++ printf 'nproc=%s\n' 4
++ grep -E 'MemTotal|MemAvailable' /proc/meminfo
++ df -h /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel
++ test -r /sys/fs/cgroup/memory.current
++ bash /home/runner/work/Pipa-Experimental-Kernel/Pipa-Experimental-Kernel/scripts/commit-result.sh 02_reconstruct_done
