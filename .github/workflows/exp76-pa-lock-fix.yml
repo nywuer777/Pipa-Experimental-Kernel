@@ -9,27 +9,50 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-      - name: Run reconstruction, patch, build and QEMU
-        timeout-minutes: 110
-        shell: bash
+      - uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ env.ANDROID_LLVM_COMMIT || 'clang21' }}-${{ hashFiles('**/exp76-trial-overlay/.config','**/qemu-rt/.config') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+      - name: Install build dependencies
+        timeout-minutes: 15
         run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils cpio gcc-aarch64-linux-gnu ccache
+          sudo apt-get clean
           mkdir -p reports
           echo "$GITHUB_RUN_ID" > reports/run-id.txt
           printf 'branch=%s\ncommit=%s\nurl=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> reports/run-id.txt
-          {
-            echo "checkpoint=00_env"
-            echo "sha=$GITHUB_SHA"
-            echo "nproc=$(nproc)"
-            grep -E 'MemTotal|MemAvailable' /proc/meminfo
-            df -h "$GITHUB_WORKSPACE"
-            date -u +%FT%TZ
-          } > reports/00_checkpoint_env.txt
-          bash scripts/commit-result.sh 00_env
-          set +e
-          bash -euxo pipefail <<'SCRIPT' |& tee reports/execution.log &
+          echo 'dependencies=installed' > reports/00_dependencies.txt
+          bash scripts/commit-result.sh 00_dependencies_ready
+      - name: Enable ccache
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CCACHE_DIR="$HOME/.ccache"
+          export CCACHE_BASEDIR="$GITHUB_WORKSPACE"
+          export CCACHE_COMPILERCHECK=content
+          export CCACHE_MAXSIZE=5G
+          ccache --zero-stats || true
+          echo "CCACHE_DIR=$CCACHE_DIR" >> "$GITHUB_ENV"
+          echo "CCACHE_BASEDIR=$CCACHE_BASEDIR" >> "$GITHUB_ENV"
+          echo "CCACHE_COMPILERCHECK=$CCACHE_COMPILERCHECK" >> "$GITHUB_ENV"
+          echo "CCACHE_MAXSIZE=$CCACHE_MAXSIZE" >> "$GITHUB_ENV"
+      - name: 02_prepare_source_config
+        timeout-minutes: 30
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          echo "$GITHUB_RUN_ID" > reports/run-id.txt
+          printf 'branch=%s\ncommit=%s\nurl=%s\n' "$GITHUB_REF_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> reports/run-id.txt
+          CHECKPOINT_HELPER="$GITHUB_WORKSPACE/scripts/commit-result.sh"
+          bash -euxo pipefail <<'SCRIPT' |& tee reports/02_prepare.log
           set -Eeuo pipefail
           CHECKPOINT_HELPER="$GITHUB_WORKSPACE/scripts/commit-result.sh"
           checkpoint() {
@@ -48,10 +71,6 @@ jobs:
             bash "$CHECKPOINT_HELPER" "$label"
           }
           checkpoint 01_start
-          sudo apt-get update
-          sudo apt-get install -y qemu-system-arm clang lld llvm bc bison flex libssl-dev libelf-dev xz-utils cpio gcc-aarch64-linux-gnu
-          sudo apt-get clean
-          checkpoint 00_dependencies_ready
           echo EXP76_PHASE=SOURCE_AUDIT_BEGIN
           checkpoint 02_reconstruct_begin
           timeout --signal=TERM --kill-after=30s 30m bash tools/exp76-rt-compat-audit.sh
@@ -220,30 +239,87 @@ jobs:
           fi
           echo CONFIG_GATE=PASS > ../reports/config-gate.txt
           checkpoint 04_config_ready
-          grep -E 'CONFIG_(PREEMPT_RT_FULL|MAGIC_SYSRQ|BINFMT_SCRIPT|MODULES|MODULE_UNLOAD|SERIAL_AMBA_PL011_CONSOLE)=' .config > ../reports/config-check.txt || true
-          echo EXP76_PHASE=BUILD_BEGIN
-          date -u +%s > ../reports/build-start-epoch.txt
-          checkpoint 05_build_begin
-          if ! timeout --signal=TERM --kill-after=30s 60m make -j"$(nproc)" ARCH=arm64 LLVM=1 Image vmlinux > ../reports/build.log 2>&1; then tail -n 100 ../reports/build.log; echo BUILD_FAILED > ../reports/error.txt; checkpoint 05_build_failed; exit 21; fi
-          date -u +%s > ../reports/build-end-epoch.txt
-          build_start=$(cat ../reports/build-start-epoch.txt)
-          build_end=$(cat ../reports/build-end-epoch.txt)
-          echo "build_sec=$((build_end-build_start))" > ../reports/build-duration.txt
-          tail -n 30 ../reports/build.log
-          echo EXP76_PHASE=BUILD_DONE
-          checkpoint 05_build_done
-          df -h "$GITHUB_WORKSPACE"
-          sha256sum arch/arm64/boot/Image vmlinux .config > ../reports/build-sha256.txt
-          cd ..
-          # V3: compile the actual external module against this patched Image.
-          sudo rm -rf /var/lib/apt/lists/*
+          SCRIPT
+      - name: 05_build_image
+        timeout-minutes: 90
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          finish_build() {
+            local rc=$?
+            trap - EXIT INT TERM
+            {
+              printf 'build_exit=%s\n' "$rc"
+              date -u +%FT%TZ
+              tail -40 reports/build.log 2>/dev/null || true
+            } > reports/05_build_status.txt
+            ccache --show-stats > reports/05_ccache_stats.txt 2>&1 || true
+            sha256sum exp76-trial-overlay/arch/arm64/boot/Image > reports/05_Image.sha256 2>/dev/null || true
+            bash scripts/commit-result.sh "05_build_exit_${rc}" || true
+            return "$rc"
+          }
+          trap finish_build EXIT
+          trap 'exit 143' TERM
+          trap 'exit 130' INT
+          START=$(date +%s)
+          checkpoint_line="$(date -u +%FT%TZ) stage=05_build_begin sha=$GITHUB_SHA"
+          echo "$checkpoint_line" >> reports/checkpoints.log
+          bash scripts/commit-result.sh 05_build_begin
+          set +e
+          make -C exp76-trial-overlay ARCH=arm64 LLVM=1 CC="ccache clang" LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- -j"$(nproc)" Image vmlinux 2>&1 | tee reports/build.log
+          RC=${PIPESTATUS[0]}
+          set -e
+          END=$(date +%s)
+          echo "build_exit=$RC duration=$((END-START))s" > reports/05_build_status.txt
+          ccache --show-stats > reports/05_ccache_stats.txt 2>&1 || true
+          sha256sum exp76-trial-overlay/arch/arm64/boot/Image exp76-trial-overlay/vmlinux exp76-trial-overlay/.config > reports/build-sha256.txt 2>/dev/null || true
+          if [ "$RC" -eq 0 ]; then
+            cp exp76-trial-overlay/arch/arm64/boot/Image reports/Image
+            bash scripts/commit-result.sh 05_build_done
+          else
+            bash scripts/commit-result.sh 05_build_failed
+          fi
+          trap - EXIT INT TERM
+          exit "$RC"
+      - name: 06_build_modules
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
           mkdir -p reports/v3-module
           cp tests/exp76-rt-spin-sleep/{Makefile,exp76_rt_spin_sleep.c} reports/v3-module/
-          make -j"$(nproc)" -C exp76-trial-overlay ARCH=arm64 LLVM=1 \
-            CROSS_COMPILE=aarch64-linux-gnu- M="$GITHUB_WORKSPACE/reports/v3-module" modules \
-            > reports/v3-module-build.log 2>&1 || { echo V3_MODULE_BUILD_FAILED > reports/error.txt; bash "$CHECKPOINT_HELPER" 06_modules_failed; exit 24; }
+          finish_modules() {
+            local rc=$?
+            trap - EXIT INT TERM
+            echo "mod_exit=$rc" > reports/06_mod_status.txt
+            tail -40 reports/v3-module-build.log 2>/dev/null >> reports/06_mod_status.txt || true
+            ccache --show-stats > reports/06_ccache_stats.txt 2>&1 || true
+            bash scripts/commit-result.sh "06_modules_exit_${rc}" || true
+            return "$rc"
+          }
+          trap finish_modules EXIT
+          trap 'exit 143' TERM
+          trap 'exit 130' INT
+          set +e
+          make -j"$(nproc)" -C exp76-trial-overlay ARCH=arm64 LLVM=1 CC="ccache clang" LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- M="$GITHUB_WORKSPACE/reports/v3-module" modules 2>&1 | tee reports/v3-module-build.log
+          RC=${PIPESTATUS[0]}
+          set -e
+          [ "$RC" -eq 0 ]
           test -s reports/v3-module/exp76_rt_spin_sleep.ko
-          bash "$CHECKPOINT_HELPER" 06_modules_done
+          echo 'mod_exit=0' > reports/06_mod_status.txt
+          bash scripts/commit-result.sh 06_modules_done
+          trap - EXIT INT TERM
+      - name: 07_qemu_test_matrix
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          CHECKPOINT_HELPER="$GITHUB_WORKSPACE/scripts/commit-result.sh"
+          bash -euxo pipefail <<'SCRIPT' |& tee reports/07_qemu.log
           mkdir -p reports/v3-root/{bin,dev,proc,sys,tmp,probe,config}
           curl -fL --retry 3 https://ports.ubuntu.com/ubuntu-ports/pool/main/b/busybox/busybox-static_1.36.1-6ubuntu3.1_arm64.deb -o reports/busybox-arm64.deb
           mkdir -p reports/busybox-extract
@@ -331,7 +407,7 @@ jobs:
           sha256sum reports/console.txt > reports/console.sha256
           bash "$CHECKPOINT_HELPER" 09_v3_done
           grep -q GUEST_RUNNING reports/console.txt && grep -qx 'EXP76_QEMU_GUEST_RESULT=0' reports/console.txt && grep -qx 'QEMU_RT_SPINLOCK=PASS test_id=EXP76_RT_SPIN_SLEEP_QEMU_V3' reports/console.txt && grep -q 'EXP76_RT_SPIN_SLEEP END status=PASS' reports/console.txt && ! grep -q 'Internal error: Oops' reports/console.txt && test "$(cat reports/qemu-exit.txt)" = 0 && echo T3_V3=PASS > reports/t3-status.txt || echo T3_V3=FAIL > reports/t3-status.txt
-
+          
           grep -q EXP76_IDLE_8S_OK reports/idle-console.txt && ! grep -q 'Internal error: Oops' reports/idle-console.txt && test "$(cat reports/idle-exit.txt)" = 0 && echo T1_IDLE=PASS > reports/t1-status.txt || echo T1_IDLE=FAIL > reports/t1-status.txt
           grep -q EXP76_STRESS_8S_OK reports/stress-console.txt && ! grep -q 'Internal error: Oops' reports/stress-console.txt && test "$(cat reports/stress-exit.txt)" = 0 && echo T2_STRESS=PASS > reports/t2-status.txt || echo T2_STRESS=FAIL > reports/t2-status.txt
           if grep -qx T1_IDLE=PASS reports/t1-status.txt && grep -qx T2_STRESS=PASS reports/t2-status.txt && grep -qx T3_V3=PASS reports/t3-status.txt; then
@@ -343,35 +419,6 @@ jobs:
             exit 29
           fi
           SCRIPT
-          work_pid=$!
-          (
-            while kill -0 "$work_pid" 2>/dev/null; do
-              sleep 300
-              kill -0 "$work_pid" 2>/dev/null || break
-              {
-                printf '%s stage=periodic\n' "$(date -u +%FT%TZ)"
-                printf 'nproc=%s\n' "$(nproc)"
-                grep -E 'MemTotal|MemAvailable' /proc/meminfo
-                df -h "$GITHUB_WORKSPACE"
-                ps -eo pid,ppid,rss,stat,comm --sort=-rss | head -20
-                if test -r /sys/fs/cgroup/memory.current; then
-                  printf 'cgroup_memory_current='; cat /sys/fs/cgroup/memory.current
-                  printf 'cgroup_memory_max='; cat /sys/fs/cgroup/memory.max
-                  cat /sys/fs/cgroup/memory.events
-                fi
-              } > reports/periodic-resource.txt
-              bash scripts/commit-result.sh periodic || true
-            done
-          ) &
-          monitor_pid=$!
-          wait "$work_pid"
-          rc=$?
-          kill "$monitor_pid" 2>/dev/null || true
-          wait "$monitor_pid" 2>/dev/null || true
-          echo "$rc" > reports/step-exit-code.txt
-          bash scripts/commit-result.sh final_step || true
-          sha256sum reports/* > reports/report-sha256.txt 2>/dev/null || true
-          exit "$rc"
       - name: V3 guest validation and evidence
         if: always()
         shell: bash
